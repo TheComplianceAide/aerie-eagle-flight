@@ -1,0 +1,311 @@
+Aerie environment credits
+
+Oeschinensee and the Bernese Alps, Switzerland.
+Swiss federal survey sources: Federal Office of Topography swisstopo.
+SWISSIMAGE orthophotography is registered to swissALTI3D terrain in the LV95 coordinate system.
+The inner basin samples 64 two-metre swissALTI3D tiles. Tree crowns were extracted from
+0.5-metre swissSURFACE3D Raster surface elevations against the terrain model.
+https://www.swisstopo.admin.ch/en/orthoimage-swissimage
+https://www.swisstopo.admin.ch/en/height-model-swissalti3d
+https://www.swisstopo.admin.ch/en/swisssurface3d-raster
+https://www.swisstopo.admin.ch/en/terms-of-use-free-geodata-and-geoservices
+
+Terrain beyond the flight basin uses the regional elevation mosaic.
+Mapzen Terrain Tiles, provided through the AWS Registry of Open Data.
+Europe terrain data produced using Copernicus data and information funded by the
+European Union — EU-DEM layers. Global GMTED2010 and SRTM terrain data courtesy
+of the U.S. Geological Survey.
+https://registry.opendata.aws/terrain-tiles/
+Source datasets and attribution: https://github.com/tilezen/joerd/blob/master/docs/attribution.md
+
+Belfast Sunset (Pure Sky), Rock Face 03, Marble Cliff 04 and Aerial Ground Rock are CC0 assets from Poly Haven.
+https://polyhaven.com/a/belfast_sunset_puresky
+https://polyhaven.com/a/marble_cliff_04
+https://polyhaven.com/a/rock_face_03
+https://polyhaven.com/a/aerial_ground_rock
+
+Fir Tree 01 and Rock Moss Set 01 are CC0 models from Poly Haven. The forest uses
+reconstructed crown volumes and multiple viewing angles derived from the fir models.
+https://polyhaven.com/a/fir_tree_01
+https://polyhaven.com/a/rock_moss_set_01
+
+The meltwater paths and cascades are simulated scenery.
+
+The departure photographs are frames captured from the live game. The eagle plumage texture was generated for this game.
+
+Three.js and Water are distributed under the MIT License.
+Copyright © 2010–2024 three.js authors.
+Water incorporates work by Slayvin, Lee Stemkoski and Jonas Wagner.
+Water normals texture from the Three.js examples.
+https://github.com/mrdoob/three.js/tree/r160
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions.
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+Horseshoe Bend, Glen Canyon National Recreation Area, Arizona.
+USDA National Agriculture Imagery Program aerial photographs via USGS The National Map.
+https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer
+USGS 3D Elevation Program terrain for the Arizona and Alaska landscapes.
+https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer
+
+Mendenhall Glacier, Juneau, Alaska.
+Contains modified Copernicus Sentinel data (2024). Sentinel-2 Level-2A multispectral imagery
+acquired August 8, 2024, accessed through Earth Search.
+https://dataspace.copernicus.eu/explore-data/data-collections/sentinel-data/sentinel-2
+https://earth-search.aws.element84.com/v1/
+Sentinel-2A L2A scene 8VNK:
+https://earth-search.aws.element84.com/v1/collections/sentinel-2-l2a/items/S2A_8VNK_20240808_0_L2A
+Snow 02 and Kloofendal 38d Partly Cloudy Pure Sky by Poly Haven, CC0.
+https://polyhaven.com/a/snow_02
+https://polyhaven.com/a/kloofendal_38d_partly_cloudy_puresky
+Close ice and rock surface samples from “Margerie Glacier Calving” (2004), National Park Service, public domain.
+https://npgallery.nps.gov/AssetDetail/c48fb2e4-d7b7-4296-9b55-fda752915691
+
+Photographic ground materials used at low altitude: Ganges River Pebbles, River Small Rocks, Grass Ground, Gravelly Sand and Bark Brown 02. Poly Haven, CC0.
+https://polyhaven.com/a/ganges_river_pebbles
+https://polyhaven.com/a/river_small_rocks
+https://polyhaven.com/a/grass_ground
+https://polyhaven.com/a/gravelly_sand
+https://polyhaven.com/a/bark_brown_02
+
+Additional eagle feather detail: U.S. Fish & Wildlife Service Forensics Laboratory, The Feather Atlas, adult bald eagle tail and secondary feather scans.
+https://www.fws.gov/lab/featheratlas/
+https://eaglesexplored.com/galleries/plumage/atlas/
+
+Orbital plumage and eye, cropped and blended from “Bald Eagle Beak”, CC0:
+https://commons.wikimedia.org/wiki/File:Bald_Eagle_Beak.jpg
+
+City and Borough of Juneau GIS and Watershed Sciences Inc., May–June 2013 orthorectified aerial photography. Blended with the 2024 Sentinel-2 survey over stable land.
+https://epv.ci.juneau.ak.us/arcgis/rest/services/prod/unc_aerial_layers_2b/MapServer
+Industrial Sunset 02 Pure Sky, Poly Haven, CC0.
+https://polyhaven.com/a/industrial_sunset_02_puresky
+
+DETAILED ALASKA SURVEY
+
+ArcticDEM v4.1, Porter et al. (2023), Polar Geospatial Center. CC BY 4.0. Regional terrain reprojected, sampled and shaded. The 2-metre source is sampled at 3 metres in the western crest area and 8 metres across the broader detailed area.
+https://doi.org/10.7910/DVN/3VDC4W
+Juneau Icefield 1770–2020, Davies, Bethan (2024), Mendeley Data V3. CC BY 4.0. Historical aerial texture detail blended onto stable bedrock.
+https://doi.org/10.17632/4djw8z3jrb.3
+https://creativecommons.org/licenses/by/4.0/
+
+NEW ENGLAND LAKES
+
+Lake Winnipesaukee, New Hampshire and Moosehead Lake, Maine. USDA NAIP aerial photography, USGS 3D Elevation Program elevation, USGS National Hydrography Dataset shoreline and island polygons and USGS Geographic Names Information System place locations. Aerial imagery has been balanced for in-game lighting, reprojected and resampled.
+https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer
+https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer
+https://hydro.nationalmap.gov/arcgis/rest/services/nhd/MapServer/12
+https://carto.nationalmap.gov/arcgis/rest/services/geonames/MapServer
+Contains modified ESA WorldCover 2021 data, CC BY 4.0, used to distribute modeled trees within mapped forest. Individual trees and water motion are simulated.
+https://esa-worldcover.org/en/data-access
+https://doi.org/10.5281/zenodo.7254221
+https://creativecommons.org/licenses/by/4.0/
+
+Aerie — additional landscapes
+
+Yosemite Valley, Bryce Canyon National Park and Crater Lake National Park:
+Aerial photography from USDA's National Agriculture Imagery Program, delivered by USGS The National Map. Heights are resampled USGS 3D Elevation Program (3DEP) terrain. The central 2.9 km of Bryce Amphitheater uses fins and hoodoos measured by the 2018 Southern Utah QL1 USGS survey. Its one-meter lidar elevation product was sampled at 1.42 m for the game. Trees and waterfalls are simulated.
+https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer
+https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer
+
+Nā Pali Coast:
+USDA Natural Resources Conservation Service historical 1962–1966 Hawaii orthophotography, matched to 2022 Copernicus Sentinel-2 natural-color imagery. USGS 3DEP terrain.
+https://apps.geo.fpac.usda.gov/nrcs-imagery/rest/services/ortho_imagery/hawaii_1962_1966_30cm/ImageServer
+https://earth-search.aws.element84.com/v1/collections/sentinel-2-l2a/items/S2A_4QDK_20220821_0_L2A
+https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer
+
+Reinefjorden, Lofoten:
+Elevation data © Kartverket, Norwegian national height model (NHM DTM 1). Licensed under CC BY 4.0. The local surface was resampled and relief shading combined with modified Copernicus Sentinel-2 summer photographs (2022–2024). Regional terrain uses Copernicus DEM GLO-30.
+https://www.kartverket.no/api-og-data/terrengdata
+https://wcs.geonorge.no/skwms1/wcs.hoyde-dtm-nhm-25833
+https://creativecommons.org/licenses/by/4.0/
+https://earth-search.aws.element84.com/v1/collections/sentinel-2-l2a/items/S2A_33WVR_20230627_0_L2A
+
+Milford Sound / Piopiotahi:
+Southland 0.75m Rural Aerial Photos (2005–2011), sourced from the LINZ Data Service and licensed for reuse under CC BY 4.0. Reprojected and resampled to the flight area. The regional color mosaic contains modified Copernicus Sentinel-2 data (2022 and 2024). Elevation derived from Copernicus DEM GLO-30.
+https://nz-imagery.s3.ap-southeast-2.amazonaws.com/southland/southland_2005-2011_0.75m/rgb/2193/collection.json
+https://www.linz.govt.nz/products-services/data/types-linz-data/aerial-imagery
+https://creativecommons.org/licenses/by/4.0/
+https://earth-search.aws.element84.com/v1/collections/sentinel-2-l2a/items/S2A_58GGR_20240220_0_L2A
+
+Contains modified Copernicus Sentinel data, distributed via the AWS Open Data Program / Element 84 Earth Search.
+https://registry.opendata.aws/sentinel-2-l2a-cogs/
+Copernicus DEM GLO-30, Copernicus Space Component Data Access system. © DLR e.V. 2010–2014 and © Airbus Defence and Space GmbH 2014–2018, provided under COPERNICUS by the European Union and ESA, all rights reserved.
+https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM
+https://registry.opendata.aws/copernicus-dem/
+
+Island Tree 01 model and photo textures, Qwantani Sunrise (Pure Sky) and Wasteland Clouds (Pure Sky) by Poly Haven, CC0. Broadleaf tree views were rendered from the textured model specifically for Aerie. Vegetation represents plausible stands derived from image color and terrain; individual trees are not a surveyed inventory.
+https://polyhaven.com/a/island_tree_01
+https://polyhaven.com/a/qwantani_sunrise_puresky
+https://polyhaven.com/a/wasteland_clouds_puresky
+
+Lake and ocean reflection material derived from Three.js Water (MIT). Existing terrain scans, water normals and the fir-tree model are credited in credits.txt. The locations, terrain and imagery are real. Lighting, water, close surface materials, waterfalls and vegetation are rendered as a simulation.
+
+AERIE FIELD RECORDINGS
+
+The eagle's voice is drawn from three recordings of bald eagles. The environmental mixes combine recordings from the depicted region with field recordings of the same habitat or species elsewhere. Recording locations and rights are listed below. The individual MP3 excerpts have been trimmed, resampled, level-adjusted and faded. Ambient excerpts have crossfaded loop seams.
+
+EAGLE
+
+field-eagle-alaska.mp3 — “Bald Eagle.wav.” Marylou Blakeslee, shared by CCCanary, Glacier Bay, Alaska. CC0 1.0.
+https://freesound.org/people/CCCanary/sounds/350753/
+https://creativecommons.org/publicdomain/zero/1.0/
+
+field-eagle-chirp.mp3 — “Birds of Prey - Bald Eagle Chirping, Close Perspective.” TheKingOfGeeks360, recorded at Georgia Southern University's Center for Wildlife Education. CC0 1.0.
+https://freesound.org/people/TheKingOfGeeks360/sounds/751269/
+https://creativecommons.org/publicdomain/zero/1.0/
+
+field-eagle-yellowstone.mp3 — “Bald Eagle.” U.S. National Park Service, Yellowstone National Park.
+https://www.nps.gov/subjects/sound/sounds-bald-eagle.htm
+
+WATER AND FOREST
+
+field-ice.mp3 — “svalbard_recherche_glacier_20060904.wav,” jeo. Water, brash ice and distant calving in front of Recherche Glacier, Svalbard. CC BY 4.0.
+https://freesound.org/people/jeo/sounds/103116/
+https://creativecommons.org/licenses/by/4.0/
+
+field-surf.mp3 — “Hanakapiai Beach - Na Pali Coast Hawaii,” RTB45. Winter surf recorded on the Nā Pali coast, Kauaʻi. CC BY 4.0.
+https://freesound.org/people/RTB45/sounds/336694/
+https://creativecommons.org/licenses/by/4.0/
+
+field-inlet.mp3 — “20150718_fjord.inlet.loud.wav,” dobroide. Waves in a rocky inlet near Nusfjord, Lofoten, Norway. CC BY 4.0.
+https://freesound.org/people/dobroide/sounds/317418/
+https://creativecommons.org/licenses/by/4.0/
+
+field-lake.mp3 — “Water lapping at shore on McClintock Bay,” SoundsLikeYukon. Marsh Lake, Yukon. CC0 1.0.
+https://freesound.org/people/SoundsLikeYukon/sounds/758708/
+https://creativecommons.org/publicdomain/zero/1.0/
+
+field-canopy.mp3 — “GAVDOS_Dry_Wind_Pine_Trees_DPA4060,” nicotep. Wind in the pines, Gavdos, Greece. CC0 1.0.
+https://freesound.org/people/nicotep/sounds/843927/
+https://creativecommons.org/publicdomain/zero/1.0/
+
+field-cascade.mp3 — “Meltwater Close.wav,” Benboncan. Stereo recording of a series of small meltwater falls in a river. CC BY 4.0.
+https://freesound.org/people/Benboncan/sounds/87953/
+https://creativecommons.org/licenses/by/4.0/
+
+field-river.mp3 — “Stream.” U.S. National Park Service, recorded at Muir Woods, California.
+https://www.nps.gov/subjects/sound/sounds-stream.htm
+
+WILDLIFE
+
+field-chough.mp3 — “Alpine Chough · Pyrrhocorax graculus,” Pascal Christe, XC482782, Switzerland. This adapted audio clip is licensed CC BY-SA 4.0.
+https://commons.wikimedia.org/wiki/File:Pyrrhocorax_graculus_-_Alpine_Chough_XC482782.mp3
+https://creativecommons.org/licenses/by-sa/4.0/
+
+field-kittiwake.mp3 — “Kittiwake (Rissa tridactyla),” Lawrence Shove, Skomer Island, Wales. © The British Library Board. Shelfmark W1CDR0001389 BD30. This adapted audio clip is licensed CC BY-SA 4.0.
+https://commons.wikimedia.org/wiki/File:Kittiwake_(Rissa_tridactyla)_(W1CDR0001389_BD30).ogg
+https://creativecommons.org/licenses/by-sa/4.0/
+
+field-bellbird.mp3 — “New Zealand Bellbirds (Anthornis melanura) singing in Craigieburn Range,” Michal Klajban, South Island, New Zealand. This adapted audio clip is licensed CC BY-SA 4.0.
+https://commons.wikimedia.org/wiki/File:New_Zealand_Bellbirds_(Anthornis_melanura)_singing_in_Craigieburn_Range.ogg
+https://creativecommons.org/licenses/by-sa/4.0/
+
+The following wildlife excerpts come from the U.S. National Park Service Natural Sounds Sound Gallery.
+
+field-bryce.mp3 — Dawn chorus in the amphitheater, courtesy of Bryce Canyon National Park.
+https://www.nps.gov/subjects/sound/sounds-dawnchorus_bryce.htm
+
+field-petrel.mp3 — ʻUaʻu (Hawaiian petrel), Haleakalā National Park, Hawaiʻi.
+https://www.nps.gov/subjects/sound/sounds-uau.htm
+
+field-nutcracker.mp3 — Clark's nutcracker, Yosemite National Park, California.
+https://www.nps.gov/subjects/sound/sounds-clarks-nutcracker.htm
+
+field-thrush.mp3 — Hermit thrush, Yosemite National Park, California.
+https://www.nps.gov/subjects/sound/sounds-hermit-thrush.htm
+
+field-poorwill.mp3 — Common poorwill, Great Basin National Park, Nevada.
+https://www.nps.gov/subjects/sound/sounds-common-poorwill.htm
+
+field-jay.mp3 — Steller's jay, NPS Natural Sounds and Night Skies Division.
+https://www.nps.gov/subjects/sound/sounds-stellers-jay.htm
+
+field-crickets.mp3 — Crickets, Mojave National Preserve, California.
+https://www.nps.gov/subjects/sound/sounds-crickets.htm
+
+NEW HAMPSHIRE AND MAINE LAKES
+
+field-loon-winnipesaukee.mp3 — Common loon, recorded by Matt Felperin on Castle Shore Road, Moultonborough, New Hampshire, August 25, 2024. © Matt Felperin, CC BY 4.0. Excerpt, noise reduction, tonal filtering and level adjustment.
+https://www.inaturalist.org/observations/237790291
+https://static.inaturalist.org/sounds/1184681.m4a
+https://creativecommons.org/licenses/by/4.0/
+
+field-nh-vireo.mp3 — Red-eyed vireo, recorded by Matt Felperin on Castle Shore Road, Moultonborough, New Hampshire, August 23, 2024. © Matt Felperin, CC BY 4.0.
+https://www.inaturalist.org/observations/237549950
+https://static.inaturalist.org/sounds/1183515.m4a
+https://creativecommons.org/licenses/by/4.0/
+
+field-loon-moosehead.mp3 — Common loon, recorded by iNaturalist contributor wewantashrubbery at Lily Bay, Moosehead Lake, Maine, August 13, 2022. CC0 1.0. Excerpt, noise reduction, tonal filtering and level adjustment.
+https://www.inaturalist.org/observations/130881300
+https://static.inaturalist.org/sounds/520748.m4a
+https://creativecommons.org/publicdomain/zero/1.0/
+
+field-me-kinglet.mp3 — Golden-crowned kinglet, recorded by iNaturalist contributor wewantashrubbery on State Park Road, Lily Bay, Maine, August 14, 2022. CC0 1.0.
+https://www.inaturalist.org/observations/130884489
+https://static.inaturalist.org/sounds/520764.m4a
+https://creativecommons.org/publicdomain/zero/1.0/
+
+Graphic materials and local detail
+The launch areas around Mount Kineo and Rattlesnake Island use USGS 3DEP elevations sampled on a 3.98 m grid and USGS NAIP imagery sampled at 0.94 m per texel. Crown positions are estimates from visible local brightness peaks in the canopy. Tree heights, shoot geometry, species assignments, seasonal color and weather are artistic reconstructions.
+https://www.usgs.gov/3d-elevation-program
+https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer
+
+Lakeside structure positions and orientations at Moosehead Lake and piers © OpenStreetMap contributors. Winnipesaukee building locations are derived from the Microsoft US Building Footprints database. The simplified footprint coordinates in the corresponding atlas survey scripts are available under the Open Database License 1.0. Building heights, siding, roofs and window patterns are simulated.
+https://www.openstreetmap.org/copyright
+https://github.com/microsoft/USBuildingFootprints
+https://opendatacommons.org/licenses/odbl/1-0/
+
+Hardwood crown, profile and branch-spray assets, building materials, and eagle nape and mantle macro textures were created with ImageGen. The photographic bald eagle portrait credited above supplies eye, cheek and bill surfaces.
+Rocky Terrain 02, Rock Face 04, Cliff Side, Qwantani Late Afternoon Pure Sky, and Kloppenheim 06 Pure Sky from Poly Haven, CC0. Sky panoramas are rotated and graded for each flight location.
+https://polyhaven.com/a/rocky_terrain_02
+https://polyhaven.com/a/rock_face_04
+https://polyhaven.com/a/cliff_side
+https://polyhaven.com/a/qwantani_late_afternoon_puresky
+https://polyhaven.com/a/kloppenheim_06_puresky
+
+“Mount Kineo on Moosehead Lake” by Jesse Lee Tucker. atlas-kineo-rhyolite.webp is a cropped, perspective-rectified and locally exposure-normalized derivative under Creative Commons Attribution-ShareAlike 4.0.
+https://commons.wikimedia.org/wiki/File:Mount_Kineo_on_Moosehead_Lake.jpg
+https://creativecommons.org/licenses/by-sa/4.0/
+
+Courtesy Zion National Park, Photographer Carl E. Jepson, Museum Catalog Number ZION 10411.
+https://npgallery.nps.gov/AssetDetail/f25503ae0313494792b5cc9f33a1aa02
+Navajo Sandstone cross-bedding, NPS photo by Adrienne Fitzgerald.
+https://www.nps.gov/zion/learn/nature/navajo.htm
+
+Bryce Amphitheater high-detail surface from USGS 3DEP, Southern Utah QL1 2018, one-meter lidar-derived terrain. Yosemite crown placement uses visible and near-infrared bands of USGS NAIP imagery. Yosemite granite-wall detail uses the USGS El Capitan photograph and a National Park Service photograph by Ralph H. Anderson (May 1938).
+https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/UT_Southern_QL1_2018/TIFF/USGS_one_meter_x39y417_UT_Southern_QL1_2018.tif
+https://www.usgs.gov/media/images/el-capitan-1
+https://npgallery.nps.gov/AssetDetail/350d1030826340a4bf80145ae1b530e8
+
+Surry Mountain Dam, Ashuelot River and Keene. Elevation by USGS 3DEP, water outline adapted from USGS National Hydrography Dataset and elevation, aerial imagery from 2023 USDA NAIP via USGS The National Map. Ashuelot riverbank mapping © OpenStreetMap contributors, ODbL. Forest mask contains modified ESA WorldCover 2021 data, CC BY 4.0.
+https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer
+https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer
+https://hydro.nationalmap.gov/arcgis/rest/services/nhd/MapServer
+https://www.openstreetmap.org/copyright
+https://esa-worldcover.org/en/data-access
+
+Surry Dam model referenced the U.S. Army Corps of Engineers, New England District. Surry riprap color texture cropped and adapted from the USACE Hydrologic Engineering Center Connecticut River photograph. Qwantani Late Afternoon Pure Sky by Poly Haven, CC0.
+https://www.nae.usace.army.mil/Missions/Recreation/Surry-Mountain-Lake/
+https://www.hec.usace.army.mil/sustainablerivers/sites/connecticut/
+https://polyhaven.com/a/qwantani_late_afternoon_puresky
+
+Keene municipal buildings from City of Keene GIS footprints and elevation. Additional footprints © Microsoft, Open Database License. Selected roads from the U.S. Census Bureau TIGER/Line 2024. Bricks101, Asphalt011 and Concrete034 from ambientCG, CC0.
+https://keenenh.gov/online-services/gis-and-mapping-services/
+https://github.com/microsoft/usbuildingfootprints
+https://www2.census.gov/geo/tiger/TIGER2024/ROADS/
+https://ambientcg.com/

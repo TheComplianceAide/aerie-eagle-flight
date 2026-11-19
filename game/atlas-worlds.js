@@ -1,0 +1,847 @@
+/* Water surface derived from three.js Water, MIT licensed. */
+window.makeAtlasWorld = function makeAtlasWorld(THREE, scene, region) {
+const {
+	Color,
+	FrontSide,
+	Matrix4,
+	Mesh,
+	PerspectiveCamera,
+	Plane,
+	ShaderMaterial,
+	UniformsLib,
+	UniformsUtils,
+	Vector3,
+	Vector4,
+	WebGLRenderTarget
+} = THREE;
+
+/**
+ * Work based on :
+ * https://github.com/Slayvin: Flat mirror for three.js
+ * https://home.adelphi.edu/~stemkoski/ : An implementation of water shader based on the flat mirror
+ * http://29a.ch/ && http://29a.ch/slides/2012/webglwater/ : Water shader explanations in WebGL
+ */
+
+class Water extends Mesh {
+
+	constructor( geometry, options = {} ) {
+
+		super( geometry );
+
+		this.isWater = true;
+
+		const scope = this;
+
+		const textureWidth = options.textureWidth !== undefined ? options.textureWidth : 512;
+		const textureHeight = options.textureHeight !== undefined ? options.textureHeight : 512;
+
+		const clipBias = options.clipBias !== undefined ? options.clipBias : 0.0;
+		const alpha = options.alpha !== undefined ? options.alpha : 1.0;
+		const time = options.time !== undefined ? options.time : 0.0;
+		const normalSampler = options.waterNormals !== undefined ? options.waterNormals : null;
+		const sunDirection = options.sunDirection !== undefined ? options.sunDirection : new Vector3( 0.70707, 0.70707, 0.0 );
+		const sunColor = new Color( options.sunColor !== undefined ? options.sunColor : 0xffffff );
+		const waterColor = new Color( options.waterColor !== undefined ? options.waterColor : 0x7F7F7F );
+		const eye = options.eye !== undefined ? options.eye : new Vector3( 0, 0, 0 );
+		const distortionScale = options.distortionScale !== undefined ? options.distortionScale : 20.0;
+		const side = options.side !== undefined ? options.side : FrontSide;
+		const fog = options.fog !== undefined ? options.fog : false;
+
+		//
+
+		const mirrorPlane = new Plane();
+		const normal = new Vector3();
+		const mirrorWorldPosition = new Vector3();
+		const cameraWorldPosition = new Vector3();
+		const rotationMatrix = new Matrix4();
+		const lookAtPosition = new Vector3( 0, 0, - 1 );
+		const clipPlane = new Vector4();
+
+		const view = new Vector3();
+		const target = new Vector3();
+		const q = new Vector4();
+
+		const textureMatrix = new Matrix4();
+
+		const mirrorCamera = new PerspectiveCamera();
+    mirrorCamera.userData.lakeReflection=true;
+
+		const renderTarget = new WebGLRenderTarget(textureWidth, textureHeight, {
+      type: THREE.HalfFloatType, minFilter: THREE.LinearMipmapLinearFilter
+    });
+    renderTarget.texture.generateMipmaps = true;
+
+		const mirrorShader = {
+
+			name: 'MirrorShader',
+
+			uniforms: UniformsUtils.merge( [
+				UniformsLib[ 'fog' ],
+				UniformsLib[ 'lights' ],
+				{
+					'normalSampler': { value: null },
+					'mirrorSampler': { value: null },
+					'alpha': { value: 1.0 },
+					'time': { value: 0.0 },
+					'size': { value: 1.0 },
+					'distortionScale': { value: 20.0 },
+					'textureMatrix': { value: new Matrix4() },
+					'sunColor': { value: new Color( 0x7F7F7F ) },
+					'sunDirection': { value: new Vector3( 0.70707, 0.70707, 0 ) },
+					'eye': { value: new Vector3() },
+					'waterColor': { value: new Color( 0x555555 ) }
+				}
+			] ),
+
+			vertexShader: /* glsl */`
+				uniform mat4 textureMatrix;
+				uniform float time;
+
+				varying vec4 mirrorCoord;
+				varying vec4 worldPosition;
+
+				#include <common>
+				#include <fog_pars_vertex>
+				#include <shadowmap_pars_vertex>
+				#include <logdepthbuf_pars_vertex>
+
+				void main() {
+					mirrorCoord = modelMatrix * vec4( position, 1.0 );
+					worldPosition = mirrorCoord.xyzw;
+					mirrorCoord = textureMatrix * mirrorCoord;
+					vec4 mvPosition =  modelViewMatrix * vec4( position, 1.0 );
+					gl_Position = projectionMatrix * mvPosition;
+
+				#include <beginnormal_vertex>
+				#include <defaultnormal_vertex>
+				#include <logdepthbuf_vertex>
+				#include <fog_vertex>
+				#include <shadowmap_vertex>
+			}`,
+
+			fragmentShader: /* glsl */`
+				uniform sampler2D mirrorSampler;
+				uniform float alpha;
+				uniform float time;
+				uniform float size;
+				uniform float distortionScale;
+				uniform sampler2D normalSampler;
+				uniform vec3 sunColor;
+				uniform vec3 sunDirection;
+				uniform vec3 eye;
+				uniform vec3 waterColor;
+
+				varying vec4 mirrorCoord;
+				varying vec4 worldPosition;
+
+				uniform sampler2D shoreField, pebbles, terrainLight;
+        uniform float basinSpan, oceanSurf, seaState, rockyBed;
+        // Crossing wind swells and travelling capillary waves in metres. Dampen
+        // wavelengths that are smaller than the current pixel footprint.
+        vec2 slopes(vec2 p,float t,float footprint,float fetch,out float wind){
+          vec2 windDir=vec2(.937,.35);
+          vec2 q=vec2(dot(p,windDir),dot(p,vec2(-windDir.y,windDir.x)));
+          wind=.53+.22*sin(q.x*.0037-q.y*.009+t*.035)+.15*sin(q.y*.030+q.x*.0013+t*.071);
+          float energy=(.24+.76*fetch)*(.51+.73*wind)*seaState;
+          // Break up long wave fronts into wind patches. On enclosed lakes an
+          // infinite periodic swell reads as ruled stripes across the landscape.
+          vec2 windPatch=texture2D(normalSampler,p*.0017+vec2(.006*t,-.002*t)).rg-.5;
+          vec2 bend=q+windPatch*11.;
+          vec2 run=texture2D(normalSampler,bend*vec2(.036,.072)+vec2(-t*.033,t*.009)).rg-.5;
+          vec2 cap=texture2D(normalSampler,q.yx*vec2(.23,.14)+vec2(t*.025,-t*.094)).gr-.5;
+          vec2 crosswind=vec2(.70*q.x+.72*q.y,-.72*q.x+.70*q.y);
+          vec2 swell=texture2D(normalSampler,crosswind*.009+windPatch*.32+vec2(t*.008,-t*.002)).gr-.5;
+          vec2 seaWave=vec2(sin(q.x*.21+8.*windPatch.x-t*.83),cos(crosswind.y*.37+9.*windPatch.y+t*.98));
+          vec2 slope=.58*run+.24*swell+.34*cap/(1.+footprint*.90);
+          slope+=smoothstep(1.,1.9,seaState)*seaWave*.012/(1.+footprint*.18);
+          return energy*(windDir*slope.x+vec2(-windDir.y,windDir.x)*slope.y);
+        }
+        #include <common>
+				#include <packing>
+				#include <bsdfs>
+				#include <fog_pars_fragment>
+				#include <logdepthbuf_pars_fragment>
+				#include <lights_pars_begin>
+				#include <shadowmap_pars_fragment>
+				#include <shadowmask_pars_fragment>
+
+				void main() {
+
+					#include <logdepthbuf_fragment>
+					vec2 p=worldPosition.xz;
+        vec2 basin=vec2(p.x,-p.y)/basinSpan+.5;
+        float interior=1.-smoothstep(.48,.5,max(abs(basin.x-.5),abs(basin.y-.5)));
+        vec3 shore=texture2D(shoreField,basin).rgb;
+        float bank=mix(450.,450.*shore.r*shore.r,interior);
+        float fetch=mix(1.,shore.g,interior);
+        float daylight=mix(1.,texture2D(terrainLight,basin).r,interior);
+        vec3 v=normalize(eye-worldPosition.xyz);
+        float footprint=max(length(dFdx(p)),length(dFdy(p))),wind;
+        vec2 slope=slopes(p,time,footprint,fetch,wind);
+        vec3 n=normalize(vec3(slope.x,1.,slope.y));
+        float cosV=clamp(dot(v,n),0.,1.);
+        float fresnel=.0204+.9796*pow(1.-cosV,5.);
+        float viewDistance=length(eye-worldPosition.xyz);
+        vec2 mirrorUV=mirrorCoord.xy/mirrorCoord.w;
+        // Project the perturbed world normal into camera axes so reflected shorelines
+        // break along the wind direction even as the eagle banks.
+        vec2 screenSlope=(mat3(viewMatrix)*vec3(slope.x,0.,slope.y)).xy;
+        screenSlope.y+=dot(slope,v.xz)*.62;
+        vec2 jitter=screenSlope*(.19+.13*(1.-cosV));
+        float roughLod=-.85+fetch*.44+clamp(footprint*.022,0.,.95);
+        vec3 reflectLight=texture2D(mirrorSampler,clamp(mirrorUV+jitter,.002,.998),roughLod).rgb;
+        float shallow=1.-smoothstep(2.,36.,bank);
+        vec3 deep=waterColor*(.40+.30*daylight+.09*wind);
+        vec3 shoal=vec3(.040,.115,.097)*(.62+.38*daylight);
+        vec2 bedUV=p*.44+slope*.35;
+        vec3 gravel=pow(texture2D(pebbles,bedUV).rgb,vec3(2.2));
+        float bottom=exp(-bank*.073)*(1.-smoothstep(80.,360.,viewDistance));
+        shoal=mix(shoal,gravel*vec3(.50,.76,.65),bottom*rockyBed);
+        vec3 body=mix(deep,shoal,shallow);
+        vec3 h=normalize(v+sunDirection);
+        float rough=.045+.045*fetch*seaState;
+        float spec=exp(-dot(h.xz-n.xz,h.xz-n.xz)/(rough*rough));
+        vec3 sunlight=vec3(1.,.77,.47)*spec*daylight*(.27+.71*fresnel);
+        // Unresolved facets reflect a small angular cone of sky. Wind lanes
+        // and the lee of an island have visibly different return even when
+        // the camera is too high to resolve individual ripples.
+        vec3 skyVeil=vec3(.41,.53,.64);
+        float chop=(.10+.42*fetch)*(.53+.47*wind);
+        reflectLight=mix(reflectLight,skyVeil,.10*chop);
+        float waterSky=clamp(fresnel+.027*chop*(1.-cosV),0.,1.);
+        float visibleSun=getShadowMask();
+        vec3 radiance=mix(body*mix(.70,1.,visibleSun),reflectLight,waterSky)+sunlight*visibleSun;
+        float line=sin(bank*.73-time*1.26+1.7*sin(dot(p,vec2(.041,.019))));
+        float foam=oceanSurf*(1.-smoothstep(2.,24.,bank))*smoothstep(.35,.93,line)*(.28+.40*wind);
+        radiance=mix(radiance,vec3(.69,.75,.70),foam);
+        gl_FragColor=vec4(radiance,alpha);
+        #include <colorspace_fragment>
+					#include <fog_fragment>	
+				}`
+
+		};
+
+		const material = new ShaderMaterial( {
+			name: mirrorShader.name,
+      extensions: {derivatives: true},
+			uniforms: UniformsUtils.clone( mirrorShader.uniforms ),
+			vertexShader: mirrorShader.vertexShader,
+			fragmentShader: mirrorShader.fragmentShader,
+			lights: true,
+			side: side,
+			fog: fog
+		} );
+
+		material.uniforms[ 'mirrorSampler' ].value = renderTarget.texture;
+		material.uniforms[ 'textureMatrix' ].value = textureMatrix;
+		material.uniforms[ 'alpha' ].value = alpha;
+		material.uniforms[ 'time' ].value = time;
+		material.uniforms[ 'normalSampler' ].value = normalSampler;
+		material.uniforms[ 'sunColor' ].value = sunColor;
+		material.uniforms[ 'waterColor' ].value = waterColor;
+		material.uniforms[ 'sunDirection' ].value = sunDirection;
+		material.uniforms[ 'distortionScale' ].value = distortionScale;
+
+		material.uniforms[ 'eye' ].value = eye;
+
+		scope.material = material;
+
+		let checkedReflectionType=false;
+    scope.onBeforeRender = function ( renderer, scene, camera ) {
+      if(!checkedReflectionType){
+        if(!renderer.extensions.has('EXT_color_buffer_float')&&!renderer.extensions.has('EXT_color_buffer_half_float'))renderTarget.texture.type=THREE.UnsignedByteType;
+        checkedReflectionType=true;
+      }
+
+			mirrorWorldPosition.setFromMatrixPosition( scope.matrixWorld );
+			cameraWorldPosition.setFromMatrixPosition( camera.matrixWorld );
+
+			rotationMatrix.extractRotation( scope.matrixWorld );
+
+			normal.set( 0, 0, 1 );
+			normal.applyMatrix4( rotationMatrix );
+
+			view.subVectors( mirrorWorldPosition, cameraWorldPosition );
+
+			// Avoid rendering when mirror is facing away
+
+			if ( view.dot( normal ) > 0 ) return;
+
+			view.reflect( normal ).negate();
+			view.add( mirrorWorldPosition );
+
+			rotationMatrix.extractRotation( camera.matrixWorld );
+
+			lookAtPosition.set( 0, 0, - 1 );
+			lookAtPosition.applyMatrix4( rotationMatrix );
+			lookAtPosition.add( cameraWorldPosition );
+
+			target.subVectors( mirrorWorldPosition, lookAtPosition );
+			target.reflect( normal ).negate();
+			target.add( mirrorWorldPosition );
+
+			mirrorCamera.position.copy( view );
+			mirrorCamera.up.set( 0, 1, 0 );
+			mirrorCamera.up.applyMatrix4( rotationMatrix );
+			mirrorCamera.up.reflect( normal );
+			mirrorCamera.lookAt( target );
+
+			mirrorCamera.far = camera.far; // Used in WebGLBackground
+
+			mirrorCamera.updateMatrixWorld();
+			mirrorCamera.projectionMatrix.copy( camera.projectionMatrix );
+
+			// Update the texture matrix
+			textureMatrix.set(
+				0.5, 0.0, 0.0, 0.5,
+				0.0, 0.5, 0.0, 0.5,
+				0.0, 0.0, 0.5, 0.5,
+				0.0, 0.0, 0.0, 1.0
+			);
+			textureMatrix.multiply( mirrorCamera.projectionMatrix );
+			textureMatrix.multiply( mirrorCamera.matrixWorldInverse );
+
+			// Now update projection matrix with new clip plane, implementing code from: http://www.terathon.com/code/oblique.html
+			// Paper explaining this technique: http://www.terathon.com/lengyel/Lengyel-Oblique.pdf
+			mirrorPlane.setFromNormalAndCoplanarPoint( normal, mirrorWorldPosition );
+			mirrorPlane.applyMatrix4( mirrorCamera.matrixWorldInverse );
+
+			clipPlane.set( mirrorPlane.normal.x, mirrorPlane.normal.y, mirrorPlane.normal.z, mirrorPlane.constant );
+
+			const projectionMatrix = mirrorCamera.projectionMatrix;
+
+			q.x = ( Math.sign( clipPlane.x ) + projectionMatrix.elements[ 8 ] ) / projectionMatrix.elements[ 0 ];
+			q.y = ( Math.sign( clipPlane.y ) + projectionMatrix.elements[ 9 ] ) / projectionMatrix.elements[ 5 ];
+			q.z = - 1.0;
+			q.w = ( 1.0 + projectionMatrix.elements[ 10 ] ) / projectionMatrix.elements[ 14 ];
+
+			// Calculate the scaled plane vector
+			clipPlane.multiplyScalar( 2.0 / clipPlane.dot( q ) );
+
+			// Replacing the third row of the projection matrix
+			projectionMatrix.elements[ 2 ] = clipPlane.x;
+			projectionMatrix.elements[ 6 ] = clipPlane.y;
+			projectionMatrix.elements[ 10 ] = clipPlane.z + 1.0 - clipBias;
+			projectionMatrix.elements[ 14 ] = clipPlane.w;
+
+			eye.setFromMatrixPosition( camera.matrixWorld );
+
+			// Render
+
+			const currentRenderTarget = renderer.getRenderTarget();
+
+			const currentXrEnabled = renderer.xr.enabled;
+			const currentShadowAutoUpdate = renderer.shadowMap.autoUpdate;
+
+			scope.visible = false;
+
+			renderer.xr.enabled = false; // Avoid camera modification and recursion
+			renderer.shadowMap.autoUpdate = false; // Avoid re-computing shadows
+
+			renderer.setRenderTarget( renderTarget );
+
+			renderer.state.buffers.depth.setMask( true ); // make sure the depth buffer is writable so it can be properly cleared, see #18897
+
+			if ( renderer.autoClear === false ) renderer.clear();
+			renderer.render( scene, mirrorCamera );
+
+			scope.visible = true;
+
+			renderer.xr.enabled = currentXrEnabled;
+			renderer.shadowMap.autoUpdate = currentShadowAutoUpdate;
+
+			renderer.setRenderTarget( currentRenderTarget );
+
+			// Restore viewport
+
+			const viewport = camera.viewport;
+
+			if ( viewport !== undefined ) {
+
+				renderer.state.viewport( viewport );
+
+			}
+
+		};
+
+	}
+
+}
+
+
+  const survey=window.ATLAS_SURVEYS[region];
+  const settings={
+    napali:{sky:'atlas-qwantani_sunrise_puresky.webp',sun:[-.72,.37,.42],water:0,sea:0x17636b,stone:[.31,.26,.21],treeH:13,top:1300,cover:.91,launch:[-2550,-440,1800,-1920,230],low:[-1910,-560,1200,-1820,48]},
+    yosemite:{sky:'alaska-evening.jpg',sun:[-.62,.46,.53],stone:[.64,.61,.57],treeH:30,top:2840,cover:.91,launch:[-4600,1780,2300,0,150],low:[-1700,1110,1560,-490,70]},
+    bryce:{sky:'sky.jpg',sun:[.60,.31,-.63],stone:[.83,.51,.34],treeH:13,top:3000,cover:.92,launch:[-1170,-190,-650,-540,68],low:[-1110,-460,-520,-750,45]},
+    crater:{sky:'alaska-evening.jpg',sun:[-.37,.53,-.71],water:1880.62,sea:0x123951,stone:[.43,.385,.337],treeH:21,top:2430,cover:.96,launch:[-3410,1770,-960,-230,315],low:[-2360,1720,600,1630,57]},
+    lofoten:{sky:'atlas-qwantani_sunrise_puresky.webp',sun:[-.66,.35,.58],water:0,sea:0x225060,stone:[.37,.38,.37],treeH:6,top:330,cover:.6,launch:[600,2470,-450,-1890,320],low:[310,1680,-770,-1750,56]},
+    milford:{sky:'atlas-wasteland_clouds_puresky.webp',sun:[-.4,.43,.71],water:0,sea:0x1c4548,stone:[.34,.37,.36],treeH:17,top:1060,cover:1.15,launch:[2370,3200,-2000,-700,330],low:[2630,4340,560,1900,105]}
+  }[region]||window.ATLAS_PROFILES?.[region];
+  const surry=region==='surry';
+  const newEngland=region==='moosehead'||region==='winnipesaukee'||surry;
+  const waterfront=region==='winnipesaukee'?window.makeWinnipesaukeeWaterfront?.(THREE,scene,texture):null;
+  const bytes=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+  const unpack=s=>new Int16Array(bytes(s).buffer), near=unpack(survey.terrain),far=unpack(survey.outer),tight=region==='bryce'&&window.bryceHighlands?window.bryceHighlands.heights:(survey.inner?unpack(survey.inner):null),cover=bytes(survey.canopy);
+  const h=survey.half,farH=survey.farHalf,{clamp,smoothstep,lerp}=THREE.MathUtils;
+  function sample(grid,half,x,z){
+    const n=Math.round(Math.sqrt(grid.length)),u=clamp((x+half)*(n-1)/(half*2),0,n-1),v=clamp((z+half)*(n-1)/(half*2),0,n-1),i=Math.min(n-2,Math.floor(u)),j=Math.min(n-2,Math.floor(v)),a=u-i,b=v-j,k=j*n+i;
+    if(a+b<1)return (grid[k]*(1-a-b)+grid[k+1]*a+grid[k+n]*b)*.25;
+    return (grid[k+n+1]*(a+b-1)+grid[k+n]*(1-a)+grid[k+1]*(1-b))*.25;
+  }
+  const [focusX,focusZ]=survey.innerCenter || [0,0];
+  const cityGrid=survey.cityTerrain?unpack(survey.cityTerrain):null;
+  const [cityX,cityZ]=survey.cityCenter||[0,0];
+  function elevation(x,z){
+    const r=Math.max(Math.abs(x),Math.abs(z));
+    if(r>=h)return waterfront?waterfront.elevation(sample,far,farH,x,z):sample(far,farH,x,z);
+    let val=sample(near,h,x,z);
+    const focusDistance=Math.max(Math.abs(x-focusX),Math.abs(z-focusZ));
+    if(tight&&focusDistance<1450)val=lerp(sample(tight,1450,x-focusX,z-focusZ),val,smoothstep(focusDistance,1395,1450));
+    const cityDistance=Math.max(Math.abs(x-cityX),Math.abs(z-cityZ));
+    if(cityGrid&&cityDistance<1450)val=lerp(sample(cityGrid,1450,x-cityX,z-cityZ),val,smoothstep(cityDistance,1395,1450));
+    if(r>h-200)val=lerp(val,sample(far,farH,x,z),smoothstep(r,h-200,h));
+    return val;
+  }
+  function growth(x,z){
+    const i=Math.floor((x/h*.5+.5)*384),j=Math.floor((z/h*.5+.5)*384);
+    return i>=0&&i<384&&j>=0&&j<384?cover[j*384+i]/255:0;
+  }
+  const loader=new THREE.TextureLoader();
+  function texture(file,repeat=false){const tex=loader.load(file);tex.anisotropy=6;if(repeat)tex.wrapS=tex.wrapT=THREE.RepeatWrapping;return tex;}
+  const lightAngles={moosehead:[-84,15.5],winnipesaukee:[-112,4.2],surry:[-52,19],napali:[-36,15],yosemite:[-43,6.5],bryce:[-48,14.5],crater:[-70,8],lofoten:[-115,4.3],milford:[-71,8]};
+  const [azimuth,altitude]=lightAngles[region].map(THREE.MathUtils.degToRad);
+  const sun=new THREE.Vector3(Math.cos(azimuth)*Math.cos(altitude),Math.sin(altitude),Math.sin(azimuth)*Math.cos(altitude));
+  const skyMap=texture('atlas-'+region+'-sky.webp');
+  skyMap.colorSpace=THREE.SRGBColorSpace;skyMap.wrapS=THREE.RepeatWrapping;
+  skyMap.minFilter=THREE.LinearFilter;skyMap.generateMipmaps=false;
+  const fog=region==='milford'?0xb2b9b9:region==='bryce'?0xcdb29c:0xb6bfc8;
+  scene.fog=new THREE.FogExp2(fog,region==='milford'?.000064:.000042);
+  const sunlight=new THREE.DirectionalLight(region==='bryce'?0xffc68a:0xffdcad,2.1);
+  sunlight.position.copy(sun).multiplyScalar(1000);scene.add(sunlight,new THREE.HemisphereLight(0xdde7fa,0x756757,1.39));
+  const sky=new THREE.Mesh(new THREE.SphereGeometry(1,32,18),new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,uniforms:{map:{value:skyMap}},
+    vertexShader:'varying vec3 ray;void main(){ray=position;vec4 clip=projectionMatrix*vec4(mat3(viewMatrix)*position,1.);gl_Position=clip.xyww;}',
+    fragmentShader:`varying vec3 ray;uniform sampler2D map;void main(){vec3 d=normalize(ray);
+      vec2 uv=vec2(.5+atan(d.z,d.x)*.15915494,.5+asin(d.y)*.31830989);
+      gl_FragColor=vec4(texture2D(map,uv).rgb,1.);
+      #include <colorspace_fragment>
+    }`}));
+  sky.frustumCulled=false;sky.renderOrder=-1000;scene.add(sky);
+  const geology=region==='bryce'?'bedded':'jointed';
+  const aerial=texture('atlas-'+region+'-photo.webp'),ranges=texture('atlas-'+region+'-ranges.webp'),stone=texture('atlas-'+geology+'-rock.webp',true),grain=texture('rock.jpg',true),sod=texture(region==='bryce'?'shore-sand.webp':'shore-meadow.webp',true);
+  const color=new THREE.Color(fog);
+  const terrainLight=texture('atlas-'+region+'-light.webp'),fracture=texture('atlas-'+geology+'-relief.webp',true);
+  const canopyMap=new THREE.DataTexture(cover,384,384,THREE.RedFormat);
+  canopyMap.minFilter=canopyMap.magFilter=THREE.LinearFilter;canopyMap.needsUpdate=true;
+  const maskSpan=(surry?h:Math.max(farH,h))*2,maskSize=surry?2048:512;
+  const mapCanvas=document.createElement('canvas');mapCanvas.width=mapCanvas.height=maskSize;
+  const mask2d=mapCanvas.getContext('2d');mask2d.fillStyle=survey.shore?.length?'#000':'#fff';mask2d.fillRect(0,0,maskSize,maskSize);
+  function paintRing(loop,fill){
+    mask2d.fillStyle=fill;mask2d.beginPath();
+    loop.forEach(([x,z],i)=>{const px=(.5+x/maskSpan)*maskSize,py=(.5+z/maskSpan)*maskSize;if(i)mask2d.lineTo(px,py);else mask2d.moveTo(px,py);});
+    mask2d.closePath();mask2d.fill();
+  }
+  if(survey.shore?.length)paintRing(survey.shore,'#fff');
+  for(const hole of survey.shoreHoles||[])paintRing(hole,'#000');
+  const wetMask=new THREE.CanvasTexture(mapCanvas);wetMask.minFilter=THREE.LinearFilter;wetMask.generateMipmaps=false;
+  const terrain=new THREE.ShaderMaterial({uniforms:{terrainLight:{value:terrainLight},fracture:{value:fracture},canopyMap:{value:canopyMap},temperate:{value:newEngland?1:0},wetMask:{value:wetMask},cut:{value:settings.water===undefined?-10000:settings.water+.19},arctic:{value:region==='lofoten'?1:0},aerial:{value:aerial},ranges:{value:ranges},rockScan:{value:stone},stoneGrain:{value:grain},sod:{value:sod},sun:{value:sun},halfMap:{value:h},farSpan:{value:2*farH},stoneTint:{value:new THREE.Vector3(...settings.stone)},haze:{value:color},desert:{value:region==='bryce'?1:0}},
+    vertexShader:'varying vec3 wp,norm;void main(){wp=position;norm=normal;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+    fragmentShader:`uniform sampler2D terrainLight,fracture,canopyMap,wetMask,aerial,ranges,rockScan,stoneGrain,sod;uniform vec3 sun,stoneTint,haze;uniform float halfMap,farSpan,desert,cut,arctic,temperate;varying vec3 wp,norm;
+      float lum(vec3 c){return dot(c,vec3(.26,.58,.16));}
+      void main(){
+        vec2 xz=wp.xz,photoUv=vec2(xz.x,-xz.y)/(halfMap*2.)+.5;
+        if(wp.y<cut && texture2D(wetMask,vec2(xz.x,-xz.y)/farSpan+.5).r>.5)discard;
+        float extent=max(abs(xz.x),abs(xz.y)),d=distance(wp,cameraPosition);
+        vec3 photo=mix(texture2D(aerial,photoUv).rgb,texture2D(ranges,vec2(xz.x,-xz.y)/farSpan+.5).rgb,smoothstep(halfMap-160.,halfMap,extent));
+        photo=mix(photo,vec3(lum(photo)),arctic*.27);
+        vec3 normal=normalize(norm);
+        float veg=smoothstep(.0,.075,photo.g-.94*photo.r)*smoothstep(.0,.055,photo.g-photo.b);
+        float dense=temperate*texture2D(canopyMap,xz/(2.*halfMap)+.5).r*(1.-smoothstep(halfMap-100.,halfMap,extent));
+        // An orthophoto has almost no projected footprint on a vertical wall.
+        // Dark crown shadows, sky and water pixels at the cliff lip otherwise
+        // smear the entire height of a cliff face. Keep them on horizontal land.
+        float orthoCoverage=smoothstep(.18,.70,normal.y);
+        dense*=orthoCoverage;
+        veg=max(veg*orthoCoverage,dense);
+        float snow=smoothstep(.53,.82,min(min(photo.r,photo.b),photo.g));
+        float face=1.-smoothstep(.45,.89,normal.y);
+        float materialWeight=max(1.-orthoCoverage,(1.-veg*.97)*(1.-snow)*(.14+.80*face))*(1.-smoothstep(4800.,14500.,d));
+        float axis=abs(normal.x)/(abs(normal.x)+abs(normal.z)+.001);
+        float strataY=wp.y+wp.x*.068+wp.z*.11+3.*sin(wp.z*.019);
+        vec2 a=vec2(wp.z,strataY),b=vec2(wp.x,strataY);
+        // Interleaved fissures vary across the face, with a coarser joint set
+        // across ridges. World coordinates keep detail stable during approach.
+        vec2 warp=vec2(sin(wp.z*.013)+cos(wp.x*.008),sin(wp.x*.014)+cos(wp.z*.017));
+        vec2 texScale=mix(vec2(.033,.035),vec2(.037,.064),desert);
+        vec2 uva=a*texScale+warp*.085,uvb=b*texScale+warp*.085;
+        vec3 viewDir=normalize(cameraPosition-wp);
+        float closeRelief=(1.-smoothstep(26.,170.,d))*face;
+        vec2 parA=(texture2D(fracture,uva).b-.5)*viewDir.zy*(.062*closeRelief);
+        vec2 parB=(texture2D(fracture,uvb).b-.5)*viewDir.xy*(.062*closeRelief);
+        uva+=parA;uvb+=parB;
+        vec3 scan=mix(texture2D(rockScan,uvb).rgb,texture2D(rockScan,uva).rgb,axis);
+        vec3 wide=mix(texture2D(rockScan,b*vec2(.0052,.0085)-warp*.018+.27).rgb,
+                      texture2D(rockScan,a*vec2(.0052,.0085)-warp*.018+.27).rgb,axis);
+        float grit=lum(texture2D(stoneGrain,(a*.75+b*.25)*.12).rgb);
+        float cliff=lum(scan),fissure=lum(wide);
+        float layers=desert*(.026*sin(strataY*.60)+.02*sin(strataY*1.6));
+        vec3 lithology=stoneTint*(.32+cliff*.99+fissure*.72+layers+(.11*grit));
+        lithology*=mix(vec3(1.),scan/max(.06,cliff),.21+.19*desert);
+        lithology*=1.+.35*temperate*face;
+        /* exposed field geology */
+        float photoGain=.58+.69*clamp(lum(photo)*1.45,0.,1.);
+        vec3 stoneColor=lithology*mix(.99,photoGain,orthoCoverage);
+        vec3 c=mix(photo,stoneColor,materialWeight);
+        // Pale caprock and rust-red silt alternate locally in the Claron beds;
+        // retain the photographed variation instead of applying a single orange tint.
+        float bedding=desert*(1.-veg);
+        c=mix(c,vec3(lum(c)),.12*bedding);
+        float sediment=(cliff-.31)*.85+(fissure-.32)*.43;
+        c*=1.+bedding*sediment*(.32+.53*face)*(1.-smoothstep(750.,3400.,d));
+        vec3 turf=texture2D(sod,xz*.39).rgb;
+        float near=1.-smoothstep(36.,460.,d);
+        c*=1.+(lum(turf)-.35)*near*(.46+.42*veg)*(1.-face);
+        c=mix(c,turf*(.45+1.25*lum(photo)),near*(1.-face)*veg*.51);
+        float radial=max(abs(photoUv.x-.5),abs(photoUv.y-.5));
+        float inside=1.-smoothstep(.475,.5,radial);
+        vec3 occ=mix(vec3(1.,.94,.5),texture2D(terrainLight,photoUv).rgb,inside);
+        vec3 microX=texture2D(fracture,uva).rgb*2.-1.;
+        vec3 microZ=texture2D(fracture,uvb).rgb*2.-1.;
+        vec3 micro=mix(vec3(microZ.x,microZ.y,0.),vec3(0.,microX.y,microX.x),axis);
+        vec3 relieved=normalize(normal+micro*(.68*face*(1.-veg))*(1.-smoothstep(350.,2900.,d)));
+        float incidence=max(0.,dot(relieved,sun)),sunlit=occ.r;
+        // Microfacet response, measured sky exposure and cast terrain shadows
+        // separate cliff faces while retaining detail in the surveyed aerial color.
+        c=mix(c,photo*vec3(.72,.76,.73),dense*.80);
+        float green=smoothstep(.025,.15,c.g-(c.r+c.b)*.45);
+        c=mix(c,vec3(lum(c)),green*(.12+.22*arctic));
+        c*=vec3(1.025,.999,.965);
+        float skyView=occ.g,relief=(occ.b-.5)*(1.-.68*veg);
+        vec3 ambient=vec3(.51,.61,.76)*(.66+.34*max(normal.y,0.))*(.69+.31*skyView);
+        vec3 direct=vec3(1.25,.98,.69)*(.14+1.02*incidence)*sunlit;
+        ambient*=mix(vec3(1.),vec3(.74,.87,1.02),desert*(1.-.63*skyView));
+        c=pow(max(c,vec3(0.)),vec3(2.2))*(ambient+direct)*(1.+(.32+.42*desert)*relief);
+        /* canopy transmission */
+        float dep=1.-exp(-d*(.000057-.000018*temperate));
+        vec3 aerialHaze=haze*mix(vec3(.79,.86,1.0),vec3(1.12,1.01,.88),.5+.5*dot(normalize(wp-cameraPosition),sun));
+        gl_FragColor=vec4(mix(c,aerialHaze,dep*(.72+.28*skyView)),1.);
+        #include <colorspace_fragment>
+      }`});
+  if(region==='yosemite'){
+    const granite=texture('atlas-yosemite-cathedral.webp');
+    granite.wrapS=granite.wrapT=THREE.MirroredRepeatWrapping;
+    terrain.uniforms.cathedralGranite={value:granite};
+    terrain.uniforms.westFace={value:texture('atlas-yosemite-west-face.webp')};
+    terrain.fragmentShader='uniform sampler2D cathedralGranite,westFace;\n'+terrain.fragmentShader.replace(
+      '/* exposed field geology */',`
+        // Oblique field photographs restore the cliff-scale joints which a
+        // downward-looking orthophoto cannot capture on a near-vertical wall.
+        float fold=wp.y*.00138+.025*sin(wp.z*.004+wp.x*.0017);
+        vec2 slabX=vec2(wp.z*.00157+.031*sin(wp.x*.003),fold);
+        vec2 slabZ=vec2(wp.x*.00164+.036*sin(wp.z*.0023),fold+.32);
+        float joints=mix(texture2D(cathedralGranite,slabZ).r,texture2D(cathedralGranite,slabX).r,axis);
+        float cathedral=1.-smoothstep(800.,2150.,length(wp.xz-vec2(-875.,1953.)));
+        vec3 graniteColor=vec3(.99,.987,.972)*(joints*.82+.095)*(.83+.55*cliff);
+        float exposed=face*(1.-veg)*smoothstep(1310.,1500.,wp.y);
+        lithology=mix(lithology,graniteColor,exposed*(.55+.37*cathedral));
+        // Calibrated against the west-buttress skyline in the Tunnel View
+        // photograph. The surface is sampled in world space as the eagle banks.
+        vec3 ray=wp-vec3(-4650.,1345.66,1795.);
+        vec2 forward=vec2(.94148,-.33710);
+        float along=dot(ray.xz,forward),horizontal=length(ray.xz);
+        float t=dot(ray.xz,vec2(-forward.y,forward.x))/max(along,1.);
+        float tanAltitude=ray.y/max(horizontal,1.);
+        vec2 projection=vec2(.5+3.0464*t,.5+4.0619*(tanAltitude*along/horizontal-.123576)/(1.+tanAltitude*.123576));
+        vec4 cliffImage=texture2D(westFace,clamp(projection,0.,1.));
+        float inner=step(0.,min(projection.x,projection.y))*step(max(projection.x,projection.y),1.);
+        float local=1.-smoothstep(1250.,1820.,length(wp.xz-vec2(-1100.,-120.)));
+        float visible=smoothstep(.01,.26,dot(normal,normalize(-ray)))*local*inner*exposed;
+        lithology=mix(lithology,cliffImage.rgb*(.88+.42*cliff),cliffImage.a*visible);
+      `);
+  }
+  if(region==='moosehead'){
+    // Rock-face field photograph, rectified and locally de-lit. Its remaining
+    // joint pattern belongs on steep rhyolite walls within the Kineo headland.
+    const localRock=texture('atlas-kineo-rhyolite.webp');
+    localRock.wrapS=localRock.wrapT=THREE.MirroredRepeatWrapping;
+    terrain.uniforms.localRhyolite={value:localRock};
+    terrain.fragmentShader='uniform sampler2D localRhyolite;\n'+terrain.fragmentShader.replace('/* exposed field geology */', `
+      vec2 relative=wp.xz-vec2(150.,-860.);
+      float headland=(1.-smoothstep(550.,990.,length(relative)))*face*(1.-veg);
+      vec2 ledgeUv=vec2((relative.x*.55-relative.y*.84)*.0017,
+                        (wp.y-.092*relative.x+.11*relative.y)*.013);
+      vec3 weathering=texture2D(localRhyolite,ledgeUv+.018*warp).rgb;
+      vec3 strata=vec3(.49,.48,.465)*(.43+1.07*weathering)*(.76+.92*cliff);
+      lithology=mix(lithology,strata,headland*.93);`);
+  }
+  if(region==='bryce'){
+    terrain.uniforms.finLight={value:texture('atlas-bryce-fins-light.webp')};
+    terrain.fragmentShader='uniform sampler2D finLight;\n'+terrain.fragmentShader
+      .replace('vec3 microX=',`float finCoverage=1.-smoothstep(1374.,1450.,max(abs(xz.x),abs(xz.y)));
+        occ=mix(occ,texture2D(finLight,vec2(xz.x,-xz.y)/2900.+.5).rgb,finCoverage);
+        vec3 microX=`)
+      .replace('/* exposed field geology */',`
+        // The fine joints run down a fin while the rock beds cross it. Sampling
+        // them on both axes preserves pale caprock as a fin turns away from us.
+        vec2 slump=vec2(strataY*.008,warp.y*.12);
+        float runoff=mix(texture2D(rockScan,vec2(wp.x*.065,wp.y*.010)+slump.yx).g,
+                         texture2D(rockScan,vec2(wp.z*.065,wp.y*.010)+slump.yx).g,axis);
+        vec3 broadColor=texture2D(aerial,photoUv,3.).rgb;
+        vec3 warmClaron=mix(broadColor,vec3(.78,.58,.40),.36);
+        lithology=mix(lithology,warmClaron*(.60+.85*cliff+.41*runoff),.73);
+        lithology*=.91+.38*runoff;`)
+      .replace('float bedding=desert*(1.-veg);',`float bedding=desert*(1.-veg);
+        c*=mix(vec3(1.),vec3(1.065,.977,.885),bedding);`);
+  }
+  if(survey.innerCenter||region==='bryce'){
+    terrain.uniforms.detailOrtho={value:texture('atlas-'+region+'-detail.webp')};
+    terrain.uniforms.orthoOrigin={value:new THREE.Vector2(focusX,focusZ)};
+    terrain.fragmentShader='uniform sampler2D detailOrtho;uniform vec2 orthoOrigin;\n'+terrain.fragmentShader.replace('photo=mix(photo,vec3(lum(photo))', `
+        vec2 focus=xz-orthoOrigin;
+        float blend=1.-smoothstep(1330.,1440.,max(abs(focus.x),abs(focus.y)));
+        photo=mix(photo,texture2D(detailOrtho,vec2(focus.x,-focus.y)/2900.+.5).rgb,blend);
+        photo=mix(photo,vec3(lum(photo))`);
+  }
+  if(surry){
+    terrain.uniforms.reservoirSpan={value:maskSpan};
+    terrain.fragmentShader='uniform float reservoirSpan;\n'+terrain.fragmentShader.replace('texture2D(wetMask,vec2(xz.x,-xz.y)/farSpan','texture2D(wetMask,vec2(xz.x,-xz.y)/reservoirSpan');
+  }
+  if(survey.cityCenter){
+    terrain.uniforms.cityOrtho={value:texture('atlas-surry-city-detail.webp')};
+    terrain.uniforms.cityOrigin={value:new THREE.Vector2(cityX,cityZ)};
+    terrain.fragmentShader='uniform sampler2D cityOrtho;uniform vec2 cityOrigin;\n'+terrain.fragmentShader.replace('photo=mix(photo,vec3(lum(photo))', `
+        vec2 downtown=xz-cityOrigin;
+        float cityBlend=1.-smoothstep(1330.,1440.,max(abs(downtown.x),abs(downtown.y)));
+        photo=mix(photo,texture2D(cityOrtho,vec2(downtown.x,-downtown.y)/2900.+.5).rgb,cityBlend);
+        photo=mix(photo,vec3(lum(photo))`).replace('/* canopy transmission */', `
+        // Retain the photographed parking lanes, paving and building shadows.
+        vec3 urbanSurface=pow(max(photo,vec3(0.)),vec3(2.2))*vec3(.95,.97,1.);
+        c=mix(c,urbanSurface,cityBlend*.59*(1.-.60*veg));
+        /* canopy transmission */`);
+  }
+  waterfront?.applyTerrain(terrain);
+  function patch(left,top,width,depth,nx,nz){
+    const grid=new THREE.PlaneGeometry(width,depth,nx,nz);grid.rotateX(-Math.PI/2);
+    const p=grid.attributes.position,n=grid.attributes.normal;
+    const step=Math.max(4,Math.min(22,width/nx*.7));
+    for(let i=0;i<p.count;i++){
+      const x=p.getX(i)+left+width/2,z=p.getZ(i)+top+depth/2;
+      p.setXYZ(i,x,elevation(x,z),z);
+      const dx=elevation(x-step,z)-elevation(x+step,z),dz=elevation(x,z-step)-elevation(x,z+step),inv=1/Math.hypot(dx,2*step,dz);
+      n.setXYZ(i,dx*inv,2*step*inv,dz*inv);
+    }
+    grid.computeBoundingSphere();scene.add(new THREE.Mesh(grid,terrain));
+  }
+  function subdivide(left,top,right,bottom,step){
+    const w=right-left,d=bottom-top;
+    const piecesX=Math.ceil(w/(step*145)),piecesZ=Math.ceil(d/(step*145));
+    for(let y=0;y<piecesZ;y++)for(let x=0;x<piecesX;x++)patch(left+x*w/piecesX,top+y*d/piecesZ,w/piecesX,d/piecesZ,Math.ceil(w/piecesX/step),Math.ceil(d/piecesZ/step));
+  }
+  function ring(a,b,step,cx=0,cz=0,insets=[]){
+    const edges=[-b,cx-a,cx+a,b],rows=[-b,cz-a,cz+a,b];
+    for(let j=0;j<3;j++)for(let i=0;i<3;i++)if(i!==1||j!==1){
+      let areas=[[edges[i],rows[j],edges[i+1],rows[j+1]]];
+      for(const [x0,z0,x1,z1] of insets)areas=areas.flatMap(([l,t,r,b])=>{
+        const u=Math.max(l,x0),v=Math.max(t,z0),w=Math.min(r,x1),q=Math.min(b,z1);
+        if(w<=u||q<=v)return [[l,t,r,b]];
+        return [[l,t,r,v],[l,q,r,b],[l,v,u,q],[w,v,r,q]].filter(([a,b,c,d])=>a<c&&b<d);
+      });
+      for(const area of areas)subdivide(...area,step);
+    }
+  }
+  ring(h,farH,110,0,0,waterfront?.rects);
+  if(waterfront)for(const area of waterfront.rects)subdivide(...area,4.5);
+  const core=tight?1450:h;
+  if(cityGrid){
+    // Subdivide the two lidar areas independently within the continuous valley.
+    const detailAreas=[[focusX,focusZ],[cityX,cityZ]];
+    const cuts=axis=>[-h,...detailAreas.flatMap(center=>[center[axis]-core,center[axis]+core]),h].sort((a,b)=>a-b);
+    const xs=cuts(0),zs=cuts(1);
+    for(let j=1;j<zs.length;j++)for(let i=1;i<xs.length;i++){
+      const left=xs[i-1],top=zs[j-1],width=xs[i]-left,depth=zs[j]-top;
+      if(width<=0||depth<=0)continue;
+      const detailed=detailAreas.some(([x,z])=>Math.abs(left+width/2-x)<core&&Math.abs(top+depth/2-z)<core);
+      subdivide(left,top,xs[i],zs[j],detailed?5:19);
+    }
+  }else{
+    if(tight)ring(core,h,h/320,focusX,focusZ);
+    if(region==='bryce'&&window.bryceHighlands)window.addBryceEscarpment(THREE,scene,terrain,elevation);
+    else for(let j=0;j<8;j++)for(let i=0;i<8;i++)patch(focusX-core+i*core/4,focusZ-core+j*core/4,core/4,core/4,tight?91:80,tight?91:80);
+  }
+  const clock={value:0};let water=null;
+  if(settings.water!==undefined){
+    // Crater Lake is a hanging caldera. Its mesh stops at the inside of the rim.
+    let g;
+    if(survey.shore?.length){
+      const vec=([x,z])=>new THREE.Vector2(x,-z);
+      const outline=new THREE.Shape(survey.shore.map(vec));
+      for(const hole of survey.shoreHoles||[])outline.holes.push(new THREE.Path(hole.map(vec)));
+      g=new THREE.ShapeGeometry(outline);
+    }else g=new THREE.PlaneGeometry(farH*2.4,farH*2.4);
+    const waterColors={moosehead:0x25505c,winnipesaukee:0x20505e,surry:0x254b58,crater:0x0a3977,napali:0x096f77,milford:0x163d49,lofoten:0x215364};
+    water=new Water(g,{textureWidth:1024,textureHeight:512,waterNormals:texture('waternormals.jpg',true),sunDirection:sun,waterColor:waterColors[region],fog:true});
+    Object.assign(water.material.uniforms,{
+      shoreField:{value:texture('atlas-'+region+'-shore.webp')},terrainLight:{value:terrainLight},
+      pebbles:{value:texture('shore-pebbles.webp',true)},basinSpan:{value:h*2},
+      oceanSurf:{value:region==='napali'?1:0},seaState:{value:region==='napali'?1.9:region==='lofoten'?1.28:newEngland?.87:.94},
+      rockyBed:{value:newEngland?1:.75}
+    });
+    waterfront?.applyWater(water.material);
+    water.rotation.x=-Math.PI/2;water.position.y=settings.water+.16;scene.add(water);
+  }
+  let seed=134513;
+  const rand=()=>{seed=(Math.imul(1664525,seed)+1013904223)>>>0;return seed/4294967296;};
+  const trees=[],firTrees=[],broadTrees=[],cells=new Map(),cell=(x,z)=>(Math.floor(x/50)+500)*1024+Math.floor(z/50)+500;
+  const dam=surry?window.addSurryDam(THREE,scene,{survey,elevation,terrain,texture,sun,clock}):null;
+  const settlement=waterfront?{
+    buildings:[...(survey.settlement?.buildings||[]),...waterfront.settlement.buildings],
+    piers:[...(survey.settlement?.piers||[]),...waterfront.settlement.piers]
+  }:survey.settlement;
+  const roofHeight=surry?window.makeKeeneCity(THREE,scene,{survey,height:elevation,sunMask:terrainLight}):
+    settlement?window.addLakesideBuildings(THREE,scene,settlement,elevation,settings.water):null;
+  const waterfrontHeight=waterfront?.build(elevation,settings.water);
+  const lakeBounds=surry?survey.shore.reduce(([x0,x1,z0,z1],[x,z])=>
+    [Math.min(x,x0),Math.max(x,x1),Math.min(z,z0),Math.max(z,z1)],[Infinity,-Infinity,Infinity,-Infinity]):null;
+  function inLake(x,z){
+    return (!lakeBounds||x>=lakeBounds[0]&&x<=lakeBounds[1]&&z>=lakeBounds[2]&&z<=lakeBounds[3])&&
+      inLoop(x,z,survey.shore)&&!(survey.shoreHoles||[]).some(r=>inLoop(x,z,r));
+  }
+  function wetGround(x,z,y,margin){
+    if(!surry)return y<(settings.water??-1000)+margin;
+    return (y<settings.water+margin&&inLake(x,z))||Number.isFinite(dam.riverHeight(x,z));
+  }
+  function plant(tree,isFir){
+    if(dam?.onDam(tree.x,tree.z))return;
+    if(Number.isFinite(roofHeight?.(tree.x,tree.z))||Number.isFinite(waterfrontHeight?.(tree.x,tree.z)))return;
+    trees.push(tree);(isFir?firTrees:broadTrees).push(tree);
+    const id=cell(tree.x,tree.z);if(!cells.has(id))cells.set(id,[]);cells.get(id).push(tree);
+  }
+  const crownPoints=region==='yosemite'?window.yosemiteCanopy:survey.crownPoints;
+  if(crownPoints){
+    const records=bytes(crownPoints),view=new DataView(records.buffer);
+    for(let off=0;off<records.length;off+=8){
+      const x=focusX+view.getInt16(off,true),z=focusZ+view.getInt16(off+2,true);
+      const species=records[off+6];
+      plant({x,z,y:elevation(x,z),width:records[off+4]/8,height:records[off+5]/4,species,seed:records[off+7]/255},species===4);
+    }
+  }
+  const cityTrees=surry?window.KEENE_CITY?.trees:null;
+  for(const [x,z,height,width,seed] of cityTrees||[])plant({x,z,y:elevation(x,z),height,width,seed},false);
+  waterfront?.createTrees(plant,elevation,settings.water);
+  const conifer=settings.conifers??['yosemite','bryce','crater'].includes(region);
+  const firFraction=newEngland?clamp(settings.mixedFirFraction??(region==='moosehead'?.56:.30),0,1):(conifer?1:0);
+  const treeSpacing=newEngland?clamp((settings.treeSpacing??18)*.68,10,20):(region==='milford'?16:region==='napali'?17:region==='lofoten'?24:region==='bryce'?17:21);
+  for(let z=-h;z<h && (region!=='yosemite'||!crownPoints);z+=treeSpacing)for(let x=-h;x<h;x+=treeSpacing){
+    const px=x+rand()*treeSpacing,pz=z+rand()*treeSpacing,y=elevation(px,pz);
+    if(survey.crownPoints&&Math.max(Math.abs(px-focusX),Math.abs(pz-focusZ))<1445)continue;
+    if(cityTrees&&Math.max(Math.abs(px-cityX),Math.abs(pz-cityZ))<600)continue;
+    if(y>settings.top||wetGround(px,pz,y,newEngland?.8:4))continue;
+    const biomass=growth(px,pz)*settings.cover;
+    if(rand()>biomass)continue;
+    const slope=Math.hypot(elevation(px+8,pz)-y,elevation(px,pz+8)-y)/8;
+    if(slope>(region==='milford'?1.9:1.3))continue;
+    const count=1+Math.floor(biomass*2.7*rand());
+    for(let k=0;k<count;k++){
+      const tx=px+(k?(rand()-.5)*treeSpacing:0),tz=pz+(k?(rand()-.5)*treeSpacing:0),ty=k?elevation(tx,tz):y;
+      if(wetGround(tx,tz,ty,.8))continue;
+      const height=settings.treeH*(.48+.66*rand());
+      // Species mix varies gently by stand. Fir crowns rise as narrow spires;
+      // a hardwood of the same height carries a broader, rounder canopy.
+      const isFir=newEngland?rand()<clamp(firFraction+.10*Math.sin(tx*.006+tz*.0017)*Math.cos(tz*.004),0,1):conifer;
+      const width=height*(isFir?.30+.19*rand():newEngland?.77+.32*rand():.68+.44*rand());
+      const tree={x:tx,y:ty,z:tz,height,width,seed:rand()};
+      plant(tree,isFir);
+    }
+  }
+  const sunMask=terrainLight;
+  window.shadeAtlasForest(THREE,terrain,trees,sun,h);
+  const hardwood=newEngland||region==='lofoten';
+  let updateHardwoods;
+  if(hardwood&&broadTrees.length){
+    updateHardwoods=window.addHardwoods(THREE,scene,broadTrees,{region,sun,sunMask,half:h,fogColor:color,clock});
+  }else if(broadTrees.length){
+    // Camera-facing multi-view captures of a 3D broadleaf crown. Trunks branch below
+    // the outer leaf envelope; adjacent clumps retain independent scale, azimuth and wind.
+    const atlas=texture('atlas-broadleaf.webp'),batchSize=650,groups=new Map();
+    for(const t of broadTrees){const id=Math.floor(t.x/batchSize)*64+Math.floor(t.z/batchSize);if(!groups.has(id))groups.set(id,[]);groups.get(id).push(t);}
+    const geo=new THREE.PlaneGeometry(1,1);geo.translate(0,.5,0);
+    const mat=new THREE.ShaderMaterial({side:THREE.DoubleSide,uniforms:{map:{value:atlas},clock,fogColor:{value:color},autumn:{value:region==='moosehead'?1:0}},
+      vertexShader:`attribute vec3 root;attribute vec3 dims;varying vec2 tex;varying float shade,fog,hue;
+        uniform float clock;void main(){vec3 eye=cameraPosition-root;vec2 f=normalize(eye.xz+.0001),right=vec2(f.y,-f.x);float idx=mod(floor((atan(f.x,f.y)+3.1416)*.47746+dims.z*3.),3.);
+          vec3 pt=root;pt.xz+=right*position.x*dims.x;pt.y+=position.y*dims.y;
+          pt.x+=sin(dot(root.xz,vec2(.012,.023))+clock*1.6)*.07*position.y*position.y;
+          tex=vec2((uv.x+idx)/3.,uv.y);hue=dims.z;shade=.56+.17*dims.z+.23*uv.y;fog=1.-exp(-length(eye)*.000056);
+          gl_Position=projectionMatrix*viewMatrix*vec4(pt,1.);}`,
+      fragmentShader:`uniform sampler2D map;uniform vec3 fogColor;uniform float autumn;varying vec2 tex;varying float shade,fog,hue;
+        void main(){vec4 c=texture2D(map,tex);if(c.a<.41)discard;vec3 summer=c.rgb*vec3(.86,1.0,.88);
+        float warmth=autumn*smoothstep(.22,.95,hue);
+        vec3 copper=vec3(c.g*1.36,c.g*.83,c.g*.39);
+        vec3 leaves=mix(summer,copper,warmth*.77);
+        gl_FragColor=vec4(mix(leaves*shade,pow(fogColor,vec3(.4545)),fog),1.);}`});
+    for(const batch of groups.values()){
+      const g=new THREE.InstancedBufferGeometry();g.index=geo.index;g.setAttribute('position',geo.attributes.position);g.setAttribute('uv',geo.attributes.uv);
+      const roots=new Float32Array(3*batch.length),sizes=new Float32Array(3*batch.length),box=new THREE.Box3();
+      batch.forEach((t,i)=>{roots.set([t.x,t.y,t.z],3*i);sizes.set([t.width,t.height,t.seed],3*i);box.expandByPoint(new THREE.Vector3(t.x,t.y,t.z));});
+      g.setAttribute('root',new THREE.InstancedBufferAttribute(roots,3));g.setAttribute('dims',new THREE.InstancedBufferAttribute(sizes,3));g.instanceCount=batch.length;
+      g.boundingSphere=box.expandByScalar(30).getBoundingSphere(new THREE.Sphere());scene.add(new THREE.Mesh(g,mat));
+    }
+  }
+  const spray=texture('waternormals.jpg',true);
+  function cascade(name,reach,width){
+    const mark=survey.landmarks.find(l=>l.name===name);if(!mark)return;
+    let choice,score=-Infinity;
+    for(let j=0;j<250;j++){
+      const angle=rand()*6.283,x=mark.x+rand()*200-100,z=mark.z+rand()*200-100;
+      const dx=Math.cos(angle),dz=Math.sin(angle),topY=elevation(x,z),bottom=elevation(x+dx*reach,z+dz*reach);
+      const s=topY-bottom;if(s>score){score=s;choice={x,z,dx,dz};}
+    }
+    if(score<24)return;
+    const {x,z,dx,dz}=choice,p=[],uv=[],idx=[],steps=65;
+    for(let j=0;j<=steps;j++){
+      const t=j/steps,wiggle=Math.sin(t*7.4)*width*.3,px=x+dx*reach*t-dz*wiggle,pz=z+dz*reach*t+dx*wiggle;
+      for(let i=0;i<2;i++){
+        const w=(i-.5)*width*(.55+.52*t),sx=px-dz*w,sz=pz+dx*w;
+        p.push(sx,elevation(sx,sz)+2.2,sz);uv.push(i,t);
+      }
+      if(j<steps){const k=j*2;idx.push(k,k+1,k+2,k+1,k+3,k+2);}
+    }
+    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(p,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));g.setIndex(idx);
+    const mat=new THREE.ShaderMaterial({uniforms:{clock,noise:{value:spray}},transparent:true,side:THREE.DoubleSide,depthWrite:false,
+      vertexShader:'varying vec2 f;void main(){f=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+      fragmentShader:`uniform float clock;uniform sampler2D noise;varying vec2 f;void main(){vec2 flow=vec2(f.x*.72,f.y*4.8-clock*.40);float n=texture2D(noise,flow).r;float edge=smoothstep(0.,.2,min(f.x,1.-f.x));gl_FragColor=vec4(mix(vec3(.59,.69,.70),vec3(.96,.99,1.),n),(.38+.52*n)*edge);}`});
+    scene.add(new THREE.Mesh(g,mat));
+  }
+  if(region==='yosemite'){cascade('Bridalveil Fall',265,12);cascade('Yosemite Falls',560,17);}
+  if(region==='milford'){cascade('Stirling Falls',144,9);cascade('Bowen Falls',180,11);}
+  function inLoop(x,z,pts){
+    if(!pts?.length)return true;
+    let inside=false;
+    for(let i=0,j=pts.length-1;i<pts.length;j=i++){
+      const a=pts[i],b=pts[j];
+      if((a[1]>z)!==(b[1]>z)&&x<(b[0]-a[0])*(z-a[1])/(b[1]-a[1])+a[0])inside=!inside;
+    }
+    return inside;
+  }
+  function height(x,z){
+    if(settings.water===undefined)return elevation(x,z);
+    const ground=Math.max(elevation(x,z),dam?.riverHeight(x,z)??-Infinity);
+    return ground<settings.water+.16&&inLake(x,z)?settings.water+.16:ground;
+  }
+  function clearance(x,z){
+    let y=Math.max(height(x,z),roofHeight?.(x,z)??-Infinity,dam?.structureHeight(x,z)??-Infinity,waterfrontHeight?.(x,z)??-Infinity);const ix=Math.floor(x/50),iz=Math.floor(z/50);
+    for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++){
+      const id=(ix+dx+500)*1024+iz+dz+500,group=cells.get(id);
+      if(group)for(const t of group){const d=Math.hypot(x-t.x,z-t.z)/(t.width*.5);if(d<1)y=Math.max(y,t.y+t.height*(1-d*d*.68));}
+    }
+    return y;
+  }
+  const start=([x,z,tx,tz,agl])=>({x,z,y:clearance(x,z)+agl,yaw:Math.atan2(x-tx,z-tz)});
+  const spawn=start(settings.launch),low=start(settings.low);
+  const launches={lake:spawn,ridge:low};
+  for(const [key,tuple] of Object.entries(waterfront?.launches||settings.extraLaunches||{}))launches[key]=start(tuple);
+  const landmarks=waterfront?[...survey.landmarks.filter(mark=>!waterfront.landmarks.some(local=>local.name===mark.name)),...waterfront.landmarks]:survey.landmarks;
+  return {region,height,elevation,clearance,spawn,launches,landmarks,
+    bounds:{minX:-(settings.flightHalf||h)+90,maxX:(settings.flightHalf||h)-90,minZ:-(settings.flightHalf||h)+90,maxZ:(settings.flightHalf||h)-90},waterLevel:settings.water,lakeLevel:settings.water,
+    skyTexture:skyMap,sunDirection:sun,sunMask,trees,firTrees,forestLightSpan:2*h,longForest:newEngland||region==='yosemite',useFirForest:firTrees.length>0,altitudeOffset:0,
+    update(dt,t,player){clock.value=t;updateHardwoods?.(player);if(water)water.material.uniforms.time.value=t*.65;}};
+};

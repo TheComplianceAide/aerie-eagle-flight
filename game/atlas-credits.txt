@@ -1,0 +1,47 @@
+Aerie — additional landscapes
+
+Weirs Beach and Alton Bay, Lake Winnipesaukee:
+Orthoimagery from USDA National Agriculture Imagery Program, New Hampshire 2023, resampled at 0.60 m. Terrain from USGS 3D Elevation Program. Tree crown positions are approximate detections using aerial imagery and ESA WorldCover 2021. Mapping © OpenStreetMap contributors (ODbL) with additional Microsoft US Building Footprints (ODbL). The boardwalk, station, water bandstand and waterfront structures are reconstructions.
+https://imagery.geoplatform.gov/iipp/rest/services/NAIP/NAIP2023_CONUS/ImageServer
+https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer
+https://esa-worldcover.org/en
+https://www.openstreetmap.org/copyright
+https://github.com/microsoft/USBuildingFootprints
+
+Yosemite Valley, Bryce Canyon National Park and Crater Lake National Park:
+Aerial photography from USDA's National Agriculture Imagery Program, delivered by USGS The National Map. Heights are resampled USGS 3D Elevation Program (3DEP) terrain. The central 2.9 km of Bryce Amphitheater uses fins and hoodoos measured by the 2018 Southern Utah QL1 USGS survey. Its one-meter lidar elevation product was sampled at 1.42 m for the game. Trees and waterfalls are simulated.
+https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer
+https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer
+
+Nā Pali Coast:
+USDA Natural Resources Conservation Service historical 1962–1966 Hawaii orthophotography, matched to 2022 Copernicus Sentinel-2 natural-color imagery. USGS 3DEP terrain.
+https://apps.geo.fpac.usda.gov/nrcs-imagery/rest/services/ortho_imagery/hawaii_1962_1966_30cm/ImageServer
+https://earth-search.aws.element84.com/v1/collections/sentinel-2-l2a/items/S2A_4QDK_20220821_0_L2A
+https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer
+
+Reinefjorden, Lofoten:
+Elevation data © Kartverket, Norwegian national height model (NHM DTM 1). Licensed under CC BY 4.0. The local surface was resampled and relief shading combined with modified Copernicus Sentinel-2 summer photographs (2022–2024). Regional terrain uses Copernicus DEM GLO-30.
+https://www.kartverket.no/api-og-data/terrengdata
+https://wcs.geonorge.no/skwms1/wcs.hoyde-dtm-nhm-25833
+https://creativecommons.org/licenses/by/4.0/
+https://earth-search.aws.element84.com/v1/collections/sentinel-2-l2a/items/S2A_33WVR_20230627_0_L2A
+
+Milford Sound / Piopiotahi:
+Southland 0.75m Rural Aerial Photos (2005–2011), sourced from the LINZ Data Service and licensed for reuse under CC BY 4.0. Reprojected and resampled to the flight area. The regional color mosaic contains modified Copernicus Sentinel-2 data (2022 and 2024). Elevation derived from Copernicus DEM GLO-30.
+https://nz-imagery.s3.ap-southeast-2.amazonaws.com/southland/southland_2005-2011_0.75m/rgb/2193/collection.json
+https://www.linz.govt.nz/products-services/data/types-linz-data/aerial-imagery
+https://creativecommons.org/licenses/by/4.0/
+https://earth-search.aws.element84.com/v1/collections/sentinel-2-l2a/items/S2A_58GGR_20240220_0_L2A
+
+Contains modified Copernicus Sentinel data, distributed via the AWS Open Data Program / Element 84 Earth Search.
+https://registry.opendata.aws/sentinel-2-l2a-cogs/
+Copernicus DEM GLO-30, Copernicus Space Component Data Access system. © DLR e.V. 2010–2014 and © Airbus Defence and Space GmbH 2014–2018, provided under COPERNICUS by the European Union and ESA, all rights reserved.
+https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM
+https://registry.opendata.aws/copernicus-dem/
+
+Island Tree 01 model and photo textures, Qwantani Sunrise (Pure Sky) and Wasteland Clouds (Pure Sky) by Poly Haven, CC0. Broadleaf tree views were rendered from the textured model specifically for Aerie. Vegetation represents plausible stands derived from image color and terrain; individual trees are not a surveyed inventory.
+https://polyhaven.com/a/island_tree_01
+https://polyhaven.com/a/qwantani_sunrise_puresky
+https://polyhaven.com/a/wasteland_clouds_puresky
+
+Lake and ocean reflection material derived from Three.js Water (MIT). Existing terrain scans, water normals and the fir-tree model are credited in credits.txt. The locations, terrain and imagery are real. Lighting, water, close surface materials, waterfalls and vegetation are rendered as a simulation.

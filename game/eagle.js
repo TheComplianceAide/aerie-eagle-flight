@@ -1,0 +1,597 @@
+// Anatomical shell and feather rig for a 2.2 m bald eagle, facing -Z.
+// Each shell vertex retains its photographic coordinates as the skeleton moves it.
+window.makeEagle = function makeEagle(THREE) {
+  const object = new THREE.Group();
+  object.name = 'Bald eagle';
+  const rig = new THREE.Group();
+  object.add(rig);
+  const bones = [];
+  const reference = new Map();
+  const span = 2.2;
+  const length = span * 763 / 2003;
+  const center = .44;
+  const zAt = v => (v - center) * length;
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  function smooth(a, b, v) {
+    const t = clamp((v - a) / (b - a), 0, 1);
+    return t * t * (3 - 2 * t);
+  }
+  function sample(points, v) {
+    for (let i = 1; i < points.length; i++) {
+      const a = points[i - 1], b = points[i];
+      if (v <= b[0]) return a[1] + (b[1] - a[1]) * smooth(a[0], b[0], v);
+    }
+    return points[points.length - 1][1];
+  }
+  function bone(name, parent, x, y, z) {
+    const b = new THREE.Bone();
+    b.name = name;
+    const at = new THREE.Vector3(x, y, z);
+    b.position.copy(at);
+    if (parent) b.position.sub(reference.get(parent));
+    reference.set(b, at);
+    b.userData.index = bones.length;
+    bones.push(b);
+    (parent || rig).add(b);
+    return b;
+  }
+  const chest = bone('Thorax', null, 0, 0, 0);
+  const neck = bone('Neck', chest, 0, .012, zAt(.27));
+  const rudder = bone('Tail base', chest, 0, -.004, zAt(.66));
+  const tailRays = [-1, 0, 1].map(side =>
+    bone('Tail fan ' + side, rudder, side * .018, -.003, zAt(.69)));
+  const wings = [-1, 1].map(sign => {
+    const shoulder = bone('Shoulder ' + sign, chest, sign * .093, .015, zAt(.33));
+    const elbow = bone('Elbow ' + sign, shoulder, sign * .316, .031, zAt(.403));
+    const wrist = bone('Carpus ' + sign, elbow, sign * .625, .022, zAt(.278));
+    const fan = Array.from({length: 6}, (_, i) =>
+      bone('Primary fan ' + sign + '/' + i, wrist, sign * .714, .014, zAt(.29 + i * .033)));
+    return {sign, shoulder, elbow, wrist, fan};
+  });
+  // Body radii and wing sections are expressed in physical metres. The head,
+  // breast, mantle and tail overlap in plan but have different volumes.
+  const radiusProfile = [[0,.003],[.034,.016],[.07,.034],[.13,.058],[.20,.077],
+    [.265,.088],[.33,.123],[.44,.151],[.57,.145],[.66,.117],[.73,.064],[.775,0],[1,0]];
+  const depthProfile = [[0,.001],[.045,.020],[.10,.044],[.155,.059],[.205,.064],[.26,.061],
+    [.35,.087],[.47,.105],[.57,.097],[.67,.065],[.75,.018],[.79,0],[1,0]];
+  const frontProfile = [[0,.25],[.15,.265],[.26,.25],[.42,.219],[.59,.208],[.78,.19],[.95,.13],[1.12,.19]];
+  const rearProfile = [[0,.67],[.16,.693],[.33,.696],[.52,.674],[.74,.609],[.89,.563],[1.1,.405]];
+  const skullProfile=[
+    [.049,.017,.029,.017,.017],[.073,.034,.026,.036,.030],[.097,.045,.026,.050,.042],
+    [.130,.056,.028,.057,.050],[.174,.067,.028,.060,.055],[.209,.074,.023,.060,.057],
+    [.244,.079,.017,.058,.056],[.273,.088,.012,.059,.055],[.304,.089,.008,.055,.051]
+  ];
+  const skullProfiles=[1,2,3,4].map(k=>skullProfile.map(p=>[p[0],p[k]]));
+  function anatomy(u, v, edgeFade) {
+    const x = (u - .5) * span, ax = Math.abs(x);
+    const radius = sample(radiusProfile, v);
+    const round = radius > 0 ? Math.pow(Math.max(0, 1 - (ax / radius) ** 2), .65) : 0;
+    const trunk = round * sample(depthProfile, v);
+    const front = sample(frontProfile, ax), rear = sample(rearProfile, ax);
+    const chord = clamp((v - front) / (rear - front), 0, 1);
+    const arm = 1 - smooth(.49, 1.06, ax);
+    const airfoil = Math.pow(Math.sin(Math.PI * Math.pow(chord, .72)), .70);
+    const wing = smooth(.03, .15, ax) * (1 - smooth(.69, .755, v));
+    const rootRise = .019 * Math.sin(clamp(ax / 1.1, 0, 1) * Math.PI);
+    const tipFlex = .015 * smooth(.74, 1.08, ax);
+    const tailCamber = -.021 * smooth(.61, .99, v) + .022 * Math.abs(x) * smooth(.67, .83, v);
+    const sweep = wing * (rootRise + tipFlex - .017 * chord * chord) + tailCamber;
+    const cranialRise = .026 * (1 - smooth(.20, .34, v)) * (.38 + .62 * round) * (1 - smooth(.080,.103,ax));
+    const hook = -.019 * (1 - smooth(.0, .037, v));
+    const seamInset=.017*(1-smooth(.25,.32,v))*(1-smooth(.070,.106,ax));
+    const top = sweep - seamInset + cranialRise + hook + trunk + wing * airfoil * (.012 + arm * .032) * edgeFade;
+    const bottom = sweep + cranialRise + hook - trunk * 1.15 - wing * airfoil * (.003 + arm * .021) * edgeFade;
+    return {x, z:zAt(v), top, bottom};
+  }
+  function influences(x, v) {
+    const ax = Math.abs(x), wing = wings[x < 0 ? 0 : 1];
+    const result = new Map();
+    function add(bone, amount) {
+      if (amount > 0) result.set(bone.userData.index, (result.get(bone.userData.index) || 0) + amount);
+    }
+    const tail = smooth(.617, .773, v) * (1 - smooth(.20, .28, ax));
+    const head = (1 - smooth(.195, .32, v)) * (1 - smooth(.062, .104, ax));
+    const wingPortion = smooth(.060, .196, ax) * (1 - smooth(.681, .733, v)) * (1 - head) * (1 - tail);
+    const intoElbow = smooth(.222, .418, ax);
+    const intoWrist = smooth(.494, .723, ax);
+    const primary = smooth(.710, .94, ax);
+    add(chest, Math.max(0, 1 - tail - head - wingPortion));
+    add(neck, head);
+    const spread = smooth(.008, .13, ax);
+    add(tailRays[1], tail * (1 - spread));
+    add(tailRays[x < 0 ? 0 : 2], tail * spread);
+    add(wing.shoulder, wingPortion * (1 - intoElbow));
+    add(wing.elbow, wingPortion * intoElbow * (1 - intoWrist));
+    add(wing.wrist, wingPortion * intoWrist * (1 - primary));
+    // From the carpus, each slotted primary points in a slightly different
+    // direction. The remiges can flex and separate during the recovery stroke.
+    const primaryAngle = Math.atan2((v - .315) * length, Math.max(.035, ax - .632));
+    const ray = clamp((primaryAngle + .46) / 1.22, 0, 1) * (wing.fan.length - 1);
+    const lower = Math.floor(ray), upper = Math.min(lower + 1, wing.fan.length - 1);
+    add(wing.fan[lower], wingPortion * primary * (upper === lower ? 1 : upper - ray));
+    if (upper !== lower) add(wing.fan[upper], wingPortion * primary * (ray - lower));
+    const strongest = [...result.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4);
+    const total = strongest.reduce((sum, entry) => sum + entry[1], 0);
+    while (strongest.length < 4) strongest.push([0, 0]);
+    return {index:strongest.map(entry => entry[0]), weight:strongest.map(entry => entry[1] / total)};
+  }
+  // The coverts and hackles have their own shafts and vanes. They share the
+  // shell's skeleton, so their roots stay planted throughout a turn or stroke.
+  const featherTime = {value:0}, featherWind = {value:1}, ruffDrag = {value:0};
+  function addContourFeathers(skeleton) {
+    const positions=[], normals=[], uv=[], indices=[], skinIndices=[], skinWeights=[], aero=[], colors=[];
+    let seed=682197;
+    const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
+    function surface(x,v,white){
+      function height(x,v){
+        if(!white)return anatomy(.5+x/span,v,1).top;
+        const radius=sample(skullProfiles[0],v), height=sample(skullProfiles[2],v);
+        const crown=sample(skullProfiles[1],v)+height*Math.sqrt(Math.max(.002,1-(x/radius)**2));
+        const shoulder=anatomy(.5+x/span,v,1).top;
+        return crown+(Math.max(crown,shoulder+.0005)-crown)*smooth(.222,.29,v);
+      }
+      const dx=.00035,dv=dx/length;
+      const sx=(height(x+dx,v)-height(x-dx,v))/(2*dx);
+      const sz=(height(x,v+dv)-height(x,v-dv))/(2*dx);
+      return {point:new THREE.Vector3(x,height(x,v),zAt(v)),normal:new THREE.Vector3(-sx,1,-sz).normalize()};
+    }
+    function feather(path, white, wing=false){
+      const atlasCell=(white?4:0)+Math.floor(random()*4);
+      const phase=random()*6.283, variation=white?.96+.06*random():.89+.18*random();
+      const amplitude=(white?.0020:wing?.0027:.0023)*(.65+.65*random());
+      const start=positions.length/3;
+      const rows=8, cols=5;
+      for(let i=0;i<=rows;i++){
+        const t=i/rows;
+        for(let j=0;j<=cols;j++){
+          const a=j/cols*2-1, {x,v}=path(t,a);
+          const {point,normal}=surface(x,v,white);
+          const arch=(1-a*a)*(.0006+.0011*t);
+          const liftAtTip = amplitude*(white?1.4:1.65);
+          let lift=white?-.0039+.0041*t+t*t*liftAtTip+arch*.25:-.0024+.0027*t+t*t*liftAtTip+arch*.60;
+          if(white){
+            const orbit=Math.hypot((point.z-zAt(.140))/.026,(point.y-.047)/.020);
+            lift-=.008*(1-smooth(.70,1.18,orbit))*smooth(.48,.75,Math.abs(x)/sample(radiusProfile,v));
+          }
+          point.addScaledVector(normal,lift);
+          if(!white){
+            const collar=(1-smooth(.32,.38,v))*(1-smooth(.06,.14,Math.abs(x)));
+            point.y-=.007*collar;
+          }
+          positions.push(...point.toArray());normals.push(...normal.toArray());
+          const weights=influences(x,v);
+          skinIndices.push(...weights.index);skinWeights.push(...weights.weight);
+          uv.push((atlasCell+.008+.984*j/cols)/8,.004+.992*(1-t));
+          // The exposed tips flex. The covered proximal vane stays against the skin.
+          aero.push(t*t,phase,amplitude,white?smooth(.13,.25,v):0);
+          const shade=variation*(white?.96+.04*t:.87+.13*t);
+          colors.push(shade,shade,shade);
+          if(i<rows&&j<cols){
+            const k=start+i*(cols+1)+j;
+            indices.push(k,k+cols+1,k+1,k+1,k+cols+1,k+cols+2);
+          }
+        }
+      }
+    }
+    // Crown and nape feather tracts follow the curvature of the skull and
+    // spread over the shoulder seam as the neck widens.
+    function bodyRow(v0, count, white, halfWidth, featherLength, offset){
+      for(let i=0;i<count;i++){
+        const a0=-1.28+(i+.5+offset+(random()-.5)*(white?.76:.26))/count*2.56;
+        const vRoot=v0+(random()-.5)*(white?.025:.009);
+        const size=featherLength*(.72+.52*random()), w=halfWidth*(.80+.36*random());
+        const splay=white? .24*Math.sin(a0*1.8)+.075*Math.sin(vRoot*42)+(random()-.5)*.10 :
+          .04*Math.sin(a0*2)+(random()-.5)*.035;
+        feather((t,side)=>{
+          const v=vRoot+t*size;
+          const radius=sample(white?skullProfiles[0]:radiusProfile,v);
+          const angle=a0+t*splay+side*w/Math.max(.04,radius);
+          return {x:radius*Math.sin(clamp(angle,-1.52,1.52)),v};
+        },white);
+      }
+    }
+    // Fine skull feathers lie flat. The nape carries loosely overlapping hackles
+    // whose long tips part over the scapulars when the head swivels.
+    for(let r=0;r<6;r++){
+      const f=r/5;
+      bodyRow(.146+r*.0167,Math.round(10+f*8),true,.0020+f*.0022,.039+.038*f,(random()-.5)*.95);
+    }
+    for(let r=0;r<9;r++){
+      const f=r/8;
+      bodyRow(.31+r*.036,Math.round(13+Math.sin(f*Math.PI)*6),false,.0085+.003*Math.sin(f*Math.PI),.050+.032*f,(random()-.5)*.65);
+    }
+    for(const side of [-1,1]){
+      for(let row=0;row<4;row++){
+        for(let i=0;i<27;i++){
+          const root=.105+(i+.5+(row%2)*.32)*.024;
+          const start=sample(frontProfile,root)+.03+row*.055+(random()-.5)*.012;
+          const width=.014*(.81+.39*random()), extent=(.069+row*.013)*(.87+.26*random());
+          const sweep=.014+root*.073;
+          feather((t,a)=>({x:side*(root+sweep*t)+a*width,
+            v:start+t*extent-a*side*width*.40/length}),false,true);
+        }
+      }
+    }
+    const geo=new THREE.BufferGeometry();
+    for(const [name,values,size] of [['position',positions,3],['normal',normals,3],['uv',uv,2],
+      ['color',colors,3],['aero',aero,4],['skinWeight',skinWeights,4]]){
+      geo.setAttribute(name,new THREE.Float32BufferAttribute(values,size));
+    }
+    geo.setAttribute('skinIndex',new THREE.Uint16BufferAttribute(skinIndices,4));geo.setIndex(indices);
+    const atlas=new THREE.TextureLoader().load('eagle-contours.webp');
+    atlas.colorSpace=THREE.SRGBColorSpace;atlas.anisotropy=8;
+    const material=new THREE.MeshStandardMaterial({map:atlas,alphaTest:.36,alphaToCoverage:true,
+      vertexColors:true,side:THREE.DoubleSide,roughness:.69,bumpMap:atlas,bumpScale:.00021});
+    material.onBeforeCompile=shader=>{
+      Object.assign(shader.uniforms,{featherTime,featherWind,ruffDrag});
+      shader.vertexShader=shader.vertexShader.replace('#include <common>',
+        '#include <common>\nattribute vec4 aero; uniform float featherTime,featherWind,ruffDrag;')
+        .replace('#include <begin_vertex>',`#include <begin_vertex>
+        float wave=sin(featherTime*6.8-position.z*30.+position.x*15.+aero.y*.43);
+        float flutter=sin(featherTime*12.3+aero.y+position.x*28.);
+        float gust=sin(featherTime*2.85-position.z*61.+position.x*17.);
+        float bend=aero.x*aero.z*(.43+.33*wave+.18*flutter+.21*gust)*featherWind;
+        transformed+=normal*bend;
+        transformed.x+=aero.x*(aero.z*wave*.32*featherWind+aero.w*ruffDrag*.0065);
+        transformed.z+=aero.x*aero.w*abs(ruffDrag)*.0025;`);
+      // Thin vanes transmit some skylight when viewed along their lower face.
+      // This keeps the ivory fringe legible in grazing-angle shoulder views.
+      shader.fragmentShader=shader.fragmentShader.replace('#include <lights_fragment_end>',
+        `#include <lights_fragment_end>
+        if(!gl_FrontFacing) reflectedLight.indirectDiffuse+=diffuseColor.rgb*mix(.12,.54,step(.50,vMapUv.x));`);
+    };
+    const mesh=new THREE.SkinnedMesh(geo,material);
+    mesh.name='Individual crown, neck, mantle and wing feathers';
+    mesh.frustumCulled=false;rig.add(mesh);mesh.bind(skeleton,new THREE.Matrix4());
+  }
+  const sidePortrait=new THREE.TextureLoader().load('eagle-profile.webp');
+  sidePortrait.colorSpace=THREE.SRGBColorSpace;sidePortrait.anisotropy=10;
+  function buildShell(photo) {
+    // Triangulate the photograph's alpha contour, including the gaps between
+    // primary feathers. The ventral and dorsal skins meet along that contour.
+    const columns = 195, rows = 75, stride = columns + 1;
+    const canvas = document.createElement('canvas');
+    canvas.width = stride; canvas.height = rows + 1;
+    const context = canvas.getContext('2d', {willReadFrequently:true});
+    context.drawImage(photo.image, 1, 1, columns - 1, rows - 1);
+    const rgba = context.getImageData(0, 0, stride, rows + 1).data;
+    const mask = new Float32Array(stride * (rows + 1));
+    for (let i = 0; i < mask.length; i++) {
+      // The rigid keratin bill has a separate upper hook and lower mandible.
+      const v = Math.floor(i / stride)/rows, ax=Math.abs((i%stride/columns-.5)*span);
+      mask[i] = v < .252 && ax < sample(radiusProfile,v)+.017 ? 0 : rgba[i * 4 + 3] / 255;
+    }
+    const pos = [], uv = [], skinIndex = [], skinWeight = [];
+    const upper = [], lower = [], seam = [];
+    const threshold = .32;
+    const cache = new Map();
+    function vertex(a, b) {
+      const key = a < b ? a * mask.length + b : b * mask.length + a;
+      if (cache.has(key)) return cache.get(key);
+      const fraction = a === b ? 0 : (threshold - mask[a]) / (mask[b] - mask[a]);
+      const col = a % stride + (b % stride - a % stride) * fraction;
+      const row = Math.floor(a / stride) + (Math.floor(b / stride) - Math.floor(a / stride)) * fraction;
+      const u = clamp((col - .5) / (columns - 1), 0, 1);
+      const v = clamp((row - .5) / (rows - 1), 0, 1);
+      const form = anatomy(u, v, a === b ? 1 : .15);
+      const bind = influences(form.x, v);
+      const index = pos.length / 3;
+      for (const y of [form.top, form.bottom - .0007]) {
+        pos.push(form.x, y, form.z);
+        uv.push(u, 1 - v);
+        skinIndex.push(...bind.index);
+        skinWeight.push(...bind.weight);
+      }
+      cache.set(key, index);
+      return index;
+    }
+    function triangle(a, b, c) {
+      const corners = [a, b, c], clipped = [], intersections = [];
+      for (let i = 0; i < 3; i++) {
+        const first = corners[i], next = corners[(i + 1) % 3];
+        const inside = mask[first] >= threshold;
+        if (inside) clipped.push(vertex(first, first));
+        if (inside !== (mask[next] >= threshold)) {
+          const edge = vertex(first, next);
+          clipped.push(edge);
+          intersections.push(edge);
+        }
+      }
+      for (let i = 1; i + 1 < clipped.length; i++) {
+        upper.push(clipped[0], clipped[i], clipped[i + 1]);
+        lower.push(clipped[i + 1] + 1, clipped[i] + 1, clipped[0] + 1);
+      }
+      if (intersections.length === 2) {
+        const [p, q] = intersections;
+        seam.push(p, q, p + 1, q, q + 1, p + 1);
+      }
+    }
+    for (let i = 0; i < rows; i++) {
+      for (let j = 0; j < columns; j++) {
+        const n = i * stride + j;
+        triangle(n, n + stride, n + 1);
+        triangle(n + 1, n + stride, n + stride + 1);
+      }
+    }
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+    geometry.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(skinIndex, 4));
+    geometry.setAttribute('skinWeight', new THREE.Float32BufferAttribute(skinWeight, 4));
+    geometry.setIndex([...upper, ...lower, ...seam]);
+    geometry.addGroup(0, upper.length, 0);
+    geometry.addGroup(upper.length, lower.length, 1);
+    geometry.addGroup(upper.length + lower.length, seam.length, 1);
+    geometry.computeVertexNormals();
+    photo.colorSpace = THREE.SRGBColorSpace;
+    photo.anisotropy = 8;
+    const plumage = new THREE.MeshStandardMaterial({
+      map:photo, bumpMap:photo, bumpScale:.0007, roughness:.81, metalness:0,
+      alphaTest:.16, side:THREE.DoubleSide
+    });
+    const textureLoader = new THREE.TextureLoader();
+    function tractTexture(file){
+      const texture=textureLoader.load(file);
+      texture.colorSpace=THREE.SRGBColorSpace;
+      texture.wrapS=THREE.MirroredRepeatWrapping;
+      texture.wrapT=THREE.RepeatWrapping;
+      texture.anisotropy=12;
+      return texture;
+    }
+    const mantle=tractTexture('eagle-mantle.webp'), nape=tractTexture('eagle-nape.webp');
+    function dorsalShading(shader){
+      Object.assign(shader.uniforms,{mantleMap:{value:mantle},napeMap:{value:nape}});
+      shader.vertexShader=shader.vertexShader.replace('#include <common>',
+        '#include <common>\nvarying vec3 restPlumage; varying vec3 restNormal;')
+        .replace('#include <begin_vertex>','#include <begin_vertex>\nrestPlumage=position;restNormal=normal;');
+      shader.fragmentShader=shader.fragmentShader.replace('#include <common>',`#include <common>
+        varying vec3 restPlumage,restNormal;
+        uniform sampler2D mantleMap,napeMap;`)
+        .replace('#include <map_fragment>',`#include <map_fragment>
+          float v=restPlumage.z/${length.toFixed(6)}+.44;
+          float ax=abs(restPlumage.x);
+          float circumference=restPlumage.x*(1.+.85*(1.-max(restNormal.y,0.)));
+          float ratio=max(dot(diffuseColor.rgb,vec3(.2126,.7152,.0722)),.0001);
+          float white=smoothstep(.23,.45,ratio)*(1.-smoothstep(.31,.375,v));
+          // Stagger the tips over the curved boundary where the mantle lifts
+          // in front of the nape in the close shoulder projection.
+          float tuft=abs(fract(restPlumage.x*96.+.16*sin(restPlumage.x*201.))-.5)*2.;
+          float edge=.332-.055*smoothstep(.014,.135,ax)+.013*(1.-tuft)+.005*sin(restPlumage.x*155.);
+          float neckTract=(1.-smoothstep(edge-.009,edge+.003,v))*(1.-smoothstep(.07,.14,ax));
+          white=max(white,neckTract);
+          vec2 mantleUv=vec2(circumference*10.2+.45,1.-v*8.8+ax*2.1);
+          vec3 mantleBase=texture2D(mantleMap,mantleUv).rgb;
+          vec2 collarUv=vec2(circumference*15.+.61,1.-v*12.+.07);
+          vec3 napeBase=texture2D(napeMap,collarUv).rgb;
+          vec3 layers=mix(mantleBase,napeBase,white*.89);
+          float coverage=(1.-smoothstep(.17,.54,ax))*smoothstep(.055,.084,v)*(1.-smoothstep(.52,.70,v));
+          // Retain broad variations in the original dorsal photograph.
+          diffuseColor.rgb=mix(diffuseColor.rgb,napeBase,white*.72);
+          vec3 mapped=layers*mix(.86,1.12,smoothstep(.045,.52,ratio));
+          diffuseColor.rgb=mix(diffuseColor.rgb,mapped,coverage*.76);
+        `);
+    }
+    // An elliptical throat and a vaulted cranium provide a continuous profile as
+    // the bird looks sideways. The dorsal shell meets this volume at the nape.
+    function sculptHead(skeleton) {
+      const positions=[],uv=[],colors=[],indices=[],skinIndex=[],skinWeight=[];
+      const rings=55, facets=80;
+      for(let j=0;j<=rings;j++){
+        const t=j/rings;
+        for(let k=0;k<=facets;k++){
+          const a=k/facets*2*Math.PI, top=Math.cos(a), side=Math.sin(a);
+          const fringe=.004*Math.sin(a*17.)+.004*Math.sin(a*31.+1.);
+          const v=.049+t*(.255+fringe*t*t);
+          const [rx,cy,ry,depth]=skullProfiles.map(p=>sample(p,v));
+          const x=rx*side, y=cy+top*(top>0?ry:depth);
+          const bind=influences(x,v);
+          positions.push(x,y,zAt(v));skinIndex.push(...bind.index);skinWeight.push(...bind.weight);
+          // Dorsal feathers point down the neck and turn around both cheeks.
+          const periodicAngle=k===facets?0:a;
+          const arch=periodicAngle<=Math.PI?periodicAngle:periodicAngle-2*Math.PI;
+          uv.push(.61+arch*rx*15.,1.-v*12.+.07*top+.14*side*side);
+          const collar=1-.38*smooth(.256,.305,v);
+          colors.push(collar,collar*.98,collar*.955);
+          if(j<rings&&k<facets){const b=j*(facets+1)+k;indices.push(b,b+facets+1,b+1,b+1,b+facets+1,b+facets+2);}
+        }
+      }
+      const g=new THREE.BufferGeometry();
+      for (const [key,data,size] of [['position',positions,3],['color',colors,3],['uv',uv,2],['skinWeight',skinWeight,4]])g.setAttribute(key,new THREE.Float32BufferAttribute(data,size));
+      g.setAttribute('skinIndex',new THREE.Uint16BufferAttribute(skinIndex,4));g.setIndex(indices);g.computeVertexNormals();
+      const mat=new THREE.MeshStandardMaterial({map:nape,vertexColors:true,bumpMap:nape,bumpScale:.00030,roughness:.75});
+      mat.onBeforeCompile=shader=>{
+        shader.uniforms.sidePortrait={value:sidePortrait};
+        shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 skull;')
+          .replace('#include <begin_vertex>','#include <begin_vertex>\nskull=position;');
+        shader.fragmentShader=shader.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 skull; uniform sampler2D sidePortrait;')
+          .replace('#include <map_fragment>',`#include <map_fragment>
+            vec2 px=vec2(499.+(skull.z-(${zAt(.136).toFixed(6)}))*3980.,257.-(skull.y-.040)*3550.);
+            vec3 eye=texture2D(sidePortrait,vec2(px.x/960.,1.-px.y/640.)).rgb;
+            float eyeRegion=length((px-vec2(498.,253.))/vec2(98.,76.));
+            float orbit=1.-smoothstep(.57,1.,eyeRegion);
+            float cere=smoothstep(335.,380.,px.x)*(1.-smoothstep(401.,457.,px.x))
+                      *smoothstep(194.,217.,px.y)*(1.-smoothstep(286.,319.,px.y));
+            float mask=max(orbit,cere*.76)*smoothstep(.026,.038,abs(skull.x));
+            float lum=dot(eye,vec3(.2126,.7152,.0722));
+            eye=mix(vec3(lum),eye,.78);
+            diffuseColor.rgb=mix(diffuseColor.rgb,eye,mask);
+          `);
+      };
+      const mesh=new THREE.SkinnedMesh(g,mat);mesh.name='Crown, cheeks and throat';mesh.frustumCulled=false;
+      mesh.castShadow=true;rig.add(mesh);mesh.bind(skeleton,new THREE.Matrix4());
+    }
+    plumage.onBeforeCompile=dorsalShading;
+    const ventral = plumage.clone();
+    ventral.color.setHex(0xd6c9b4);
+    ventral.roughness = .88;
+    const skin = new THREE.SkinnedMesh(geometry, [plumage, ventral]);
+    skin.name = 'Dorsal and ventral plumage';
+    skin.castShadow = true;
+    skin.frustumCulled = false;
+    rig.add(skin);
+    // The photograph can arrive after the bird has launched. Bind using
+    // the neutral LOCAL transforms, independent of the current flight pose.
+    const inverse = bones.map(b => new THREE.Matrix4().makeTranslation(
+      -reference.get(b).x, -reference.get(b).y, -reference.get(b).z));
+    skin.bind(new THREE.Skeleton(bones, inverse), new THREE.Matrix4());
+    skin.bindMode = 'attached';
+    sculptHead(skin.skeleton);
+    addContourFeathers(skin.skeleton);
+    object.userData.plumageReady = true;
+  }
+  new THREE.TextureLoader().load('eagle-plumage.png', buildShell);
+
+  // Separate keratin shells follow measured sections of the CC0 reference portrait;
+  // the lower bill ends behind the downward hook of the upper mandible.
+  function bill(upper) {
+    const profile = upper ? [
+      [-.010,-.004,-.011,.0018],[-.006,.009,-.016,.0036],[.001,.019,-.015,.0066],
+      [.012,.029,-.001,.012],[.032,.043,.007,.0175],[.061,.054,.010,.0245],
+      [.082,.055,.009,.0315],[.101,.051,.008,.0385],[.114,.043,.010,.029]
+    ] : [
+      [.010,.001,-.004,.002],[.020,.006,-.002,.008],[.042,.010,-.003,.013],
+      [.070,.009,-.006,.020],[.097,.008,-.009,.025],[.115,.012,-.005,.027]
+    ];
+    // Each station also has an upper and lower pixel on the lateral photograph.
+    const swatches=upper?[[169,336,345],[174,307,380],[183,285,383],[206,256,334],[243,229,323],[280,216,316],[315,208,313],[345,206,314],[367,210,318]]
+      :[[196,340,344],[209,336,345],[246,325,348],[292,317,347],[347,317,347],[379,318,346]];
+    const points=[],uv=[],indices=[],sides=32,steps=(profile.length-1)*6;
+    for(let j=0;j<=steps;j++){
+      const f=j/6, i=Math.min(profile.length-2,Math.floor(f)), t=f-i;
+      const section=profile[i].map((mid,k)=>{
+        const prev=profile[Math.max(0,i-1)][k], next=profile[i+1][k], after=profile[Math.min(profile.length-1,i+2)][k];
+        const tangentA=(next-prev)*.5, tangentB=(after-mid)*.5;
+        return mid*(2*t-3)*t*t+mid+next*(3-2*t)*t*t+t*(1-t)*((1-t)*tangentA-t*tangentB);
+      });
+      const [v,top,bottom,width]=section;
+      for(let k=0;k<=sides;k++){
+        const angle=2*Math.PI*k/sides, vertical=(1+Math.cos(angle))*.5;
+        const y=.018+(bottom+(top-bottom)*vertical-.018)*.79;
+        const x=Math.sin(angle)*width*(1.17-.40*vertical);
+        points.push(x,y-reference.get(neck).y,zAt(v)-reference.get(neck).z);
+        const swatch=swatches[i], next=swatches[i+1];
+        const peak=THREE.MathUtils.lerp(swatch[1],next[1],t);
+        const lip=THREE.MathUtils.lerp(swatch[2],next[2],t);
+        uv.push(THREE.MathUtils.lerp(swatch[0],next[0],t)/960,1-THREE.MathUtils.lerp(lip,peak,vertical)/640);
+        if(j<steps&&k<sides){const a=j*(sides+1)+k;indices.push(a,a+sides+1,a+1,a+1,a+sides+1,a+sides+2);}
+      }
+    }
+    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(points,3));
+    g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));g.setIndex(indices);g.computeVertexNormals();
+    const m=new THREE.Mesh(g,new THREE.MeshStandardMaterial({map:sidePortrait,bumpMap:sidePortrait,bumpScale:.00019,roughness:upper?.48:.58,side:THREE.DoubleSide}));
+    m.material.onBeforeCompile=shader=>{
+      shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>',`#include <map_fragment>
+        float pigment=dot(diffuseColor.rgb,vec3(.2126,.7152,.0722));
+        diffuseColor.rgb=mix(vec3(pigment*.99,pigment*.92,pigment*.65),diffuseColor.rgb,.64);
+        diffuseColor.rgb=max(diffuseColor.rgb,vec3(.125,.053,.014));
+      `);
+    };
+    m.name=upper?'Hooked upper bill':'Lower mandible';neck.add(m);
+  }
+  bill(true);bill(false);
+
+  const gold = new THREE.MeshStandardMaterial({color:0xc6a74f, roughness:.62});
+  const claw = new THREE.MeshStandardMaterial({color:0x332d22, roughness:.49});
+  function oval(parent, name, mat, x, y, z, sx, sy, sz) {
+    const m = new THREE.Mesh(new THREE.SphereGeometry(1, 12, 8), mat);
+    m.name = name;
+    m.position.set(x, y, z).sub(reference.get(parent));
+    m.scale.set(sx, sy, sz); parent.add(m);
+    return m;
+  }
+  for (const side of [-1, 1]) {
+    const foot = oval(chest, 'Tucked tarsus', gold, side * .052, -.046, zAt(.672), .015, .015, .050);
+    foot.rotation.y = side * .11;
+    for (let n = -1; n <= 1; n++) {
+      const toe = oval(chest, 'Curled toe', claw, side * .052 + n * .008, -.046, zAt(.712), .0035, .0055, .011);
+      toe.rotation.x = -.54;
+    }
+  }
+  let phase = 0, effort = 0, tuck = 0, lastBank = 0, turnDemand = 0;
+  // Saccades alternate with fixations. A second look on the same side
+  // sometimes follows the first before attention returns down the flight path.
+  let lookYaw=0, lookPitch=0, nextLook=.65, scanSide=-1, scanStage=0, gazeTime=0;
+  function updateGaze(time, step, pitch, bank, stall){
+    if(time<gazeTime || time===0){
+      lookYaw=lookPitch=0;nextLook=.65;scanStage=0;scanSide=-1;
+      neck.rotation.set(0,0,0,"YXZ");
+    }
+    gazeTime=time;
+    if(time>=nextLook){
+      const r=Math.random();
+      if(scanStage===0){
+        lookYaw=scanSide*(.67+.35*r);
+        lookPitch=-.07-.19*Math.random();
+        scanStage=Math.random()<.58?1:2;
+      }else if(scanStage===1){
+        lookYaw=scanSide*(.27+.13*r);
+        lookPitch=-.18-.15*Math.random();
+        scanStage=2;
+      }else{
+        lookYaw=(r-.5)*.20;
+        lookPitch=(Math.random()-.52)*.11;
+        scanSide=-scanSide;scanStage=0;
+      }
+      nextLook=time+.65+Math.random()*.92;
+    }
+    const turn=smooth(.07,.84,Math.abs(bank));
+    const forwardFocus=1-.70*tuck-.16*stall;
+    const yaw=lookYaw*forwardFocus*(1-.64*turn)+.58*bank+.066*turnDemand;
+    const nod=lookPitch*forwardFocus-.32*pitch*(1-.75*tuck)-chest.rotation.x;
+    const settle=1-Math.exp(-10*step);
+    neck.rotation.order="YXZ";
+    neck.rotation.y+=(clamp(yaw,-1.10,1.10)-neck.rotation.y)*settle;
+    neck.rotation.x+=(clamp(nod,-.43,.40)-neck.rotation.x)*settle;
+    neck.rotation.z+=(-.53*bank+.053*lookYaw*forwardFocus-neck.rotation.z)*settle;
+  }
+  function update(dt, time, flapping, pitch = 0, bank = 0, air = {}) {
+    const step = clamp(dt, 0, .1);
+    const approach = rate => 1 - Math.exp(-rate * step);
+    phase = Number.isFinite(air.phase) ? air.phase : (phase + step * 11.4) % (2 * Math.PI);
+    const requestedEffort = Number.isFinite(air.effort) ? air.effort : (flapping ? 1 : 0);
+    effort += (requestedEffort - effort) * approach(9);
+    const dive = Number.isFinite(air.tuck) ? air.tuck : smooth(.20, .68, -pitch);
+    tuck += (dive * (1 - effort) - tuck) * approach(3.6);
+    const stall = clamp(air.stall || 0, 0, 1);
+    const load = clamp((air.loadFactor || 1) - 1, -.6, 1.7);
+    const rollRate = step > .0001 ? clamp((bank - lastBank) / step, -2.3, 2.3) : 0;
+    lastBank = bank;
+    turnDemand += (rollRate - turnDemand) * approach(5);
+    const liftStroke = Math.cos(phase), recovery = smooth(-.26, .91, -Math.sin(phase));
+    chest.position.y = -.008 * effort * liftStroke;
+    chest.rotation.x = -.022 * effort * Math.cos(phase - .45);
+    for (const {sign, shoulder, elbow, wrist, fan} of wings) {
+      const inside = clamp(-sign * bank, 0, 1.1);
+      const trim = .011 * Math.sin(time * 1.73 + sign * .82) + .007 * Math.sin(time * .81 - sign);
+      shoulder.rotation.order = elbow.rotation.order = wrist.rotation.order = 'YZX';
+      shoulder.rotation.z = sign * (.05 + .064 * load + trim + effort * (.60 * liftStroke - .055) + .045 * tuck);
+      shoulder.rotation.y = -sign * (.04 * inside + .37 * tuck + effort * (.067 * recovery - .035));
+      shoulder.rotation.x = .035 * sign * turnDemand + .055 * stall + effort * .072 * Math.sin(phase);
+      elbow.rotation.z = sign * (-.046 + .14 * tuck + effort * .135 * Math.cos(phase - .53));
+      elbow.rotation.y = -sign * (.14 * inside + .44 * tuck + .36 * effort * recovery);
+      wrist.rotation.z = sign * (.034 + .085 * load - .30 * tuck + effort * (.20 * Math.cos(phase - .95) - .17 * recovery));
+      wrist.rotation.y = -sign * (.17 * tuck + .31 * effort * recovery);
+      wrist.rotation.x = .05 * inside + .05 * sign * turnDemand - .15 * effort * recovery;
+      for (let i = 0; i < fan.length; i++) {
+        const s = i / (fan.length - 1);
+        fan[i].rotation.z = sign * ((.052 - s * .064) * (1 + .5 * load) + .056 * effort * Math.cos(phase - 1.30 - .19 * s));
+        fan[i].rotation.y = sign * (.5 - s) * (.075 * stall - .19 * tuck - .085 * effort * recovery);
+        fan[i].rotation.x = -.10 * effort * recovery * (1 - s);
+      }
+    }
+    const spread = .15 * smooth(.2, 1.15, Math.abs(bank)) + .22 * stall + .045 * effort - .24 * tuck;
+    tailRays[0].rotation.y = -spread;
+    tailRays[2].rotation.y = spread;
+    rudder.rotation.y = -.065 * bank;
+    rudder.rotation.x = .085 * pitch + .045 * (air.climb || 0) + .08 * stall + .025 * effort * Math.cos(phase - 1);
+    rudder.rotation.z = -.16 * bank;
+    const priorYaw=neck.rotation.y;
+    updateGaze(time,step,pitch,bank,stall);
+    featherTime.value=time;
+    const airflow=clamp((air.airspeed || 17.5)/17.5,.4,2.3);
+    featherWind.value+=((airflow+.65*effort)*(.87+.13*Math.sin(time*1.37))-featherWind.value)*approach(5);
+    const neckVelocity=step>.0001?(neck.rotation.y-priorYaw)/step:0;
+    ruffDrag.value+=(clamp(neckVelocity*.68,-1,1)-ruffDrag.value)*approach(8);
+  }
+  return {object, update};
+};
