@@ -440,5 +440,17 @@ window.makePerchHabitat=function makePerchHabitat(T,scene,world,region){
     for(const m of [bark,rock]){m.map.dispose();m.normalMap?.dispose();m.dispose();}
     cached.clear();routeSites.clear();treeTiles.clear();near=[];
   }
-  return {update,choices,pick,select,resolveRoute,clearance,dispose};
+  function nearestTree(x,z,reach){
+    let best=null,limit=reach*reach;
+    for(let j=Math.floor((z-reach)/tile);j<=Math.floor((z+reach)/tile);j++){
+      for(let i=Math.floor((x-reach)/tile);i<=Math.floor((x+reach)/tile);i++){
+        for(const tree of treeTiles.get(key(i,j))||[]){
+          const d=(tree.x-x)**2+(tree.z-z)**2;
+          if(d<limit){limit=d;best=tree;}
+        }
+      }
+    }
+    return best;
+  }
+  return {update,choices,pick,select,resolveRoute,clearance,dispose,surface,wet,nearestTree};
 };

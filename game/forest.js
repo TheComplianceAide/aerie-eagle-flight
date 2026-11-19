@@ -30,8 +30,11 @@ window.addForest = function addForest(THREE, scene, world) {
       `#include <begin_vertex>
        inSun = texture2D(surveyLight,vec2(.5+instanceMatrix[3].x/${sunlightSpan},.5-instanceMatrix[3].z/${sunlightSpan})).r;
        float offset = dot(instanceMatrix[3].xz, vec2(.014, .027));
-       float breeze = sin(firTime*1.36 + offset) + .35*sin(firTime*2.14 - offset);
-       transformed.x += .0014*max(0.,position.y)*length(position.xz)*breeze;`);
+       float breeze=sin(firTime*.69+dot(instanceMatrix[3].xz,vec2(.033,.018)));
+       float flutter=sin(firTime*2.8-offset+dot(position.xz,vec2(2.1,1.3)));
+       float bend=.0026*max(0.,position.y)*length(position.xz)*(breeze+.32*flutter);
+       transformed.xz+=vec2(bend,bend*.47);
+       transformed.y+=.007*length(position.xz)*flutter;`);
     shader.fragmentShader='varying float inSun;\n'+shader.fragmentShader.replace(
       '#include <color_fragment>',
       '#include <color_fragment>\n diffuseColor.rgb *= mix(vec3(.47,.55,.65),vec3(.94,.98,.88),inSun);');

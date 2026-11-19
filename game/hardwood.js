@@ -22,7 +22,10 @@ window.shadeAtlasForest=function shadeAtlasForest(T,material,trees,sun,half){
   const map=new T.DataTexture(data,n,n,T.RedFormat);
   map.minFilter=T.LinearMipmapLinearFilter;map.magFilter=T.LinearFilter;map.generateMipmaps=true;map.needsUpdate=true;
   material.uniforms.crownShadowField={value:map};
-  const transmission='c*=mix(vec3(1.),vec3(.62,.68,.78),texture2D(crownShadowField,clamp(xz/(halfMap*2.)+.5,0.,1.)).r*(1.-smoothstep(halfMap-80.,halfMap,extent)));';
+  const transmission=`float crown=texture2D(crownShadowField,clamp(xz/(halfMap*2.)+.5,0.,1.)).r*(1.-smoothstep(halfMap-80.,halfMap,extent));
+    float leaves=sin(xz.x*2.62+.7*sin(xz.y*4.13))+sin(xz.y*3.1+xz.x*.91)+.56*sin(xz.x*5.2-xz.y*4.11);
+    float dapple=mix(1.,.68+.42*smoothstep(-.9,.75,leaves),1.-smoothstep(12.,83.,d));
+    c*=mix(vec3(1.),vec3(.51,.61,.76)*dapple,crown);`;
   material.fragmentShader='uniform sampler2D crownShadowField;\n'
     +material.fragmentShader.replace('/* canopy transmission */',transmission);
 };
@@ -32,9 +35,10 @@ window.addHardwoods=function addHardwoods(T,scene,trees,options){
   function texture(file){
     const tex=loader.load(file);tex.anisotropy=8;return tex;
   }
-  const leaf=texture('hardwood-branches.webp');
+  const maritime=region==='milford'||region==='napali';
+  const leaf=texture(maritime?'island-branches.webp':'hardwood-branches.webp');
   const uniforms={
-    profile:{value:texture('hardwood-profiles.webp')},canopy:{value:texture('hardwood-crowns.webp')},
+    profile:{value:texture(maritime?'island-profile.webp':'hardwood-profiles.webp')},canopy:{value:texture(maritime?'island-crown.webp':'hardwood-crowns.webp')},
     leaves:{value:leaf},forestLight:{value:sunMask},sun:{value:sun},clock,
     haze:{value:fogColor},span:{value:half*2}
   };
@@ -89,7 +93,7 @@ window.addHardwoods=function addHardwoods(T,scene,trees,options){
   }
   for(const t of trees){
     const patch=Math.sin(t.x*.0019+t.z*.0007)*.6+Math.cos(t.z*.0023)*.4;
-    t.species=t.species??(region==='lofoten'?3:region==='moosehead'&&patch+t.seed*.85>1?2:t.seed>.84?3:t.seed>.47?1:0);
+    t.species=maritime?Math.min(3,Math.floor(t.seed*4)):t.species??(region==='lofoten'?3:region==='moosehead'&&patch+t.seed*.85>1?2:t.seed>.84?3:t.seed>.47?1:0);
     insert(stands,850,t);insert(cells,72,t);
   }
   for(const batch of stands.values()){
@@ -107,43 +111,32 @@ window.addHardwoods=function addHardwoods(T,scene,trees,options){
   }
   // Each close tree has actual forked wood and inclined, overlapping sprays
   // carried on distinct limbs. Branches hold their bearings when circled.
-  const branches=[],positions=[],uvs=[],normals=[],indices=[];
-  function woody(a,b,r0,r1){
-    const A=new T.Vector3(...a),B=new T.Vector3(...b),axis=B.clone().sub(A).normalize();
-    const e=axis.clone().cross(new T.Vector3(0,0,1)).normalize(),f=axis.clone().cross(e);
-    const base=positions.length/3;
-    for(let k=0;k<=7;k++){
-      const phi=k/7*Math.PI*2,n=e.clone().multiplyScalar(Math.cos(phi)).addScaledVector(f,Math.sin(phi));
-      for(const [p,r] of [[A,r0],[B,r1]]){
-        positions.push(...p.clone().addScaledVector(n,r).toArray());normals.push(...n.toArray());uvs.push(k/7,p.y*2);
-      }
-      if(k<7){const i=base+2*k;indices.push(i,i+2,i+1,i+2,i+3,i+1);}
-    }
-  }
-  woody([0,0,0],[.015,.32,.01],.023,.016);woody([.015,.32,.01],[-.02,.69,.026],.016,.006);
-  for(let k=0;k<22;k++){
-    const q=k/22,a=k*2.399963,rad=.42*Math.sqrt(1-Math.pow((q-.36)*1.43,2));
-    const x=Math.cos(a)*rad,z=Math.sin(a)*rad,y=.41+q*.53;
-    if(k%2===0)woody([.015,.24+.36*q,.01],[x*.80,y-.035,z*.80],.009*(1-.4*q),.002);
-    branches.push({x:x*.75,y:y-.04,z:z*.75,a,rad});
+  const scan=window.aerieHardwood;
+  const bytes=data=>Uint8Array.from(atob(data),c=>c.charCodeAt(0)).buffer;
+  const positions=Float32Array.from(new Int16Array(bytes(scan.p)),v=>v/16000);
+  const coords=[];
+  for(let i=0;i<positions.length;i+=3){
+    const x=positions[i],y=positions[i+1],z=positions[i+2];
+    coords.push(Math.atan2(z,x)/6.283+.5,y*2.7);
   }
   const trunk=new T.BufferGeometry();
-  trunk.setAttribute('position',new T.Float32BufferAttribute(positions,3));trunk.setAttribute('normal',new T.Float32BufferAttribute(normals,3));
-  trunk.setAttribute('uv',new T.Float32BufferAttribute(uvs,2));trunk.setIndex(indices);
+  trunk.setAttribute('position',new T.BufferAttribute(positions,3));
+  trunk.setAttribute('uv',new T.Float32BufferAttribute(coords,2));
+  trunk.setIndex(new T.BufferAttribute(new Uint16Array(bytes(scan.i)),1));trunk.computeVertexNormals();
   const bark=texture('shore-bark.webp');bark.colorSpace=T.SRGBColorSpace;bark.wrapS=bark.wrapT=T.RepeatWrapping;
   const stems=new T.InstancedMesh(trunk,new T.MeshStandardMaterial({map:bark,roughness:.96,color:0xaaa495}),1800);
   stems.count=0;stems.frustumCulled=false;stems.instanceMatrix.setUsage(T.DynamicDrawUsage);scene.add(stems);
   const twigGeometry=new T.BufferGeometry(),p=[],n=[],u=[],idx=[];
-  for(let k=0;k<branches.length;k++){
-    const {x,y,z,a,rad}=branches[k];
-    for(let sheet=0;sheet<3;sheet++){
-      const angle=a+sheet*2.094,ca=Math.cos(angle),sa=Math.sin(angle);
-      const spread=.17+.21*rad,base=p.length/3;
+  for(let k=0;k<scan.sprays.length;k++){
+    const [x,y,z]=scan.sprays[k],a=Math.atan2(x,z)+.74*Math.sin(k*2.4);
+    for(let sheet=0;sheet<(k%3===0?2:1);sheet++){
+      const angle=a+sheet*1.91,ca=Math.cos(angle),sa=Math.sin(angle);
+      const spread=.121+.049*Math.sin(k*4.13),base=p.length/3;
       // Curving a leaf spray across three strips gives its edges a different
       // angle to the sun and prevents flat, straight card intersections.
       for(let j=0;j<=2;j++)for(let i=0;i<=2;i++){
-        const h=j/2,w=i-1,depth=h*.19+.048*(1-w*w);
-        p.push(x+w*spread*ca+depth*sa,y+(h-.5)*.25-.04*w*w,z-w*spread*sa+depth*ca);
+        const h=j/2,w=i-1,depth=h*.13+.035*(1-w*w);
+        p.push(x+w*spread*ca+depth*sa,y+(h-.5)*.18-.031*w*w,z-w*spread*sa+depth*ca);
         n.push(sa*.58+w*ca*.22,.67,ca*.58-w*sa*.22);u.push(i/2,h);
         if(j<2&&i<2){const t=base+3*j+i;idx.push(t,t+1,t+3,t+1,t+4,t+3);}
       }
@@ -158,11 +151,15 @@ window.addHardwoods=function addHardwoods(T,scene,trees,options){
     varying vec2 coord;varying float species,illum,fade,atmosphere;
     void main(){
       vec3 root=instanceMatrix[3].xyz;vec3 p=position;
-      p.x+=.0045*(sin(clock*1.7+root.x*.12+p.z*4.)+.32*sin(clock*2.6+root.z*.34))*p.y*p.y;
+      float gust=sin(clock*.69+dot(root.xz,vec2(.033,.018)));
+      float bend=(.0068*gust+.0031*sin(clock*2.15+root.z*.093+p.x*8.))*p.y*p.y;
+      p.xz+=vec2(bend,.47*bend);
+      p.y+=.004*sin(clock*3.25+dot(root.xz,vec2(.087,.05))+p.z*14.)*uv.y;
       vec3 world=(instanceMatrix*vec4(p,1.)).xyz;
       vec3 normalWorld=normalize(mat3(instanceMatrix)*normal);
       float light=texture2D(forestLight,vec2(root.x,-root.z)/span+.5).r;
-      illum=(.58+.29*max(dot(normalWorld,sun),0.)+.19*max(0.,p.y))*mix(.64,1.,light);
+      float transmission=pow(max(0.,dot(normalize(world-cameraPosition),sun)),3.);
+      illum=(.55+.28*max(dot(normalWorld,sun),0.)+.21*max(0.,p.y)+.23*transmission)*mix(.64,1.,light);
       coord=uv;species=kind;
       float dist=length(cameraPosition-root-vec3(0.,.5*length(instanceMatrix[1].xyz),0.));
       fade=smoothstep(45.,90.,dist);atmosphere=0.;

@@ -18,8 +18,15 @@ window.addHabitat = function addHabitat(THREE,scene,world,region) {
     ctx.drawImage(texture.image,0,0);
     habitatPixels=ctx.getImageData(0,0,resolution,resolution).data;
   });
+  world.groundCover=(x,z)=>{
+    if(!habitatPixels)return 0;
+    const u=Math.floor((.5+x/(2*extent))*resolution),v=Math.floor((.5+z/(2*extent))*resolution);
+    if(u<0||v<0||u>=resolution||v>=resolution)return 0;
+    const k=4*(u+v*resolution);
+    return habitatPixels[k+2]>128||habitatPixels[k]<119?0:habitatPixels[k+1]/255;
+  };
   const pebble=repeat('shore-pebbles.webp');
-  const meadow=arid?null:repeat('shore-meadow.webp');
+  const meadow=arid?null:repeat('soil-boreal.webp');
   for(const mesh of scene.children){
     if(!mesh.isWater)continue;
     const mat=mesh.material;
@@ -81,7 +88,7 @@ window.addHabitat = function addHabitat(THREE,scene,world,region) {
           float beach=(1.-smoothstep(7.,37.,abs(bank)))*gentle;
           float herb=smoothstep(.13,.72,bi.g)*gentle*(1.-beach);
           vec3 gravel=texture2D(beachScan,pos*.40).rgb;
-          vec3 sward=texture2D(sodScan,pos*.37).rgb;
+          vec3 sward=floorColor(sodScan,pos,smoothstep(.24,.92,bi.g)*.87);
           vec3 groundColor=mix(gravel,sward,herb/(herb+beach+.001));
           float lightValue=clamp(dot(${col},vec3(.29,.58,.13))/.40,.51,1.42);
           float lapping=.60*sin(habitatClock*1.59+pos.x*.34+pos.y*.085)+.39*sin(habitatClock*2.21-pos.y*.72);
@@ -91,7 +98,7 @@ window.addHabitat = function addHabitat(THREE,scene,world,region) {
           ${col}=mix(${col},groundColor,(1.-smoothstep(42.,240.,d))*max(herb,beach)*(1.-bi.b)*.94);
         }
       `;
-      mat.fragmentShader='uniform float habitatClock;uniform sampler2D habitatGround,beachScan,sodScan;\n'+mat.fragmentShader.replace(anchor,layers+anchor);
+      mat.fragmentShader=window.aerieFloorShader+'\nuniform float habitatClock;uniform sampler2D habitatGround,beachScan,sodScan;\n'+mat.fragmentShader.replace(anchor,layers+anchor);
     }
   }
   const tileMap=new Map();

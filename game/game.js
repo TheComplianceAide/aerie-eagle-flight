@@ -25,7 +25,7 @@
   let updateLight,perching,perchRoute,perchMarker;
   let perchNotice="",perchNoticeUntil=0,nextPerchHUD=0;
   let dynamics, elapsed, distance, nextReadout, noticeUntil, accumulator;
-  let updateTalus, updateForest, updateHabitat, updateMist;
+  let updateTalus, updateForest, updateHabitat, updateUnderstory, updateMist;
   let frameSeconds=0, frameCount=0, fastWindows=0;
   let glance=0, arrivalGlance=0, glanceTime=0;
   let cameraYaw, cameraPath, cameraBank, cameraFov, loadPromise, launchPending=false;
@@ -257,17 +257,19 @@
       const factory={swiss:window.makeWorld,alaska:window.makeAlaska,canyon:window.makeCanyon}[region];
       world=factory?await factory(THREE,scene):await window.makeAtlasWorld(THREE,scene,region);
       world.region=region;
+      const hydrography=window.ATLAS_SURVEYS?.[region];
+      if(hydrography?.shore){
+        world.shorelines=[hydrography.shore,...(hydrography.shoreHoles||[])].map(ring=>ring.map(([x,z])=>({x,z})));
+      }
       const perchHabitat=window.makePerchHabitat(THREE,scene,world,region);
+      world.habitat=perchHabitat;
       perchRoute=window.makePerchRoute(THREE,world,region);
       world.launches.lookout=perchRoute.approach;
       world.flightClearance=(x,z)=>Math.max((world.clearance||world.height)(x,z),perchHabitat.clearance(x,z));
       perching=window.makePerchFlight(THREE,world,perchHabitat,perchRoute);
       perchMarker=new THREE.Vector3();
-      const hydrography=window.ATLAS_SURVEYS?.[region];
-      if(hydrography?.shore){
-        world.shorelines=[hydrography.shore,...(hydrography.shoreHoles||[])].map(ring=>ring.map(([x,z])=>({x,z})));
-      }
       if(factory)updateHabitat=addHabitat(THREE,scene,world,region);
+      updateUnderstory=window.addUnderstory(THREE,scene,world);
       if(region==="swiss") updateTalus=window.addTalus?.(THREE,scene,world);
       if(region==="swiss" || region==="alaska" || world.useFirForest) updateForest=window.addForest?.(THREE,scene,world);
       updateMist=window.addValleyMist?.(THREE,scene,world);
@@ -564,7 +566,8 @@
     else if(cameraMode==="shoulder")positionShoulder(s,dt);
     else positionChase(s,dt);
     updateTalus?.(player,elapsed);updateForest?.(player,elapsed);updateHabitat?.(player,elapsed);
-    if(fieldAudio&&soundOn)fieldAudio.update(s,world,dt);
+    updateUnderstory(player,elapsed);
+    if(fieldAudio&&soundOn)fieldAudio.update(s,world,dt,camera);
     world.update(dt,elapsed,player);updateLight?.(player,elapsed);updateMist?.(player,elapsed);renderer.render(scene,camera);updatePerchHUD(s);
     if(s.contact){showDialog("contact");return;}
     if(elapsed>=nextReadout){

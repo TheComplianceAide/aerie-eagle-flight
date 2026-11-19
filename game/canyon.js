@@ -76,7 +76,10 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
   shared.crossbeds.value.wrapS=shared.crossbeds.value.wrapT=THREE.MirroredRepeatWrapping;
   const vertex=`varying vec3 wp,n;varying vec2 tc;
     void main(){wp=position;n=normal;tc=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`;
+  shared.scrubFloor={value:texture('soil-dry.webp',true)};
   const fragment=`
+    uniform sampler2D scrubFloor;
+    ${window.aerieFloorShader}
     uniform sampler2D terrainField,bankRadiance,crossbeds;
     uniform sampler2D photo,strata,grain,flow,ripple,panorama,sand,pebbles,pebbleNormal,bankMap;
     uniform vec3 sun;uniform float clock;varying vec2 tc;varying vec3 wp,n;
@@ -126,6 +129,12 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
       vec2 flowUv=vec2(.5+wp.x/6400.,.5-wp.z/6400.);
       vec3 hyd=texture2D(flow,clamp(flowUv,0.,1.)).rgb;
       float wet=hyd.r*(1.-smoothstep(3130.,3200.,max(abs(wp.x),abs(wp.z))));
+      // Some orthophoto seams carry a cyan cast even on the dry plateau. The
+      // surveyed channel determines where water coloration belongs.
+      float cyan=smoothstep(.055,.19,aerial.g-aerial.r)*smoothstep(.013,.095,aerial.b-aerial.r)*(1.-wet);
+      vec3 plateau=texture2D(bankRadiance,clamp(flowUv,0.,1.)).rgb;
+      float mineral=.43+.50*lum(aerial)+.17*lum(plateau);
+      aerial=mix(aerial,vec3(.78,.59,.43)*mineral,cyan);
       float face=1.-smoothstep(.26,.80,normal.y);
       float shift=.92*sin(wp.z*.008+wp.x*.006)+.47*sin(wp.x*.017);
       vec2 xuv=vec2(wp.z*.058,(wp.y+shift)*.13);
@@ -191,6 +200,9 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
       vec3 indirect=vec3(.61,.69,.82)*(.75+.25*openSky)+vec3(.14,.071,.032)*(1.-openSky);
       vec3 sunward=vec3(.57,.35,.17)*(.27+.73*sqrt(incidence))*sunVisibility;
       dry*=indirect+sunward;
+      float groundPass=closeGround*(1.-face)*(1.-wet)*smoothstep(3.,26.,signedBank);
+      vec3 pebbly=floorColor(scrubFloor,wp.xz,.16);
+      dry=mix(dry,pebbly*vec3(1.12,.91,.76)*(indirect+sunward),.84*groundPass);
       vec3 color=dry;
       if(wet>.002){
         vec2 dir=normalize((hyd.gb-.5)*2.+vec2(.0001));

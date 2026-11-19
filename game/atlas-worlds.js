@@ -428,7 +428,7 @@ class Water extends Mesh {
     }`}));
   sky.frustumCulled=false;sky.renderOrder=-1000;scene.add(sky);
   const geology=region==='bryce'?'bedded':'jointed';
-  const aerial=texture('atlas-'+region+'-photo.webp'),ranges=texture('atlas-'+region+'-ranges.webp'),stone=texture('atlas-'+geology+'-rock.webp',true),grain=texture('rock.jpg',true),sod=texture(region==='bryce'?'shore-sand.webp':'shore-meadow.webp',true);
+  const aerial=texture('atlas-'+region+'-photo.webp'),ranges=texture('atlas-'+region+'-ranges.webp'),stone=texture('atlas-'+geology+'-rock.webp',true),grain=texture('rock.jpg',true),sod=texture('soil-'+window.aerieSoil(region)+'.webp',true);
   const color=new THREE.Color(fog);
   const terrainLight=texture('atlas-'+region+'-light.webp'),fracture=texture('atlas-'+geology+'-relief.webp',true);
   const canopyMap=new THREE.DataTexture(cover,384,384,THREE.RedFormat);
@@ -447,6 +447,7 @@ class Water extends Mesh {
   const terrain=new THREE.ShaderMaterial({uniforms:{terrainLight:{value:terrainLight},fracture:{value:fracture},canopyMap:{value:canopyMap},temperate:{value:newEngland?1:0},wetMask:{value:wetMask},cut:{value:settings.water===undefined?-10000:settings.water+.19},arctic:{value:region==='lofoten'?1:0},aerial:{value:aerial},ranges:{value:ranges},rockScan:{value:stone},stoneGrain:{value:grain},sod:{value:sod},sun:{value:sun},halfMap:{value:h},farSpan:{value:2*farH},stoneTint:{value:new THREE.Vector3(...settings.stone)},haze:{value:color},desert:{value:region==='bryce'?1:0}},
     vertexShader:'varying vec3 wp,norm;void main(){wp=position;norm=normal;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
     fragmentShader:`uniform sampler2D terrainLight,fracture,canopyMap,wetMask,aerial,ranges,rockScan,stoneGrain,sod;uniform vec3 sun,stoneTint,haze;uniform float halfMap,farSpan,desert,cut,arctic,temperate;varying vec3 wp,norm;
+      ${window.aerieFloorShader}
       float lum(vec3 c){return dot(c,vec3(.26,.58,.16));}
       void main(){
         vec2 xz=wp.xz,photoUv=vec2(xz.x,-xz.y)/(halfMap*2.)+.5;
@@ -498,7 +499,7 @@ class Water extends Mesh {
         c=mix(c,vec3(lum(c)),.12*bedding);
         float sediment=(cliff-.31)*.85+(fissure-.32)*.43;
         c*=1.+bedding*sediment*(.32+.53*face)*(1.-smoothstep(750.,3400.,d));
-        vec3 turf=texture2D(sod,xz*.39).rgb;
+        vec3 turf=soilSample(sod,xz*.34,0.).rgb;
         float near=1.-smoothstep(36.,460.,d);
         c*=1.+(lum(turf)-.35)*near*(.46+.42*veg)*(1.-face);
         c=mix(c,turf*(.45+1.25*lum(photo)),near*(1.-face)*veg*.51);
@@ -513,6 +514,18 @@ class Water extends Mesh {
         // Microfacet response, measured sky exposure and cast terrain shadows
         // separate cliff faces while retaining detail in the surveyed aerial color.
         c=mix(c,photo*vec3(.72,.76,.73),dense*.80);
+        if(d<230.){
+          float cover=texture2D(canopyMap,xz/(2.*halfMap)+.5).r;
+          float woody=smoothstep(.18,.78,cover);
+          float natural=max(veg,cover*.75);
+          ${region==='surry'?'natural*=mix(1.,smoothstep(.012,.08,photo.g-(photo.r*.82+photo.b*.18)),streetBlend);':''}
+          float eligible=smoothstep(.49,.89,normal.y)*(1.-snow)*(1.-smoothstep(45.,228.,d));
+          vec3 detail=floorColor(sod,xz,woody);
+          float strength=mix(.09,.95,smoothstep(.025,.38,natural));
+          ${region==='bryce'?'strength=max(strength,.89);':''}
+          float shade=clamp(.78+.42*lum(photo),.74,1.07);
+          c=mix(c,detail*shade,eligible*strength);
+        }
         float green=smoothstep(.025,.15,c.g-(c.r+c.b)*.45);
         c=mix(c,vec3(lum(c)),green*(.12+.22*arctic));
         c*=vec3(1.025,.999,.965);
@@ -760,37 +773,7 @@ class Water extends Mesh {
   }
   const sunMask=terrainLight;
   window.shadeAtlasForest(THREE,terrain,trees,sun,h);
-  const hardwood=newEngland||region==='lofoten';
-  let updateHardwoods;
-  if(hardwood&&broadTrees.length){
-    updateHardwoods=window.addHardwoods(THREE,scene,broadTrees,{region,sun,sunMask,half:h,fogColor:color,clock});
-  }else if(broadTrees.length){
-    // Camera-facing multi-view captures of a 3D broadleaf crown. Trunks branch below
-    // the outer leaf envelope; adjacent clumps retain independent scale, azimuth and wind.
-    const atlas=texture('atlas-broadleaf.webp'),batchSize=650,groups=new Map();
-    for(const t of broadTrees){const id=Math.floor(t.x/batchSize)*64+Math.floor(t.z/batchSize);if(!groups.has(id))groups.set(id,[]);groups.get(id).push(t);}
-    const geo=new THREE.PlaneGeometry(1,1);geo.translate(0,.5,0);
-    const mat=new THREE.ShaderMaterial({side:THREE.DoubleSide,uniforms:{map:{value:atlas},clock,fogColor:{value:color},autumn:{value:region==='moosehead'?1:0}},
-      vertexShader:`attribute vec3 root;attribute vec3 dims;varying vec2 tex;varying float shade,fog,hue;
-        uniform float clock;void main(){vec3 eye=cameraPosition-root;vec2 f=normalize(eye.xz+.0001),right=vec2(f.y,-f.x);float idx=mod(floor((atan(f.x,f.y)+3.1416)*.47746+dims.z*3.),3.);
-          vec3 pt=root;pt.xz+=right*position.x*dims.x;pt.y+=position.y*dims.y;
-          pt.x+=sin(dot(root.xz,vec2(.012,.023))+clock*1.6)*.07*position.y*position.y;
-          tex=vec2((uv.x+idx)/3.,uv.y);hue=dims.z;shade=.56+.17*dims.z+.23*uv.y;fog=1.-exp(-length(eye)*.000056);
-          gl_Position=projectionMatrix*viewMatrix*vec4(pt,1.);}`,
-      fragmentShader:`uniform sampler2D map;uniform vec3 fogColor;uniform float autumn;varying vec2 tex;varying float shade,fog,hue;
-        void main(){vec4 c=texture2D(map,tex);if(c.a<.41)discard;vec3 summer=c.rgb*vec3(.86,1.0,.88);
-        float warmth=autumn*smoothstep(.22,.95,hue);
-        vec3 copper=vec3(c.g*1.36,c.g*.83,c.g*.39);
-        vec3 leaves=mix(summer,copper,warmth*.77);
-        gl_FragColor=vec4(mix(leaves*shade,pow(fogColor,vec3(.4545)),fog),1.);}`});
-    for(const batch of groups.values()){
-      const g=new THREE.InstancedBufferGeometry();g.index=geo.index;g.setAttribute('position',geo.attributes.position);g.setAttribute('uv',geo.attributes.uv);
-      const roots=new Float32Array(3*batch.length),sizes=new Float32Array(3*batch.length),box=new THREE.Box3();
-      batch.forEach((t,i)=>{roots.set([t.x,t.y,t.z],3*i);sizes.set([t.width,t.height,t.seed],3*i);box.expandByPoint(new THREE.Vector3(t.x,t.y,t.z));});
-      g.setAttribute('root',new THREE.InstancedBufferAttribute(roots,3));g.setAttribute('dims',new THREE.InstancedBufferAttribute(sizes,3));g.instanceCount=batch.length;
-      g.boundingSphere=box.expandByScalar(30).getBoundingSphere(new THREE.Sphere());scene.add(new THREE.Mesh(g,mat));
-    }
-  }
+  const updateHardwoods=broadTrees.length?window.addHardwoods(THREE,scene,broadTrees,{region,sun,sunMask,half:h,fogColor:color,clock}):null;
   const spray=texture('waternormals.jpg',true);
   function cascade(name,reach,width){
     const mark=survey.landmarks.find(l=>l.name===name);if(!mark)return;
@@ -845,7 +828,13 @@ class Water extends Mesh {
   const launches={lake:spawn,ridge:low};
   for(const [key,tuple] of Object.entries(waterfront?.launches||settings.extraLaunches||{}))launches[key]=start(tuple);
   const landmarks=waterfront?[...survey.landmarks.filter(mark=>!waterfront.landmarks.some(local=>local.name===mark.name)),...waterfront.landmarks]:survey.landmarks;
-  return {region,height,elevation,clearance,spawn,launches,landmarks,cityTerrainMaterial:surry?terrain:null,
+  function groundCover(x,z){
+    const y=elevation(x,z);
+    if(y>settings.top+110||wetGround(x,z,y,.45)||dam?.onDam(x,z)||
+      Number.isFinite(roofHeight?.(x,z))||Number.isFinite(waterfrontHeight?.(x,z)))return -1;
+    return growth(x,z);
+  }
+  return {region,height,elevation,clearance,spawn,launches,landmarks,groundCover,coverHalf:h,cityTerrainMaterial:surry?terrain:null,
     bounds:{minX:-(settings.flightHalf||h)+90,maxX:(settings.flightHalf||h)-90,minZ:-(settings.flightHalf||h)+90,maxZ:(settings.flightHalf||h)-90},waterLevel:settings.water,lakeLevel:settings.water,
     skyTexture:skyMap,sunDirection:sun,sunMask,trees,firTrees,forestLightSpan:2*h,longForest:newEngland||region==='yosemite',useFirForest:firTrees.length>0,altitudeOffset:0,
     update(dt,t,player){clock.value=t;updateHardwoods?.(player);if(water)water.material.uniforms.time.value=t*.65;}};

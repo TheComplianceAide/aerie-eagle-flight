@@ -102,3 +102,6 @@ field-me-kinglet.mp3 — Golden-crowned kinglet, recorded by iNaturalist contrib
 https://www.inaturalist.org/observations/130884489
 https://static.inaturalist.org/sounds/520764.m4a
 https://creativecommons.org/publicdomain/zero/1.0/
+field-apapane.m4a — ʻApapane (Himatione sanguinea), Damien Wallace (@damienxw), Hawaii, US. CC0 1.0. Edited for duration, gain and bandwidth. https://www.inaturalist.org/observations/358832287 ; original audio https://static.inaturalist.org/sounds/1930187.mp3?1778046069
+field-meadow-pipit.m4a — Meadow Pipit (Anthus pratensis), Sylvain Gérard (@sylvaingerard), 9385 Skaland, Norvège. CC BY 4.0. Edited for duration, gain and bandwidth. https://www.inaturalist.org/observations/385945078 ; original audio https://static.inaturalist.org/sounds/2092203.wav?1785244987
+field-dunnock.m4a — Dunnock (Prunella modularis), Simone Bocca (@simone_bocca), Provincia di Biella, Italia. CC BY-SA 4.0. Edited for duration, gain and bandwidth. https://www.inaturalist.org/observations/413039397 ; original audio https://static.inaturalist.org/sounds/2220741.mp3?1793910792

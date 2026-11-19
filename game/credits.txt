@@ -364,3 +364,28 @@ Colonial Theater Keene 5 (2013-04-27) by AlexiusHoratius
 https://commons.wikimedia.org/wiki/File:Colonial_Theater_Keene_5.JPG
 CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0/
 The alley wall was perspective-corrected, cropped, color-balanced and masked around its stepped cornice.
+
+GROUND VEGETATION
+Poly Haven CC0 assets, adapted as instanced meshes and multiview captures. Regional designs use visual proxies for local vegetation.
+https://polyhaven.com/a/grass_medium_01
+https://polyhaven.com/a/grass_medium_02
+https://polyhaven.com/a/grass_bermuda_01
+https://polyhaven.com/a/fern_02
+https://polyhaven.com/a/shrub_03
+https://polyhaven.com/a/nettle_plant
+https://polyhaven.com/a/shrub_04
+https://polyhaven.com/a/island_tree_03
+
+Photographed ground materials from Poly Haven (CC0), adapted into regional soil, leaf-litter and grass sheets.
+https://polyhaven.com/a/leaves_forest_ground
+https://polyhaven.com/a/leafy_grass
+https://polyhaven.com/a/forest_ground_05
+https://polyhaven.com/a/dry_ground_rocks
+https://polyhaven.com/a/forest_floor
+
+field-apapane.m4a — ʻApapane (Himatione sanguinea), Damien Wallace (@damienxw), Hawaii, US. CC0 1.0. Edited for duration, gain and bandwidth. https://www.inaturalist.org/observations/358832287 ; original audio https://static.inaturalist.org/sounds/1930187.mp3?1778046069
+field-meadow-pipit.m4a — Meadow Pipit (Anthus pratensis), Sylvain Gérard (@sylvaingerard), 9385 Skaland, Norvège. CC BY 4.0. Edited for duration, gain and bandwidth. https://www.inaturalist.org/observations/385945078 ; original audio https://static.inaturalist.org/sounds/2092203.wav?1785244987
+field-dunnock.m4a — Dunnock (Prunella modularis), Simone Bocca (@simone_bocca), Provincia di Biella, Italia. CC BY-SA 4.0. Edited for duration, gain and bandwidth. https://www.inaturalist.org/observations/413039397 ; original audio https://static.inaturalist.org/sounds/2220741.mp3?1793910792
+Close hardwood stems, foliage attachment points, and island canopy captures adapted from the CC0 Island Tree 01 model. https://polyhaven.com/a/island_tree_01
+Moss, sticks and leaves on the woodland floor, CC0. https://polyhaven.com/a/forest_leaves_02
+New audio license links: https://creativecommons.org/licenses/by/4.0/ (meadow pipit), https://creativecommons.org/licenses/by-sa/4.0/ (dunnock), https://creativecommons.org/publicdomain/zero/1.0/ (ʻapapane).
