@@ -4,6 +4,10 @@ Fly a bald eagle over real-world landscapes in a browser. Bank around Horseshoe 
 
 ## Play locally
 
+[Download the offline game](https://github.com/TheComplianceAide/aerie-eagle-flight/releases/latest/download/Aerie.html) and open it in Chrome. Choose a world and select **Take flight**.
+
+## Run from source
+
 Clone or download this repository. From its root, start a local server with Python 3.
 
 ```sh
