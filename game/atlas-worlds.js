@@ -608,15 +608,20 @@ class Water extends Mesh {
   }
   if(survey.cityCenter){
     terrain.uniforms.cityOrtho={value:texture('atlas-surry-city-detail.webp')};
+    terrain.uniforms.streetOrtho={value:texture('keene-downtown-ortho.webp')};
     terrain.uniforms.cityOrigin={value:new THREE.Vector2(cityX,cityZ)};
-    terrain.fragmentShader='uniform sampler2D cityOrtho;uniform vec2 cityOrigin;\n'+terrain.fragmentShader.replace('photo=mix(photo,vec3(lum(photo))', `
+    terrain.fragmentShader='uniform sampler2D cityOrtho,streetOrtho;uniform vec2 cityOrigin;\n'+terrain.fragmentShader.replace('photo=mix(photo,vec3(lum(photo))', `
         vec2 downtown=xz-cityOrigin;
         float cityBlend=1.-smoothstep(1330.,1440.,max(abs(downtown.x),abs(downtown.y)));
         photo=mix(photo,texture2D(cityOrtho,vec2(downtown.x,-downtown.y)/2900.+.5).rgb,cityBlend);
+        vec2 streetUv=vec2((xz.x-1640.)/640.,1.-(xz.y-4210.)/720.);
+        vec2 edgeMeters=min(streetUv,1.-streetUv)*vec2(640.,720.);
+        float streetBlend=smoothstep(0.,20.,min(edgeMeters.x,edgeMeters.y));
+        photo=mix(photo,texture2D(streetOrtho,streetUv).rgb,streetBlend);
         photo=mix(photo,vec3(lum(photo))`).replace('/* canopy transmission */', `
         // Retain the photographed parking lanes, paving and building shadows.
         vec3 urbanSurface=pow(max(photo,vec3(0.)),vec3(2.2))*vec3(.95,.97,1.);
-        c=mix(c,urbanSurface,cityBlend*.59*(1.-.60*veg));
+        c=mix(c,urbanSurface,cityBlend*mix(.59,.94,streetBlend)*(1.-.60*veg));
         /* canopy transmission */`);
   }
   waterfront?.applyTerrain(terrain);
@@ -725,7 +730,7 @@ class Water extends Mesh {
       plant({x,z,y:elevation(x,z),width:records[off+4]/8,height:records[off+5]/4,species,seed:records[off+7]/255},species===4);
     }
   }
-  const cityTrees=surry?window.KEENE_CITY?.trees:null;
+  const cityTrees=surry?[...window.KEENE_CITY.trees,...(window.keeneCurbTrees||[])]:null;
   for(const [x,z,height,width,seed] of cityTrees||[])plant({x,z,y:elevation(x,z),height,width,seed},false);
   waterfront?.createTrees(plant,elevation,settings.water);
   const conifer=settings.conifers??['yosemite','bryce','crater'].includes(region);
@@ -835,12 +840,12 @@ class Water extends Mesh {
     }
     return y;
   }
-  const start=([x,z,tx,tz,agl])=>({x,z,y:clearance(x,z)+agl,yaw:Math.atan2(x-tx,z-tz)});
+  const start=([x,z,tx,tz,agl,glance=0])=>({x,z,y:clearance(x,z)+agl,yaw:Math.atan2(x-tx,z-tz),glance});
   const spawn=start(settings.launch),low=start(settings.low);
   const launches={lake:spawn,ridge:low};
   for(const [key,tuple] of Object.entries(waterfront?.launches||settings.extraLaunches||{}))launches[key]=start(tuple);
   const landmarks=waterfront?[...survey.landmarks.filter(mark=>!waterfront.landmarks.some(local=>local.name===mark.name)),...waterfront.landmarks]:survey.landmarks;
-  return {region,height,elevation,clearance,spawn,launches,landmarks,
+  return {region,height,elevation,clearance,spawn,launches,landmarks,cityTerrainMaterial:surry?terrain:null,
     bounds:{minX:-(settings.flightHalf||h)+90,maxX:(settings.flightHalf||h)-90,minZ:-(settings.flightHalf||h)+90,maxZ:(settings.flightHalf||h)-90},waterLevel:settings.water,lakeLevel:settings.water,
     skyTexture:skyMap,sunDirection:sun,sunMask,trees,firTrees,forestLightSpan:2*h,longForest:newEngland||region==='yosemite',useFirForest:firTrees.length>0,altitudeOffset:0,
     update(dt,t,player){clock.value=t;updateHardwoods?.(player);if(water)water.material.uniforms.time.value=t*.65;}};

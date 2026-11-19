@@ -8,6 +8,10 @@ window.makeKeeneCity = function makeKeeneCity(T, scene, {height}) {
     shingle: {file:'lakeside-roof.webp', roughness:.92},
     roofing: {file:'lakeside-metal.webp', roughness:.87},
     roofPhoto: {file:'atlas-surry-city-detail.webp', roughness:.91},
+    streetPhoto: {file:'keene-downtown-ortho.webp', roughness:.91},
+    carPaint: {roughness:.32,metalness:.16},
+    grassMedian: {file:'shore-meadow.webp',roughness:.95},
+    autoGlass: {roughness:.18,metalness:.22},
     masonry: {file:'keene-concrete.webp', roughness:.92},
     asphalt: {file:'keene-asphalt.webp', roughness:.98},
     smooth: {roughness:.76},
@@ -41,7 +45,7 @@ window.makeKeeneCity = function makeKeeneCity(T, scene, {height}) {
     const points=ring.map(p=>new T.Vector2(...p));
     for(const triangle of T.ShapeUtils.triangulateShape(points,[])){
       const corners=triangle.map(i=>ring[i]);
-      const uv=corners.map(([x,z])=>kind==='roofPhoto'?[.5+(x-1930)/2900,.5-(z-4400)/2900]:[x/tile,z/tile]);
+      const uv=corners.map(([x,z])=>kind==='streetPhoto'?[(x-1640)/640,1-(z-4210)/720]:kind==='roofPhoto'?[.5+(x-1930)/2900,.5-(z-4400)/2900]:[x/tile,z/tile]);
       face(kind,tint,corners.map(([x,z])=>[x,y,z]),uv);
     }
   }
@@ -58,6 +62,7 @@ window.makeKeeneCity = function makeKeeneCity(T, scene, {height}) {
   const shopColors=[0x262e29,0x45392d,0x594735,0x445556,0x713e36,0x424831];
   const roofColors=[0x776d63,0x8f7e72,0x93877d,0x7d8288,0x838683];
   const avenueX=z=>1889+.16*(z-4423);
+  const drawFrontage=window.makeKeeneFrontages(T,{layout,face,clearRoof});
   function storefront(a,b,x,z,base,top,value,kind){
     const length=Math.hypot(b[0]-a[0],b[1]-a[1]);
     if(length<4)return;
@@ -165,9 +170,11 @@ window.makeKeeneCity = function makeKeeneCity(T, scene, {height}) {
     }
   }
   function church(ring, x, z, base, peak) {
-    const front=ring.reduce((a,p)=>p[0]+p[1]*.2>a[0]+a[1]*.2?p:a,ring[0]);
     // The temple front faces Central Square. The main spire is 152 feet high.
-    const cx=(x+front[0]*.6)/1.6, cz=z+2.4, axis=.15;
+    const cx=1892.7, cz=4334.5, axis=.18;
+    const nave=[[1877.2,4307.2],[1895.7,4303.5],[1902.4,4335.0],[1884.1,4338.7]];
+    roofGable(nave,base+8.61,base+12.25,color(0x888888));
+    clearRoof(nave,base+12.25);
     const sq=(r)=>rectangle(cx,cz,Math.cos(axis),-Math.sin(axis),r,r);
     const oct=r=>circle(cx,cz,r,8), surface=y=>base+y;
     for(const [lo,hi,a,b,cloud,n] of [[6.4,16.3,3.54,3.54,white,sq],[16.3,17.05,3.75,3.62,white,sq],
@@ -183,7 +190,7 @@ window.makeKeeneCity = function makeKeeneCity(T, scene, {height}) {
     disk(1.1,19.45,.04,black); disk(.88,19.45,.06,white);
     face('smooth',black,[[clockX,surface(19.45),clockZ+.1],[clockX+.06,surface(19.45),clockZ+.1],[clockX+.36,surface(20.02),clockZ+.1]]);
     face('smooth',black,[[clockX,surface(19.45),clockZ+.1],[clockX,surface(19.52),clockZ+.1],[clockX-.58,surface(19.49),clockZ+.1]]);
-    const wallZ=Math.max(...ring.map(p=>p[1])), porchZ=wallZ+1.5, porchX=cx-.35;
+    const porchZ=4338.5, porchX=1893.3;
     const pediment=rectangle(porchX,porchZ,1,0,5.9,2.4);
     horizontal('smooth',white,pediment,base+7.8);
     face('smooth',white,[[porchX-5.9,base+7.8,porchZ+2.4],[porchX+5.9,base+7.8,porchZ+2.4],[porchX,base+10.65,porchZ+2.4]]);
@@ -220,6 +227,7 @@ window.makeKeeneCity = function makeKeeneCity(T, scene, {height}) {
     for(let i=0;i<ring.length;i++){
       const a=ring[i],b=ring[(i+1)%ring.length];
       wall(wallKind,tint,a,b,bottom,top,wallKind==='brick'?1.58:wallKind==='siding'?5.7:3.8);
+      if(facade&&drawFrontage(a,b,base,top))continue;
       if(facade)storefront(a,b,x,z,base,top,feel,kind);
       if(central&&(kind==='hall'||kind==='house'))sideWindows(a,b,x,z,base,top,kind,feel);
     }
@@ -230,14 +238,15 @@ window.makeKeeneCity = function makeKeeneCity(T, scene, {height}) {
       roofGable(ring,top,peak,roofTint);
     }else {
       if(Math.max(Math.abs(x-1930),Math.abs(z-4400))<1360){
-        horizontal('roofPhoto',color(0xdedbd6),ring,top);
+        const closePhoto=ring.every(([x,z])=>x>1642&&x<2278&&z>4212&&z<4928);
+        horizontal(closePhoto?'streetPhoto':'roofPhoto',color(0xdedbd6),ring,top);
       }else horizontal('roofing', roofTint, ring, top, 5);
       if(facade){
         // Low parapets and dark coping give the Main Street roofline its depth.
         for(let i=0;i<ring.length;i++){
           const a=ring[i],b=ring[(i+1)%ring.length],c=[a[0]+(x-a[0])*.008,a[1]+(z-a[1])*.008],
             d=[b[0]+(x-b[0])*.008,b[1]+(z-b[1])*.008];
-          wall('brick',tint,a,b,top-.02,top+.58,1.58);
+          wall(kind==='theatre'?'masonry':'brick',kind==='theatre'?color(0xdbc9a8):tint,a,b,top-.02,top+.58,1.58);
           wall('masonry',trim,c,d,top-.012,top+.58,2.0);
           horizontal('masonry',trim,[a,b,d,c],top+.58,2);
         }
@@ -259,57 +268,12 @@ window.makeKeeneCity = function makeKeeneCity(T, scene, {height}) {
     clearRoof(ring,peak);
   }
 
-  const streetGray=color(0xf2eee6), sidewalk=color(0xb6ad9c), crossing=color(0xd2cbb0), brass=color(0x8e8a65);
-  function pavement(a,b,left,right,tint,kind,raised){
-    const dx=b[0]-a[0],dz=b[1]-a[1],len=Math.hypot(dx,dz);
-    if(len<.05)return;
-    const take=(t,offset)=>{
-      const x=a[0]+dx*t-dz/len*offset,z=a[1]+dz*t+dx/len*offset;
-      return [x,height(x,z)+raised,z];
-    };
-    const count=Math.max(1,Math.ceil(len/3.1)), cross=Math.max(1,Math.ceil(Math.abs(right-left)/1.65));
-    for(let i=0;i<count;i++){
-      for(let j=0;j<cross;j++){
-        const l=T.MathUtils.lerp(left,right,j/cross),r=T.MathUtils.lerp(left,right,(j+1)/cross);
-        const corners=[take(i/count,l),take(i/count,r),take((i+1)/count,r),take((i+1)/count,l)];
-        face(kind,tint,corners,corners.map(([x,y,z])=>[x/4,z/4]));
-      }
-    }
-  }
-  for(const [kind,width,points] of data.roads) {
-    for(let i=1;i<points.length;i++){
-      const a=points[i-1],b=points[i],half=width/2;
-      pavement(a,b,-half,half,streetGray,'asphalt',.43);
-      for(const sign of [-1,1]){
-        pavement(a,b,sign*half,sign*(half+.22),white,'masonry',.55);
-        pavement(a,b,sign*(half+.23),sign*(half+1.85),sidewalk,'masonry',.52);
-      }
-      if(kind==='main'||kind==='avenue'){
-        const length=Math.hypot(a[0]-b[0],a[1]-b[1]);
-        const at=t=>[T.MathUtils.lerp(a[0],b[0],t),T.MathUtils.lerp(a[1],b[1],t)];
-        for(let u=4;u<length-3;u+=11) {
-          pavement(at(u/length),at((u+2.8)/length),-.075,.075,crossing,'smooth',.48);
-        }
-      }
-    }
-  }
-  for(const [x,z,w] of [[1908,4424,14.5],[1931,4599,18],[1957,4774,16],[1963,4812,16]]){
-    const a=[x+1,z-1.24],b=[x+1.4,z+1.24];
-    for(let j=-w/2;j<w/2;j+=1.43)pavement(a,b,j,j+.48,crossing,'smooth',.49);
-  }
-  for(const [x,z] of [[1897,4454],[1903,4498],[1910,4556],[1930,4622],[1940,4684],[1950,4765],[1960,4820],[1887,4355],[1925,4361],[1918,4397]]){
-    const y=height(x,z)+.20;
-    const base=circle(x,z,.19,6),column=circle(x,z,.087,6);
-    frustum('smooth',black,base,base,y,y+.35);
-    frustum('smooth',black,column,column,y+.35,y+4.1);
-    const lantern=circle(x,z,.22,6),cone=circle(x,z,.075,6);
-    frustum('glass',color(0xa89b7b),column,lantern,y+4.08,y+4.56);
-    frustum('smooth',black,lantern,cone,y+4.56,y+4.86);
-  }
+  const brass=color(0x8e8a65);
+  window.addKeeneStreetscape({T,data,height,face,clearRoof});
 
   // Central Square's gazebo, fountain and Soldiers' Monument are three-dimensional.
   {
-    const x=1869.8,z=4390.3,base=height(x,z);
+    const x=1881.5,z=4371.5,base=height(x,z)+.68;
     const rim=circle(x,z,3.1,8),roof=circle(x,z,3.6,8);
     horizontal('masonry',white,rim,base+.48);
     frustum('masonry',trim,rim,rim,base,base+.48);
@@ -321,7 +285,7 @@ window.makeKeeneCity = function makeKeeneCity(T, scene, {height}) {
     clearRoof(roof,base+4.62);
   }
   {
-    const x=1891,z=4383,base=height(x,z);
+    const x=1894.1,z=4381.3,base=height(x,z)+.684;
     const rim=circle(x,z,2.25,16),inner=circle(x,z,1.95,16),center=circle(x,z,.45,9);
     frustum('masonry',white,rim,rim,base,base+.48);
     frustum('masonry',white,rim,inner,base+.48,base+.48);
@@ -332,7 +296,7 @@ window.makeKeeneCity = function makeKeeneCity(T, scene, {height}) {
     horizontal('glass',color(0x778780),bowl,base+1.47);
   }
   {
-    const x=1885,z=4403.2,base=height(x,z);
+    const x=1897.6,z=4399.5,base=height(x,z)+.689;
     const platform=(r)=>rectangle(x,z,1,0,r,r);
     for (const [lo,hi,a,b] of [[0,.25,2.43,2.32],[.25,.51,2.0,1.93],[.51,.82,1.54,1.43],[.82,3.36,1.04,.74],[3.36,3.64,.87,.84],[3.64,4.22,.57,.55]])
       frustum('masonry',white,platform(a),platform(b),base+lo,base+hi);
@@ -360,9 +324,9 @@ window.makeKeeneCity = function makeKeeneCity(T, scene, {height}) {
     for(let x=9;x<508;x+=9){context.fillStyle='#efd591';context.fillRect(x,80,2,2);}
     const image=new T.CanvasTexture(canvas);image.colorSpace=T.SRGBColorSpace;return image;
   }
-  for(const [name,{file,normal,roughness}] of Object.entries(layout)){
+  for(const [name,{file,normal,roughness,alphaTest=0}] of Object.entries(layout)){
     materials[name]=new T.MeshStandardMaterial({map:file?tex(file):name==='marquee'?signTexture():null,
-      normalMap:normal?tex(normal,true):null,normalScale:new T.Vector2(.42,.42),roughness,vertexColors:true,side:T.DoubleSide});
+      normalMap:normal?tex(normal,true):null,normalScale:new T.Vector2(.42,.42),roughness,alphaTest,alphaToCoverage:alphaTest>0,metalness:layout[name].metalness||0,vertexColors:true,side:T.DoubleSide});
   }
   for(const {kind,pos,uv,rgb} of groups.values()){
     const geo=new T.BufferGeometry();

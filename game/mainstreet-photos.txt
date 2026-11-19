@@ -1,0 +1,49 @@
+KEENE MAIN STREET PHOTOGRAPHIC TEXTURES
+
+These local textures use perspective-corrected crops of photographs of the actual buildings. The crops have been resized and color-balanced. Selected areas of the Colonial and Exchange fronts were repaired to reduce occlusions. The Exchange and marquee textures include cutout masks. The dates below describe the photographs.
+
+keene-front-colonial.webp — derivative licensed under CC BY-SA 4.0
+Colonial Theatre in Keene NH (2025-10-10) by Kenneth C. Zirkel
+https://commons.wikimedia.org/wiki/File:Colonial_Theatre_in_Keene_NH.jpg
+CC BY-SA 4.0 — https://creativecommons.org/licenses/by-sa/4.0/
+
+keene-front-marquee.webp — derivative licensed under CC BY 4.0
+The Colonial Theatre 95 Main Street Keene NH September 2024 (2024-09-25) by Artaxerxes
+https://commons.wikimedia.org/wiki/File:The_Colonial_Theatre_95_Main_Street_Keene_NH_September_2024.jpg
+CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/
+
+keene-front-exchange.webp — derivative licensed under CC BY-SA 3.0
+Keene NH 24 (2013-04-27) by AlexiusHoratius
+https://commons.wikimedia.org/wiki/File:Keene_NH_24.JPG
+CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0/
+Exchange Building, Keene NH (2011-11-25) by John Phelan
+https://commons.wikimedia.org/wiki/File:Exchange_Building,_Keene_NH.jpg
+CC BY 3.0 — https://creativecommons.org/licenses/by/3.0/
+
+keene-front-lane.webp — derivative licensed under CC BY 3.0
+Lane Hotel, Keene NH (2011-11-25) by John Phelan
+https://commons.wikimedia.org/wiki/File:Lane_Hotel,_Keene_NH.jpg
+CC BY 3.0 — https://creativecommons.org/licenses/by/3.0/
+
+keene-front-kings.webp — derivative licensed under CC BY-SA 4.0
+King's Garden 88 Main Street downtown Keene NH July 2023 (2023-07-28) by Artaxerxes
+https://commons.wikimedia.org/wiki/File:King%27s_Garden_88_Main_Street_downtown_Keene_NH_July_2023.jpg
+CC BY-SA 4.0 — https://creativecommons.org/licenses/by-sa/4.0/
+
+keene-front-works.webp — derivative licensed under CC BY 4.0
+The Works Café 120 Main Street Keene NH October 2024 01 (2024-10-01) by Artaxerxes
+https://commons.wikimedia.org/wiki/File:The_Works_Caf%C3%A9_120_Main_Street_Keene_NH_October_2024_01.jpg
+CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/
+
+keene-front-pour.webp, keene-front-chamber.webp, keene-front-ashuelot.webp and keene-front-chamberlain.webp — derivatives licensed under CC BY-SA 3.0
+Keene NH 21 (2013-04-27) by AlexiusHoratius
+https://commons.wikimedia.org/wiki/File:Keene_NH_21.JPG
+CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0/
+
+Upper stories on the four western Central Square frontages have been cropped, perspective-corrected and resized. A repeated pair of the original windows covers part of a tree at 44–45 Central Square. A cutout follows the pediment at 48 Central Square.
+
+keene-front-colonial-side.webp — derivative licensed under CC BY-SA 3.0
+Colonial Theater Keene 5 (2013-04-27) by AlexiusHoratius
+https://commons.wikimedia.org/wiki/File:Colonial_Theater_Keene_5.JPG
+CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0/
+The alley wall was perspective-corrected, cropped, color-balanced and masked around its stepped cornice.

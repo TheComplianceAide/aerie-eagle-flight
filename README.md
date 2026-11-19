@@ -24,6 +24,12 @@ python3 tools/build_offline.py
 
 ## Flight controls
 
+**Mouse:** move toward the part of the screen where you want to fly. Left and right bank, up climbs, and down dives. Move the pointer back to the center ring to settle into a straight glide.
+
+**Touch:** put one finger on the eagle or the scenery and slide in the direction you want to fly. Lift your finger to glide. On either device, steer farther upward to beat your wings. Tap or click a branch or ledge, then **Land**. Drag to look around while perched and select **Push off** to fly again.
+
+The following keyboard shortcuts are also available.
+
 | Action | Control |
 | --- | --- |
 | Pitch up or dive | W / S or Up / Down |
@@ -34,14 +40,10 @@ python3 tools/build_offline.py
 | Hide or show instruments | H |
 | Pause | Esc |
 
-Hold Up or W at low airspeed to start a powered climb. On a touchscreen, drag to steer and hold **Flap** to climb.
+Hold Up or W at low airspeed to start a powered climb.
 
 ## Scenery and credits
 
 The playable worlds include Oeschinen Lake, Mendenhall Glacier, Horseshoe Bend, Yosemite Valley, Bryce Canyon, Crater Lake, the Nā Pali Coast, Lofoten, Milford Sound, Lake Winnipesaukee, Moosehead Lake, and Surry Mountain Dam with Keene.
 
 See the [scenery and field-recording credits](game/credits.txt) for the source imagery, terrain, bird recordings, and their individual licenses. [Three.js](game/three-LICENSE.txt) and the bundled [pako decompressor](tools/pako/LICENSE) include their license notices.
-
-## In development
-
-Selectable branches and ledges, looking around while perched, and taking off again are planned across the worlds. The initial public build supports continuous flight and landmark exploration.

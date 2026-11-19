@@ -115,6 +115,75 @@ window.makeEagle = function makeEagle(THREE) {
     while (strongest.length < 4) strongest.push([0, 0]);
     return {index:strongest.map(entry => entry[0]), weight:strongest.map(entry => entry[1] / total)};
   }
+  // Wing bones fold the elbow against the flank and return the carpus toward
+  // the shoulder. A corrective shape keys the vanes into overlapping tracts
+  // once those joints approach one another, as on a closed avian wing.
+  const closedRotation=new Map();
+  for(const {sign,shoulder,elbow,wrist,fan} of wings){
+    closedRotation.set(shoulder,new THREE.Euler(.14,-sign*1.15,sign*.15,'YZX'));
+    closedRotation.set(elbow,new THREE.Euler(0,sign*2.20,-sign*.11,'YZX'));
+    closedRotation.set(wrist,new THREE.Euler(-.12,-sign*2.54,-sign*.19,'YZX'));
+    fan.forEach((b,i)=>{
+      const line=i/(fan.length-1);
+      closedRotation.set(b,new THREE.Euler(.025-.045*line,-sign*(.55-line)*.34,sign*(line-.45)*.13,b.rotation.order));
+    });
+  }
+  const closedPose=new Map();
+  const bindInFold=bones.map(b=>{
+    const r=closedRotation.get(b),m=r?new THREE.Matrix4().makeRotationFromEuler(r):new THREE.Matrix4();
+    m.setPosition(b.position);
+    if(closedPose.has(b.parent))m.premultiply(closedPose.get(b.parent));
+    closedPose.set(b,m);
+    const p=reference.get(b);
+    return m.clone().multiply(new THREE.Matrix4().makeTranslation(-p.x,-p.y,-p.z));
+  });
+  const featherMeshes=[];
+  const foldedLeading=[[.08,-.139],[.22,-.139],[.39,-.115],[.58,-.067],[.76,.021],[.90,.129],[1.10,.305]];
+  const foldedTrailing=[[.08,.170],[.22,.187],[.39,.211],[.58,.246],[.76,.296],[.90,.343],[1.10,.383]];
+  const mantleWidth=[[-.14,.122],[-.080,.153],[.0,.170],[.09,.158],[.17,.135],[.25,.113],[.337,.078],[.39,.045]];
+  const mantleDepth=[[-.14,.090],[-.075,.115],[.0,.123],[.09,.112],[.17,.082],[.25,.048],[.33,.028],[.39,.015]];
+  function addFoldShape(g){
+    const {position,skinIndex,skinWeight,normal}=g.attributes;
+    const foldedPosition=new Float32Array(position.array.length);
+    const point=new THREE.Vector3(),target=new THREE.Vector3(),mat=new THREE.Matrix4();
+    for(let i=0;i<position.count;i++){
+      point.fromBufferAttribute(position,i);
+      const ax=Math.abs(point.x),v=point.z/length+center;
+      const w=smooth(.083,.185,ax)*(1-smooth(.69,.75,v));
+      if(w>.00001){
+        const chord=clamp((v-sample(frontProfile,ax))/(sample(rearProfile,ax)-sample(frontProfile,ax)),0,1);
+        const z=sample(foldedLeading,ax)+(sample(foldedTrailing,ax)-sample(foldedLeading,ax))*chord;
+        const arch=.47+.99*(1-chord)+.19*smooth(.31,.92,ax);
+        const h=point.y-anatomy(.5+point.x/span,v,1).top;
+        // Offset each covert row from the underlying primary and secondary vanes.
+        const overlay=.009*(1-smooth(.28,.87,ax)),coat=h+overlay;
+        const a=Math.sin(arch),b=Math.cos(arch);
+        target.set(Math.sign(point.x)*(sample(mantleWidth,z)+coat)*a,
+          (sample(mantleDepth,z)+coat)*b+.008-.031*smooth(.15,.37,z),z);
+        mat.elements.fill(0);
+        for(let j=0;j<4;j++){
+          const m=bindInFold[skinIndex.array[i*4+j]],weight=skinWeight.array[i*4+j];
+          if(!weight)continue;
+          for(let k=0;k<16;k++)mat.elements[k]+=m.elements[k]*weight;
+        }
+        target.applyMatrix4(mat.invert());point.lerp(target,w);
+      }
+      const rectrix=smooth(.655,.810,v)*(1-smooth(.27,.34,ax));
+      point.x*=1-.61*rectrix;
+      point.z+=.012*rectrix;
+      point.toArray(foldedPosition,i*3);
+    }
+    const closedGeometry=new THREE.BufferGeometry();
+    closedGeometry.setAttribute('position',new THREE.BufferAttribute(foldedPosition,3));
+    closedGeometry.setIndex(g.index);closedGeometry.computeVertexNormals();
+    g.morphAttributes.position=[closedGeometry.attributes.position];
+    // Keep the contour vanes' authored normal at their unmoved head and neck.
+    for(let i=0;i<position.count;i++){
+      const ax=Math.abs(position.getX(i)),v=position.getZ(i)/length+center;
+      if(ax<.084||v>.75)closedGeometry.attributes.normal.setXYZ(i,normal.getX(i),normal.getY(i),normal.getZ(i));
+    }
+    g.morphAttributes.normal=[closedGeometry.attributes.normal];
+  }
   // The coverts and hackles have their own shafts and vanes. They share the
   // shell's skeleton, so their roots stay planted throughout a turn or stroke.
   const featherTime = {value:0}, featherWind = {value:1}, ruffDrag = {value:0};
@@ -240,7 +309,8 @@ window.makeEagle = function makeEagle(THREE) {
         `#include <lights_fragment_end>
         if(!gl_FrontFacing) reflectedLight.indirectDiffuse+=diffuseColor.rgb*mix(.12,.54,step(.50,vMapUv.x));`);
     };
-    const mesh=new THREE.SkinnedMesh(geo,material);
+    addFoldShape(geo);
+    const mesh=new THREE.SkinnedMesh(geo,material);featherMeshes.push(mesh);
     mesh.name='Individual crown, neck, mantle and wing feathers';
     mesh.frustumCulled=false;rig.add(mesh);mesh.bind(skeleton,new THREE.Matrix4());
   }
@@ -424,7 +494,8 @@ window.makeEagle = function makeEagle(THREE) {
     const ventral = plumage.clone();
     ventral.color.setHex(0xd6c9b4);
     ventral.roughness = .88;
-    const skin = new THREE.SkinnedMesh(geometry, [plumage, ventral]);
+    addFoldShape(geometry);
+    const skin = new THREE.SkinnedMesh(geometry, [plumage, ventral]);featherMeshes.push(skin);
     skin.name = 'Dorsal and ventral plumage';
     skin.castShadow = true;
     skin.frustumCulled = false;
@@ -499,19 +570,68 @@ window.makeEagle = function makeEagle(THREE) {
     m.scale.set(sx, sy, sz); parent.add(m);
     return m;
   }
+  const tuckedFeet=[];
   for (const side of [-1, 1]) {
     const foot = oval(chest, 'Tucked tarsus', gold, side * .052, -.046, zAt(.672), .015, .015, .050);
     foot.rotation.y = side * .11;
+    tuckedFeet.push(foot);
     for (let n = -1; n <= 1; n++) {
       const toe = oval(chest, 'Curled toe', claw, side * .052 + n * .008, -.046, zAt(.712), .0035, .0055, .011);
       toe.rotation.x = -.54;
+      tuckedFeet.push(toe);
     }
   }
+  // Hind talon opposes the three forward toes. Rings follow each toe's curve
+  // to carry the gold scales into a pointed, recurved horn tip.
+  const scute=new THREE.MeshStandardMaterial({color:0xb89343,roughness:.69});
+  function taperedCurve(parent,name,sections,material){
+    const points=sections.map(p=>new THREE.Vector3(...p.slice(0,3)));
+    const vertices=[],indices=[],sides=9;
+    const up=new THREE.Vector3(1,0,0);
+    for(let i=0;i<points.length;i++){
+      const tangent=points[Math.min(i+1,points.length-1)].clone().sub(points[Math.max(i-1,0)]).normalize();
+      const u=new THREE.Vector3().crossVectors(tangent,up).normalize(),v=new THREE.Vector3().crossVectors(tangent,u);
+      for(let j=0;j<sides;j++){
+        const angle=j*Math.PI*2/sides;
+        const pt=points[i].clone().addScaledVector(u,Math.cos(angle)*sections[i][3]).addScaledVector(v,Math.sin(angle)*sections[i][3]);
+        vertices.push(pt.x,pt.y,pt.z);
+        if(i){
+          const a=(i-1)*sides+j,b=(i-1)*sides+(j+1)%sides;
+          indices.push(a,b,a+sides,b,b+sides,a+sides);
+        }
+      }
+    }
+    const geo=new THREE.BufferGeometry();
+    geo.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));geo.setIndex(indices);geo.computeVertexNormals();
+    const mesh=new THREE.Mesh(geo,material);mesh.name=name;mesh.castShadow=true;parent.add(mesh);
+    return mesh;
+  }
+  const perchFeet=[-1,1].map(sign=>{
+    const leg=new THREE.Group();rig.add(leg);leg.name='Reaching leg '+sign;
+    leg.position.set(sign*.065,-.038,.09);leg.visible=false;
+    taperedCurve(leg,'Scaled tarsus',[[0,.013,0,.014],[sign*.004,-.035,.014,.012],[sign*.005,-.079,-.005,.011],[sign*.007,-.129,-.037,.012]],gold);
+    const toes=[];
+    for(let j=0;j<4;j++){
+      const rear=j===3,heading=rear?Math.PI+sign*.12:(j-1)*.48+sign*.04;
+      const toe=new THREE.Group();leg.add(toe);
+      toe.position.set(sign*.007+(rear?0:(j-1)*.007),-.129,-.037+(rear?.009:0));
+      toe.rotation.order='YXZ';toe.rotation.y=heading;toes.push(toe);
+      const len=rear?.045:j===1?.058:.046;
+      taperedCurve(toe,'Toe pad',[[0,.002,0,.009],[0,-.003,-len*.30,.008],[0,-.001,-len*.55,.0072],[0,-.004,-len*.78,.0068],[0,-.004,-len*.86,.0058]],gold);
+      for(const r of [.32,.53,.74]){
+        const scale=new THREE.Mesh(new THREE.SphereGeometry(1,8,5),scute);
+        scale.position.set(0,.002,-len*r);scale.scale.set(.0072,.0046,.0034);toe.add(scale);
+      }
+      taperedCurve(toe,'Hooked claw',[[0,-.004,-len*.80,.0055],[0,-.005,-len*.97,.0053],[0,-.011,-len*1.09,.0044],[0,-.020,-len*1.13,.0031],[0,-.027,-len*1.06,.0016],[0,-.033,-len*.94,.00035]],claw);
+    }
+    return {leg,toes,sign};
+  });
+  const blend=(flight,landing,amount)=>flight+(landing-flight)*amount;
   let phase = 0, effort = 0, tuck = 0, lastBank = 0, turnDemand = 0;
   // Saccades alternate with fixations. A second look on the same side
   // sometimes follows the first before attention returns down the flight path.
   let lookYaw=0, lookPitch=0, nextLook=.65, scanSide=-1, scanStage=0, gazeTime=0;
-  function updateGaze(time, step, pitch, bank, stall){
+  function updateGaze(time, step, pitch, bank, stall, fold, perchYaw, perchPitch){
     if(time<gazeTime || time===0){
       lookYaw=lookPitch=0;nextLook=.65;scanStage=0;scanSide=-1;
       neck.rotation.set(0,0,0,"YXZ");
@@ -536,12 +656,14 @@ window.makeEagle = function makeEagle(THREE) {
     }
     const turn=smooth(.07,.84,Math.abs(bank));
     const forwardFocus=1-.70*tuck-.16*stall;
-    const yaw=lookYaw*forwardFocus*(1-.64*turn)+.58*bank+.066*turnDemand;
-    const nod=lookPitch*forwardFocus-.32*pitch*(1-.75*tuck)-chest.rotation.x;
+    const flightYaw=lookYaw*forwardFocus*(1-.64*turn)+.58*bank+.066*turnDemand;
+    const flightNod=lookPitch*forwardFocus-.32*pitch*(1-.75*tuck)-chest.rotation.x;
+    const yaw=blend(flightYaw,clamp(perchYaw,-1.42,1.42)+.16*lookYaw,fold);
+    const nod=blend(flightNod,clamp(perchPitch,-.60,.60)-chest.rotation.x+.13*lookPitch,fold);
     const settle=1-Math.exp(-10*step);
     neck.rotation.order="YXZ";
-    neck.rotation.y+=(clamp(yaw,-1.10,1.10)-neck.rotation.y)*settle;
-    neck.rotation.x+=(clamp(nod,-.43,.40)-neck.rotation.x)*settle;
+    neck.rotation.y+=(clamp(yaw,-1.10-.41*fold,1.10+.41*fold)-neck.rotation.y)*settle;
+    neck.rotation.x+=(clamp(nod,-.43-.50*fold,.40+.12*fold)-neck.rotation.x)*settle;
     neck.rotation.z+=(-.53*bank+.053*lookYaw*forwardFocus-neck.rotation.z)*settle;
   }
   function update(dt, time, flapping, pitch = 0, bank = 0, air = {}) {
@@ -557,9 +679,22 @@ window.makeEagle = function makeEagle(THREE) {
     const rollRate = step > .0001 ? clamp((bank - lastBank) / step, -2.3, 2.3) : 0;
     lastBank = bank;
     turnDemand += (rollRate - turnDemand) * approach(5);
+    const fold=clamp(air.perchFold||0,0,1),grip=clamp(air.perchGrip||0,0,1),flare=clamp(air.perchFlare||0,0,1);
+    const folded=smooth(0,1,fold);
+    for(const mesh of featherMeshes)mesh.morphTargetInfluences[0]=smooth(.40,.97,fold);
     const liftStroke = Math.cos(phase), recovery = smooth(-.26, .91, -Math.sin(phase));
     chest.position.y = -.008 * effort * liftStroke;
     chest.rotation.x = -.022 * effort * Math.cos(phase - .45);
+    chest.position.y=blend(chest.position.y,.053+.002*Math.sin(time*2.2),folded);
+    chest.rotation.x=blend(chest.rotation.x+.11*flare,.64+.006*Math.sin(time*2.2),folded);
+    for (const part of tuckedFeet)part.visible=grip<.18;
+    for(const {leg,toes,sign} of perchFeet){
+      leg.visible=grip>.012;
+      leg.rotation.x=blend(-1.78,0,smooth(.025,.96,grip));
+      leg.rotation.z=sign*.10*Math.sin(grip*Math.PI);
+      const curl=blend(-.33,0,smooth(.48,.96,fold));
+      for(const toe of toes)toe.rotation.x=curl+.19*(1-grip);
+    }
     for (const {sign, shoulder, elbow, wrist, fan} of wings) {
       const inside = clamp(-sign * bank, 0, 1.1);
       const trim = .011 * Math.sin(time * 1.73 + sign * .82) + .007 * Math.sin(time * .81 - sign);
@@ -572,24 +707,38 @@ window.makeEagle = function makeEagle(THREE) {
       wrist.rotation.z = sign * (.034 + .085 * load - .30 * tuck + effort * (.20 * Math.cos(phase - .95) - .17 * recovery));
       wrist.rotation.y = -sign * (.17 * tuck + .31 * effort * recovery);
       wrist.rotation.x = .05 * inside + .05 * sign * turnDemand - .15 * effort * recovery;
+      const f=smooth(sign>0?.065:0,sign>0?.97:.91,fold);
+      const armPose=closedRotation.get(shoulder),forearmPose=closedRotation.get(elbow),wristPose=closedRotation.get(wrist);
+      shoulder.rotation.z=blend(shoulder.rotation.z+sign*.45*flare,armPose.z,f);
+      shoulder.rotation.y=blend(shoulder.rotation.y+sign*.085*flare,armPose.y,f);
+      shoulder.rotation.x=blend(shoulder.rotation.x+.19*flare,armPose.x,f);
+      elbow.rotation.y=blend(elbow.rotation.y,forearmPose.y,f);
+      elbow.rotation.z=blend(elbow.rotation.z+sign*.19*flare,forearmPose.z,f);
+      wrist.rotation.y=blend(wrist.rotation.y,wristPose.y,f);
+      wrist.rotation.z=blend(wrist.rotation.z-sign*.12*flare,wristPose.z,f);
+      wrist.rotation.x=blend(wrist.rotation.x+.11*flare,wristPose.x,f);
       for (let i = 0; i < fan.length; i++) {
-        const s = i / (fan.length - 1);
+        const s = i / (fan.length - 1),fanPose=closedRotation.get(fan[i]);
         fan[i].rotation.z = sign * ((.052 - s * .064) * (1 + .5 * load) + .056 * effort * Math.cos(phase - 1.30 - .19 * s));
         fan[i].rotation.y = sign * (.5 - s) * (.075 * stall - .19 * tuck - .085 * effort * recovery);
-        fan[i].rotation.x = -.10 * effort * recovery * (1 - s);
+        fan[i].rotation.x = blend(-.10*effort*recovery*(1-s),fanPose.x,f);
+        fan[i].rotation.y=blend(fan[i].rotation.y+sign*(.5-s)*.19*flare,fanPose.y,f);
+        fan[i].rotation.z=blend(fan[i].rotation.z,fanPose.z,f);
       }
     }
     const spread = .15 * smooth(.2, 1.15, Math.abs(bank)) + .22 * stall + .045 * effort - .24 * tuck;
-    tailRays[0].rotation.y = -spread;
-    tailRays[2].rotation.y = spread;
+    const tailFan=blend(spread+.28*flare,-.04,folded);
+    tailRays[0].rotation.y = -tailFan;
+    tailRays[2].rotation.y = tailFan;
     rudder.rotation.y = -.065 * bank;
     rudder.rotation.x = .085 * pitch + .045 * (air.climb || 0) + .08 * stall + .025 * effort * Math.cos(phase - 1);
+    rudder.rotation.x=blend(rudder.rotation.x-.17*flare,-.19,folded);
     rudder.rotation.z = -.16 * bank;
     const priorYaw=neck.rotation.y;
-    updateGaze(time,step,pitch,bank,stall);
+    updateGaze(time,step,pitch,bank,stall,folded,air.perchLook||0,air.perchLookPitch||0);
     featherTime.value=time;
     const airflow=clamp((air.airspeed || 17.5)/17.5,.4,2.3);
-    featherWind.value+=((airflow+.65*effort)*(.87+.13*Math.sin(time*1.37))-featherWind.value)*approach(5);
+    featherWind.value+=(blend(airflow+.65*effort,.185,folded)*(.87+.13*Math.sin(time*1.37))-featherWind.value)*approach(5);
     const neckVelocity=step>.0001?(neck.rotation.y-priorYaw)/step:0;
     ruffDrag.value+=(clamp(neckVelocity*.68,-1,1)-ruffDrag.value)*approach(8);
   }

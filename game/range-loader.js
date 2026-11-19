@@ -1,6 +1,6 @@
 // A destination's elevation surveys and textures are opened when the player takes flight.
 (() => {
-  const base = ['eagle.js','flight-light.js','field-audio.js'];
+  const base = ['eagle.js','flight-light.js','field-audio.js','perch-flight.js','perch-habitat.js'];
   const trees = ['fir-data.js','forest.js'];
   const scripts = {
     alaska: ['alaska-survey.js','alaska-world.js','talus-data.js','habitat.js',...trees],
@@ -28,7 +28,7 @@
     const surveyDetail={
       yosemite:['atlas-yosemite-crowns.js'],bryce:['atlas-bryce-relief.js'],
       winnipesaukee:['winnipesaukee-waterfront-data.js','winnipesaukee-waterfront.js'],
-      surry:['surry-dam.js','keene-city-data.js','keene-city.js']
+      surry:['surry-dam.js','keene-city-data.js','keene-frontages.js','keene-streetscape.js','keene-city.js','keene-light.js']
     }[region]||[];
     await Promise.all([...base,...files,...mist,...surveyDetail].map(open));
     if(region==='bryce')await window.prepareBryceTerrain();

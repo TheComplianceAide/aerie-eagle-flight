@@ -64,3 +64,46 @@ main[data-world=winnipesaukee] h1{font-size:clamp(52px,6.4vw,104px)}
 .sourceCredits{margin-left:auto;margin-right:24px;font-size:11px;color:#fffc;text-underline-offset:3px}
 .sourceCredits[hidden],main[data-mode=flight] .sourceCredits{display:none}
 @media(max-width:620px){.sourceCredits{max-width:90px;margin-right:9px;font-size:9px}}
+
+.perchControls{display:none;position:absolute;bottom:3.5%;left:50%;transform:translateX(-50%);z-index:2;text-align:center;max-width:46vw}
+main[data-mode=flight] .perchControls{display:block}
+main.clearView .perchControls,main.clearView #perchPin,main:has(.modal:not([hidden])) .perchControls,main:has(.modal:not([hidden])) #perchPin{visibility:hidden}
+#perchStatus{display:block;white-space:normal;margin-bottom:6px;font-size:12px;font-weight:600;line-height:1.3;text-shadow:0 1px 5px #071313,0 1px 9px #071313}
+.perchControls div{display:flex;justify-content:center;gap:5px}
+.perchControls button{background:#182222c9;border:1px solid #e3d9c585;border-radius:5px;padding:6px 10px;line-height:1.3;white-space:nowrap;color:#fff4df;font-size:13px;backdrop-filter:blur(7px)}
+.perchControls button:hover{border-color:#ffdfa2;background:#242e2de5}
+.perchControls kbd{display:inline-block;font-size:10px;color:#dfcea9;margin-left:4px}
+#perchAction{border-color:#ead3a2;background:#ead3a2;color:#18211f}#perchAction:hover{background:#f9e8c1;color:#18211f}
+.perchControls [hidden],#perchPin[hidden]{display:none}
+#perchPin{pointer-events:none;position:absolute;transform:translate(-50%,-100%);display:grid;justify-items:center;z-index:1;text-shadow:0 1px 4px #132022}
+#perchPin i{width:16px;height:16px;border:1.8px solid #ffe7a7;border-radius:100%;box-shadow:0 0 0 1px #352e21,0 0 9px #f3cc7c}
+#perchPin span{order:-1;color:#fff2cb;background:#16201dbd;border-radius:3px;padding:2px 6px;font-size:11px;margin-bottom:3px;white-space:nowrap}
+@media(max-width:760px){.perchControls{bottom:12%;max-width:75vw}.perchControls kbd{display:none}}
+
+/* The fingertip can start anywhere on the flight surface. The ring stays at neutral. */
+#steerCue{position:fixed;z-index:1;width:13px;height:13px;transform:translate(-50%,-50%);border:1.5px solid #fff9;box-shadow:0 0 0 1px #15272560;border-radius:50%;pointer-events:none}
+#steerCue[data-kind=touch]{width:32px;height:32px;border-style:dashed;background:#17212520}
+#steerCue[hidden],main.clearView #steerCue,.fingerGuide{display:none}
+main[data-mode=flight] #viewport{cursor:crosshair;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+main[data-perch=perched] #viewport{cursor:grab}
+main[data-perch=perched] #viewport:active{cursor:grabbing}
+main[data-mode=flight] header,main[data-mode=flight] footer,.perchControls{pointer-events:none}
+main[data-mode=flight] header button,main[data-mode=flight] footer a,main[data-mode=flight] footer button,.perchControls button{pointer-events:auto}
+@media(pointer:coarse){
+  .mouseGuide{display:none}.fingerGuide{display:block}
+  main[data-mode=flight] #viewport{cursor:auto}
+  .perchControls button,.helpLink,.icon{min-height:44px}
+  nav .icon{min-width:42px}
+  header{top:max(10px,env(safe-area-inset-top))}
+  main[data-mode=flight] footer{bottom:max(10px,env(safe-area-inset-bottom))}
+  .perchControls{bottom:max(12%,calc(8px + env(safe-area-inset-bottom)))}
+  .touchFlap{min-width:52px;min-height:48px}
+}
+@media(pointer:coarse) and (max-height:500px){
+  .instrumentBlock{bottom:max(8px,env(safe-area-inset-bottom))}
+  .perchControls{bottom:max(8px,env(safe-area-inset-bottom))}
+}
+@media(pointer:coarse) and (max-height:500px){
+  #discovery{top:max(62px,calc(env(safe-area-inset-top) + 52px));right:max(4.4%,env(safe-area-inset-right));left:auto;bottom:auto}
+}
+@media(pointer:coarse) and (max-width:365px){main[data-mode=flight] .brand span{display:none}}

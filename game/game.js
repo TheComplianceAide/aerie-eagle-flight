@@ -21,12 +21,13 @@
   updateCameraButton();
   window.addEventListener("worldchange",()=>{if(renderer||launchPending)location.reload();});
   const keys = new Set(), found = new Set();
-  const stick = {x: 0, y: 0};
-  let drag, renderer, scene, camera, world, eagle, player, gaze, cameraTarget;
-  let updateLight;
+  let renderer, scene, camera, world, eagle, player, gaze, cameraTarget;
+  let updateLight,perching,perchRoute,perchMarker;
+  let perchNotice="",perchNoticeUntil=0,nextPerchHUD=0;
   let dynamics, elapsed, distance, nextReadout, noticeUntil, accumulator;
   let updateTalus, updateForest, updateHabitat, updateMist;
   let frameSeconds=0, frameCount=0, fastWindows=0;
+  let glance=0, arrivalGlance=0, glanceTime=0;
   let cameraYaw, cameraPath, cameraBank, cameraFov, loadPromise, launchPending=false;
   let last = performance.now(), started = false, paused = false, touchFlap = false;
   let audio, wind, wingRush, windLevel, volume, fieldAudio, previousFocus;
@@ -45,7 +46,7 @@
       loadFactor: 1, stall: 0, tuck: 0, climb: 0, verticalSpeed: -1,
       ridge: 0, thermal: 0, lift: 0, distance: 0, elapsed: 0, mode: "Gliding", contact: false
     };
-    const floor = terrain.clearance || terrain.height;
+    const floor = terrain.flightClearance || terrain.clearance || terrain.height;
     const bounds = terrain.bounds || {minX:-3900,maxX:3900,minZ:-3900,maxZ:3900};
     const centers = (terrain.landmarks || []).map((p,i) => ({
       x:p.x + Math.cos(i*1.93)*90, z:p.z + Math.sin(i*1.93)*90
@@ -210,7 +211,7 @@
   el("sound").onclick=toggleSound;audioIcon();
   if (!document.fullscreenEnabled) el("expand").hidden=true;
   el("expand").onclick=async()=>{if(document.fullscreenElement)await document.exitFullscreen();else await app.requestFullscreen();};
-  function resetInput(){keys.clear();drag=null;stick.x=0;stick.y=0;touchFlap=false;}
+  function resetInput(){keys.clear();pointer.clear();touchFlap=false;}
   function showDialog(type) {
     if(type==="places"&&!started)return;
     previousFocus=document.activeElement;
@@ -238,7 +239,7 @@
     const region=el("worldPicker")?.value||"swiss";
     await loadFlightRange(region);
     renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:"high-performance"});
-    renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.outputColorSpace=THREE.SRGBColorSpace;
+    renderer.setPixelRatio(Math.min(devicePixelRatio,pixelRatioLimit));renderer.outputColorSpace=THREE.SRGBColorSpace;
     renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.03;
     scene=new THREE.Scene();camera=new THREE.PerspectiveCamera(76,1,.035,["winnipesaukee","moosehead","surry"].includes(region)?65000:23500);
     player=new THREE.Vector3();gaze=new THREE.Vector3();cameraTarget=new THREE.Vector3();
@@ -256,6 +257,12 @@
       const factory={swiss:window.makeWorld,alaska:window.makeAlaska,canyon:window.makeCanyon}[region];
       world=factory?await factory(THREE,scene):await window.makeAtlasWorld(THREE,scene,region);
       world.region=region;
+      const perchHabitat=window.makePerchHabitat(THREE,scene,world,region);
+      perchRoute=window.makePerchRoute(THREE,world,region);
+      world.launches.lookout=perchRoute.approach;
+      world.flightClearance=(x,z)=>Math.max((world.clearance||world.height)(x,z),perchHabitat.clearance(x,z));
+      perching=window.makePerchFlight(THREE,world,perchHabitat,perchRoute);
+      perchMarker=new THREE.Vector3();
       const hydrography=window.ATLAS_SURVEYS?.[region];
       if(hydrography?.shore){
         world.shorelines=[hydrography.shore,...(hydrography.shoreHoles||[])].map(ring=>ring.map(([x,z])=>({x,z})));
@@ -269,6 +276,7 @@
       loadPromise=Promise.all([assets,world.ready,eagle.ready]);
       await loadPromise;
       updateLight=window.makeFlightLight(THREE,renderer,scene,world,eagle);
+      if(region==="surry")window.lightKeeneStreet(THREE,renderer,scene,world,eagle.object);
     } catch(error) {
       loadPromise=null;world=null;eagle=null;renderer.dispose();renderer=null;
       throw error;
@@ -276,6 +284,7 @@
       manager.onLoad=priorLoad;manager.onProgress=priorProgress;manager.onError=priorError;
     }
   }
+  const pixelRatioLimit=matchMedia("(pointer: coarse)").matches?1.35:2;
   function resize(){
     if(!renderer || !camera)return;
     const w=app.clientWidth,h=app.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();
@@ -285,7 +294,9 @@
     const launch=world.launches?.[el("launchPoint")?.value] || world.spawn;
     dynamics=makeFlight(launch,world);
     const s=dynamics.state;
-    resetCamera(s);
+    perching.reset(s,el("launchPoint").value==="lookout");
+    nextPerchHUD=0;perchNotice="";perchNoticeUntil=0;
+    resetCamera(s,launch.glance);
     elapsed=0;distance=0;accumulator=0;nextReadout=0;noticeUntil=0;
     frameSeconds=0;frameCount=0;fastWindows=0;
     found.clear();app.classList.remove("clearView");resetInput();started=true;paused=false;app.dataset.mode="flight";
@@ -303,8 +314,56 @@
       el("instructions").hidden=true;el("summary").textContent="The 3D range could not load. Open the offline game in Chrome with graphics acceleration enabled.";
     }finally{launchPending=false;button.disabled=false;button.lastChild.textContent="Take flight";}
   };
-  const flightCodes=["KeyW","KeyA","KeyS","KeyD","ArrowLeft","ArrowRight","ArrowUp","ArrowDown","Space"];
+  function choosePerch(){
+    if(!started||paused||!perching)return;
+    perching.choose(dynamics.state);
+    if(!perching.selected){perchNotice="No perch in reach. Fly lower over land or closer to trees.";perchNoticeUntil=elapsed+4;}
+    nextPerchHUD=0;
+  }
+  function perchAction(){
+    if(!started||paused||!perching)return;
+    const s=dynamics.state,stage=perching.stage;
+    if(stage==="perched"){perching.push(s);resetInput();resetCamera(s);}
+    else if(stage==="free"){if(!perching.selected)choosePerch();if(perching.selected)perching.land(s);pointer.clear();}
+    else if(stage==="approach"||stage==="flare"){perching.cancel(s);resetCamera(s);}
+    nextPerchHUD=0;
+  }
+  el("choosePerch").onclick=choosePerch;
+  el("perchAction").onclick=perchAction;
+  function updatePerchHUD(s){
+    const stage=perching.stage,t=perching.selected;
+    const pin=el("perchPin");
+    app.dataset.perch=stage;
+    const rang=t?Math.hypot(s.x-t.x,s.y-t.y,s.z-t.z):0;
+    if(t && (stage==="free"||stage==="approach")&&rang>8){
+      perchMarker.set(t.x,t.y+.4,t.z).project(camera);
+      pin.hidden=perchMarker.z<=-1||perchMarker.z>=1||Math.abs(perchMarker.x)>.94||Math.abs(perchMarker.y)>.86;
+      if(!pin.hidden){
+        pin.style.left=((perchMarker.x+1)*50)+"%";pin.style.top=((1-perchMarker.y)*50)+"%";
+        pin.lastElementChild.textContent=(t.type==="branch"?"Branch":"Ledge")+" · "+Math.round(rang)+" m";
+      }
+    }else pin.hidden=true;
+    if(elapsed<nextPerchHUD&&app.dataset.perchStatus===stage)return;
+    nextPerchHUD=elapsed+.14;app.dataset.perchStatus=stage;
+    const choose=el("choosePerch"),action=el("perchAction"),status=el("perchStatus");
+    choose.hidden=stage!=="free";
+    choose.firstChild.textContent=t?"Next perch ":"Choose perch ";
+    action.hidden=!t||stage==="push";
+    if(!action.hidden)action.textContent=stage==="perched"?"Push off":stage==="free"?"Land":"Break off";
+    if(stage==="perched")status.textContent=t.label+" · Drag to look around";
+    else if(stage==="push")status.textContent="Pushing off";
+    else if(t){
+      const text=stage==="flare"?"Landing flare":t.label+" · "+Math.round(rang)+" m";
+      status.textContent=stage==="approach"?"Approaching "+text:text;
+    }else status.textContent=elapsed<perchNoticeUntil?perchNotice:"";
+  }
+  const flightCodes=["KeyW","KeyA","KeyS","KeyD","KeyQ","KeyE","ArrowLeft","ArrowRight","ArrowUp","ArrowDown","Space"];
   window.addEventListener("keydown",event=>{
+    if(started&&!paused&&!event.repeat){
+      if(event.code==="KeyP"){event.preventDefault();choosePerch();return;}
+      if(event.code==="KeyF"||(event.code==="Space"&&perching.stage==="perched")){event.preventDefault();perchAction();return;}
+      if(event.code==="Escape"&&["approach","flare"].includes(perching.stage)){event.preventDefault();perchAction();return;}
+    }
     if(started&&!paused&&event.code==="KeyG"&&!event.repeat){event.preventDefault();showDialog("places");return;}
     if(started&&!paused&&event.code==="KeyC"&&!event.repeat){event.preventDefault();switchCamera();return;}
     if(started && !paused && event.code==="KeyH" && !event.repeat){app.classList.toggle("clearView");return;}
@@ -320,10 +379,19 @@
   document.addEventListener("visibilitychange",()=>{if(document.hidden&&started&&!paused)showDialog("pause");});
   window.addEventListener("blur",resetInput);
   const viewport=el("viewport");
-  viewport.onpointerdown=e=>{if(!started||paused)return;viewport.setPointerCapture(e.pointerId);drag={x:e.clientX,y:e.clientY};};
-  viewport.onpointermove=e=>{if(!drag)return;stick.x=clamp((e.clientX-drag.x)/85,-1,1);stick.y=clamp((drag.y-e.clientY)/85,-1,1);};
-  viewport.onlostpointercapture=()=>{drag=null;stick.x=0;stick.y=0;};
-  el("flap").onpointerdown=e=>{el("flap").setPointerCapture(e.pointerId);touchFlap=true;};
+  const pointer=window.makeFlightPointer({
+    surface:viewport, cue:el("steerCue"),
+    currentStage:()=>started&&!paused ? perching?.stage : null,
+    pan:(dx,dy)=>perching.pan(dx,dy),
+    pick:(x,y)=>{
+      const rect=viewport.getBoundingClientRect();
+      const ndc=new THREE.Vector2((x-rect.left)/rect.width*2-1,1-(y-rect.top)/rect.height*2);
+      perching.pick(dynamics.state,camera,ndc,{width:rect.width,height:rect.height});
+      nextPerchHUD=0;
+    }
+  });
+  el("flap").onpointerdown=e=>{el("flap").setPointerCapture(e.pointerId);
+    if(perching?.stage==="perched"){perchAction();return;}touchFlap=true;};
   el("flap").onlostpointercapture=()=>{touchFlap=false;};
   function fillPlaces(){
     const list=el("placeList");
@@ -344,9 +412,9 @@
     const margin=clamp(range*.24,12,30);
     const {minX,maxX,minZ,maxZ}=world.bounds;
     if(place.approach){
-      const [x,z,tx,tz,agl]=place.approach;
+      const [x,z,tx,tz,agl,glance=0]=place.approach;
       if(x>=minX&&x<=maxX&&z>=minZ&&z<=maxZ&&Math.hypot(x-place.x,z-place.z)<(place.discoveryRadius??210)){
-        return {x,y:floor(x,z)+agl,z,yaw:Math.atan2(x-tx,z-tz)};
+        return {x,y:floor(x,z)+agl,z,yaw:Math.atan2(x-tx,z-tz),glance};
       }
     }
     const targetHeight=floor(place.x,place.z);
@@ -372,7 +440,8 @@
     }
     dynamics=makeFlight(launch,world);
     Object.assign(dynamics.state,{elapsed,distance});
-    resetCamera(dynamics.state);
+    perching.reset(dynamics.state,false);nextPerchHUD=0;perchNotice="";
+    resetCamera(dynamics.state,launch.glance);
     resetInput();
     accumulator=0;nextReadout=0;
     noticeUntil=elapsed+4;
@@ -396,7 +465,9 @@
     const direction=["N","NE","E","SE","S","SW","W","NW"][(Math.round(heading/(Math.PI/4))+8)%8];
     el("discovery").textContent=closest.name+" · "+direction+" · "+(range<1000?Math.round(range)+" m":(range/1000).toFixed(1)+" km");
   }
-  function resetCamera(s){
+  function resetCamera(s,arrivalDegrees=0){
+    glance=arrivalGlance=arrivalDegrees*Math.PI/180;
+    glanceTime=0;
     const mounted=cameraMode==="shoulder";
     cameraYaw=s.yaw;cameraPath=mounted?s.pitch:s.path*.54;
     cameraBank=mounted?s.bank*.72:0;cameraFov=mounted?72:76;
@@ -407,13 +478,20 @@
     // keeps the terrain readable while leaving bank and wingbeats visible.
     const aspectScale=clamp(camera.aspect/.95,.55,1);
     const stroke=s.effort*Math.sin(s.phase-.45);
-    cameraTarget.set(.137*aspectScale,.157+.003*stroke,.058);
+    // Lean over the mount when looking sideways so the near wing stays below the shopfronts.
+    const lean=Math.min(1,Math.abs(glance));
+    cameraTarget.set((.137+.052*lean)*aspectScale,.157+.100*lean+.003*stroke,.058-.078*lean);
     camera.position.copy(cameraTarget.applyQuaternion(eagle.object.quaternion)).add(player);
     const yawError=Math.atan2(Math.sin(s.yaw-cameraYaw),Math.cos(s.yaw-cameraYaw));
     cameraYaw+=yawError*easing(16,dt);
     cameraPath+=(s.pitch-cameraPath)*easing(11,dt);
     cameraBank+=(s.bank*.72-cameraBank)*easing(10,dt);
-    camera.rotation.set(cameraPath-.033+.004*stroke,cameraYaw,cameraBank,"YXZ");
+    glanceTime+=dt;
+    const manual=Number(keys.has("KeyQ"))-Number(keys.has("KeyE"));
+    if(manual)arrivalGlance=0;
+    const heldAngle=manual*1.13+arrivalGlance*clamp((2.65-glanceTime)/1.15,0,1);
+    glance+=(heldAngle-glance)*easing(5.5,dt);
+    camera.rotation.set(cameraPath-.033+.004*stroke-.075*Math.abs(glance),cameraYaw+glance,cameraBank,"YXZ");
   }
   function positionChase(s,dt){
     // Damp the attitude of the boom, never the world-space translation of its
@@ -440,18 +518,39 @@
     camera.up.set(-headingZ*Math.sin(cameraBank),Math.cos(cameraBank),headingX*Math.sin(cameraBank));
     camera.lookAt(gaze);
   }
+  function positionPerched(s,dt){
+    const view=perching.view,mounted=cameraMode==="shoulder";
+    cameraYaw+=Math.atan2(Math.sin(view.yaw-cameraYaw),Math.cos(view.yaw-cameraYaw))*easing(14,dt);
+    cameraPath+=(view.pitch-cameraPath)*easing(12,dt);
+    if(mounted){
+      cameraTarget.set(.17,.285,.125);
+      camera.position.copy(cameraTarget.applyQuaternion(eagle.object.quaternion)).add(player);
+      camera.rotation.set(cameraPath-.045,cameraYaw,0,"YXZ");
+    }else{
+      camera.position.set(s.x+Math.sin(cameraYaw)*2.45,s.y+.80,s.z+Math.cos(cameraYaw)*2.45);
+      camera.position.y=Math.max(world.height(camera.position.x,camera.position.z)+.55,camera.position.y);
+      gaze.set(s.x,s.y+.28+Math.tan(cameraPath)*2.3,s.z);
+      camera.up.set(0,1,0);camera.lookAt(gaze);
+    }
+  }
   function advance(dt) {
     const held=(a,b)=>Number(keys.has(a)||keys.has(b));
+    const stick=pointer.input;
     const input={
       turn:clamp(held("KeyD","ArrowRight")-held("KeyA","ArrowLeft")+stick.x,-1,1),
       climb:clamp(held("KeyW","ArrowUp")-held("KeyS","ArrowDown")+stick.y,-1,1),
-      flap:keys.has("Space")||touchFlap
+      look:Number(keys.has("KeyQ"))-Number(keys.has("KeyE")),
+      flap:keys.has("Space")||touchFlap||stick.y>.75
     };
     // Fixed physics ticks make the same wing stroke produce the same energy
     // on a 30 Hz laptop screen and a 120 Hz display.
     accumulator+=dt;
     const tick=1/120;
-    while(accumulator>=tick){dynamics.step(tick,input);accumulator-=tick;}
+    perching.tickHabitat(dynamics.state);
+    while(accumulator>=tick){
+      if(!perching.advance(dynamics.state,tick,input))dynamics.step(tick,input);
+      accumulator-=tick;
+    }
     const s=dynamics.state;
     elapsed=s.elapsed;distance=s.distance;
     player.set(s.x,s.y,s.z);
@@ -461,11 +560,12 @@
       const stroke=Math.max(0,Math.sin(s.phase-.24));
       wingRush.gain.setTargetAtTime(s.effort*stroke**1.6*2.4,audio.currentTime,.035);
     }
-    if(cameraMode==="shoulder")positionShoulder(s,dt);
+    if(perching.stage==="perched")positionPerched(s,dt);
+    else if(cameraMode==="shoulder")positionShoulder(s,dt);
     else positionChase(s,dt);
     updateTalus?.(player,elapsed);updateForest?.(player,elapsed);updateHabitat?.(player,elapsed);
     if(fieldAudio&&soundOn)fieldAudio.update(s,world,dt);
-    world.update(dt,elapsed,player);updateLight?.(player,elapsed);updateMist?.(player,elapsed);renderer.render(scene,camera);
+    world.update(dt,elapsed,player);updateLight?.(player,elapsed);updateMist?.(player,elapsed);renderer.render(scene,camera);updatePerchHUD(s);
     if(s.contact){showDialog("contact");return;}
     if(elapsed>=nextReadout){
       nextReadout=elapsed+.17;
@@ -494,7 +594,7 @@
       fastWindows=fps>54?fastWindows+1:0;
       let next=current;
       if(fps<28)next=Math.max(.85,current-.16);
-      else if(fastWindows>=4){next=Math.min(devicePixelRatio,2,current+.12);fastWindows=0;}
+      else if(fastWindows>=4){next=Math.min(devicePixelRatio,pixelRatioLimit,current+.12);fastWindows=0;}
       if(Math.abs(next-current)>.01)renderer.setPixelRatio(next);
       frameSeconds=0;frameCount=0;
     }

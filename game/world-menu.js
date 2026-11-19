@@ -15,6 +15,7 @@
     lofoten: {name:['Lofoten','Islands'],region:'Reinefjorden, Norway',description:'Trace the saltwater fjord between sheer mountain faces and narrow islands.',launches:{lake:'Fjord overlook',ridge:'Reinefjorden channel'}},
     milford: {name:['Milford','Sound'],region:'Fiordland, New Zealand',description:'Follow the rainforest walls and waterfall channels along Piopiotahi.',launches:{lake:'Mitre Peak overlook',ridge:'Bowen Falls approach'}}
   });
+  for(const [id,w] of Object.entries(worlds))w.launches.lookout=window.PERCH_ROUTE_NAMES[id];
   const app = document.getElementById('app');
   const picker = document.getElementById('worldPicker');
   const launch = document.getElementById('launchPoint');
@@ -26,6 +27,7 @@
   const mapSource=document.getElementById('mapSource');
   document.getElementById('creditsLink').href=asset('credits.txt');
   function previewName(id,start){
+    if(start==='lookout')return 'perch-'+id+'-view.jpg';
     if(id==='swiss')return {lake:'valley.jpg',falls:'falls-view.jpg',forest:'forest-view.jpg',shore:'swiss-shore-view.jpg'}[start];
     return id+'-'+start+'-view.jpg';
   }
@@ -50,6 +52,7 @@
     const params = new URLSearchParams({world:picker.value, launch:launch.value});
     try { history.replaceState(null, '', '#'+params); } catch { location.hash = params.toString(); }
     app.dataset.departure = launch.value;
+    document.querySelector('.intro p').textContent=launch.value==='lookout'?window.PERCH_ROUTE_DESCRIPTIONS[picker.value]:worlds[picker.value].description;
     preview(picker.value,launch.value);
   }
   function show(start) {
@@ -63,7 +66,10 @@
     document.querySelector('.intro .eyebrow').innerHTML = '<i></i>'+w.region.toUpperCase();
     document.querySelector('.intro p').textContent = w.description;
     document.title = 'Aerie · '+title(w);
-    launch.replaceChildren(...Object.entries(w.launches).map(([value, label]) => new Option(label,value)));
+    const lowFlight=document.createElement('optgroup');lowFlight.label='Low flight to a perch';
+    lowFlight.append(new Option(w.launches.lookout,'lookout'));
+    const departures=Object.entries(w.launches).filter(([value])=>value!=='lookout');
+    launch.replaceChildren(...departures.map(([value,label])=>new Option(label,value)),lowFlight);
     if (Object.hasOwn(w.launches,start)) launch.value = start;
     else if(picker.value==='alaska') launch.value='alpine';
     for (const button of list.children) button.setAttribute('aria-pressed', String(button.dataset.choice === picker.value));
