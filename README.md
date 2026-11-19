@@ -2,6 +2,8 @@
 
 Fly a bald eagle over real-world landscapes in a browser. Bank around Horseshoe Bend, ride rising air along an Alaskan icefield, or follow New Hampshire’s Ashuelot River into downtown Keene. The default camera rides over the eagle’s right shoulder. Each world has its own terrain, departure points, landmarks, and soundscape.
 
+[Play Aerie in your browser](https://aerie-valley-flight.randyb308826.chatgpt.site/) on a phone, tablet, or computer.
+
 ## Play locally
 
 [Download the offline game](https://github.com/TheComplianceAide/aerie-eagle-flight/releases/latest/download/Aerie.html) and open it in Chrome. Choose a world and select **Take flight**.
