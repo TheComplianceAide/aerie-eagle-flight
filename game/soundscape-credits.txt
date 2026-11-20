@@ -154,3 +154,275 @@ scape-yosemite-dusk-crickets.m4a — “Northern California Crickets.” ellie.v
 https://freesound.org/people/ellie.vanderlip/sounds/704381/
 https://creativecommons.org/publicdomain/zero/1.0/
 Excerpt: 10.00 to 110.00 seconds; loop seam crossfaded; rumble removed; level matched.
+
+LAKE WINNIPESAUKEE
+
+scape-winnipesaukee-dock-creak.m4a — “Dock,Wood,Creak,Water,Laping.wav.” Filipe Chagas. Private yacht-club dock; place not stated, no geotag.. CC0 1.0.
+https://freesound.org/people/Filipe%20Chagas/sounds/91912/
+https://creativecommons.org/publicdomain/zero/1.0/
+Excerpt: 30.00 to 200.00 seconds; loop seam crossfaded; rumble removed; level matched.
+
+scape-winnipesaukee-veery.m4a — “Veery (Catharus fuscescens), iNaturalist observation 230231343.” Clifton Ladd, C.W.B.. Carroll County Farm Cemetery, Ossipee, NH (43.684, -71.110), 13 Jul 2024, 20:37 (dusk).. CC BY 4.0.
+https://www.inaturalist.org/observations/230231343
+https://creativecommons.org/licenses/by/4.0/
+Excerpt: 6.00 to 19.00 seconds; faded; rumble removed; level matched.
+
+scape-winnipesaukee-wood-thrush.m4a — “Wood Thrush (Hylocichla mustelina), iNaturalist observation 374441074.” Alan Perkins (nhaperkins). Deerfield, NH (43.152, -71.211), 22 Jun 2026, 13:36.. CC0 1.0.
+https://www.inaturalist.org/observations/374441074
+https://creativecommons.org/publicdomain/zero/1.0/
+Excerpt: 1.50 to 16.00 seconds; faded; rumble removed; level matched.
+
+scape-winnipesaukee-chipmunk.m4a — “210527 Chipmunks, rhythmic chirps, wind in trees, Raymore Park.” TRP. Raymore Park, Toronto, ON (urban park); no geotag.. CC0 1.0.
+https://freesound.org/people/TRP/sounds/616971/
+https://creativecommons.org/publicdomain/zero/1.0/
+Excerpt: 40.00 to 58.00 seconds; faded; rumble removed; level matched.
+
+scape-winnipesaukee-snowy-tree-cricket.m4a — “Snowy Tree Cricket (Oecanthus fultoni), iNaturalist observation 389519031.” Kent P. McFarland (kpmcfarland). Palmer Pl, Manchester Center, VT (43.180, -73.052), 8 Aug 2026, 21:20, 70 F and humid.. CC0 1.0.
+https://www.inaturalist.org/observations/389519031
+https://creativecommons.org/publicdomain/zero/1.0/
+Excerpt: 0.50 to 11.50 seconds; loop seam crossfaded; rumble removed; level matched.
+
+scape-winnipesaukee-true-katydid.m4a — “Night Woods.” widgetstudios. French Creek State Park, Douglassville, PA (40.212, -75.793); night, late summer to early fall.. CC0 1.0.
+https://freesound.org/people/widgetstudios/sounds/532301/
+https://creativecommons.org/publicdomain/zero/1.0/
+Excerpt: 20.00 to 140.00 seconds; loop seam crossfaded; rumble removed; level matched.
+
+SURRY MOUNTAIN DAM & KEENE
+
+scape-surry-dam-outlet.m4a — “water_over_damn_spillway.wav.” leo153. 'A paper mill in Massachusetts' (from the description). No geotag; the uploader's geotagged recordings are around Pittsfield, Berkshire County, MA.. CC0 1.0.
+https://freesound.org/people/leo153/sounds/497695/
+https://creativecommons.org/publicdomain/zero/1.0/
+Excerpt: full length; loop seam crossfaded; rumble removed; level matched.
+
+scape-surry-ashuelot-riffles.m4a — “Stream 2.wav.” forrisday. Palmer, MA (42.183, -72.306).. CC BY 4.0.
+https://freesound.org/people/forrisday/sounds/167364/
+https://creativecommons.org/licenses/by/4.0/
+Excerpt: full length; loop seam crossfaded; rumble removed; level matched.
+
+scape-surry-dog-day-cicada.m4a — “Northern Dog-day Cicada (Neotibicen canicularis), iNaturalist observation 341908676.” Nick Kleinschmidt (nick2524). Springfield, NH (43.509, -72.098), 22 Aug 2025, 10:45.. CC BY 4.0.
+https://www.inaturalist.org/observations/341908676
+https://creativecommons.org/licenses/by/4.0/
+Excerpt: 1.00 to 13.50 seconds; loop seam crossfaded; rumble removed; level matched.
+
+scape-surry-gray-catbird.m4a — “Gray Catbird (Dumetella carolinensis), iNaturalist observation 168582186.” jzlloyd. Lower Landing Rd, Charlestown, NH (43.229, -72.432), 20 Jun 2023, 20:38.. CC BY 4.0.
+https://www.inaturalist.org/observations/168582186
+https://creativecommons.org/licenses/by/4.0/
+Excerpt: 0.80 to 9.80 seconds; faded; rumble removed; level matched.
+
+scape-surry-song-sparrow.m4a — “Song Sparrow (Melospiza melodia), iNaturalist observation 54099646.” Steven Lamonde (slamonde). Cheshire County, NH (43.083, -72.363; Walpole area), 23 Jul 2020, 07:37.. CC BY 4.0.
+https://www.inaturalist.org/observations/54099646
+https://creativecommons.org/licenses/by/4.0/
+Excerpt: 2.40 to 5.20 seconds; faded; rumble removed; level matched.
+
+scape-surry-gray-treefrog.m4a — “Gray Treefrog (Dryophytes versicolor), iNaturalist observation 287022625.” Michael Nerrie (mnerrie). Distant Hill Gardens water feature, Walpole, NH (43.084, -72.364), 4 Jun 2025, 07:48.. CC BY 4.0.
+https://www.inaturalist.org/observations/287022625
+https://creativecommons.org/licenses/by/4.0/
+Excerpt: 2.00 to 15.50 seconds; faded; rumble removed; level matched.
+
+scape-surry-town-church-bell.m4a — “bec low bell solo.wav.” HMTSCCSound. Bethesda Church four-bell tower, Saratoga Springs, NY (43.080, -73.787).. CC0 1.0.
+https://freesound.org/people/HMTSCCSound/sounds/554655/
+https://creativecommons.org/publicdomain/zero/1.0/
+Excerpt: 0.00 to 30.00 seconds; faded; rumble removed; level matched.
+
+scape-surry-meadow-katydid.m4a — “Common Meadow Katydid (Orchelimum vulgare), iNaturalist observation 387483818.” Matt Pelikan (mpelikan). West Tisbury, Martha's Vineyard, MA (41.394, -70.697), 1 Aug 2026, 12:56 (midday).. CC BY 4.0.
+https://www.inaturalist.org/observations/387483818
+https://creativecommons.org/licenses/by/4.0/
+Excerpt: 2.00 to 20.00 seconds; loop seam crossfaded; rumble removed; level matched.
+
+DIXVILLE NOTCH
+
+scape-dixville-white-throated-sparrow.m4a — “White-throated Sparrow (Zonotrichia albicollis), iNaturalist observation 242883729.” Charlie O'Brien (cobrien207). Franklin County, ME (44.938, -70.365), 891 m elevation, 17 Sep 2024, 12:15 (autumn).. CC0 1.0.
+https://www.inaturalist.org/observations/242883729
+https://creativecommons.org/publicdomain/zero/1.0/
+Excerpt: 14.00 to 27.50 seconds; faded; rumble removed; level matched.
+
+scape-dixville-ruffed-grouse-drum.m4a — “Ruffed Grouse (Bonasa umbellus) drumming, iNaturalist observation 48663214.” Richard Littauer (richardlitt). Montpelier, VT (44.283, -72.570; accuracy ~850 m), 20 Apr 2020, 07:23.. CC BY 4.0.
+https://www.inaturalist.org/observations/48663214
+https://creativecommons.org/licenses/by/4.0/
+Excerpt: full length; faded; rumble removed; level matched.
+
+scape-dixville-canada-geese-migrating.m4a — “geese_copake_farmland_2.aif.” markb. Copake Falls, Columbia County, NY (42.149, -73.510); October, dusk.. CC BY 4.0.
+https://freesound.org/people/markb/sounds/106736/
+https://creativecommons.org/licenses/by/4.0/
+Excerpt: 115.00 to 170.00 seconds; loop seam crossfaded; rumble removed; level matched.
+
+scape-dixville-pileated-woodpecker.m4a — “Pileated Woodpecker (Dryocopus pileatus), iNaturalist observation 51967746.” Richard Littauer (richardlitt). East Montpelier, VT (44.271, -72.487; accuracy ~9 km), 21 Jun 2020, 15:00.. CC BY 4.0.
+https://www.inaturalist.org/observations/51967746
+https://creativecommons.org/licenses/by/4.0/
+Excerpt: 16.00 to 28.00 seconds; faded; rumble removed; level matched.
+
+scape-dixville-blue-jay.m4a — “Blue Jay (Cyanocitta cristata), iNaturalist observation 315374821.” Erik (erikoid). South Percy Peak Trail, Stark, NH (44.659, -71.434), 20 Sep 2025, 11:08 (autumn).. CC BY 4.0.
+https://www.inaturalist.org/observations/315374821
+https://creativecommons.org/licenses/by/4.0/
+Excerpt: 17.50 to 21.50 seconds; faded; rumble removed; level matched.
+
+scape-dixville-dry-leaves.m4a — “Winds and Leaves MIX From October 23rd 2019 Smaller File Size.” kvgarlic. Illinois oak-hickory woods next to an asphalt parking lot, 23 Oct 2019.. CC0 1.0.
+https://freesound.org/people/kvgarlic/sounds/489774/
+https://creativecommons.org/publicdomain/zero/1.0/
+Excerpt: 190.00 to 290.00 seconds; loop seam crossfaded; rumble removed; level matched.
+
+scape-dixville-notch-brook.m4a — “Cascade Sound Loop (Hariman State Park New York) - excerpt 15-135 s.” BobVoldar. Cascade of Slid, Stony Brook, Harriman State Park, Sloatsburg, NY (41.174, -74.168).. CC BY 4.0.
+https://freesound.org/people/BobVoldar/sounds/860683/
+https://creativecommons.org/licenses/by/4.0/
+Excerpt: full length; loop seam crossfaded; rumble removed; level matched.
+
+MOOSEHEAD LAKE
+
+scape-moosehead-ovenbird.m4a — “Seiurus aurocapilla - Ovenbird XC178052.” Jonathon Jongsma (xeno-canto XC178052). Wild River State Park, Chisago County, MN, 10 May 2014, 06:30.. CC BY-SA 4.0.
+https://commons.wikimedia.org/wiki/File:Seiurus_aurocapilla_-_Ovenbird_XC178052.mp3
+https://creativecommons.org/licenses/by-sa/4.0/
+Excerpt: 0.00 to 37.00 seconds; faded; rumble removed; level matched.
+
+scape-moosehead-black-throated-green.m4a — “Black-throated Green Warbler (Setophaga virens), iNaturalist observation 290551759.” Charlie O'Brien (cobrien207). Lovell, ME (44.182, -70.820), 17 Jun 2025, 09:18.. CC0 1.0.
+https://www.inaturalist.org/observations/290551759
+https://creativecommons.org/publicdomain/zero/1.0/
+Excerpt: 11.00 to 27.00 seconds; faded; rumble removed; level matched.
+
+scape-moosehead-red-breasted-nuthatch.m4a — “Red-breasted Nuthatch (Sitta canadensis), iNaturalist observation 297459450.” Daniel Ward (warddaniel). Hancock County, ME (44.267, -68.314; accuracy ~500 m, Mount Desert Island area), 27 Jun 2025, 08:58.. CC BY 4.0.
+https://www.inaturalist.org/observations/297459450
+https://creativecommons.org/licenses/by/4.0/
+Excerpt: 1.00 to 15.80 seconds; faded; rumble removed; level matched.
+
+scape-moosehead-mosquitoes.m4a — “Light rain in nature with a mosquito.” vincauc. Pointe-Lebel, Quebec (49.174, -68.203), boreal Cote-Nord.. CC BY 4.0.
+https://freesound.org/people/vincauc/sounds/825268/
+https://creativecommons.org/licenses/by/4.0/
+Excerpt: 13.50 to 18.00 seconds; faded; rumble removed; level matched.
+
+scape-moosehead-field-crickets.m4a — “Maine Crickets.” yfjesse. South Portland, ME (43.631, -70.248); night.. CC0 1.0.
+https://freesound.org/people/yfjesse/sounds/424151/
+https://creativecommons.org/publicdomain/zero/1.0/
+Excerpt: 30.00 to 150.00 seconds; loop seam crossfaded; rumble removed; level matched.
+
+CRATER LAKE
+
+scape-crater-thunder-near.m4a — “MassiveBlast.wav.” daveincamas (Freesound). Recordist's home (username and other uploads indicate Camas, Washington, USA); not geotagged. CC BY 4.0.
+https://freesound.org/people/daveincamas/sounds/58507/
+https://creativecommons.org/licenses/by/4.0/
+Excerpt: 1.50 to 18.00 seconds; faded; rumble removed; level matched.
+
+scape-crater-thunder-far.m4a — “thunder - thunder roll 01.wav.” Anthousai (Freesound). Around Salem, Oregon, USA (storm of 11 Aug 2017); not geotagged. CC0 1.0.
+https://freesound.org/people/Anthousai/sounds/399327/
+https://creativecommons.org/publicdomain/zero/1.0/
+Excerpt: full length; faded; rumble removed; level matched.
+
+scape-crater-rain-approach.m4a — “RAINVege_light rain in a forest_Tim Kahn_MKH80208030st.” Tim Kahn (tim.kahn, Freesound). Near Seaside, Oregon, USA (geotag 45.9935, -123.5312). CC BY 4.0.
+https://freesound.org/people/tim.kahn/sounds/792697/
+https://creativecommons.org/licenses/by/4.0/
+Excerpt: 40.00 to 100.00 seconds; loop seam crossfaded; rumble removed; level matched.
+
+scape-crater-rim-wind.m4a — “Wind blowing in the bush on the top of Kitt Peak mountain. (USA, Arizona).” felix.blume (Freesound). Kitt Peak summit, Arizona, USA (geotag Tucson area). CC0 1.0.
+https://freesound.org/people/felix.blume/sounds/135193/
+https://creativecommons.org/publicdomain/zero/1.0/
+Excerpt: 4.00 to 64.00 seconds; loop seam crossfaded; rumble removed; level matched.
+
+scape-crater-canada-jay.m4a — “Perisoreus canadensis - XC254432 (call, song).” Jonathon Jongsma (xeno-canto). Blue Bell Campground, Custer State Park, Black Hills, South Dakota, USA (43.719, -103.481), 1500 m. CC BY-SA 4.0.
+https://xeno-canto.org/254432
+https://creativecommons.org/licenses/by-sa/4.0/
+Excerpt: 0.50 to 23.00 seconds; faded; rumble removed; level matched.
+
+scape-crater-grasshopper-crepitation.m4a — “Grasshopper wing snaps clicks KAMLOOPS 100824.flac.” TRP (Freesound). Kamloops, interior British Columbia, Canada (geotag 50.720, -120.466). CC0 1.0.
+https://freesound.org/people/TRP/sounds/573934/
+https://creativecommons.org/publicdomain/zero/1.0/
+Excerpt: 11.90 to 17.40 seconds; faded; rumble removed; level matched.
+
+LOFOTEN ISLANDS
+
+scape-lofoten-white-tailed-eagle.m4a — “iNaturalist observation 301803228 – Haliaeetus albicilla (sound 1584925).” ahabo (iNaturalist). Zarrentin am Schaalsee, Mecklenburg/Schleswig-Holstein border, Germany (53.575, 10.980), 28 Jul 2025. CC0 1.0.
+https://www.inaturalist.org/observations/301803228
+https://creativecommons.org/publicdomain/zero/1.0/
+Excerpt: 1.00 to 11.00 seconds; faded; rumble removed; level matched.
+
+scape-lofoten-herring-gull.m4a — “Larus argentatus - XC976583 (call, song).” Tanguy Loïs (xeno-canto). Brest, Finistère, Brittany, France (48.388, -4.501). CC BY-SA 4.0.
+https://xeno-canto.org/976583
+https://creativecommons.org/licenses/by-sa/4.0/
+Excerpt: 56.00 to 70.00 seconds; faded; rumble removed; level matched.
+
+scape-lofoten-arctic-tern-colony.m4a — “Waves at Shetland Islands 1.wav.” straget (Freesound). West Mainland, Shetland, Scotland (geotag near Scalloway, 60.132, -1.271). CC BY 4.0.
+https://freesound.org/people/straget/sounds/436965/
+https://creativecommons.org/licenses/by/4.0/
+Excerpt: 100.00 to 115.00 seconds; faded; rumble removed; level matched.
+
+scape-lofoten-waves-rocks.m4a — “ambient Norway Nyksund shore waves hitting rocks close perspective stereo ORTF 8040.wav.” Soundholder (Freesound). Nyksund, Langøya, Vesterålen, Norway (from title; not geotagged). CC BY 3.0.
+https://freesound.org/people/Soundholder/sounds/425370/
+https://creativecommons.org/licenses/by/3.0/
+Excerpt: 40.00 to 72.00 seconds; loop seam crossfaded; rumble removed; level matched.
+
+scape-lofoten-bumblebees.m4a — “Niitty kesällä, kimalainen pörisee / A meadow in the summer, a bumblebee buzzing, insects, birds.” YleArkisto (Yle, Finnish Broadcasting Company). Hongisto, Vihti, southern Finland, 16 Jun 1993. CC BY 4.0.
+https://freesound.org/people/YleArkisto/sounds/249726/
+https://creativecommons.org/licenses/by/4.0/
+Excerpt: 22.00 to 30.00 seconds; faded; rumble removed; level matched.
+
+MILFORD SOUND
+
+scape-milford-big-waterfall.m4a — “Dettifoss_juli2022_zoomH5_steriomic_ontheground_220711-132559.” einarindra (Freesound). Dettifoss, NE Iceland (geotag 65.8142, -16.3856). CC BY 4.0.
+https://freesound.org/people/einarindra/sounds/706390/
+https://creativecommons.org/licenses/by/4.0/
+Excerpt: 8.00 to 110.00 seconds; loop seam crossfaded; rumble removed; level matched.
+
+scape-milford-rainforest-rain.m4a — “Awa Awa reserve, river and bird song.” Desmond178 (Freesound). Awa Awa reserve near Mount Hutt / Methven, Canterbury, New Zealand (geotagged). CC0 1.0.
+https://freesound.org/people/Desmond178/sounds/844568/
+https://creativecommons.org/publicdomain/zero/1.0/
+Excerpt: 240.00 to 360.00 seconds; loop seam crossfaded; rumble removed; level matched.
+
+scape-milford-weka.m4a — “Western weka song (western-weka-song.mp3).” Department of Conservation (NZ). New Zealand (DOC bird-song library; site not stated). CC BY 4.0 (NZ Crown copyright, DOC).
+https://www.doc.govt.nz/nature/native-animals/birds/bird-songs-and-calls/
+https://www.doc.govt.nz/footer-links/copyright/
+Excerpt: 2.00 to 24.00 seconds; faded; rumble removed; level matched.
+
+scape-milford-kaka.m4a — “South Island kākā song (south-island-kaka.mp3).” Department of Conservation (NZ). New Zealand, South Island (DOC library; site not stated). CC BY 4.0 (NZ Crown copyright, DOC).
+https://www.doc.govt.nz/nature/native-animals/birds/bird-songs-and-calls/
+https://www.doc.govt.nz/footer-links/copyright/
+Excerpt: 34.00 to 48.00 seconds; faded; rumble removed; level matched.
+
+scape-milford-chorus-cicada.m4a — “iNaturalist observation 199063211 – Amphipsalta zelandica (sound 895095).” Jon Sullivan (jon_sullivan, iNaturalist). Christchurch / Banks Peninsula, Canterbury, New Zealand, 10 Feb 2024. CC BY 4.0.
+https://www.inaturalist.org/observations/199063211
+https://creativecommons.org/licenses/by/4.0/
+Excerpt: 30.00 to 62.00 seconds; loop seam crossfaded; rumble removed; level matched.
+
+LAC BERTÉ
+
+scape-labrador-rain-on-lake.m4a — “Kevyt sade veden pintaan / Light rain on surface of a lake, water.” YleArkisto (Yle, Finnish Broadcasting Company). Eno, North Karelia, Finland, 17 Jul 1980. CC BY 4.0.
+https://freesound.org/people/YleArkisto/sounds/248282/
+https://creativecommons.org/licenses/by/4.0/
+Excerpt: 4.00 to 124.00 seconds; loop seam crossfaded; rumble removed; level matched.
+
+scape-labrador-rain-on-spruce.m4a — “Metsä, pisarat putoilevat, syksy / Forest in the autumn after the rain, drops falling on the ground, hum, some distant birds.” YleArkisto (Yle, Finnish Broadcasting Company). Soiniemi, Sysmä, Finland. CC BY 4.0.
+https://freesound.org/people/YleArkisto/sounds/326444/
+https://creativecommons.org/licenses/by/4.0/
+Excerpt: 4.00 to 124.00 seconds; loop seam crossfaded; rumble removed; level matched.
+
+scape-labrador-swainsons-thrush.m4a — “Catharus ustulatus - XC613535 (song).” Doug Hynes (xeno-canto). Little Mecatina River, Labrador, Canada (52.120, -60.626), 280 m, 6 Jul 2013, 19:55. CC BY-SA 4.0.
+https://xeno-canto.org/613535
+https://creativecommons.org/licenses/by-sa/4.0/
+Excerpt: 0.00 to 20.00 seconds; faded; rumble removed; level matched.
+
+scape-labrador-boreal-chickadee.m4a — “iNaturalist observation 388002685 – Poecile hudsonicus (sound 2102673).” Blake Ross (blakemross, iNaturalist). Charlevoix, Québec, Canada (approx. 47.772, -70.691), 2 Aug 2026. CC BY 4.0.
+https://www.inaturalist.org/observations/388002685
+https://creativecommons.org/licenses/by/4.0/
+Excerpt: 12.00 to 19.00 seconds; faded; rumble removed; level matched.
+
+scape-labrador-white-throated-sparrow-qc.m4a — “Zonotrichia albicollis - XC569523 (song).” Doug Hynes (xeno-canto). Pouch Cove Line, Newfoundland, Canada (47.748, -52.788), 80 m. CC BY-SA 4.0.
+https://xeno-canto.org/569523
+https://creativecommons.org/licenses/by-sa/4.0/
+Excerpt: 4.00 to 20.00 seconds; faded; rumble removed; level matched.
+
+scape-labrador-black-flies.m4a — “Hyttyset inisevät / Mosquitoes whining.” YleArkisto (Yle, Finnish Broadcasting Company). Retlahti, Lohja, Finland, 8 Jul 1993. CC BY 4.0.
+https://freesound.org/people/YleArkisto/sounds/244683/
+https://creativecommons.org/licenses/by/4.0/
+Excerpt: 4.00 to 12.00 seconds; faded; rumble removed; level matched.
+
+scape-labrador-mosquitoes.m4a — “woods.wav.” MarleneAyni (Freesound). Trail at Mont-Bélair, Québec City area, Québec, Canada (geotagged). CC0 1.0.
+https://freesound.org/people/MarleneAyni/sounds/580323/
+https://creativecommons.org/publicdomain/zero/1.0/
+Excerpt: 46.00 to 58.00 seconds; faded; rumble removed; level matched.
+
+ACOUSTICS, HEADS AND LIVE AIR
+
+Binaural rendering: Omnitone 2.0 (Google, Apache-2.0; omnitone-LICENSE.txt). Its built-in SADIE KU100 decoder is the default head.
+Head profiles hrir-fabian, -small, -small-medium, -medium, -large-medium, -large: HUTUBS HRTF database, Audio Communication Group, Technische Universität Berlin (subjects pp1, pp27, pp2, pp8, pp5, pp36). CC BY 4.0. Converted to third-order decoders (least squares below 1.5 kHz, magnitude least squares above) by tools/acoustics/make_hrirs.py.
+https://sofacoustics.org/data/database/hutubs/
+https://creativecommons.org/licenses/by/4.0/
+hrir-eagle: rigid-sphere head model (Duda & Martens 1998) with a 4 cm radius and ears at 100 degrees azimuth, -10 degrees elevation.
+Eagle Ears hearing curve follows diurnal raptor audiograms (Dooling 1980; Dooling, Lohr & Dent 2000): most sensitive near 1-4 kHz, falling above about 6 kHz.
+World reverberation: ir-*.m4a simulated with pyroomacoustics (MIT) by tools/acoustics/make_irs.py.
+Air absorption: ISO 9613-1. Live air: Open-Meteo forecast API (CC BY 4.0), NOAA GFS/HRRR for US worlds; https://open-meteo.com/

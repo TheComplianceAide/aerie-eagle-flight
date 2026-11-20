@@ -436,8 +436,7 @@
       choruses: [{clip: 'scape-milford-chorus-cicada', habitat: 'trees', count: 3, r: [25, 160], ref: 14, reach: 600, gain: .38}],
       events: [
         {clip: 'scape-milford-weka', every: [30, 70], ref: 18, reach: 450, gain: .5, where: onGround(40, 300)},
-        {clip: 'scape-milford-kaka', every: [50, 120], ref: 30, reach: 800, gain: .5, where: inTrees(80, 500, .8)},
-        {clip: 'scape-milford-fiordland-penguin', every: [80, 180], ref: 18, reach: 400, gain: .5, where: onWater(40, 300, .4)}
+        {clip: 'scape-milford-kaka', every: [50, 120], ref: 30, reach: 800, gain: .5, where: inTrees(80, 500, .8)}
       ]
     },
     winnipesaukee: {
@@ -524,7 +523,8 @@
     for (const g of [spec.falls, ...(spec.water || []), ...(spec.beds || []), ...(spec.loops || []), ...(spec.choruses || [])]) if (g) ids.add(g.clip);
     for (const id of ids) load(id);
     load('ir-' + (air.ir || 'lake')).then(b => engine.setImpulse(b, (irLevel[air.ir || 'lake'] || .0002) * 7.5));
-    if (spec.shower || spec.storm) { load('scape-' + region + '-rain-on-lake'); load('scape-' + region + '-rain-on-spruce'); load('scape-' + region + '-rain-approach'); }
+    if (spec.shower) { load('scape-' + region + '-rain-on-lake'); load('scape-' + region + '-rain-on-spruce'); }
+    if (spec.storm) load('scape-' + region + '-rain-approach');
     if (spec.storm) { load('scape-crater-thunder-near'); load('scape-crater-thunder-far'); }
 
     // Existing regional beds handed over by field-audio.js become 3D sources.
@@ -659,6 +659,12 @@
         const sel = wrap.querySelector('select');
         for (const [v, label] of headProfiles) sel.add(new Option(label, v));
         box.insertBefore(wrap, box.querySelector('.references'));
+        const refs = box.querySelector('.references');
+        if (refs && !document.getElementById('soundscapeCredits')) {
+          const link = document.createElement('a'); link.id = 'soundscapeCredits'; link.target = '_blank'; link.rel = 'noopener';
+          link.href = window.aerieAssetURL?.('soundscape-credits.txt') || 'soundscape-credits.txt'; link.textContent = 'Regional soundscapes, heads and live air ↗';
+          refs.insertBefore(link, refs.querySelector('strong'));
+        }
       }
       window.aerieSoundscapeControls = {setEagleEars, test: sweep, setProfile: name => { if (eagleEars) humanProfile = name; else engine.setHeadProfile(name); }};
       const sel = document.getElementById('headProfile');
@@ -715,6 +721,9 @@
       const pos = {x: s.x, y: (s.y + storm.cloudY) / 2, z: s.z};
       engine.play(synth.buffer, pos, {gain: .9, ref: 900, reach: 30000, wet: .9, occlude: false});
       // Recorded rumble tail adds the cloud-to-cloud body the channel model lacks.
+      // Close strikes also carry a recorded crack for the near-field tearing sound.
+      const near = buffers.get('scape-crater-thunder-near');
+      if (near && synth.nearest < 3500) engine.play(near, {x: s.x, y: s.y + 300, z: s.z}, {gain: .55, ref: 600, reach: 30000, wet: .8, occlude: false});
       const far = buffers.get('scape-crater-thunder-far');
       if (far && Math.random() < .55) engine.play(far, pos, {gain: .45, ref: 1500, reach: 30000, wet: 1, occlude: false, when: rand(.6, 2.2)});
       window.dispatchEvent(new CustomEvent('aerie-lightning', {detail: {x: s.x, z: s.z, cloudY: storm.cloudY, distance: synth.nearest}}));

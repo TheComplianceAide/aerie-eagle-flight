@@ -1,0 +1,530 @@
+{
+ "winnipesaukee": {
+  "dock-creak": {
+   "file": "dock-creak.mp3",
+   "start": 30,
+   "end": 200,
+   "loop": true,
+   "mono": true
+  },
+  "veery": {
+   "file": "veery.wav",
+   "start": 6,
+   "end": 19,
+   "hp": 250
+  },
+  "wood-thrush": {
+   "file": "wood-thrush.m4a",
+   "start": 1.5,
+   "end": 16,
+   "hp": 300
+  },
+  "chipmunk": {
+   "file": "chipmunk.mp3",
+   "start": 40,
+   "end": 58,
+   "hp": 300
+  },
+  "snowy-tree-cricket": {
+   "file": "snowy-tree-cricket.m4a",
+   "start": 0.5,
+   "end": 11.5,
+   "loop": true,
+   "mono": true,
+   "hp": 1200
+  },
+  "true-katydid": {
+   "file": "true-katydid.mp3",
+   "start": 20,
+   "end": 140,
+   "loop": true,
+   "mono": true,
+   "hp": 600
+  }
+ },
+ "surry": {
+  "dam-outlet": {
+   "file": "dam-outlet.mp3",
+   "loop": true
+  },
+  "ashuelot-riffles": {
+   "file": "ashuelot-riffles.mp3",
+   "loop": true
+  },
+  "dog-day-cicada": {
+   "file": "dog-day-cicada.wav",
+   "start": 1,
+   "end": 13.5,
+   "loop": true,
+   "mono": true,
+   "hp": 1500
+  },
+  "gray-catbird": {
+   "file": "gray-catbird.m4a",
+   "start": 0.8,
+   "end": 9.8,
+   "hp": 300
+  },
+  "song-sparrow": {
+   "file": "song-sparrow.wav",
+   "start": 2.4,
+   "end": 5.2,
+   "hp": 300
+  },
+  "gray-treefrog": {
+   "file": "gray-treefrog.wav",
+   "start": 2,
+   "end": 15.5,
+   "hp": 300
+  },
+  "town-church-bell": {
+   "file": "town-church-bell.mp3",
+   "start": 0,
+   "end": 30
+  },
+  "meadow-katydid": {
+   "file": "meadow-katydid.wav",
+   "start": 2,
+   "end": 20,
+   "loop": true,
+   "mono": true,
+   "hp": 1500
+  }
+ },
+ "dixville": {
+  "white-throated-sparrow": {
+   "file": "white-throated-sparrow.wav",
+   "start": 14,
+   "end": 27.5,
+   "hp": 400
+  },
+  "ruffed-grouse-drum": {
+   "file": "ruffed-grouse-drum.wav",
+   "hp": 30
+  },
+  "canada-geese-migrating": {
+   "file": "canada-geese-migrating.mp3",
+   "start": 115,
+   "end": 170,
+   "loop": true,
+   "mono": true,
+   "hp": 150
+  },
+  "pileated-woodpecker": {
+   "file": "pileated-woodpecker.wav",
+   "start": 16,
+   "end": 28,
+   "hp": 250
+  },
+  "blue-jay": {
+   "file": "blue-jay.m4a",
+   "start": 17.5,
+   "end": 21.5,
+   "hp": 300
+  },
+  "dry-leaves": {
+   "file": "dry-leaves.mp3",
+   "start": 190,
+   "end": 290,
+   "loop": true
+  },
+  "notch-brook": {
+   "file": "notch-brook.mp3",
+   "loop": true
+  }
+ },
+ "moosehead": {
+  "ovenbird": {
+   "file": "ovenbird.mp3",
+   "start": 0,
+   "end": 37,
+   "hp": 300
+  },
+  "black-throated-green": {
+   "file": "black-throated-green.wav",
+   "start": 11,
+   "end": 27,
+   "hp": 300
+  },
+  "red-breasted-nuthatch": {
+   "file": "red-breasted-nuthatch.wav",
+   "start": 1,
+   "end": 15.8,
+   "hp": 300
+  },
+  "mosquitoes": {
+   "file": "mosquitoes.mp3",
+   "start": 13.5,
+   "end": 18,
+   "hp": 250
+  },
+  "field-crickets": {
+   "file": "field-crickets.mp3",
+   "start": 30,
+   "end": 150,
+   "loop": true,
+   "mono": true,
+   "hp": 300
+  }
+ },
+ "alaska": {
+  "calving": {
+   "file": "calving.mp3",
+   "start": 155,
+   "end": 170,
+   "hp": 25
+  },
+  "calving-alt": {
+   "file": "calving.mp3",
+   "start": 67,
+   "end": 93,
+   "hp": 25
+  },
+  "nugget-falls": {
+   "file": "nugget-falls.mp3",
+   "start": 30,
+   "end": 150,
+   "loop": true,
+   "mono": true
+  },
+  "varied-thrush": {
+   "file": "varied-thrush.wav",
+   "start": 0.5,
+   "end": 16.5,
+   "hp": 1500
+  },
+  "pacific-wren": {
+   "file": "pacific-wren.wav",
+   "start": 1.2,
+   "end": 20.5,
+   "hp": 1000
+  },
+  "arctic-tern": {
+   "file": "arctic-tern.wav",
+   "hp": 800
+  },
+  "meltwater": {
+   "file": "meltwater.mp3",
+   "start": 20,
+   "end": 140,
+   "loop": true,
+   "mono": true
+  },
+  "mosquito-swarm": {
+   "file": "mosquito-swarm.mp3",
+   "start": 30,
+   "end": 36,
+   "hp": 200
+  }
+ },
+ "canyon": {
+  "colorado-river": {
+   "file": "colorado-river-alt.mp3",
+   "loop": true,
+   "mono": true
+  },
+  "swifts": {
+   "file": "swifts.mp3",
+   "start": 0,
+   "end": 8.8,
+   "hp": 1000
+  },
+  "swallows": {
+   "file": "swallows.wav",
+   "start": 3,
+   "end": 10.4,
+   "hp": 800
+  },
+  "rockfall": {
+   "file": "rockfall.mp3",
+   "start": 29.5,
+   "end": 35,
+   "mono": true
+  },
+  "canyon-wind": {
+   "file": "canyon-wind.mp3",
+   "start": 0,
+   "end": 120,
+   "loop": true,
+   "hp": 120
+  },
+  "apache-cicada": {
+   "file": "apache-cicada.mp3",
+   "start": 240,
+   "end": 340,
+   "loop": true,
+   "mono": true,
+   "hp": 1500
+  },
+  "desert-crickets": {
+   "file": "desert-crickets.mp3",
+   "loop": true,
+   "mono": true,
+   "hp": 800,
+   "start": 0,
+   "end": 120
+  }
+ },
+ "swiss": {
+  "alpine-falls": {
+   "file": "alpine-falls.mp3",
+   "start": 0,
+   "end": 150,
+   "loop": true,
+   "mono": true
+  },
+  "black-redstart": {
+   "file": "black-redstart.m4a",
+   "start": 0.8,
+   "end": 10.6,
+   "mono": true,
+   "hp": 600
+  },
+  "water-pipit": {
+   "file": "water-pipit.m4a",
+   "hp": 800
+  },
+  "rockfall-alps": {
+   "file": "rockfall-alps.mp3",
+   "start": 1,
+   "end": 18,
+   "hp": 30
+  },
+  "alpine-wind": {
+   "file": "alpine-wind.mp3",
+   "start": 40,
+   "end": 80,
+   "loop": true,
+   "hp": 100
+  },
+  "alpine-grasshoppers": {
+   "file": "alpine-grasshoppers.mp3",
+   "loop": true,
+   "mono": true,
+   "hp": 1500
+  }
+ },
+ "yosemite": {
+  "yosemite-falls": {
+   "file": "yosemite-falls.mp3",
+   "start": 60,
+   "end": 180,
+   "loop": true,
+   "mono": true
+  },
+  "merced-river": {
+   "file": "merced-river.mp3",
+   "start": 36,
+   "end": 126,
+   "loop": true,
+   "mono": true
+  },
+  "coyote": {
+   "file": "coyote.mp3",
+   "start": 2,
+   "end": 21,
+   "mono": true,
+   "hp": 200
+  },
+  "brewers-blackbird": {
+   "file": "brewers-blackbird.m4a",
+   "start": 0.3,
+   "end": 8.2,
+   "hp": 400
+  },
+  "steller-jay-yosemite": {
+   "file": "steller-jay-yosemite.mp3",
+   "start": 0,
+   "end": 3.2,
+   "hp": 500
+  },
+  "rockfall-granite": {
+   "file": "rockfall-granite.mp3",
+   "hp": 30
+  },
+  "sierra-cicada": {
+   "file": "sierra-cicada.m4a",
+   "start": 0.5,
+   "end": 12.5,
+   "loop": true,
+   "mono": true,
+   "hp": 1500
+  },
+  "dusk-crickets": {
+   "file": "dusk-crickets.mp3",
+   "start": 10,
+   "end": 110,
+   "loop": true,
+   "mono": true,
+   "hp": 800
+  }
+ },
+ "crater": {
+  "thunder-near": {
+   "file": "thunder-near.mp3",
+   "start": 1.5,
+   "end": 18,
+   "mono": true,
+   "hp": 25
+  },
+  "thunder-far": {
+   "file": "thunder-far.mp3",
+   "mono": true,
+   "hp": 25
+  },
+  "rain-approach": {
+   "file": "rain-approach.mp3",
+   "start": 40,
+   "end": 100,
+   "loop": true,
+   "hp": 120,
+   "channel": 0,
+   "mono": true
+  },
+  "rim-wind": {
+   "file": "rim-wind-alt.mp3",
+   "start": 4,
+   "end": 64,
+   "loop": true,
+   "hp": 100
+  },
+  "canada-jay": {
+   "file": "canada-jay.mp3",
+   "start": 0.5,
+   "end": 23,
+   "hp": 400
+  },
+  "grasshopper-crepitation": {
+   "file": "grasshopper-crepitation.mp3",
+   "start": 11.9,
+   "end": 17.4,
+   "hp": 1000
+  }
+ },
+ "lofoten": {
+  "white-tailed-eagle": {
+   "file": "white-tailed-eagle.wav",
+   "start": 1,
+   "end": 11,
+   "hp": 300
+  },
+  "herring-gull": {
+   "file": "herring-gull.wav",
+   "start": 56,
+   "end": 70,
+   "hp": 300
+  },
+  "arctic-tern-colony": {
+   "file": "arctic-tern-colony.mp3",
+   "start": 100,
+   "end": 115,
+   "mono": true,
+   "hp": 800
+  },
+  "waves-rocks": {
+   "file": "waves-rocks.mp3",
+   "start": 40,
+   "end": 72,
+   "loop": true,
+   "mono": true
+  },
+  "bumblebees": {
+   "file": "bumblebees.mp3",
+   "start": 22,
+   "end": 30,
+   "mono": true,
+   "hp": 80
+  }
+ },
+ "milford": {
+  "big-waterfall": {
+   "file": "big-waterfall.mp3",
+   "start": 8,
+   "end": 110,
+   "loop": true,
+   "mono": true
+  },
+  "rainforest-rain": {
+   "file": "rainforest-rain.mp3",
+   "start": 240,
+   "end": 360,
+   "loop": true,
+   "hp": 100,
+   "channel": 0,
+   "mono": true
+  },
+  "weka": {
+   "file": "weka.mp3",
+   "start": 2,
+   "end": 24,
+   "mono": true,
+   "hp": 300
+  },
+  "kaka": {
+   "file": "kaka.mp3",
+   "start": 34,
+   "end": 48,
+   "mono": true,
+   "hp": 400
+  },
+  "chorus-cicada": {
+   "file": "chorus-cicada.wav",
+   "start": 30,
+   "end": 62,
+   "loop": true,
+   "mono": true,
+   "hp": 1500
+  }
+ },
+ "labrador": {
+  "rain-on-lake": {
+   "file": "rain-on-lake.mp3",
+   "start": 4,
+   "end": 124,
+   "loop": true,
+   "hp": 120
+  },
+  "rain-on-spruce": {
+   "file": "rain-on-spruce-alt.mp3",
+   "start": 4,
+   "end": 124,
+   "loop": true,
+   "hp": 120
+  },
+  "swainsons-thrush": {
+   "file": "swainsons-thrush.mp3",
+   "start": 0,
+   "end": 20,
+   "mono": true,
+   "hp": 1000
+  },
+  "boreal-chickadee": {
+   "file": "boreal-chickadee.wav",
+   "start": 12,
+   "end": 19,
+   "hp": 800
+  },
+  "white-throated-sparrow-qc": {
+   "file": "white-throated-sparrow-qc.mp3",
+   "start": 4,
+   "end": 20,
+   "mono": true,
+   "hp": 400
+  },
+  "black-flies": {
+   "file": "black-flies.mp3",
+   "start": 4,
+   "end": 12,
+   "mono": true,
+   "hp": 200
+  },
+  "mosquitoes": {
+   "file": "mosquitoes.mp3",
+   "start": 46,
+   "end": 58,
+   "mono": true,
+   "hp": 200,
+   "channel": 0
+  }
+ }
+}
