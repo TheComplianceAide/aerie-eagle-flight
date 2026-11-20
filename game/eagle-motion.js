@@ -120,7 +120,7 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
   // ---- eyes -------------------------------------------------------------------------
   const eyes = [{t: -1, dur: .2, lid: 0, next: rand(1.5, 4)}, {t: -1, dur: .2, lid: 0, next: 0}];
   eyes[1].next = eyes[0].next + rand(0, .03);
-  let lidBlinkAt = rand(20, 50), lidT = -1, saccadeCooldown = 0;
+  let lidBlinkAt = rand(20, 50), lidT = -1, saccadeCooldown = 0, drowsy = 0;
   const membraneCurve = u => u < .45 ? smooth(0, .45, u) : 1 - smooth(.45, 1, u); // close fast, open a little slower
 
   // ---- wind at the perch ------------------------------------------------------------
@@ -158,7 +158,7 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
       scan.toP = r < .7 ? rand(-.45, -.05) : r < .85 ? rand(-.05, .05) : rand(.1, .3);
       const span = Math.hypot(scan.toY - scan.fromY, scan.toP - scan.fromP);
       scan.dur = .08 + .07 * span; scan.t = 0;
-      scan.next = time + scan.dur + (Math.random() < .2 ? rand(.25, .5) : rand(.7, 3.2));
+      scan.next = time + scan.dur + (Math.random() < .2 ? rand(.25, .5) : rand(.7, 3.2)) * (1 + 2 * drowsy);
     }
     if (scan.t >= 0) {
       scan.t += step;
@@ -403,10 +403,17 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
       if (e.t >= 0) { e.t += step; m = membraneCurve(clamp(e.t / e.dur, 0, 1)); if (e.t >= e.dur) e.t = -1; }
       e.membrane = Math.max(m, .55 * dive);                            // half-drawn in a fast dive
     });
-    // Slow eyelid blink when perched, rarely.
-    if (perched && time > lidBlinkAt && lidT < 0) { lidT = 0; lidBlinkAt = time + rand(25, 60); }
-    let lid = .12 * dive;
-    if (lidT >= 0) { lidT += step; lid = Math.max(lid, Math.sin(Math.PI * clamp(lidT / .45, 0, 1))); if (lidT > .45) lidT = -1; }
+    // A long, quiet perch makes the eagle drowsy: the lower lids creep up and
+    // the slow lid blinks come more often. Any player look wakes it.
+    const restful = perched && scan.quiet > 45 && windGust < .3 ? 1 : 0;
+    drowsy += (restful - drowsy) * (1 - Math.exp(-step / (restful ? 20 : .4)));
+    // Slow eyelid blink when perched, rarely (more often when drowsy).
+    if (perched && time > lidBlinkAt && lidT < 0) { lidT = 0; lidBlinkAt = time + rand(25, 60) * (1 - .7 * drowsy); }
+    let lid = Math.max(.12 * dive, .42 * drowsy * (.9 + .1 * Math.sin(time * .7)));
+    if (lidT >= 0) {
+      const dur = .45 + .9 * drowsy;
+      lidT += step; lid = Math.max(lid, Math.sin(Math.PI * clamp(lidT / dur, 0, 1))); if (lidT > dur) lidT = -1;
+    }
     uniforms.eyeLids.value.set(eyes[0].membrane, eyes[1].membrane, lid, lid);
 
     // ---- plumage uniforms -------------------------------------------------------------
@@ -415,7 +422,7 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
     const perchSlip = clamp(windLocal.x / 8, -1, 1) * folded;
     uniforms.featherSlip.value += (slip * clamp(q, 0, 2) * freeFlight + perchSlip - uniforms.featherSlip.value) * (1 - Math.exp(-8 * step));
     uniforms.featherFluff.value += (fluff - uniforms.featherFluff.value) * (1 - Math.exp(-10 * step));
-    stats.turbulence = turbulence; stats.wind = +windSpeed.toFixed(2); stats.headRoll = +headRoll.toFixed(3);
+    stats.turbulence = turbulence; stats.wind = +windSpeed.toFixed(2); stats.headRoll = +headRoll.toFixed(3); stats.drowsy = +drowsy.toFixed(2);
     Object.defineProperty(stats, 'air', {value: air, writable: true, configurable: true, enumerable: false});
     stats.tailBend = tailSprings.reduce((a, s) => a + s.offset, 0) / tailSprings.length;
     stats.primaryBend = primarySprings.reduce((a, s) => a + s.offset, 0) / primarySprings.length;

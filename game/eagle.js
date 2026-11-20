@@ -563,6 +563,9 @@ window.makeEagle = function makeEagle(THREE) {
             vec3 base=diffuseColor.rgb;
             diffuseColor.rgb=mix(diffuseColor.rgb,eye,mask);
             diffuseColor.rgb=mix(diffuseColor.rgb,base*.92,lidCover*mask);
+            // The lid margin is a fine dark line of bare skin.
+            float lidEdge=(1.-smoothstep(.0,.09,abs(e.y-lidLine)))*inEye*step(.02,lid);
+            diffuseColor.rgb*=1.-.45*lidEdge*mask;
             // The cornea and the membrane over it are wet and glossy.
             float cornea=inEye*mask*(1.-lidCover);
           `).replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=mix(roughnessFactor,.10,cornea);');
