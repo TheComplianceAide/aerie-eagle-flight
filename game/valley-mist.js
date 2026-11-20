@@ -3,6 +3,7 @@
 window.addValleyMist = function addValleyMist(THREE, scene, world) {
   const banks = {
     // Thin morning banks sit below the forest canopy in sheltered lake coves.
+    dixville: [[-222,-124,3.4, 93,4,23,-.18,.0034,'water'],[56,-62,3.5, 64,4,18,.22,.0027,'water']],
     labrador: [[275,-1155,7, 265,10,72,-.28,.0021,'water'],[-90,1710,6, 160,8,55,.35,.0018,'water']],
     moosehead: [
       [440,112,7, 265,9,75,-.32,.0046,'water'],

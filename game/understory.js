@@ -13,13 +13,14 @@
     crater:          [[25,19,15,8,10,7,16], .72, .69, .23],
     lofoten:         [[13,47,16,2,7,5,10], .65, .83, .25],
     milford:         [[6,19,4,42,16,12,1], 1.30, 1.0, .05],
+    dixville:        [[13,19,11,29,16,8,4], .87, .85, .16],
     labrador:        [[9,23,13,10,20,4,21], .68, .71, .08],
     winnipesaukee:   [[27,17,12,18,12,11,3], .91, .91, .14],
     surry:           [[25,19,14,15,11,14,2], .94, .91, .09],
     moosehead:       [[16,23,8,24,15,10,4], .95, .93, .19]
   };
   window.aerieSoil=region=>['bryce','canyon'].includes(region)?'dry':
-    ['surry','moosehead','winnipesaukee'].includes(region)?'temperate':
+    ['dixville','surry','moosehead','winnipesaukee'].includes(region)?'temperate':
     ['napali','milford'].includes(region)?'rainforest':'boreal';
   // Continuous mirrored UVs preserve derivatives at tile boundaries on WebGL 1 and 2.
   window.aerieFloorShader=`

@@ -7,6 +7,7 @@
   Object.assign(worlds,{
     winnipesaukee: {name:['Lake','Winnipesaukee'],region:'New Hampshire, USA',description:'Follow the wooded islands across the Broads, skim the boardwalk at Weirs Beach, or turn over the bandstand at Alton Bay.',launches:{lake:'Rattlesnake Island',ridge:'Island channel',weirs:'Weirs Beach',alton:'Alton Bay'}},
     surry: {name:['Surry Dam','& Keene'],region:'New Hampshire, USA',description:'Skim the dam and its wooded reservoir, then follow the Ashuelot River valley to downtown Keene.',launches:{lake:'Surry Mountain Dam',ridge:'Keene Main Street',valley:'Ashuelot Valley overlook'}},
+    dixville: {name:['Dixville','Notch'],region:'Dawn · New Hampshire, USA',description:'Cross Lake Gloriette toward the red roofs of the Balsams. Dawn lights the autumn hardwoods above Route 26 and the split ledge of Table Rock.',launches:{dawn:'First light on Table Rock',lake:'Dawn over Lake Gloriette',hotel:'The Balsams flyby',highway:'Route 26 through the notch',ridge:'Table Rock overlook',panorama:'Resort and notch panorama'}},
     labrador: {name:['Lac','Berté'],region:'Côte-Nord, Québec, Canada',description:'A sun shower crosses the narrows. Follow the rainbow over the spruce islands or skim the white cabin and log steps on the point.',launches:{rainbow:'Rainbow over the narrows',cabin:'Cabin flyby',lake:'Lake overlook',ridge:'Spruce narrows'}},
     moosehead: {name:['Moosehead','Lake'],region:'Maine, USA',description:'Bank past the cliffs of Mount Kineo, then follow the forested shoreline toward Rockwood.',launches:{lake:'Mount Kineo cliffs',ridge:'Rockwood crossing'}},
     napali: {name:['Nā Pali','Coast'],region:'Kauaʻi, Hawaiʻi',description:'Follow the folds of the volcanic cliffs from a hanging valley to the Pacific.',launches:{lake:'Kalalau sea cliffs',ridge:'Kalalau beach'}},
@@ -31,6 +32,7 @@
   const mapSource=document.getElementById('mapSource');
   document.getElementById('creditsLink').href=asset('credits.txt');
   function previewName(id,start){
+    if(id==='dixville')return 'dixville-'+({dawn:'dawn',lake:'lake',hotel:'hotel',highway:'highway',ridge:'ridge',panorama:'panorama',lookout:'ridge',wildlife:'lake'}[start]||'lake')+'-view.jpg';
     if(id==='labrador')return start==='cabin'?'labrador-cabin-view.jpg':start==='rainbow'?'labrador-rainbow-view.jpg':'labrador-lake-view.jpg';
     if(id==='alaska' && start==='spray')return 'alaska-shore-view.jpg';
     if(start==='wildlife')start='lake';
@@ -66,10 +68,10 @@
   function show(start) {
     const w = worlds[picker.value];
     app.dataset.world = picker.value;
-    const mapCredits={labrador:'Lac Berté · scenery credits',moosehead:'Map © OpenStreetMap contributors',winnipesaukee:'USGS · USDA · OpenStreetMap · Microsoft',surry:'USGS · USDA · City of Keene · OpenStreetMap'};
+    const mapCredits={dixville:'Dixville Notch · scenery credits',labrador:'Lac Berté · scenery credits',moosehead:'Map © OpenStreetMap contributors',winnipesaukee:'USGS · USDA · OpenStreetMap · Microsoft',surry:'USGS · USDA · City of Keene · OpenStreetMap'};
     mapSource.hidden=!mapCredits[picker.value];
     mapSource.textContent=mapCredits[picker.value]||'';
-    mapSource.href=asset(picker.value==='labrador'?'labrador-credits.txt':picker.value==='winnipesaukee'?'atlas-credits.txt':'credits.txt');
+    mapSource.href=asset(picker.value==='dixville'?'dixville-credits.txt':picker.value==='labrador'?'labrador-credits.txt':picker.value==='winnipesaukee'?'atlas-credits.txt':'credits.txt');
     document.querySelector('h1').innerHTML = w.name[0]+'<br><em>'+w.name[1]+'</em>';
     document.querySelector('.intro .eyebrow').innerHTML = '<i></i>'+w.region.toUpperCase();
     document.querySelector('.intro p').textContent = w.description;

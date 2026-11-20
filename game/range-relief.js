@@ -1,7 +1,7 @@
 // Signed, measured elevation residuals from the outer elevation survey. The
 // playable shoreline and its vertical datum still come from each local survey.
 (() => {
-  const spans={alaska:18000,swiss:16000,canyon:12800,moosehead:31000,winnipesaukee:24500,surry:17000};
+  const spans={dixville:16000,alaska:18000,swiss:16000,canyon:12800,moosehead:31000,winnipesaukee:24500,surry:17000};
   let active,field,size,half;
   window.prepareRangeRelief=async region=>{
     if(active===region)return;

@@ -68,6 +68,12 @@
       path: [[667,194,14],[511,133,12],[396,84,10],[334,66,15]],
       perch: ['branch',279,52,'Kineo Cove shoreline limb'],
     },
+    dixville: {
+      name: 'Table Rock ledge approach', sight: 'Table Rock',
+      label: 'Trace the ridge to the narrow ledge, with Route 26 and Lake Gloriette below.',
+      path: [[242,468,27],[155,421,22],[99,393,18],[60,366,14]],
+      perch: ['ledge',26,338,'Table Rock overlook'],
+    },
     labrador: {
       name: 'Lac Berté cabin shore glide',
       label: 'Pass the cabin over the water and land on a rock overlooking the shore.',

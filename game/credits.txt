@@ -665,3 +665,5 @@ Tropic Reservoir shoreline — USGS National Hydrography Dataset. https://hydro.
 
 Lac Berté, Côte-Nord, Québec
 See labrador-credits.txt for the mapped terrain, imagery, atmosphere and camp reconstruction.
+
+Dixville Notch terrain, highway and Balsams hotel references: see dixville-credits.txt.

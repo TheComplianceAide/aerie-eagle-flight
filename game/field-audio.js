@@ -12,6 +12,7 @@
     crater:{beds:{lake:'lapping-caldera',canopy:'leaves-montane'},birds:['nutcracker','jay','cl-bluebird','cl-junco','cl-robin','cl-raven'],animals:['american-pika']},
     lofoten:{beds:{inlet:'inlet'},birds:['kittiwake','oystercatcher','meadow-pipit','no-eider','no-gull','no-tern'],animals:['norwegian-sheep']},
     milford:{beds:{lake:'lapping-fjord',cascade:'falls-spray'},birds:['bellbird','kea','nz-shelduck','nz-fantail','nz-tomtit','nz-tui'],animals:['nz-fur-seal']},
+    dixville:{beds:{lake:'lapping-boreal',canopy:'leaves-hardwood'},birds:['me-chickadee','me-kinglet','thrush','nh-kingfisher','nh-mallard','nh-vireo','ak-raven'],animals:['juneau-red-squirrel']},
     labrador:{beds:{lake:'lapping-boreal',canopy:'leaves-boreal'},birds:['loon-moosehead','ne-goose','ak-raven','thrush','cl-junco'],animals:['juneau-red-squirrel']},
     winnipesaukee:{beds:{lake:'lapping-islands',canopy:'leaves-hardwood'},birds:['loon-winnipesaukee','nh-vireo','ne-goose','nh-mallard','me-black-duck','nh-heron','nh-kingfisher'],animals:['nh-bullfrog']},
     surry:{beds:{lake:'lapping-reservoir',canopy:'leaves-hardwood',river:'stream-forest'},birds:['nh-kingfisher','nh-vireo','ne-goose','nh-mallard','nh-heron','nh-wood-duck'],animals:['nh-spring-peeper']},

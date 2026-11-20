@@ -46,6 +46,13 @@ window.addHardwoods=function addHardwoods(T,scene,trees,options){
     vec2 origin=vec2(mod(id,2.),1.-floor(id*.5))*.5;
     return origin+.005+.49*clamp(p,0.,1.);
   }`;
+  const autumn=region==='dixville';
+  const autumnLeaves=autumn?`
+    float leafMask=smoothstep(.005,.072,color.g-min(color.r,color.b));
+    float leafValue=dot(color,vec3(.24,.61,.15));
+    vec3 pigment=species<.5?vec3(1.98,.92,.33):species<1.5?vec3(1.83,1.31,.48):species<2.5?vec3(1.64,.71,.29):vec3(1.28,1.13,.63);
+    color=mix(color,leafValue*pigment,leafMask*.97);
+  `:'';
   const finish=`
     vec3 linearColor=mix(pow((color+.055)/1.055,vec3(2.4)),color/12.92,lessThanEqual(color,vec3(.04045)));
     gl_FragColor=vec4(mix(linearColor,haze,atmosphere),1.);
@@ -84,6 +91,7 @@ window.addHardwoods=function addHardwoods(T,scene,trees,options){
       float noise=fract(dot(gl_FragCoord.xy,vec2(.7548777,.5698403)));
       if(alpha<.24||noise>fade)discard;
       vec3 color=mix(side.rgb*side.a,top.rgb*top.a,tilt)/max(alpha,.04);
+      ${autumnLeaves}
       color*=mix(vec3(.56,.64,.72),vec3(.93,.96,.92),keyLight)*(.90+.15*phase);
       ${finish}`});
   const quad=new T.PlaneGeometry(1,1),cells=new Map(),stands=new Map(),point=new T.Vector3();
@@ -94,6 +102,11 @@ window.addHardwoods=function addHardwoods(T,scene,trees,options){
   for(const t of trees){
     const patch=Math.sin(t.x*.0019+t.z*.0007)*.6+Math.cos(t.z*.0023)*.4;
     t.species=maritime?Math.min(3,Math.floor(t.seed*4)):t.species??(region==='lofoten'?3:region==='moosehead'&&patch+t.seed*.85>1?2:t.seed>.84?3:t.seed>.47?1:0);
+    if(autumn){
+      const local=.5+.26*Math.sin(t.x*.0072+t.z*.0033)+.18*Math.cos(t.z*.011-t.x*.003);
+      const mix=local+(t.seed-.5)*.74;
+      t.species=mix<.24?3:mix<.48?1:mix<.80?0:2;
+    }
     insert(stands,850,t);insert(cells,72,t);
   }
   for(const batch of stands.values()){
@@ -170,7 +183,9 @@ window.addHardwoods=function addHardwoods(T,scene,trees,options){
       void main(){
         vec4 leaf=texture2D(leaves,tileUV(coord,species));float noise=fract(dot(gl_FragCoord.xy,vec2(.7548777,.5698403)));
         if(leaf.a<.36||noise<fade)discard;
-        vec3 color=leaf.rgb*illum;
+        vec3 color=leaf.rgb;
+        ${autumnLeaves}
+        color*=illum;
         ${finish}`});
   const boughs=new T.InstancedMesh(twigGeometry,closeMat,stems.instanceMatrix.count);
   boughs.instanceMatrix=stems.instanceMatrix;boughs.count=0;boughs.frustumCulled=false;scene.add(boughs);

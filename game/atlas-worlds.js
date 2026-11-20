@@ -379,7 +379,8 @@ class Water extends Mesh {
     milford:{sky:'atlas-wasteland_clouds_puresky.webp',sun:[-.4,.43,.71],water:0,sea:0x1c4548,stone:[.34,.37,.36],treeH:17,top:1060,cover:1.15,launch:[2370,3200,-2000,-700,330],low:[2630,4340,560,1900,105]}
   }[region]||window.ATLAS_PROFILES?.[region];
   const surry=region==='surry';
-  const newEngland=region==='moosehead'||region==='winnipesaukee'||surry;
+  const dixville=region==='dixville';
+  const newEngland=dixville||region==='moosehead'||region==='winnipesaukee'||surry;
   const waterfront=region==='winnipesaukee'?window.makeWinnipesaukeeWaterfront?.(THREE,scene,texture):null;
   const bytes=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
   const unpack=s=>new Int16Array(bytes(s).buffer), near=unpack(survey.terrain),far=unpack(survey.outer),tight=region==='bryce'&&window.bryceHighlands?window.bryceHighlands.heights:(survey.inner?unpack(survey.inner):null),cover=bytes(survey.canopy);
@@ -421,9 +422,9 @@ class Water extends Mesh {
   const skyMap=texture(settings.skyMap||'atlas-'+region+'-sky.webp');
   skyMap.colorSpace=THREE.SRGBColorSpace;skyMap.wrapS=THREE.RepeatWrapping;
   skyMap.minFilter=THREE.LinearFilter;skyMap.generateMipmaps=false;
-  const fog=region==='milford'?0xb2b9b9:region==='bryce'?0xcdb29c:0xb6bfc8;
+  const fog=dixville?0xc5b7b6:region==='milford'?0xb2b9b9:region==='bryce'?0xcdb29c:0xb6bfc8;
   scene.fog=new THREE.FogExp2(fog,region==='milford'?.000064:.000042);
-  const sunlight=new THREE.DirectionalLight(region==='bryce'?0xffc68a:0xffdcad,2.1);
+  const sunlight=new THREE.DirectionalLight(dixville?0xffc493:region==='bryce'?0xffc68a:0xffdcad,2.1);
   sunlight.position.copy(sun).multiplyScalar(1000);scene.add(sunlight,new THREE.HemisphereLight(0xdde7fa,0x756757,1.39));
   const sky=new THREE.Mesh(new THREE.SphereGeometry(1,32,18),new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,uniforms:{map:{value:skyMap}},
     vertexShader:'varying vec3 ray;void main(){ray=position;vec4 clip=projectionMatrix*vec4(mat3(viewMatrix)*position,1.);gl_Position=clip.xyww;}',
@@ -439,7 +440,8 @@ class Water extends Mesh {
   const terrainLight=texture('atlas-'+region+'-light.webp'),fracture=texture('atlas-'+geology+'-relief.webp',true);
   const canopyMap=new THREE.DataTexture(cover,384,384,THREE.RedFormat);
   canopyMap.minFilter=canopyMap.magFilter=THREE.LinearFilter;canopyMap.needsUpdate=true;
-  const maskSpan=(surry?h:Math.max(farH,h))*2,maskSize=surry?2048:512;
+  const localShoreMask=surry||dixville;
+  const maskSpan=(localShoreMask?h:Math.max(farH,h))*2,maskSize=localShoreMask?2048:512;
   const mapCanvas=document.createElement('canvas');mapCanvas.width=mapCanvas.height=maskSize;
   const mask2d=mapCanvas.getContext('2d');mask2d.fillStyle=survey.shore?.length?'#000':'#fff';mask2d.fillRect(0,0,maskSize,maskSize);
   function paintRing(loop,fill){
@@ -578,6 +580,29 @@ class Water extends Mesh {
         lithology=mix(lithology,cliffImage.rgb*(.88+.42*cliff),cliffImage.a*visible);
       `);
   }
+  if(dixville){
+    terrain.uniforms.notchStone={value:texture('dixville-schist.webp',true)};
+    terrain.fragmentShader='uniform sampler2D notchStone;\n'+terrain.fragmentShader.replace('float green=smoothstep', `
+      float summit=1.-smoothstep(14.,66.,length(wp.xz-vec2(26.,338.)));
+      vec2 edge=(wp.xz-vec2(85.,360.))/vec2(365.,162.);
+      float flank=clamp(1.25-dot(edge,edge),0.,1.)*(1.-smoothstep(.62,.89,normal.y))*smoothstep(623.,718.,wp.y);
+      float exposed=max(summit*smoothstep(692.,749.,wp.y),flank*.88);
+      vec3 scarp=mix(texture2D(notchStone,wp.zy*.128).rgb,texture2D(notchStone,wp.xy*.128).rgb,axis);
+      scarp=mix(scarp,texture2D(notchStone,wp.xz*.105).rgb,smoothstep(.50,.90,normal.y));
+      float block=wp.x*.32+wp.z*.22+wp.y*.034+.39*sin(wp.y*.13)+.25*sin(wp.z*.31);
+      float crack=1.-smoothstep(.016,.055,abs(fract(block)-.50));
+      scarp*=1.-crack*(.18+.18*texture2D(notchStone,wp.xz*.09).r);
+      c=mix(c,scarp*vec3(.96,1.01,1.09),exposed*.94);
+      float green=smoothstep`);
+    // Fresh joints and dark seams interrupt the thin forest soil on the steep notch walls.
+    terrain.fragmentShader=terrain.fragmentShader.replace('/* exposed field geology */', `
+      vec2 notch=(xz-vec2(165.,300.))/vec2(970.,420.);
+      float rockFace=(1.-smoothstep(.70,1.17,normal.y+.15))*clamp(1.6-dot(notch,notch),0.,1.);
+      float joint=texture2D(fracture,uva*2.9+warp*.13).g;
+      lithology=mix(lithology,vec3(.44,.43,.40)*(.30+1.23*cliff+.52*fissure+.22*joint),rockFace);
+      materialWeight=max(materialWeight,rockFace*.91*(1.-smoothstep(1400.,3600.,d)));
+    `);
+  }
   if(region==='moosehead'){
     // Rock-face field photograph, rectified and locally de-lit. Its remaining
     // joint pattern belongs on steep rhyolite walls within the Kineo headland.
@@ -621,7 +646,7 @@ class Water extends Mesh {
         photo=mix(photo,texture2D(detailOrtho,vec2(focus.x,-focus.y)/2900.+.5).rgb,blend);
         photo=mix(photo,vec3(lum(photo))`);
   }
-  if(surry){
+  if(localShoreMask){
     terrain.uniforms.reservoirSpan={value:maskSpan};
     terrain.fragmentShader='uniform float reservoirSpan;\n'+terrain.fragmentShader.replace('texture2D(wetMask,vec2(xz.x,-xz.y)/farSpan','texture2D(wetMask,vec2(xz.x,-xz.y)/reservoirSpan');
   }
@@ -725,23 +750,26 @@ class Water extends Mesh {
     settlement?window.addLakesideBuildings(THREE,scene,settlement,elevation,settings.water):null;
   const waterfrontHeight=waterfront?.build(elevation,settings.water);
   const cabin=survey.cabin?window.addLabradorCabin(THREE,scene,{elevation,height:elevation,waterLevel:settings.water,lakeLevel:settings.water},survey.cabin):null;
-  const lakeBounds=surry?survey.shore.reduce(([x0,x1,z0,z1],[x,z])=>
+  const resort=dixville?window.addDixvilleLandmarks(THREE,scene,survey.sites,elevation):null;
+  const lakeBounds=localShoreMask?survey.shore.reduce(([x0,x1,z0,z1],[x,z])=>
     [Math.min(x,x0),Math.max(x,x1),Math.min(z,z0),Math.max(z,z1)],[Infinity,-Infinity,Infinity,-Infinity]):null;
   function inLake(x,z){
     return (!lakeBounds||x>=lakeBounds[0]&&x<=lakeBounds[1]&&z>=lakeBounds[2]&&z<=lakeBounds[3])&&
       inLoop(x,z,survey.shore)&&!(survey.shoreHoles||[]).some(r=>inLoop(x,z,r));
   }
   function wetGround(x,z,y,margin){
+    if(dixville)return y<settings.water+margin&&inLake(x,z);
     if(!surry)return y<(settings.water??-1000)+margin;
     return (y<settings.water+margin&&inLake(x,z))||Number.isFinite(dam.riverHeight(x,z));
   }
   function plant(tree,isFir){
-    if(dam?.onDam(tree.x,tree.z)||cabin?.inClearing(tree.x,tree.z))return;
+    if(resort?.inClearing(tree.x,tree.z)||dam?.onDam(tree.x,tree.z)||cabin?.inClearing(tree.x,tree.z))return;
     if(Number.isFinite(roofHeight?.(tree.x,tree.z))||Number.isFinite(waterfrontHeight?.(tree.x,tree.z)))return;
     trees.push(tree);(isFir?firTrees:broadTrees).push(tree);
     const id=cell(tree.x,tree.z);if(!cells.has(id))cells.set(id,[]);cells.get(id).push(tree);
   }
   for(const tree of cabin?.campTrees||[])plant(tree,true);
+  for(const tree of resort?.lawnTrees||[])plant(tree,true);
   const crownPoints=region==='yosemite'?window.yosemiteCanopy:survey.crownPoints;
   if(crownPoints){
     const records=bytes(crownPoints),view=new DataView(records.buffer);
@@ -825,14 +853,14 @@ class Water extends Mesh {
     return ground<settings.water+.16&&inLake(x,z)?settings.water+.16:ground;
   }
   function clearance(x,z){
-    let y=Math.max(height(x,z),cabin?.clearance(x,z)??-Infinity,roofHeight?.(x,z)??-Infinity,dam?.structureHeight(x,z)??-Infinity,waterfrontHeight?.(x,z)??-Infinity);const ix=Math.floor(x/50),iz=Math.floor(z/50);
+    let y=Math.max(height(x,z),resort?.clearance(x,z)??-Infinity,cabin?.clearance(x,z)??-Infinity,roofHeight?.(x,z)??-Infinity,dam?.structureHeight(x,z)??-Infinity,waterfrontHeight?.(x,z)??-Infinity);const ix=Math.floor(x/50),iz=Math.floor(z/50);
     for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++){
       const id=(ix+dx+500)*1024+iz+dz+500,group=cells.get(id);
       if(group)for(const t of group){const d=Math.hypot(x-t.x,z-t.z)/(t.width*.5);if(d<1)y=Math.max(y,t.y+t.height*(1-d*d*.68));}
     }
     return y;
   }
-  const start=([x,z,tx,tz,agl,glance=0])=>({x,z,y:clearance(x,z)+agl,yaw:Math.atan2(x-tx,z-tz),glance});
+  const start=([x,z,tx,tz,agl,glance=0,lookDown=0])=>({x,z,y:clearance(x,z)+agl,yaw:Math.atan2(x-tx,z-tz),glance,lookDown});
   const spawn=start(settings.launch),low=start(settings.low);
   const launches={lake:spawn,ridge:low};
   for(const [key,tuple] of Object.entries(waterfront?.launches||settings.extraLaunches||{}))launches[key]=start(tuple);
@@ -844,7 +872,7 @@ class Water extends Mesh {
   }
   function groundCover(x,z){
     const y=elevation(x,z);
-    if(cabin?.inClearing(x,z)||y>settings.top+110||wetGround(x,z,y,.45)||dam?.onDam(x,z)||
+    if(resort?.inClearing(x,z)||cabin?.inClearing(x,z)||y>settings.top+110||wetGround(x,z,y,.45)||dam?.onDam(x,z)||
       Number.isFinite(roofHeight?.(x,z))||Number.isFinite(waterfrontHeight?.(x,z)))return -1;
     return growth(x,z);
   }

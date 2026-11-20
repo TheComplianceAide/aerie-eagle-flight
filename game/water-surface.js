@@ -20,7 +20,7 @@
     scene.traverse(mesh=>{
       if(!mesh.isWater)return;
       const mat=mesh.material,atlas=!!mat.uniforms.shoreField;
-      const energy=({napali:2.9,lofoten:1.65,milford:1.25,labrador:1.10,moosehead:1.05,alaska:.88,swiss:.58,crater:.85,surry:.58})[region]||.92;
+      const energy=({dixville:.52,napali:2.9,lofoten:1.65,milford:1.25,labrador:1.10,moosehead:1.05,alaska:.88,swiss:.58,crater:.85,surry:.58})[region]||.92;
       let shader=waves+'\n'+mat.fragmentShader;
       if(atlas){
         shader=shader.replace('vec2 slope=slopes(p,time,footprint,fetch,wind);',`

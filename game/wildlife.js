@@ -4,7 +4,7 @@ window.addRegionalWildlife=function(T,scene,w){
   const region=w.region,{birds,sizes,species,scenes}=window.aerieFauna,profile=scenes[region];
   const ground=w.elevation||w.height,h=w.habitat,models=window.makeWildlifeModels(T,scene);
   const reservoir=region==='bryce'?window.tropicReservoir.build(T,scene,w):null;
-  const feedingFish={moosehead:'atlantic-salmon',labrador:'brook-trout'}[region];
+  const feedingFish={dixville:'brook-trout',moosehead:'atlantic-salmon',labrador:'brook-trout'}[region];
   const stations={alaska:[-424,-476],swiss:[-613,437],canyon:[-322,-32],yosemite:[-728,1256],
     bryce:[-8990,1898],crater:[-3209,1679],lofoten:[923,2104],milford:[2371,3244],
     napali:[-2535,272],winnipesaukee:[1210,1854],moosehead:[648,-662],surry:[-1142,-3101]};

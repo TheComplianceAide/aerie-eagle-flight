@@ -27,7 +27,7 @@
   let dynamics, elapsed, distance, nextReadout, noticeUntil, accumulator;
   let updateTalus, updateForest, updateHabitat, updateUnderstory, updateMist;
   let frameSeconds=0, frameCount=0, fastWindows=0;
-  let glance=0, arrivalGlance=0, glanceTime=0;
+  let glance=0, arrivalGlance=0, arrivalLookDown=0, glanceTime=0;
   let cameraYaw, cameraPath, cameraBank, cameraFov, loadPromise, launchPending=false;
   let last = performance.now(), started = false, paused = false, touchFlap = false, pointerBrake = false;
   let audio, wind, wingRush, windLevel, volume, fieldAudio, previousFocus;
@@ -348,7 +348,7 @@
     windSoarer.reset(s,world.windField.ensureLaunchCore(launch),launch.glance);
     perching.reset(s,el("launchPoint").value==="lookout");
     nextPerchHUD=0;perchNotice="";perchNoticeUntil=0;
-    resetCamera(s,launch.glance);
+    resetCamera(s,launch.glance,launch.lookDown);
     elapsed=0;distance=0;accumulator=0;nextReadout=0;noticeUntil=0;
     frameSeconds=0;frameCount=0;fastWindows=0;
     found.clear();app.classList.remove("clearView");resetInput();started=true;paused=false;app.dataset.mode="flight";
@@ -483,9 +483,9 @@
     const margin=clamp(range*.24,12,30);
     const {minX,maxX,minZ,maxZ}=world.bounds;
     if(place.approach){
-      const [x,z,tx,tz,agl,glance=0]=place.approach;
+      const [x,z,tx,tz,agl,glance=0,lookDown=0]=place.approach;
       if(x>=minX&&x<=maxX&&z>=minZ&&z<=maxZ&&Math.hypot(x-place.x,z-place.z)<(place.discoveryRadius??210)){
-        return {x,y:floor(x,z)+agl,z,yaw:Math.atan2(x-tx,z-tz),glance};
+        return {x,y:floor(x,z)+agl,z,yaw:Math.atan2(x-tx,z-tz),glance,lookDown};
       }
     }
     const targetHeight=floor(place.x,place.z);
@@ -513,7 +513,7 @@
     Object.assign(dynamics.state,{elapsed,distance});
     windSoarer.reset(dynamics.state,world.windField.ensureLaunchCore(launch),launch.glance);
     perching.reset(dynamics.state,false);nextPerchHUD=0;perchNotice="";
-    resetCamera(dynamics.state,launch.glance);
+    resetCamera(dynamics.state,launch.glance,launch.lookDown);
     resetInput();
     accumulator=0;nextReadout=0;
     noticeUntil=elapsed+4;
@@ -537,7 +537,8 @@
     const direction=["N","NE","E","SE","S","SW","W","NW"][(Math.round(heading/(Math.PI/4))+8)%8];
     el("discovery").textContent=closest.name+" · "+direction+" · "+(range<1000?Math.round(range)+" m":(range/1000).toFixed(1)+" km");
   }
-  function resetCamera(s,arrivalDegrees=0){
+  function resetCamera(s,arrivalDegrees=0,lookDown=0){
+    arrivalLookDown=clamp(lookDown,0,32)*Math.PI/180;
     glance=arrivalGlance=arrivalDegrees*Math.PI/180;
     glanceTime=0;
     const mounted=cameraMode==="shoulder";
@@ -552,7 +553,8 @@
     const stroke=s.effort*Math.sin(s.phase-.45);
     // Lean over the mount when looking sideways so the near wing stays below the shopfronts.
     const lean=Math.min(1,Math.abs(glance));
-    cameraTarget.set((.137+.052*lean)*aspectScale,.157+.100*lean+.003*stroke,.058-.078*lean);
+    const down=arrivalLookDown*clamp((6-glanceTime)/3,0,1);
+    cameraTarget.set((.137+.052*lean+.28*down)*aspectScale,.157+.100*lean+.16*down+.003*stroke,.058-.078*lean-.19*down);
     camera.position.copy(cameraTarget.applyQuaternion(eagle.object.quaternion)).add(player);
     const yawError=Math.atan2(Math.sin(s.yaw-cameraYaw),Math.cos(s.yaw-cameraYaw));
     cameraYaw+=yawError*easing(16,dt);
@@ -567,7 +569,7 @@
     if(manual)arrivalGlance=0;
     const heldAngle=manual*1.13+arrivalGlance*clamp((2.65-glanceTime)/1.15,0,1);
     glance+=(heldAngle-glance)*easing(5.5,dt);
-    camera.rotation.set(cameraPath-.033+.004*stroke-.075*Math.abs(glance),cameraYaw+glance,cameraBank,"YXZ");
+    camera.rotation.set(cameraPath-down-.033+.004*stroke-.075*Math.abs(glance),cameraYaw+glance,cameraBank,"YXZ");
   }
   function positionChase(s,dt){
     // Damp the attitude of the boom, never the world-space translation of its

@@ -4,6 +4,7 @@ window.makeMovingWeather = async function makeMovingWeather(THREE, scene, world)
   // Layer height in survey coordinates, pattern span, cloud threshold, shadow
   // strength, upper-wind multiplier, and elongation across the prevailing wind.
   const profiles = {
+    dixville:      [1710, 4070, .63, .36, 2.1, .86],
     labrador:      [1390, 4350, .49, .44, 2.45, .78],
     alaska:        [2300, 4700, .47, .50, 3.3, .87],
     swiss:         [3400, 4800, .50, .44, 2.7, .93],
@@ -66,6 +67,12 @@ window.makeMovingWeather = async function makeMovingWeather(THREE, scene, world)
       float silver=pow(max(0.,dot(cloudRay,cloudSun)),5.);
       vec3 underside=mix(vec3(.45,.51,.61),vec3(.64,.59,.58),silver);
       vec3 lit=mix(vec3(.84,.86,.88),vec3(1.,.86,.69),silver);
+      ${world.region==='dixville'?`
+        float lowBand=1.-smoothstep(.14,.45,cloudRay.y);
+        underside=mix(vec3(.23,.34,.49),vec3(.51,.39,.48),lowBand);
+        lit=mix(vec3(.46,.55,.65),vec3(.93,.56,.46),lowBand*(.59+.41*silver));
+        opacity*=.44;
+      `:''}
       vec3 cloud=mix(underside,lit,clamp(rim+.26*(1.-opacity),0.,1.));
       gl_FragColor.rgb=mix(gl_FragColor.rgb,${linearOutput ? "pow(cloud,vec3(2.2))" : "cloud"},.73*opacity);
     }
