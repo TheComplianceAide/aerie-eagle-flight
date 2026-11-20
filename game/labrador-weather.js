@@ -1,27 +1,19 @@
 // A passing sunshower over Lac Berté. The bow is computed from the view ray,
 // including the water reflection camera, and lit rain lies in front of far hills.
-window.addBerteWeather=function addBerteWeather(T,scene,{sun,clock,sky,water,terrain,settings,survey}) {
+window.addBerteWeather=function addBerteWeather(T,scene,{sun,clock,sky,terrain,settings,survey}) {
   const mask=new T.TextureLoader().load('labrador-cloud-cover.webp');
   mask.wrapS=mask.wrapT=T.MirroredRepeatWrapping;
   const mark=survey.landmarks.find(p=>/rainbow|shower|arc-en-ciel/i.test(p.name));
   const center=new T.Vector2(mark?.x??40,mark?.z??-570);
   const lake=settings.water;
+  const showerCenter={value:center.clone()};
   const uniforms={
     berteCloud:{value:mask},berteTime:clock,berteSun:{value:sun},
-    berteRainCenter:{value:center},berteLake:{value:lake},
+    berteRainCenter:showerCenter,berteLake:{value:lake},
   };
   const fields=`
     uniform sampler2D berteCloud;uniform float berteTime,berteLake;
     uniform vec3 berteSun;uniform vec2 berteRainCenter;
-    // Cloud brightness is sampled from the same photographed deck as the sky.
-    // Project the texture along the actual sun vector before shading each ridge.
-    float berteLight(vec3 p){
-      vec2 above=p.xz+berteSun.xz*(berteLake+770.-p.y)/max(.15,berteSun.y);
-      vec2 uv=above*vec2(.00023,.00030)+berteTime*vec2(-.00049,.00027);
-      float broad=texture2D(berteCloud,uv).r;
-      float broken=texture2D(berteCloud,uv*2.16+vec2(.37,.75)).r;
-      return smoothstep(.12,.86,.73*broad+.27*broken);
-    }
   `;
   const scattering=`
     vec3 berteScatter(vec3 base,vec3 ray,float visibleMetres){
@@ -31,7 +23,7 @@ window.addBerteWeather=function addBerteWeather(T,scene,{sun,clock,sky,water,ter
       // Cloud cover behind the eagle provides an open path for direct sunlight.
       float heading=dot(ray.xz,axis);
       if(heading<.06) return base;
-      vec2 shower=berteRainCenter+side*(165.*sin(berteTime*.004));
+      vec2 shower=berteRainCenter;
       float hit=dot(shower-cameraPosition.xz,axis)/heading;
       if(hit<0.||hit>visibleMetres+480.) return base;
       vec3 p=cameraPosition+ray*hit;
@@ -74,19 +66,13 @@ window.addBerteWeather=function addBerteWeather(T,scene,{sun,clock,sky,water,ter
     material.needsUpdate=true;
   }
   extend(sky.material,fields+scattering,'gl_FragColor=vec4(texture2D(map,uv).rgb,1.);',`
-    vec3 skyLight=texture2D(map,uv).rgb;
-    gl_FragColor=vec4(berteScatter(skyLight,d,95000.),1.);`);
-  extend(terrain,fields+scattering,'/* canopy transmission */',`
-    float cloudLight=berteLight(wp);
-    c*=mix(vec3(.68,.78,.91),vec3(1.18,1.095,.99),cloudLight);
-    /* canopy transmission */`);
-  terrain.fragmentShader=terrain.fragmentShader.replace('vec4(mix(c,aerialHaze,dep*(.72+.28*skyView)),1.)',
-    'vec4(berteScatter(mix(c,aerialHaze,dep*(.72+.28*skyView)),normalize(wp-cameraPosition),d),1.)');
-  if(water) extend(water.material,fields,'gl_FragColor=vec4(radiance,alpha);',`
-    float cloudLight=berteLight(worldPosition.xyz);
-    radiance=mix(radiance*mix(vec3(.65,.77,.91),vec3(1.13,1.07,1.00),cloudLight),
-      radiance,waterSky*.83);
-    gl_FragColor=vec4(radiance,alpha);`);
+    gl_FragColor=vec4(texture2D(map,uv).rgb,1.);
+    /* before local precipitation */
+    gl_FragColor.rgb=berteScatter(gl_FragColor.rgb,d,95000.);`);
+  extend(terrain,fields+scattering,'gl_FragColor=vec4(mix(c,aerialHaze,dep*(.72+.28*skyView)),1.);',`
+    gl_FragColor=vec4(mix(c,aerialHaze,dep*(.72+.28*skyView)),1.);
+    /* before local precipitation */
+    gl_FragColor.rgb=berteScatter(gl_FragColor.rgb,normalize(wp-cameraPosition),d);`);
 
   // Sparse wind-slanted drops only appear inside the actual shower. Vertex
   // positions wrap in world coordinates, so a racing eagle overtakes them.
@@ -100,11 +86,11 @@ window.addBerteWeather=function addBerteWeather(T,scene,{sun,clock,sky,water,ter
   const geometry=new T.BufferGeometry();
   geometry.setAttribute('position',new T.Float32BufferAttribute(coords,3));
   geometry.setAttribute('tip',new T.Float32BufferAttribute(ends,1));
-  const rainMaterial=new T.ShaderMaterial({uniforms:{berteTime:clock,amount:{value:0},origin:{value:new T.Vector3()}},
+  const rainMaterial=new T.ShaderMaterial({uniforms:{berteTime:clock,dropTravel:{value:new T.Vector2()},dropWind:{value:new T.Vector2()},amount:{value:0},origin:{value:new T.Vector3()}},
     transparent:true,depthWrite:false,
-    vertexShader:`attribute float tip;uniform float berteTime;uniform vec3 origin;varying float fade;
-      void main(){vec3 span=vec3(32.,16.,32.);vec3 speed=vec3(-1.6,-7.4,1.2);
-        vec3 rel=mod(position+berteTime*speed-origin+span*.5,span)-span*.5;
+    vertexShader:`attribute float tip;uniform float berteTime;uniform vec3 origin;uniform vec2 dropTravel,dropWind;varying float fade;
+      void main(){vec3 span=vec3(32.,16.,32.);vec3 speed=vec3(dropWind.x,-7.4,dropWind.y);
+        vec3 rel=mod(position+vec3(dropTravel.x,-7.4*berteTime,dropTravel.y)-origin+span*.5,span)-span*.5;
         fade=(1.-smoothstep(8.,15.4,length(rel.xz)))*(1.-smoothstep(5.5,8.,abs(rel.y)))*(.34+.66*tip);
         gl_Position=projectionMatrix*viewMatrix*vec4(origin+rel+tip*speed*.021,1.);}`,
     fragmentShader:`uniform float amount;varying float fade;void main(){gl_FragColor=vec4(.58,.68,.72,amount*fade*.26);
@@ -115,13 +101,27 @@ window.addBerteWeather=function addBerteWeather(T,scene,{sun,clock,sky,water,ter
   const light=scene.children.find(o=>o.isDirectionalLight),strength=light?.intensity;
   const axis=new T.Vector2(-sun.x,-sun.z).normalize(),sideX=-axis.y,sideZ=axis.x;
   function smooth(a,b,x){const v=Math.max(0,Math.min(1,(x-a)/(b-a)));return v*v*(3-2*v);}
-  return (_dt,t,player)=>{
-    const dx=player.x-center.x,dz=player.z-center.y;
-    const across=dx*sideX+dz*sideZ-165*Math.sin(t*.004),along=dx*axis.x+dz*axis.y;
+  const air={},travel=rainMaterial.uniforms.dropTravel.value,wind=rainMaterial.uniforms.dropWind.value;
+  let lastTime=-1;
+  return (t,player,field)=>{
+    // The curtain passes over the narrows. Inside it, drops respond to the
+    // same local gust as the eagle, integrating distance so they never jump.
+    const shift=240*Math.sin(t*field.advection/240);
+    showerCenter.value.set(center.x+field.direction.x*shift,center.y+field.direction.z*shift);
+    const dx=player.x-showerCenter.value.x,dz=player.z-showerCenter.value.y;
+    const across=dx*sideX+dz*sideZ,along=dx*axis.x+dz*axis.y;
     const wet=(1-smooth(140,470,Math.abs(along)))*(1-smooth(650,1600,Math.abs(across)));
+    if(lastTime<0 || t<lastTime)travel.set(0,0);
+    const dt=lastTime<0?0:Math.max(0,t-lastTime);
+    lastTime=t;
+    if(wet>.017){
+      field.sample(player.x,player.y,player.z,t,air);
+      wind.set(air.windX,air.windZ);
+      travel.addScaledVector(wind,dt);
+    }
     rainMaterial.uniforms.amount.value=wet;
     rainMaterial.uniforms.origin.value.set(player.x,player.y,player.z);
     drops.visible=wet>.017;
-    if(light) light.intensity=strength*(1.04-.22*wet+.035*Math.sin((player.x*.0006+player.z*.0004)-t*.009));
+    if(light) light.intensity=strength*(1.04-.22*wet);
   };
 };

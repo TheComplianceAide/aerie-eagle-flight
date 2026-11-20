@@ -780,7 +780,7 @@ class Water extends Mesh {
     }
   }
   const sunMask=terrainLight;
-  const updateWeather=region==='labrador'?window.addBerteWeather(THREE,scene,{sun,clock,sky,water,terrain,settings,survey}):null;
+  const updateWeather=region==='labrador'?window.addBerteWeather(THREE,scene,{sun,clock,sky,terrain,settings,survey}):null;
   window.shadeAtlasForest(THREE,terrain,trees,sun,h);
   const updateHardwoods=broadTrees.length?window.addHardwoods(THREE,scene,broadTrees,{region,sun,sunMask,half:h,fogColor:color,clock}):null;
   const spray=texture('waternormals.jpg',true);
@@ -848,8 +848,9 @@ class Water extends Mesh {
       Number.isFinite(roofHeight?.(x,z))||Number.isFinite(waterfrontHeight?.(x,z)))return -1;
     return growth(x,z);
   }
-  return {region,height,elevation,clearance,spawn,launches,landmarks,groundCover,coverHalf:h,cityTerrainMaterial:surry?terrain:null,
+  const world={region,height,elevation,clearance,spawn,launches,landmarks,groundCover,coverHalf:h,cityTerrainMaterial:surry?terrain:null,
     bounds:{minX:region==='bryce'?-9850:-(settings.flightHalf||h)+90,maxX:(settings.flightHalf||h)-90,minZ:-(settings.flightHalf||h)+90,maxZ:(settings.flightHalf||h)-90},waterLevel:settings.water,lakeLevel:settings.water,
     skyTexture:skyMap,sunDirection:sun,sunMask,trees,firTrees,forestLightSpan:2*h,longForest:newEngland||region==='yosemite'||region==='labrador',useFirForest:firTrees.length>0,altitudeOffset:0,
-    update(dt,t,player){clock.value=t;updateWeather?.(dt,t,player);updateHardwoods?.(player);if(water)water.material.uniforms.time.value=t*.65;}};
+    update(dt,t,player){clock.value=t;updateWeather?.(t,player,world.windField);updateHardwoods?.(player);if(water)water.material.uniforms.time.value=t*.65;}};
+  return world;
 };

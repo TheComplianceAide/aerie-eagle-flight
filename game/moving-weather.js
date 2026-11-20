@@ -1,11 +1,10 @@
 // Distances are survey metres. Each cloud that crosses the sun has a matching
 // footprint on the landscape, water and eagle, including in the lake mirror.
 window.makeMovingWeather = async function makeMovingWeather(THREE, scene, world) {
-  // Lac Berté has its own projected sunshower and rainbow.
-  if(world.region==='labrador' && window.addBerteWeather)return ()=>{};
   // Layer height in survey coordinates, pattern span, cloud threshold, shadow
   // strength, upper-wind multiplier, and elongation across the prevailing wind.
   const profiles = {
+    labrador:      [1390, 4350, .49, .44, 2.45, .78],
     alaska:        [2300, 4700, .47, .50, 3.3, .87],
     swiss:         [3400, 4800, .50, .44, 2.7, .93],
     canyon:        [2650, 5700, .62, .46, 2.9, .78],
@@ -55,7 +54,7 @@ window.makeMovingWeather = async function makeMovingWeather(THREE, scene, world)
     float distanceFade=1.-.72*smoothstep(4200.,21000.,length(cloudWorld-cameraPosition));
     cloudShade=shade*cloudStrength*distanceFade;
   `;
-  const coverSky = `
+  const coverSky = (linearOutput) => `
     vec3 cloudRay=normalize(ray);
     float t=(cloudHeight-cameraPosition.y)/max(.012,cloudRay.y);
     if(t>0. && cloudRay.y>.012){
@@ -68,7 +67,7 @@ window.makeMovingWeather = async function makeMovingWeather(THREE, scene, world)
       vec3 underside=mix(vec3(.45,.51,.61),vec3(.64,.59,.58),silver);
       vec3 lit=mix(vec3(.84,.86,.88),vec3(1.,.86,.69),silver);
       vec3 cloud=mix(underside,lit,clamp(rim+.26*(1.-opacity),0.,1.));
-      gl_FragColor.rgb=mix(gl_FragColor.rgb,cloud,.73*opacity);
+      gl_FragColor.rgb=mix(gl_FragColor.rgb,${linearOutput ? "pow(cloud,vec3(2.2))" : "cloud"},.73*opacity);
     }
   `;
   // Three's built-ins and the survey materials all finish with main(). Keep
@@ -82,6 +81,11 @@ window.makeMovingWeather = async function makeMovingWeather(THREE, scene, world)
       else if(source[i]==='}')depth--;
     }
     return source.slice(0,i-1)+'\n'+addition+'\n'+source.slice(i-1);
+  }
+  // Near-field rain and its rainbow scatter light in front of the cloud deck.
+  const precipitation='/* before local precipitation */';
+  function lightSurface(fragment, lighting){
+    return fragment.includes(precipitation) ? fragment.replace(precipitation,lighting) : appendMain(fragment,lighting);
   }
   const seen = new Set();
   scene.traverse(object => {
@@ -99,7 +103,7 @@ window.makeMovingWeather = async function makeMovingWeather(THREE, scene, world)
         prior.call(this,shader,renderer);
         Object.assign(shader.uniforms,uniforms);
         if(sky){
-          shader.fragmentShader=cloudSampling+appendMain(shader.fragmentShader,coverSky);
+          shader.fragmentShader=cloudSampling+lightSurface(shader.fragmentShader,coverSky(shader.fragmentShader.includes(precipitation)));
         }else{
           // Survey grids and skinned/instanced meshes already have densely
           // spaced vertices. Sampling there preserves scarce fragment samplers
@@ -114,7 +118,7 @@ window.makeMovingWeather = async function makeMovingWeather(THREE, scene, world)
           }else{
             const varying='varying float cloudShade;\n';
             shader.vertexShader=varying+cloudSampling+appendMain(shader.vertexShader,worldPosition+projectedCover);
-            shader.fragmentShader=varying+appendMain(shader.fragmentShader,shadeRGB);
+            shader.fragmentShader=varying+lightSurface(shader.fragmentShader,shadeRGB);
           }
         }
       };
