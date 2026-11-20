@@ -465,6 +465,7 @@
     renderer.setPixelRatio(Math.min(devicePixelRatio,pixelRatioLimit));renderer.outputColorSpace=THREE.SRGBColorSpace;
     renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.03;
     scene=new THREE.Scene();camera=new THREE.PerspectiveCamera(76,1,.035,["winnipesaukee","moosehead","surry"].includes(region)?83000:49000);
+    camera.layers.enable(1); // Sediment, prints and the water surface itself belong in the direct view.
     player=new THREE.Vector3();gaze=new THREE.Vector3();cameraTarget=new THREE.Vector3();
     previousOffset=new THREE.Vector3();transitionOffset=new THREE.Vector3();
     previousRotation=new THREE.Quaternion();transitionRotation=new THREE.Quaternion();

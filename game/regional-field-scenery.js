@@ -126,11 +126,11 @@
     if(water||foliage){
       mat.onBeforeCompile=shader=>{
         shader.uniforms.aerieFieldTime=time;
-        shader.vertexShader='uniform float aerieFieldTime; varying vec2 vFieldWorld;\n'+shader.vertexShader;
+        shader.vertexShader='attribute float aerieBend; uniform float aerieFieldTime; varying vec2 vFieldWorld;\n'+shader.vertexShader;
         shader.vertexShader=shader.vertexShader.replace('#include <project_vertex>',
-          'vec4 root = instanceMatrix * vec4(transformed,1.0); vFieldWorld=root.xz;\n'+
-          (water?'transformed.y += 0.003*sin(dot(root.xz,vec2(.9,.48))-aerieFieldTime*2.2);\n':
-           'float tip=clamp(position.y,0.0,1.0); transformed.x += tip*tip*(.013*sin(aerieFieldTime*1.5+dot(root.xz,vec2(.38,.61)))+.004*sin(aerieFieldTime*3.9+root.z));\n')+
+          'vec3 root = transformed; vFieldWorld=root.xz;\n'+
+          (water?'transformed.y += 0.003*aerieBend*sin(dot(root.xz,vec2(.9,.48))-aerieFieldTime*2.2);\n':
+           'transformed.x += aerieBend*(.013*sin(aerieFieldTime*1.5+dot(root.xz,vec2(.38,.61)))+.004*sin(aerieFieldTime*3.9+root.z));\n')+
           '#include <project_vertex>');
         if(water){
           shader.fragmentShader='uniform float aerieFieldTime; varying vec2 vFieldWorld;\n'+shader.fragmentShader;
@@ -140,13 +140,13 @@
             '#include <normal_fragment_maps>\nnormal=normalize(normal+vec3(flow*.068,crossflow*.037,0.));');
         }
       };
-      mat.customProgramCacheKey=()=>water?'regional-moving-water-v1':'regional-bending-herbs-v1';
+      mat.customProgramCacheKey=()=>water?'regional-moving-water-v2':'regional-bending-herbs-v2';
     }
     return mat;
   }
   window.makeRegionalFieldScenery=(T,scene,world)=>{
     const root=new T.Group();root.name='Regional understory and shoreline details';scene.add(root);
-    const profile=window.aerieCanopyProfile(world),nearShore=shoreline(world),structures=fixtures(world);
+    const profile=window.aerieCanopyProfile(world),nearShore=shoreline(world),structures=[...fixtures(world),...(window.aerieMappedFieldFixtures?.(world,T,root)||[])];
     const falls=(world.landmarks||[]).filter(f=>f.falls||/falls|cascade|chute|flume/i.test(f.name));
     const coarse=matchMedia('(pointer: coarse)').matches,tiles=new Map(),sheets=[];
     const time={value:0},floor=world.geologyGround||world.habitat?.surface||world.elevation||world.height;
@@ -170,7 +170,7 @@
         if(sheet.kind==='structure'){
           structures.forEach((p,i)=>{
             if(Math.floor(p.x/step)!==ix||Math.floor(p.z/step)!==iz)return;
-            const y=p.lake?world.waterLevel+.52:floor(p.x,p.z);
+            const y=p.y??(p.lake?world.waterLevel+.52:floor(p.x,p.z));
             if(Number.isFinite(y))list.push({sheet,cell:i%16,x:p.x,y,z:p.z,yaw:p.yaw,scale:sheet.span*.73,dx:0,dz:0});
           });
           continue;
@@ -199,7 +199,65 @@
       }
       return list;
     }
-    const up=new T.Vector3(0,1,0),v=new T.Vector3(),q=new T.Quaternion(),turn=new T.Quaternion(),scale=new T.Vector3(),matrix=new T.Matrix4();
+    const up=new T.Vector3(0,1,0),v=new T.Vector3(),q=new T.Quaternion(),turn=new T.Quaternion();
+    function transformed(e,lod){
+      e.surfaces??=[];
+      if(e.surfaces[lod])return e.surfaces[lod];
+      const geo=e.sheet.forms[e.cell][lod],src=geo.attributes.position,srcN=geo.attributes.normal;
+      const pos=new Float32Array(src.count*3),norm=new Float32Array(src.count*3),bend=new Float32Array(src.count);
+      q.setFromUnitVectors(up,v.set(-e.dx,1,-e.dz).normalize()).multiply(turn.setFromAxisAngle(up,e.yaw));
+      for(let i=0;i<src.count;i++){
+        v.fromBufferAttribute(src,i).multiplyScalar(e.scale).applyQuaternion(q);
+        const j=i*3;pos[j]=v.x+e.x;pos[j+1]=v.y+e.y;pos[j+2]=v.z+e.z;
+        v.fromBufferAttribute(srcN,i).applyQuaternion(q).toArray(norm,j);
+        bend[i]=e.sheet.kind==='water'?e.scale:Math.max(0,src.getY(i))**2*e.scale;
+      }
+      return e.surfaces[lod]={pos,norm,bend,uv:geo.attributes.uv.array,index:geo.index.array};
+    }
+    function batch(sheet,lod,members,mesh){
+      // A single texture atlas drives all sixteen source cells in this draw.
+      // Reuse fixed world geometry and skip GPU uploads when membership is stable.
+      members.sort((a,b)=>a.x-b.x||a.z-b.z||a.cell-b.cell);
+      if(mesh&&members.length===mesh.userData.members.length&&members.every((e,i)=>e===mesh.userData.members[i])){
+        mesh.visible=true;return mesh;
+      }
+      const data=members.map(e=>transformed(e,lod));
+      let nv=0,ni=0;
+      for(const item of data){nv+=item.bend.length;ni+=item.index.length;}
+      if(!mesh){
+        mesh=new T.Mesh(undefined,sheet.material);
+        mesh.name=sheet.id+' · '+(lod?'middle':'near');
+        mesh.userData.aerieRegional={sheet:sheet.id,cellAttribute:'aerieCell',lod};
+        mesh.receiveShadow=true;mesh.frustumCulled=true;
+        if(['water','ground','sign'].includes(sheet.kind))mesh.layers.set(1);
+        root.add(mesh);
+      }
+      if(!mesh.geometry.index||nv>mesh.geometry.attributes.position.count||ni>mesh.geometry.index.count){
+        mesh.geometry.dispose();
+        const geo=new T.BufferGeometry(),capacity=2**Math.ceil(Math.log2(Math.max(16,nv)));
+        const indexCapacity=2**Math.ceil(Math.log2(Math.max(24,ni)));
+        for(const [field,n,Type] of [['position',3,Float32Array],['normal',3,Float32Array],['uv',2,Float32Array],['aerieBend',1,Float32Array],['aerieCell',1,Uint8Array]]){
+          geo.setAttribute(field,new T.BufferAttribute(new Type(capacity*n),n).setUsage(T.DynamicDrawUsage));
+        }
+        geo.setIndex(new T.BufferAttribute(capacity>65535?new Uint32Array(indexCapacity):new Uint16Array(indexCapacity),1).setUsage(T.DynamicDrawUsage));
+        mesh.geometry=geo;
+      }
+      const geo=mesh.geometry,a=geo.attributes,index=geo.index.array;
+      let base=0,off=0;
+      const box=new T.Box3();
+      data.forEach((d,i)=>{
+        const e=members[i],n=d.bend.length;
+        a.position.array.set(d.pos,base*3);a.normal.array.set(d.norm,base*3);a.uv.array.set(d.uv,base*2);
+        a.aerieBend.array.set(d.bend,base);a.aerieCell.array.fill(e.cell,base,base+n);
+        for(let k=0;k<d.index.length;k++)index[off+k]=base+d.index[k];
+        box.expandByPoint(v.set(e.x-e.scale,e.y-e.scale,e.z-e.scale));box.expandByPoint(v.set(e.x+e.scale,e.y+e.scale,e.z+e.scale));
+        base+=n;off+=d.index.length;
+      });
+      for(const attr of Object.values(a)){attr.clearUpdateRanges();attr.addUpdateRange(0,nv*attr.itemSize);attr.needsUpdate=true;}
+      geo.index.clearUpdateRanges();geo.index.addUpdateRange(0,ni);geo.index.needsUpdate=true;geo.setDrawRange(0,ni);
+      geo.boundingBox=box;geo.boundingSphere=box.getBoundingSphere(new T.Sphere());
+      mesh.userData.members=members;mesh.visible=true;return mesh;
+    }
     function gather(player){
       const active=new Set(),visible=new Map();
       const ix=Math.floor(player.x/step),iz=Math.floor(player.z/step),agl=player.y-floor(player.x,player.z);
@@ -223,30 +281,15 @@
           const d=Math.hypot(e.x-player.x,e.y-player.y,e.z-player.z);
           if(d>radius)continue;
           const lod=d<Math.min(coarse?30:56,7+e.scale*7.2)?0:1;
-          const id=e.sheet.id+'/'+e.cell+'/'+lod;
-          if(!visible.has(id))visible.set(id,{sheet:e.sheet,cell:e.cell,lod,members:[]});
+          const id=e.sheet.id+'/'+lod;
+          if(!visible.has(id))visible.set(id,{sheet:e.sheet,lod,members:[]});
           visible.get(id).members.push(e);
         }
       }
       for(const k of tiles.keys())if(!active.has(k))tiles.delete(k);
-      for(const m of root.children)m.visible=false;
+      for(const m of root.children)if(m.userData.aerieRegional)m.visible=false;
       for(const [id,b] of visible){
-        let mesh=b.sheet.batches.get(id);
-        if(!mesh||mesh.instanceMatrix.count<b.members.length){
-          if(mesh){root.remove(mesh);mesh.dispose?.();}
-          mesh=new T.InstancedMesh(b.sheet.forms[b.cell][b.lod],b.sheet.material,Math.max(4,2**Math.ceil(Math.log2(b.members.length))));
-          mesh.name=b.sheet.id+' · '+b.sheet.specimens[b.cell].name;
-          mesh.userData.aerieRegional={sheet:b.sheet.id,cell:b.cell,lod:b.lod};
-          mesh.receiveShadow=true;mesh.frustumCulled=false;
-          mesh.instanceMatrix.setUsage(T.DynamicDrawUsage);b.sheet.batches.set(id,mesh);root.add(mesh);
-        }
-        mesh.visible=true;mesh.count=b.members.length;
-        for(let i=0;i<b.members.length;i++){
-          const e=b.members[i];q.setFromUnitVectors(up,v.set(-e.dx,1,-e.dz).normalize());
-          q.multiply(turn.setFromAxisAngle(up,e.yaw));scale.setScalar(e.scale);
-          matrix.compose(v.set(e.x,e.y,e.z),q,scale);mesh.setMatrixAt(i,matrix);
-        }
-        mesh.instanceMatrix.needsUpdate=true;mesh.computeBoundingSphere?.();
+        b.sheet.batches.set(id,batch(b.sheet,b.lod,b.members,b.sheet.batches.get(id)));
       }
     }
     function update(p,t=0){
@@ -269,7 +312,7 @@
       }));
       return sheets.length;
     })();
-    function dispose(){gone=true;for(const mesh of root.children)mesh.dispose?.();tiles.clear();release();}
+    function dispose(){gone=true;for(const mesh of root.children)if(mesh.userData.aerieRegional)mesh.geometry.dispose();root.userData.disposeMappedFieldFixtures?.();tiles.clear();release();}
     return {ready,update,dispose,get sheets(){return sheets.map(s=>s.id);},get placements(){return [...tiles.values()].flat();}};
   };
 })();
