@@ -563,7 +563,9 @@ window.makeEagle = function makeEagle(THREE) {
             vec3 base=diffuseColor.rgb;
             diffuseColor.rgb=mix(diffuseColor.rgb,eye,mask);
             diffuseColor.rgb=mix(diffuseColor.rgb,base*.92,lidCover*mask);
-          `);
+            // The cornea and the membrane over it are wet and glossy.
+            float cornea=inEye*mask*(1.-lidCover);
+          `).replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=mix(roughnessFactor,.10,cornea);');
       };
       const mesh=new THREE.SkinnedMesh(g,mat);mesh.name='Crown, cheeks and throat';mesh.frustumCulled=false;
       mesh.castShadow=true;rig.add(mesh);mesh.bind(skeleton,new THREE.Matrix4());
