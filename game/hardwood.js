@@ -200,7 +200,7 @@ window.addHardwoods=function addHardwoods(T,scene,trees,options){
       illum*=1.+front.x*tip*(.16+.13*flick);
       coord=uv;species=kind;
       float dist=length(cameraPosition-root-vec3(0.,.5*length(instanceMatrix[1].xyz),0.));
-      fade=smoothstep(${lakeCrowns?'78.,109.':'85.,175.'},dist);atmosphere=0.;
+      fade=${lakeCrowns?'step(83.+20.*fract(dot(root.xz,vec2(.3761,.5723))),dist)':'smoothstep(85.,175.,dist)'};atmosphere=0.;
       gl_Position=projectionMatrix*viewMatrix*vec4(world,1.);
     }`,fragmentShader:`uniform sampler2D leaves;uniform vec3 haze;
       varying vec2 coord;varying float species,illum,fade,atmosphere;

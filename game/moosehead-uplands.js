@@ -92,10 +92,14 @@
             bool inSpencer=dot(spencer,spencer)<dot(lily,lily);
             vec2 bay=inSpencer?spencer:lily;
             float edge=max(abs(bay.x),abs(bay.y));
+            float shade=1.;
             if(edge<1900.){
               vec2 uv=clamp(vec2(bay.x,-bay.y)/3800.+.5,0.002,.998);
               uv.x=(uv.x+(inSpencer?0.:1.))*.5;
-              ortho=mix(ortho,texture2D(bays,uv).rgb,1.-smoothstep(1500.,1900.,edge));
+              vec4 survey=texture2D(bays,uv);
+              float blend=1.-smoothstep(1500.,1900.,edge);
+              ortho=mix(ortho,survey.rgb,blend);
+              shade=mix(1.,survey.a,blend);
             }
             vec3 n=normalize(surfaceNormal);
             if(d<800.&&wp.y>311.8){
@@ -111,7 +115,7 @@
             }
             float incidence=max(0.,dot(n,sun)),side=dot(n.xz,normalize(sun.xz));
             vec3 light=vec3(.47,.57,.70)*(.81+.19*n.y)+vec3(1.23,.99,.71)*(.12+1.20*incidence)*sunlit;
-            vec3 earth=pow(ortho,vec3(2.2))*light*(.97+.18*side);
+            vec3 earth=pow(ortho,vec3(2.2))*light*(.97+.18*side)*mix(vec3(.83,.91,1.),vec3(1.),shade)*(.49+.51*shade);
             float air=1.-exp(-d*.000016);
             vec3 scatter=haze*mix(vec3(.67,.78,.96),vec3(1.08,.98,.87),.5+.5*dot(normalize(wp-cameraPosition),sun));
             gl_FragColor=vec4(mix(earth,scatter,air),1.);

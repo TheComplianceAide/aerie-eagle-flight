@@ -18,6 +18,18 @@ window.addHabitat = function addHabitat(THREE,scene,world,region) {
     ctx.drawImage(texture.image,0,0);
     habitatPixels=ctx.getImageData(0,0,resolution,resolution).data;
   });
+  if(arid)world.fieldBankAt=(x,z)=>{
+    // The river is shaded directly on the surveyed ground triangles. Sample
+    // the very same signed bank field that controls gravel versus moving water.
+    if(!habitatPixels||Math.abs(x)>=extent||Math.abs(z)>=extent)return null;
+    const u=(.5+x/(2*extent))*resolution-.5,v=(.5+z/(2*extent))*resolution-.5;
+    const i=Math.max(0,Math.min(resolution-2,Math.floor(u))),j=Math.max(0,Math.min(resolution-2,Math.floor(v)));
+    const a=habitatPixels[4*(j*resolution+i)],b=habitatPixels[4*(j*resolution+i+1)];
+    const c=habitatPixels[4*((j+1)*resolution+i)],d=habitatPixels[4*((j+1)*resolution+i+1)];
+    const f=Math.max(0,Math.min(1,u-i)),g=Math.max(0,Math.min(1,v-j));
+    const signed=((a*(1-f)*(1-g)+b*f*(1-g)+c*(1-f)*g+d*f*g)/255-.5)*96;
+    return {distance:Math.abs(signed),signed,yaw:Math.atan2((b-a)*(1-g)+(d-c)*g,(c-a)*(1-f)+(d-b)*f),stream:true};
+  };
   world.groundCover=(x,z)=>{
     if(!habitatPixels)return 0;
     const u=Math.floor((.5+x/(2*extent))*resolution),v=Math.floor((.5+z/(2*extent))*resolution);
@@ -74,7 +86,7 @@ window.addHabitat = function addHabitat(THREE,scene,world,region) {
   for(const mesh of scene.children){
     if(!mesh.isWater||arid)continue;
     const mat=mesh.material;
-    Object.assign(mat.uniforms,marginUniforms,{pebbleBed:{value:pebble},bedGrain:{value:grains},stoneShelf:{value:loose}});
+    Object.assign(mat.uniforms,marginUniforms,{pebbleBed:{value:glacial?world.bankDepositMap:pebble},bedGrain:{value:grains},stoneShelf:{value:loose}});
     // The final two stations of Nugget Creek enter Mendenhall Lake here.
     // A spreading outflow distorts the glacial reflection and carries small
     // patches of entrained air away from the foot of the chute.
@@ -133,7 +145,7 @@ window.addHabitat = function addHabitat(THREE,scene,world,region) {
         float resolved=1.-smoothstep(.06,.58,pixel);
         float bars=smoothstep(.30,.70,texture2D(normalSampler,bedP*.033+warp*.14).g);
         vec3 stones=pow(texture2D(stoneShelf,mat2(.31,-.95,.95,.31)*bedP*.27+warp*.23).rgb,vec3(2.2));
-        vec3 substrate=mix(gravel,stones,.20+.45*bars);
+        vec3 substrate=${glacial?'mix(pow(mendenhallDeposit(pebbleBed,bedP,-depth,sunDirection),vec3(2.2)),stones,.04+.08*bars)':'mix(gravel,stones,.20+.45*bars)'};
         substrate*=.83+resolved*.30*dot(normalize(vec3(relief.x,.92,relief.y)),sunDirection);
         float rays=abs(sin(dot(bedP,vec2(1.7,.75))+1.7*warp.x+.93*habitatClock)+.76*sin(dot(bedP,vec2(-.58,2.2))+warp.y-habitatClock*1.16));
         float focus=exp(-9.*rays)*resolved*exp(-depth*.70)*min(1.,depth*3.);
@@ -149,7 +161,7 @@ window.addHabitat = function addHabitat(THREE,scene,world,region) {
         outgoingLight=mix(outgoingLight,mix(damp,through,flooded),nearShore);
       }
       ${glacial?'outgoingLight=mix(outgoingLight,vec3(.53,.63,.62),entrained*.45);':''}`;
-    mat.fragmentShader=shoreMotion+'\nuniform sampler2D pebbleBed,bedGrain,stoneShelf;\n'+mat.fragmentShader
+    mat.fragmentShader=shoreMotion+(glacial?window.mendenhallSedimentGLSL:'')+'\nuniform sampler2D pebbleBed,bedGrain,stoneShelf;\n'+mat.fragmentShader
       .replace('vec3 surfaceNormal=normalize',optics+'\n          vec3 surfaceNormal=normalize')
       .replace('gl_FragColor = vec4( outgoingLight, alpha );',shallows+'\n          gl_FragColor = vec4( outgoingLight, alpha );');
   }
@@ -176,14 +188,14 @@ window.addHabitat = function addHabitat(THREE,scene,world,region) {
       const sw=region==='swiss', name=sw?'wp':'p', col=sw?'rgb':'base', norm=sw?'n':'nn';
       const anchor=sw?'vec2 vd=(wp.xz+4000.)/8000.;':'float haze=';
       if(!mat.fragmentShader.includes(anchor))continue;
-      Object.assign(mat.uniforms,marginUniforms,{beachScan:{value:loose}});
+      Object.assign(mat.uniforms,marginUniforms,{beachScan:{value:glacial?world.bankDepositMap:loose}});
       const layers=`
         if(d<250.){
           vec2 pos=${name}.xz;
           vec3 margin=marginAt(pos);float bank=-margin.x, gentle=smoothstep(.63,.94,${norm}.y);
           float beach=(1.-smoothstep(7.,37.,abs(bank)))*gentle;
           beach*=smoothstep(-1.2,.1,${name}.y)*(1.-smoothstep(2.8,11.,${name}.y));
-          vec3 gravel=texture2D(beachScan,pos*.40).rgb;
+          vec3 gravel=${glacial?'mendenhallDeposit(beachScan,pos,p.y,sun)':'texture2D(beachScan,pos*.40).rgb'};
           vec3 groundColor=gravel;
           float lightValue=clamp(dot(${col},vec3(.29,.58,.13))/.40,.51,1.42);
           float reach=washReach(pos,margin.z,habitatClock);
@@ -196,7 +208,7 @@ window.addHabitat = function addHabitat(THREE,scene,world,region) {
           ${col}=mix(${col},groundColor,(1.-smoothstep(42.,240.,d))*beach*.94);
         }
       `;
-      mat.fragmentShader=shoreMotion+'\nuniform sampler2D beachScan;\n'+mat.fragmentShader.replace(anchor,layers+anchor);
+      mat.fragmentShader=shoreMotion+(glacial?window.mendenhallSedimentGLSL:'')+'\nuniform sampler2D beachScan;\n'+mat.fragmentShader.replace(anchor,layers+anchor);
     }
   }
   const tileMap=new Map();

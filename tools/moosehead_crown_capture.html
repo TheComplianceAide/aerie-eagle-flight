@@ -8,15 +8,17 @@ const query=new URLSearchParams(location.search),region=query.get('region')||'al
 const T=THREE,scene=new T.Scene,r=new T.WebGLRenderer({antialias:true,preserveDrawingBuffer:true,alpha:true}),captureSize=192;
 r.setSize(captureSize,captureSize);document.body.appendChild(r.domElement);r.setClearColor(0x000000,0);
 window.aerieCanopyProfile=()=>({species:()=>({name:species,tint:[.94,.99,.92],shape:[1,.94,.71,.38,.035],family:'needle',aspect:1.06}),fillCell:()=>[]});
+window.mooseheadMatureCanopy=null;
 window.mooseheadSourceCell=(_name,variation)=>variation>>>28;
 const tr=Array.from({length:16},(_,i)=>{let x=i*243,z=50;while(true){const seed=(Math.imul(Math.round(x*4),73856093)^Math.imul(Math.round(z*4),19349663))>>>0,v=Math.imul(seed^(seed>>>16),0x45d9f3b)>>>0;if((v>>>28)===i&&v%13!==0)return {x,z,y:0,height:20,width:12};z++;}});
 const stream=makeCanopyStream(T,r,scene,{region,trees:tr,elevation:()=>0});
 const eye=new T.Vector3();let step=0;
 const ortho=new T.OrthographicCamera(-18,18,18,-18,.1,180);window.view=(which,ang,over)=>{
  scene.traverse(object=>{
-   if(object.material?.defines?.MAINE_NEEDLES){
-     delete object.material.defines.MAINE_NEEDLES;
-     object.material.needsUpdate=true;
+   const defines=object.material?.defines;
+   if(!defines)return;
+   for(const name of ['MAINE_NEEDLES','MAINE_CROWN','MAINE_PAPER_BIRCH']){
+     if(name in defines){delete defines[name];object.material.needsUpdate=true;}
    }
  });
  const t=tr[which];eye.set(t.x,10,t.z+7);for(let i=0;i<14;i++)stream.update(eye,(++step)*.13);

@@ -5,6 +5,20 @@ window.makeGameVision = function(T,world,button,layer) {
   const points=new T.Vector3();
   const compass=['N','NE','E','SE','S','SW','W','NW'];
   let active=false,nextScan=-Infinity,scan=[],nearest=[],lastRows='';
+  const touch=matchMedia('(pointer: coarse)'),labelSizes=new Map();
+  let touchControls=null,protectedBoxes=[],viewWidth=0,viewHeight=0;
+  function measureControls(){
+    if(!touchControls)touchControls=layer.closest('main').querySelectorAll('#flap,.perchControls button,#visionToggle,.gameReadout');
+    protectedBoxes=[];
+    const origin=layer.getBoundingClientRect();
+    for(const control of touchControls){
+      const box=control.getBoundingClientRect();
+      if(box.width&&box.height)protectedBoxes.push({left:box.left-origin.left-4,right:box.right-origin.left+4,top:box.top-origin.top-4,bottom:box.bottom-origin.top+4});
+    }
+  }
+  function hitsControl(left,top,right,bottom){
+    return protectedBoxes.some(b=>right>b.left&&left<b.right&&bottom>b.top&&top<b.bottom);
+  }
   function startFlight(wildlifeDeparture){
     let preference=null;
     try{preference=localStorage.getItem('aerie:gameVision');}catch{}
@@ -32,7 +46,11 @@ window.makeGameVision = function(T,world,button,layer) {
   }
   function update(player,camera,time) {
     if(!active||layer.closest('main').classList.contains('clearView'))return;
-    if(time<nextScan-.23||time>=nextScan){
+    const width=layer.clientWidth,height=layer.clientHeight;
+    if(!width||!height)return;
+    const scanDue=time<nextScan-.23||time>=nextScan;
+    const resized=width!==viewWidth||height!==viewHeight;
+    if(scanDue){
       const sightings=world.wildlife.nearby(player,400);
       const counts=new Map();nearest=[];scan=[];
       for(const a of sightings){
@@ -60,6 +78,9 @@ window.makeGameVision = function(T,world,button,layer) {
       }
       if(!rows.length){const row=document.createElement('li');row.textContent='No wildlife within 400 m';summary.append(row);}
     }
+    if(resized)labelSizes.clear();
+    if(touch.matches&&(scanDue||resized))measureControls();
+    viewWidth=width;viewHeight=height;
     const used=[],labeled=new Set();let count=0;
     for(const a of scan){
       if(labeled.has(a.name))continue;
@@ -67,10 +88,29 @@ window.makeGameVision = function(T,world,button,layer) {
       const actor=a.actor;
       points.set(actor?.x??a.x,actor?.y!==undefined?actor.y+a.bodyOffset:a.y,actor?.z??a.z).project(camera);
       if(points.z<=-1||points.z>=1||Math.abs(points.x)>.84||points.y<-.69||points.y>.73)continue;
-      const x=(points.x+1)*layer.clientWidth/2,y=(1-points.y)*layer.clientHeight/2;
+      const x=(points.x+1)*width/2,y=(1-points.y)*height/2;
       if(used.some(([ox,oy])=>Math.abs(ox-x)<130&&Math.abs(oy-y)<37))continue;
-      const pin=pins[count++];pin.hidden=false;pin.style.transform='translate('+x.toFixed(1)+'px,'+y.toFixed(1)+'px)';
-      pin.lastElementChild.textContent=a.name;used.push([x,y]);labeled.add(a.name);if(count===pins.length)break;
+      if(touch.matches&&hitsControl(x-5,y-5,x+5,y+5))continue;
+      const pin=pins[count],label=pin.lastElementChild;
+      if(label.textContent!==a.name)label.textContent=a.name;
+      pin.hidden=false;
+      let left=false;
+      if(touch.matches){
+        if(!labelSizes.has(a.name)){
+          const box=label.getBoundingClientRect();
+          labelSizes.set(a.name,{width:box.width,height:box.height});
+        }
+        const size=labelSizes.get(a.name),top=y-7-size.height,bottom=y-7;
+        if(x+6+size.width>width-4||hitsControl(x+6,top,x+6+size.width,bottom)){
+          if(x-6-size.width<4||hitsControl(x-6-size.width,top,x-6,bottom))continue;
+          left=true;
+        }
+      }
+      // The circle stays pinned to the animal even when its caption moves.
+      const right=left?'6px':'';
+      if(label.style.right!==right){label.style.left=left?'auto':'';label.style.right=right;}
+      pin.style.transform='translate('+x.toFixed(1)+'px,'+y.toFixed(1)+'px)';
+      count++;used.push([x,y]);labeled.add(a.name);if(count===pins.length)break;
     }
     for(let i=count;i<pins.length;i++)pins[i].hidden=true;
   }

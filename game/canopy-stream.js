@@ -41,7 +41,19 @@
       return mix(1.,lit*.25,smoothstep(.015,.1,margin));
     }`;
   const screenHash='fract(52.9829189*fract(dot(floor(gl_FragCoord.xy),vec2(.06711056,.00583715))))';
+  const branchCoverage=window.aerieCanopyBranchCoverage=`
+    float branchHash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+    float branchCoverage(vec3 local){
+      vec2 p=local.xz*8.+local.y*vec2(13.,-17.);
+      vec2 base=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+      float noise=mix(mix(branchHash(base),branchHash(base+vec2(1.,0.)),f.x),
+                      mix(branchHash(base+vec2(0.,1.)),branchHash(base+vec2(1.)),f.x),f.y);
+      return clamp((noise-.20)*1.34+.11*local.y,.001,.999);
+    }`;
   const vertex=`
+    #ifdef MAINE_CROWN
+    varying vec3 canopyLocal;
+    #endif
     uniform sampler2D envelope;
     uniform float envRows, clock, nativeRadius[9], lightSpan, useSurveyLight;
     uniform sampler2D terrainIllumination;
@@ -99,6 +111,9 @@
       mat2 yaw=mat2(cos(traits.y),sin(traits.y),-sin(traits.y),cos(traits.y));
       vec2 offset=yaw*localPosition.xz*width;
       wp=anchor+vec3(offset.x,h*traits.x,offset.y);
+      #ifdef MAINE_CROWN
+      canopyLocal=(wp-anchor)/traits.x;
+      #endif
       vec2 front=plantFront(anchor.xz);
       vec2 movement=plantMotion(anchor.xz,front,clock,.16);
       wp.xz+=movement*.23*traits.x*h*h;
@@ -120,6 +135,13 @@
       gl_Position=projectionMatrix*viewMatrix*vec4(wp,1.);
     }`;
   const sampleSurface=`
+    #ifdef MAINE_CROWN
+    varying vec3 canopyLocal;
+    ${branchCoverage}
+    #define COVERAGE_VALUE branchCoverage(canopyLocal)
+    #else
+    #define COVERAGE_VALUE ${screenHash}
+    #endif
     uniform sampler2D photo;
     uniform float canopyAlphaCut;
     varying float fadeLow;
@@ -161,7 +183,7 @@
     varying vec4 lighting;
     ${shadowGLSL}
     void main(){
-      if((foliage.a<.998||fadeLow>.0)&&(${screenHash}>=foliage.a||${screenHash}<fadeLow))discard;
+      if((foliage.a<.998||fadeLow>.0)&&(COVERAGE_VALUE>=foliage.a||COVERAGE_VALUE<fadeLow))discard;
       vec4 albedo=texture2D(photo,atlas(.005859375));
       if(barkUV.w>.5&&albedo.a<canopyAlphaCut)discard;
       vec3 n=normalize(wn)*(gl_FrontFacing?1.:-1.);
@@ -200,6 +222,21 @@
       #ifdef MAINE_NEEDLES
       c*=mix(vec3(.73,.72,.68),mix(vec3(.49,.72,.55),vec3(.75,.89,.76),lit),barkUV.w);
       #endif
+      #ifdef MAINE_PAPER_BIRCH
+      // Thin branch tips retain darker young bark. Papery white bark belongs
+      // to older boles and the thick inner branches.
+      float outer=smoothstep(.16,.69,lighting.y)*smoothstep(.26,.73,lighting.x);
+      float leader=smoothstep(.52,.94,lighting.x)*.77;
+      float twig=max(outer,leader);
+      c*=mix(vec3(1.),vec3(.36,.31,.27),twig*(1.-barkUV.w));
+      #endif
+      #ifdef MAINE_CROWN
+      // The outer leaf sprays see much more sky than the underside of a
+      // dense lakeshore crown, even where the terrain receives diffuse light.
+      float openSky=clamp(.13+.47*lighting.y+.41*lighting.x+.22*lit,0.,1.);
+      float branchShade=mix(.47,.97,openSky);
+      c*=mix(vec3(.83+.15*lit),vec3(.93,1.,.94)*branchShade,barkUV.w);
+      #endif
       float cosine=dot(n,sunVector),sky=.5+.5*n.y;
       float ao=mix(.62,1.,clamp(.51*lighting.x+.58*lighting.y,0.,1.));
       float transmission=barkUV.w*.18*max(0.,-cosine);
@@ -211,7 +248,7 @@
   const depthFragment=`
     ${sampleSurface}
     void main(){
-      if((foliage.a<.998||fadeLow>.0)&&(${screenHash}>=foliage.a||${screenHash}<fadeLow))discard;
+      if((foliage.a<.998||fadeLow>.0)&&(COVERAGE_VALUE>=foliage.a||COVERAGE_VALUE<fadeLow))discard;
       if(barkUV.w>.5&&texture2D(photo,atlas(.005859375)).a<canopyAlphaCut+.06)discard;
       gl_FragColor=vec4(1.);
     }`;
@@ -404,7 +441,7 @@
         shader.fragmentShader='uniform sampler2D regionalMask;uniform vec2 regionalMaskStart;uniform float regionalMaskOn;varying vec2 regionalRootXZ;\n'+shader.fragmentShader.replace(main,match=>match+`
           if(regionalMaskOn>.5){
             vec2 coverUV=(regionalRootXZ-regionalMaskStart)/${maskWorld.toFixed(1)};
-            if(all(greaterThan(coverUV,vec2(0.)))&&all(lessThan(coverUV,vec2(1.)))&&texture2D(regionalMask,coverUV).r>${screenHash})discard;
+            if(all(greaterThan(coverUV,vec2(0.)))&&all(lessThan(coverUV,vec2(1.)))&&texture2D(regionalMask,coverUV).r>${maine?'.5':screenHash})discard;
           }`);
       };
       material.customProgramCacheKey=()=>oldId+'-regional-canopy-'+rootExpression;
@@ -459,6 +496,7 @@
         const response=await fetch(urlFor('regional-vegetation.json'),{signal:ab.signal});
         if(!response.ok)throw Error('Regional vegetation index returned '+response.status);
         const catalog=(await response.json()).filter(row=>row.region===surveyRegion);
+        if(maine&&window.mooseheadMatureCanopy)catalog.push(window.mooseheadMatureCanopy);
         const packs=await Promise.all(catalog.map(async meta=>{
           try{
             const stem='regional/'+meta.id;
@@ -514,7 +552,7 @@
           for(const rec of models){
             const cell=rec.m;
             rec.m=nextModel+cell;rec.map=map;
-            modelSources.set(rec.m,{sheet:meta.id,cell,label:meta.cells[cell],family:meta.family});
+            modelSources.set(rec.m,{sheet:meta.id,cell,label:meta.cells[cell],family:meta.families?.[cell]||meta.family});
           }
           specimens.push(...models);nextModel+=meta.cells.length;loadedRegional.push(meta.id);
         }
@@ -527,8 +565,10 @@
           // filtering. Preserve crown mass as the player crosses each LOD.
           uniforms.canopyAlphaCut={value:regional?[.34,.27,.17][record.l]:.34};
           const defines=regional?{REGIONAL_SPECIMEN:1}:pilot?{MENDENHALL_SITKA:1}:{};
+          if(maine)defines.MAINE_CROWN=1;
+          if(maine&&(regional?.sheet==='moosehead-birch'||(regional?.sheet==='moosehead-mature'&&regional.cell===13)))defines.MAINE_PAPER_BIRCH=1;
           if(regional?.family==='broad')defines.REGIONAL_BROADLEAF=1;
-          if(maine&&['fir','spruce','cedar'].includes(regional?.family))defines.MAINE_NEEDLES=1;
+          if(maine&&['fir','spruce','cedar','pine','hemlock'].includes(regional?.family))defines.MAINE_NEEDLES=1;
           if(lakeCrowns&&record.l===2&&lakeCrowns.localSheets.includes(regional?.sheet)){
             let batch=lakeBatches.get(regional.sheet);
             if(!batch){
@@ -539,7 +579,7 @@
             allocated.push(g);continue;
           }
           if(canBatch&&regional&&record.l>0){
-            const id=regional.sheet+'/'+record.l;
+            const id=regional.sheet+'/'+record.l+(regional.sheet==='moosehead-mature'?(regional.cell===13?'/birch':regional.family==='broad'?'/leaf':'/needle'):'');
             let b=batchInputs.get(id);
             if(!b){
               const vs=(squall?'#define CANOPY_CALDERA\n'+squall.glsl:'')+wind.glsl+vertex;
@@ -618,7 +658,9 @@
       // Preserve a portion of the four original high-detail Mendenhall trees.
       // Species and dimensions come from the existing habitat or lidar record.
       const cell=maine&&window.mooseheadSourceCell?window.mooseheadSourceCell(s.name,variation,t.height):variation>>>28;
-      const model=authored&&(!pilot||variation%13!==0)?authored.base+cell
+      const mature=maine&&regionalSpecies.get('Mature Maine forest');
+      const matureCell=mature?window.mooseheadMatureCanopy.cellFor(s.name,variation,t.height):-1;
+      const model=matureCell>=0?mature.base+matureCell:authored&&(!pilot||variation%13!==0)?authored.base+cell
         :pilot?sitkaModel(seed,h):shrub?4:s.family==='needle'?1+((seed>>>8)%3):0;
       const env=new Uint8Array(45),phase=(seed%1039)*.0178;
       for(let ring=0;ring<5;ring++){
@@ -777,7 +819,11 @@
         if(counts[0]<capacity[0]&&d<(highLimit+(old?.lod===0?3:0)))lod=0;
         else if(counts[1]<capacity[1]&&d<(midLimit+(old?.lod===1?6:0)))lod=1;
         const outer=Math.min(far,capEdge),fadeDist=Math.max(9,outer*.18);
-        const wanted=1-rangeFade(outer-fadeDist,outer,d);
+        // Rather than leaving a whole crown permanently checkerboarded along a
+        // dense lake shore, stagger the boundary among stable stem locations.
+        // A crossing tree still blends briefly between levels in motion.
+        const reach=outer-fadeDist*((t.seed%997)/997);
+        const wanted=maine?(d<reach+(old?.opacity>.98?2:0)?1:0):1-rangeFade(outer-fadeDist,outer,d);
         if(wanted<.005)continue;
         const opacity=Math.min(wanted,(old?.opacity||0)+timeStep*2.9);
         if(opacity+.012<wanted)animating=true;

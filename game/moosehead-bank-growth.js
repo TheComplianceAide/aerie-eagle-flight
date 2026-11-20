@@ -1,13 +1,13 @@
 // Lake-edge thickets. Every spray grows from a woody branch in world space,
 // so viewing the bank from above, alongside or in reflection gives parallax.
-window.makeMooseheadBankGrowth=function(T,scene,{survey,ground,waterLevel,growth,roof,sun,sunMask,span,texture,clock}){
+window.makeMooseheadBankGrowth=function(T,scene,{survey,ground,waterLevel,growth,roof,nearTrees,sun,sunMask,span,texture,clock}){
   const bins=new Map(),patches=[],cover=new Map();
   let seed=310809;
   const random=()=>{seed=(Math.imul(1664525,seed)+1013904223)>>>0;return seed/4294967296;};
   const id=(x,z,w)=>Math.floor(x/w)+8192*Math.floor(z/w);
   const material=new T.ShaderMaterial({
     side:T.DoubleSide,alphaToCoverage:true,
-    uniforms:{atlas:{value:texture('moosehead-bank-sprays.webp')},groundLight:{value:sunMask},span:{value:span},clock,sun:{value:sun}},
+    uniforms:{atlas:{value:texture('moosehead-bank-sprays.webp')},foliage:{value:texture('moosehead-understory.webp')},groundLight:{value:sunMask},span:{value:span},clock,sun:{value:sun}},
     vertexShader:`attribute vec3 branch;attribute vec2 stem;uniform float clock,span;uniform sampler2D groundLight;
       varying vec2 st;varying float light,wood,dist;varying vec3 wn;
       void main(){vec3 wp=position;
@@ -15,20 +15,26 @@ window.makeMooseheadBankGrowth=function(T,scene,{survey,ground,waterLevel,growth
         wp.xz+=branch.x*gust*vec2(.031,.018);
         wn=normal;st=uv;wood=stem.x;light=texture2D(groundLight,.5+vec2(wp.x,-wp.z)/span).r*branch.z;
         dist=distance(wp,cameraPosition);gl_Position=projectionMatrix*viewMatrix*vec4(wp,1.);}`,
-    fragmentShader:`uniform sampler2D atlas;uniform vec3 sun;varying vec2 st;varying float light,wood,dist;varying vec3 wn;
+    fragmentShader:`uniform sampler2D atlas,foliage;uniform vec3 sun;varying vec2 st;varying float light,wood,dist;varying vec3 wn;
       void main(){
-        vec4 leaf=texture2D(atlas,st);
-        float coverage=wood>.5?1.:leaf.a;
+        vec4 leaf=wood>1.5?texture2D(foliage,st):texture2D(atlas,st);
+        bool isWood=wood>.5&&wood<1.5;
+        float coverage=isWood?1.:leaf.a;
         coverage*=1.-smoothstep(370.,590.,dist);
         if(coverage<.24)discard;
         vec3 n=normalize(wn);float diffuse=.45+.45*abs(dot(n,sun));
-        vec3 color=wood>.5?vec3(.26,.23,.18):leaf.rgb;
-        vec3 linear=pow(color,vec3(2.2))*(vec3(.38,.47,.55)+light*vec3(1.20,1.02,.81)*diffuse);
+        vec3 color=isWood?vec3(.26,.23,.18):leaf.rgb;
+        vec3 pigment=mix(color,vec3(dot(color,vec3(.24,.64,.12))),.20)*vec3(.89,.85,.90);
+        vec3 linear=pow(pigment,vec3(2.2))*(vec3(.18,.24,.30)+light*vec3(1.03,.91,.72)*diffuse);
         gl_FragColor=vec4(linear,smoothstep(.24,.62,coverage));
         #include <colorspace_fragment>
       }`
   });
-  const prototypes=Array.from({length:16},(_,cell)=>{
+  const solarHorizontal=sun.x*sun.x+sun.z*sun.z;
+  let placementSeed;
+  const prototypes=Array.from({length:32},(_,form)=>{
+    const cell=form%16;
+    if(form===16)placementSeed=seed;
     const positions=[],normals=[],uv=[],branch=[],stem=[],index=[];
     function vertex(p,n,u,v,b,w){
       positions.push(...p);normals.push(...n);uv.push(u,v);branch.push(b);stem.push(w);
@@ -67,10 +73,34 @@ window.makeMooseheadBankGrowth=function(T,scene,{survey,ground,waterLevel,growth
         spray(base,angle,r,lift,r*(evergreen?.68:.8),spec);
       }
     }
+    // Bow the photographed leaf mass into three stationary, intersecting
+    // surfaces around its true root. Actual branched sprays project through
+    // them. This keeps volume from above, below, and in lake reflections.
+    const companions=form<16?[4,7,6,5,0,3,1,2,5,6,7,4,8,9,11,15]:[4,5,6,7,10,2,1,3,5,6,7,4,12,13,14,15];
+    const shrub=companions[cell],low=shrub===1||shrub===2||shrub===11||shrub>=12;
+    const tall=low?.62:shrub>=4&&shrub<8?1.11:.91,wide=low?.68:shrub>=4&&shrub<8?.48:.67;
+    const rows=4,cols=4,twist=(cell*.399+form*.166)%6.28;
+    for(let sheet=0;sheet<3;sheet++){
+      const angle=twist+sheet*Math.PI*2/3,nx=Math.sin(angle),nz=Math.cos(angle),first=positions.length/3;
+      for(let j=0;j<=rows;j++)for(let i=0;i<=cols;i++){
+        const u=i/cols,v=j/rows,k=2*u-1;
+        const depth=.35*wide*(1.-k*k)*Math.sin(Math.PI*v);
+        const side=wide*k;
+        const x=nz*side+nx*depth+(v*v)*.065*Math.sin(twist);
+        const z=-nx*side+nz*depth+(v*v)*.065*Math.cos(twist);
+        const normal=[nx*.77+nz*k*.29,.46+v*.32,nz*.77-nx*k*.29];
+        vertex([x,-.04+v*tall,z],normal,((shrub%4)+.032+.936*u)/4,(3-Math.floor(shrub/4)+.032+.936*v)/4,v*tall,2);
+      }
+      for(let j=0;j<rows;j++)for(let i=0;i<cols;i++){
+        const a=first+j*(cols+1)+i;
+        index.push(a,a+1,a+cols+1,a+1,a+cols+2,a+cols+1);
+      }
+    }
     return {positions,normals,uv,branch,stem,index};
   });
+  seed=placementSeed;
   const rings=[survey.shore,...(survey.shoreHoles||[])];
-  for(const [ringIndex,ring] of rings.entries()){
+  for(const easternBay of [false,true])for(const [ringIndex,ring] of rings.entries()){
     if(!ring?.length)continue;
     let area=0,distance=0,next=3.7;
     for(let i=0;i<ring.length;i++){const a=ring[i],b=ring[(i+1)%ring.length];area+=a[0]*b[1]-b[0]*a[1];}
@@ -81,7 +111,9 @@ window.makeMooseheadBankGrowth=function(T,scene,{survey,ground,waterLevel,growth
       while(next<distance+len){
         const f=(next-distance)/len,bx=a[0]+dx*f,bz=a[1]+dz*f;
         next+=3.2+6.6*random();
-        if(Math.max(Math.abs(bx),Math.abs(bz))>5300)continue;
+        if(easternBay){
+          if(Math.min(Math.hypot(bx-11425,bz-199),Math.hypot(bx-15205,bz-9651))>1450)continue;
+        }else if(Math.max(Math.abs(bx),Math.abs(bz))>5300)continue;
         const nx=direction*dz/len,nz=-direction*dx/len;
         // Clumps alternate with exposed gravel and bedrock. The first and second
         // rows are staggered along the surveyed bank, with openings between stands.
@@ -117,19 +149,41 @@ window.makeMooseheadBankGrowth=function(T,scene,{survey,ground,waterLevel,growth
     patches.push({x:x/roots.length,z:z/roots.length,roots,mesh:null});
   }
   function build(p){
-    const vertices=p.roots.reduce((total,r)=>total+prototypes[r.cell].branch.length,0);
-    const faceIndices=p.roots.reduce((total,r)=>total+prototypes[r.cell].index.length,0);
+    const vertices=p.roots.reduce((total,r)=>total+prototypes[r.cell+(r.a>Math.PI?16:0)].branch.length,0);
+    const faceIndices=p.roots.reduce((total,r)=>total+prototypes[r.cell+(r.a>Math.PI?16:0)].index.length,0);
     const pos=new Float32Array(vertices*3),norm=new Float32Array(vertices*3),uv=new Float32Array(vertices*2);
     const branch=new Float32Array(vertices*3),stem=new Float32Array(vertices*2);
     const indices=vertices>65535?new Uint32Array(faceIndices):new Uint16Array(faceIndices);
     let first=0,offset=0;
     for(const r of p.roots){
-      const a=Math.cos(r.a),b=Math.sin(r.a),model=prototypes[r.cell];
+      const slopeX=Math.max(-1.5,Math.min(1.5,(ground(r.x+1,r.z)-ground(r.x-1,r.z))*.5));
+      const slopeZ=Math.max(-1.5,Math.min(1.5,(ground(r.x,r.z+1)-ground(r.x,r.z-1))*.5));
+      const horizon=Math.max(0,ground(r.x+sun.x*12,r.z+sun.z*12)-r.y-12*sun.y);
+      let sunlight=Math.max(.13,Math.min(1,1-horizon*.29));
+      // Cast a short solar ray through the adjacent real tree crowns. Leaf
+      // color is baked in diffuse light, so the shaded bank needs this canopy fill.
+      if(nearTrees){
+        for(let k=0;k<=3&&sunlight>.16;k++){
+          const along=k*11;
+          for(const t of nearTrees(r.x+along*sun.x,r.z+along*sun.z)){
+            const dx=t.x-r.x,dz=t.z-r.z,parallel=(dx*sun.x+dz*sun.z)/solarHorizontal;
+            if(parallel<-.3||parallel>48)continue;
+            const side=Math.hypot(dx-parallel*sun.x,dz-parallel*sun.z)/(Math.max(1,t.width)*.55);
+            const vertical=(r.y+r.h*.68+parallel*sun.y-(t.y+t.height*.66))/Math.max(1,t.height*.44);
+            const radius=side*side+vertical*vertical;
+            if(radius<1)sunlight=Math.min(sunlight,.14+.86*radius*radius);
+          }
+        }
+      }
+      const a=Math.cos(r.a),b=Math.sin(r.a),model=prototypes[r.cell+(r.a>Math.PI?16:0)];
       for(let k=0;k<model.positions.length;k+=3){
         const x=model.positions[k],y=model.positions[k+1],z=model.positions[k+2],v=first*3+k;
-        pos[v]=r.x+r.h*(a*x-b*z);pos[v+1]=r.y+r.h*y;pos[v+2]=r.z+r.h*(b*x+a*z);
+        const dx=r.h*(a*x-b*z),dz=r.h*(b*x+a*z);
+        pos[v]=r.x+dx;pos[v+2]=r.z+dz;
+        const foot=Math.max(0,1-y/.55);
+        pos[v+1]=r.y+r.h*(y-.065)+foot*foot*(dx*slopeX+dz*slopeZ);
         const nx=model.normals[k],nz=model.normals[k+2];norm[v]=a*nx-b*nz;norm[v+1]=model.normals[k+1];norm[v+2]=b*nx+a*nz;
-        branch[v]=model.branch[k/3]*r.h;branch[v+1]=r.a;branch[v+2]=r.shade;stem[2*(first+k/3)]=model.stem[k/3];
+        branch[v]=model.branch[k/3]*r.h;branch[v+1]=r.a;branch[v+2]=r.shade*sunlight;stem[2*(first+k/3)]=model.stem[k/3];
       }
       uv.set(model.uv,2*first);for(const i of model.index)indices[offset++]=i+first;
       first+=model.branch.length;

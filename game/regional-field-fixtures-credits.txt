@@ -1,0 +1,28 @@
+REGIONAL STRUCTURAL ATTACHMENTS
+
+The building, path and pier positions below are mapped. Individual brick returns, coping fragments, granite steps and timber fittings are inferred. The native scene supplies the surveyed ground and modeled support heights.
+
+Keene, New Hampshire. The coordinate keys identify the same measured wall ends used by the downtown storefront renderer. The brick and stone returns face the existing Central Square and Main Street sidewalks. The footprint and elevation data are from City of Keene GIS, with supplementary Microsoft US Building Footprints. The building photographs and municipal source acknowledgements remain in credits.txt.
+https://keenenh.gov/online-services/gis-and-mapping-services/
+
+Dixville Notch, New Hampshire. The field attachments follow the modeled Dix House lake verandah plinth, Hale House foundations and Lake Gloriette boathouse cap. Positions reference registered resort and access footprints, © OpenStreetMap contributors, ODbL 1.0. Native details and elevations follow the existing architecture and USGS survey. The Library of Congress Highsmith exterior informs the reconstructed verandah.
+https://www.loc.gov/item/2011631982/
+https://www.openstreetmap.org/copyright
+
+Yosemite Valley, California. Upper Yosemite Fall Trail switchbacks start at Camp 4. Weathered steps and returns follow the first 475 metres of the mapped path. Additional granite margins sit beside the east and west Lower Yosemite Fall approaches. The National Park Service describes the historic upper trail and steps, an accessible lower route and a site-specific project for granite trail borders. The rendering leaves the lower route's paved centre clear. The actual locations of the individual stone fragments are inferred.
+https://www.nps.gov/places/000/upper-yosemite-fall-trailhead.htm
+https://www.nps.gov/yose/blogs/litter-carryout-on-yosemite-falls-trail.htm
+https://www.nps.gov/places/000/lower-yosemite-fall-trailhead.htm
+https://parkplanning.nps.gov/projectHome.cfm?ProjectID=45906
+https://www.openstreetmap.org/way/162322353
+https://www.openstreetmap.org/way/440834750
+https://www.openstreetmap.org/way/486796050
+
+Hamnøy, Moskenes, Norway. Three mapped piers in the working fishing village provide the dock alignments. The short southern berth and bent northern berth carry the floating access tag. The larger landing is modeled on piles. Board spacing, widths, deck levels, timber finishes and individual fittings are visual reconstructions. The native ground and water datum determine the joins and deck freeboard. Existing timber photography is credited in credits.txt. The site operator documents the village's fishing and landing history.
+https://rorbuer.no/history/
+https://www.openstreetmap.org/way/171960198
+https://www.openstreetmap.org/way/917939712
+https://www.openstreetmap.org/way/918014847
+
+Path and pier cartographic coordinates are adapted from OpenStreetMap, © OpenStreetMap contributors under the Open Data Commons Open Database License 1.0. The transformed coordinates are available in regional-field-fixtures.js. The game uses northing/easting from NAD83 / WGS84 UTM zone 11N (Yosemite) and ETRS89 / WGS84 UTM zone 33N (Lofoten), rounded to the native world survey origins.
+https://www.openstreetmap.org/copyright

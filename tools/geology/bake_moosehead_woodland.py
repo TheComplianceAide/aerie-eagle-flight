@@ -53,6 +53,25 @@ for cx,cz in zip(xx[select],zz[select]):
         stature=np.clip((13+c*.066+rng.normal(0,3.3))*.95,4,27)
         width=stature*(rng.uniform(.31,.49) if evergreen else rng.uniform(.54,.82))
         record.append((round(x0),round(z0),round(stature*8),round(width*8),int(evergreen),int(rng.integers(0,256))))
+# The two eastern bays are outside the dense central forest. A single
+# distant representative clump every few hundred metres leaves the main
+# shoreline bare when approached. Give these two 1.9 km NAIP footprints
+# a real stand structure. Roots remain stable across all distances.
+for cx,cz in [(11425,199),(15205,9651)]:
+    center_x,center_z=(cx+32000)/31.25,(cz+32000)/31.25
+    for row in range(int(center_z)-65,int(center_z)+66):
+        for col in range(int(center_x)-65,int(center_x)+66):
+            canopy=cover[row,col]/100
+            if canopy<.19 or h[row,col]<312.8:continue
+            taper=np.clip((1950-max(abs(col-center_x),abs(row-center_z))*31.25)/350,0,1)
+            cluster=.75+.25*np.cos(row*.36+np.sin(col*.57))+.15*np.sin(row*.88-col*.41)
+            stems=rng.poisson(4.6*canopy**1.25*cluster*taper)
+            for _ in range(stems):
+                x0=(col+rng.random())*31.25-32000;z0=(row+rng.random())*31.25-32000
+                evergreen=rng.random()<({42:.88,41:.10,90:.56}.get(int(land[row,col]),.46))
+                stature=np.clip(9+canopy*9+rng.normal(0,3.8),4,26)
+                width=stature*(rng.uniform(.33,.54) if evergreen else rng.uniform(.51,.84))
+                record.append((round(x0),round(z0),round(stature*8),round(width*8),int(evergreen),int(rng.integers(0,256))))
 with (args.output/'moosehead-woodland.bin').open('wb') as out:
     out.write(struct.pack('<4sII',b'MWC1',len(field),len(record)));out.write(field.tobytes())
     for r in record:out.write(struct.pack('<hhBBBB',*r))

@@ -487,7 +487,7 @@
       if(hydrography?.shore){
         world.shorelines=[hydrography.shore,...(hydrography.shoreHoles||[])].map(ring=>ring.map(([x,z])=>({x,z})));
       }
-      if(window.aerieRegionalRelease(region))geology=window.makeRegionalGeology(THREE,scene,world);
+      geology=window.makeRegionalGeology(THREE,scene,world);
       const perchHabitat=window.makePerchHabitat(THREE,scene,world,region);
       world.habitat=perchHabitat;
       perchRoute=window.makePerchRoute(THREE,world,region);
@@ -505,8 +505,8 @@
       updateMist=window.addValleyMist?.(THREE,scene,world);
       eagle=makeEagle(THREE);scene.add(eagle.object);
       el("viewport").replaceChildren(renderer.domElement);resize();
-      if(window.aerieRegionalRelease(region))world.regionalFieldScenery=fieldScenery=window.makeRegionalFieldScenery(THREE,scene,world);
-      loadPromise=Promise.all([assets,world.ready,eagle.ready,geology?.ready,fieldScenery?.ready]);
+      world.regionalFieldScenery=fieldScenery=window.makeRegionalFieldScenery(THREE,scene,world);
+      loadPromise=Promise.all([assets,world.ready,eagle.ready,geology.ready,fieldScenery.ready]);
       await loadPromise;
       if(region==='milford'){
         const falls=world.landmarks.find(mark=>mark.name==='Bowen Falls'&&mark.falls);

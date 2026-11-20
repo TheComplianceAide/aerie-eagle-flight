@@ -461,6 +461,7 @@ class Water extends Mesh {
   const ridgeRock=map('cliff-strata.jpg',true), ridgeNormal=map('cliff-strata-normal.jpg',true);
   const alpineRelief=map('alaska-alpine-relief.webp');
   const shoreAtlas=map('mendenhall-shore.webp');
+  const bankDepositMap=map('mendenhall-foreland.webp');
   const fieldGround=map('field-ground-scans.webp');
   const ground=new THREE.ShaderMaterial({uniforms:{groundScan:{value:fieldGround},alpineRelief:{value:alpineRelief},ridgeRock:{value:ridgeRock},ridgeNormal:{value:ridgeNormal},lightMap:{value:terrainLight},iceDetail:{value:iceDetail},blueIce:{value:blueIce},face:{value:glacierFace},mountain:{value:mountain},localPhoto:{value:outerPhoto},photoRect:{value:new THREE.Vector4(-18000,-18000,36000,0)},outerPhoto:{value:outerPhoto},snow:{value:snow},earth:{value:earth},sun:{value:sun}},
     vertexShader:`varying vec3 p,n;void main(){p=position;n=normal;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
@@ -468,6 +469,7 @@ class Water extends Mesh {
     uniform sampler2D groundScan,alpineRelief,ridgeRock,ridgeNormal;uniform vec4 photoRect;varying vec3 p,n;uniform sampler2D lightMap,iceDetail,blueIce,face,mountain,localPhoto,outerPhoto,snow,earth;uniform vec3 sun;
 
 #ifdef MENDENHALL_BANK
+    ${window.mendenhallSedimentGLSL}
     // A real shoreline mask limits each surface to the visitor-side coves.
     // Only this ice-free tile reuses the glacier face sampler for the bank.
     vec3 bankPhoto(vec2 meterUV,vec2 tile){
@@ -497,7 +499,7 @@ class Water extends Mesh {
       float drift=.5+.28*sin(pos.x*.113-pos.z*.057)+.19*sin(pos.z*.196+pos.x*.041);
       vec3 bed=mix(bankPhoto(groundUV*.264+vec2(.27,.33),vec2(0.,1.)),
                    bankPhoto(groundUV*vec2(.125,.196)+vec2(1.3,-.3),vec2(0.,1.)),.26+.27*drift);
-      vec3 cobbles=mix(bankPhoto(groundUV*.465,vec2(0.)),bankPhoto(dip*groundUV*.277+.39,vec2(0.)),.22+.39*drift);
+      vec3 cobbles=mendenhallDeposit(blueIce,pos.xz,pos.y,sun);
       // Preserve the survey's broad terrain colour and contact shading. Wet
       // fines darken only at the surveyed waterline, leaving dry gravel pale.
       float broad=clamp(.82+.51*dot(color,vec3(.24,.6,.16)),.80,1.10);
@@ -749,7 +751,7 @@ class Water extends Mesh {
       const fallsPatch=x===0&&z===0;
       const steps=fallsPatch?300:westCrest?300:icePatch?240:Math.max(Math.abs(x+600),Math.abs(z+600))<6250?120:75;
       if((x===0||x===-1200)&&z===1200){
-        const bank=new THREE.ShaderMaterial({uniforms:{...material.uniforms,face:{value:shoreAtlas}},defines:{MENDENHALL_BANK:1},vertexShader:material.vertexShader,fragmentShader:material.fragmentShader});
+        const bank=new THREE.ShaderMaterial({uniforms:{...material.uniforms,face:{value:shoreAtlas},blueIce:{value:bankDepositMap}},defines:{MENDENHALL_BANK:1},vertexShader:material.vertexShader,fragmentShader:material.fragmentShader});
         for(let row=0;row<4;row++)for(let col=0;col<4;col++){
           const west=x+col*300,north=z+row*300;
           const divisions=x<0?(col===3&&row===1?150:30):col===0&&row===1?150:col===0&&row===0?60:30;
@@ -1125,7 +1127,7 @@ class Water extends Mesh {
     mesh.onBeforeRender=(renderer,scene,camera)=>{material.uniforms.linearOutput.value=!!camera.userData.lakeReflection;};
   });
   const sunMask=map('alaska-tree-light.webp');
-  return {region:"alaska",localPerchStone,windTerrainHeight,treeGrid:{cells,size:48,cell},waterfalls,forestLightSpan:14400,elevation,clearance,height,trees,sunMask,sunDirection:sun,skyTexture:skyMap,waterLevel:0,lakeLevel:0,lakePolygon:shore,altitudeOffset:18,spawn:lakeLaunch,
+  return {region:"alaska",bankDepositMap,localPerchStone,windTerrainHeight,treeGrid:{cells,size:48,cell},waterfalls,forestLightSpan:14400,elevation,clearance,height,trees,sunMask,sunDirection:sun,skyTexture:skyMap,waterLevel:0,lakeLevel:0,lakePolygon:shore,altitudeOffset:18,spawn:lakeLaunch,
     launches:{lake:lakeLaunch,ridge,shore:shoreLaunch,spruce:{x:173,y:26,z:1630,yaw:.38,lookDown:12},spray:sprayPass,spur:{x:612,y:68.4704,z:977,yaw:-.08159},alpine:{x:-2900,z:-2010,y:elevation(-2900,-2010)+58,yaw:-.28}},bounds:{minX:-6890,maxX:6890,minZ:-6890,maxZ:6890},
     landmarks:[{name:'West alpine crest',x:-2900,z:-2010},{name:'Upper crevasse field',x:1500,z:-4130},{name:'Blue Ice Passage',x:-116,z:-1010},{name:'Nugget Falls beach',x:473,z:927},{name:'Medial moraine',x:632,z:-2450},{name:'Mendenhall Glacier',x:40,z:-1400},{name:'Nugget Falls',x:518,z:658},{name:'Mendenhall Lake',x:-700,z:680},{name:'West Glacier Ridge',x:-860,z:-1890}],
     update(dt,time,player){updateTerrainLOD(player);updateLedges(player);updateShore(player);clock.value=time;lake.material.uniforms.time.value=time*.72;}

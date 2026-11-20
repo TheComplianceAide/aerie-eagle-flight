@@ -1,0 +1,47 @@
+REGIONAL MINERAL AND SHORE SPECIMENS
+
+OpenAI ImageGen source images were separately generated from local geology, morphology and weathering descriptions. Each of the 40 sheets contains 16 labeled source identities in the manifests. Contour, visible texture and apertures come from the isolated source image. Hidden sides, scale within a size class and individual positions are reconstructed. Specimens and their deposits depict mapped units, transported rock and plausible local shore habitats. Site-specific measurements and independent licensing for the Kineo surfaces and the Mendenhall shore are in kineo-credits.txt and ../mendenhall-geology-credits.txt.
+
+Regional geology references
+
+Juneau field guide, Mendenhall section
+https://www.geosociety.org/documents/gsa/penconf/2019/2019-penrose-field-guide.pdf
+
+Lake Oeschinen sediment and rockfall study
+https://agupubs.onlinelibrary.wiley.com/doi/10.1029/2017JF004455
+
+Glen Canyon geologic inventory
+https://irma.nps.gov/DataStore/FileSource/Get/2231837?filename=glca_gri_rpt_view.pdf
+
+Maine’s Moosehead region management plan, part II
+https://www.maine.gov/dacf/parks/get_involved/planning_and_acquisition/management_plans/docs/MooseheadMgmtPlan-FINAL-Part2_reduced.pdf
+
+Weirs point query
+https://gis.des.nh.gov/server/rest/services/Projects_NHGS/NH_NHGS_Geology/MapServer/7/query?where=1%3D1&geometry=-71.459%2C43.606&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=name%2Clithology&returnGeometry=false&f=pjson
+
+Alton Bay point query
+https://gis.des.nh.gov/server/rest/services/Projects_NHGS/NH_NHGS_Geology/MapServer/7/query?where=1%3D1&geometry=-71.232%2C43.469&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=name%2Clithology&returnGeometry=false&f=pjson
+
+Army Corps dam description
+https://www.nae.usace.army.mil/Missions/Civil-Works/Flood-Risk-Management/New-Hampshire/Surry/
+
+Table Rock point query
+https://gis.des.nh.gov/server/rest/services/Projects_NHGS/NH_NHGS_Geology/MapServer/7/query?where=1%3D1&geometry=-71.30341%2C44.86227&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=name%2Clithology&returnGeometry=false&f=pjson
+
+Géologie Québec, Anorthosite de Berté
+https://gq.mines.gouv.qc.ca/lexique-stratigraphique/province-de-grenville/anorthosite-de-berte/
+
+National Park Service, Yosemite granite
+https://www.nps.gov/yose/learn/nature/granite.htm
+
+USGS Mount Mazama field guide
+https://pubs.usgs.gov/sir/2017/5022/j1/sir2017-5022J1.pdf
+
+Geological Survey of Norway, Moskenesøya map and field descriptions
+https://static.ngu.no/FIleArchive/NGUPublikasjoner/NGUnr_270_Green_47_76.pdf
+
+GNS Science, northern Fiordland geology
+https://shop.gns.cri.nz/sr_2006-036-pdf/
+
+Geological map of New Zealand
+https://www.gns.cri.nz/data-and-resources/geological-map-of-new-zealand/
