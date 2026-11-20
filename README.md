@@ -51,9 +51,13 @@ Hold Up or W at low airspeed to start a powered climb. A dive tucks the wings. P
 
 Powered strokes vary with airspeed. Their low-speed cadence draws on a field study of six wild bald eagles, which averaged 2.53 wingbeats per second. The wrist flex and feet-first flare draw on high-speed recordings of a steppe eagle. [Bald eagle field measurements, p. 27](https://raptorresearchfoundation.org/wp-content/uploads/2023/02/conference_program_2017.pdf#page=29) · [Steppe eagle perching study](https://www.biology.ox.ac.uk/publication/209686/pubmed)
 
+Each wing samples the wind over its own lifting surface. A gust can lift one side first, tilt the tail and roll the eagle before it trims back. A sharp loss of load can briefly drop both wings. The head holds a sightline through the bank, looks into turns, and can follow a visible bird or surfacing fish on a quiet glide. In a low-speed climb the tail opens and pitches against each strong wingbeat. On an exposed approach, the eagle can dip under a branch, flare up to it, and push off through its legs. Watch a perched eagle turn from chase view to see it lift one foot while the other holds the branch.
+
+The Chamonix bird-mounted footage was the visual reference for the shoulder view. Gust timing draws on flight recorders from a steppe eagle. The timing of short head turns and the shape of the final approach also draw on openly licensed 3D recordings of Harris’s hawks. The model adapts these observations to the player’s eagle, terrain and wind. [Bald eagle over Chamonix](https://www.youtube.com/watch?v=bceztrkJuVk) · [Steppe eagle gust study and recorder data](https://pmc.ncbi.nlm.nih.gov/articles/PMC4223896/) · [Open head-tracking data](https://doi.org/10.17617/3.LVTWX0) · [Open perching trajectories](https://doi.org/10.6084/m9.figshare.16529328)
+
 Dark patches of rough water travel downwind. A circling bird on open wings marks a thermal. Bank into its circle to use the same rising air. These cues are visible from either camera.
 
-Cloud banks drift across all thirteen ranges. Their shadows follow the ridges, forest and water, and narrow mist banks drift with the local wind. In Alaska, choose [Nugget Falls spray pass](https://aerie-valley-flight.randyb308826.chatgpt.site/#world=alaska&launch=spray) to fly alongside the cascade. Fine spray blows off the ledges while larger drops fall back into the chute.
+Cloud banks drift across all fourteen ranges. Their shadows follow the ridges, forest and water, and narrow mist banks drift with the local wind. In Alaska, choose [Nugget Falls spray pass](https://aerie-valley-flight.randyb308826.chatgpt.site/#world=alaska&launch=spray) to fly alongside the cascade. Fine spray blows off the ledges while larger drops fall back into the chute.
 
 ## Scenery and credits
 

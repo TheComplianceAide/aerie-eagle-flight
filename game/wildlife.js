@@ -292,6 +292,31 @@ window.addRegionalWildlife=function(T,scene,w){
     }
     return out?{x:out.x,y:out.y,z:out.z,actor:out}:null;
   }
+  // Only animals drawn in the preceding frame can attract a passing eagle.
+  // A rising fish is visible at the disturbance; the deeper school is concealed.
+  const visibleSubjects=[];
+  function sighting(s,last){
+    const heading=s.yaw+(s.yawSlip||0),forwardX=-Math.sin(heading),forwardZ=-Math.cos(heading);
+    let best=null,bestScore=0;
+    for(const a of visibleSubjects){
+      if(a===last)continue;
+      const dx=a.x-s.x,dy=a.y-s.y,dz=a.z-s.z,along=dx*forwardX+dz*forwardZ;
+      const r2=dx*dx+dz*dz+dy*dy;
+      if(along<4||along*along<.43*r2||r2>Math.min(115,95*a.length)**2)continue;
+      const score=a.length*(.7+.3*along/Math.sqrt(r2))/Math.sqrt(r2);
+      if(score>bestScore){best=a;bestScore=score;}
+    }
+    if(best){
+      // Screen a short sightline above the actual shore/canopy. An actor on a
+      // ledge behind the crest should never pull the head through the mountain.
+      const floor=w.clearance||w.height;
+      for(let i=1;i<=8;i++){
+        const t=i/9,x=s.x+(best.x-s.x)*t,z=s.z+(best.z-s.z)*t;
+        if(floor(x,z)>s.y+(best.y-s.y)*t+.04)return null;
+      }
+    }
+    return best;
+  }
   function update(player,t){
     prepare();if(reservoir)reservoir.value=t;
     const dt=lastTime<0?0:clamp(t-lastTime,0,.15);lastTime=t;
@@ -303,6 +328,7 @@ window.addRegionalWildlife=function(T,scene,w){
       if(!sites.has(key)&&Math.hypot(player.x-resident.x,player.z-resident.z)>195&&player.y-h.surface(player.x,player.z)<230)
         makeSite(key,ix*310,iz*310,false);
     }
+    visibleSubjects.length=0;
     models.begin(t);
     for(const site of sites.values()){
       if(Math.hypot(player.x-site.x,player.z-site.z)>570)continue;
@@ -327,14 +353,20 @@ window.addRegionalWildlife=function(T,scene,w){
         }
       }
       for(const f of site.flocks)for(const a of f.group)
-        if(Math.hypot(player.x-a.x,player.y-a.y,player.z-a.z)<Math.max(85,360*a.length)&&a.behavior!=='diving')models.draw(a);
+        if(Math.hypot(player.x-a.x,player.y-a.y,player.z-a.z)<Math.max(85,360*a.length)&&a.behavior!=='diving'){
+          models.draw(a);visibleSubjects.push(a);
+        }
       for(const school of site.schools){
         if(Math.hypot(player.x-school.home.x,player.y-school.home.y,player.z-school.home.z)>90)continue;
-        fish.update(school,player,t,dt);for(const a of school.members)models.draw(a);
+        fish.update(school,player,t,dt);
+        for(const a of school.members){
+          models.draw(a);
+          if(t-a.lastSwirl<.75&&a.level-a.y<.42*a.length)visibleSubjects.push(a);
+        }
       }
     }
     ripples.update(player,t);
     models.end();
   }
-  w.wildlife={nearest,waterAt,sites,prepare,fish:fish.roster};return update;
+  w.wildlife={nearest,sighting,inSight:a=>visibleSubjects.includes(a),waterAt,sites,prepare,fish:fish.roster};return update;
 };

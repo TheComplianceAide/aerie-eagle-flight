@@ -2,6 +2,8 @@
 window.makeFlightPointer = function ({surface, cue, currentStage, pick, pan}) {
   const input = {x:0, y:0};
   let contact = null;
+  let awaitingMouseMotion = true;
+  let firstMouseX, firstMouseY;
   function neutral() {
     input.x = input.y = 0;
     cue.hidden = true;
@@ -9,6 +11,8 @@ window.makeFlightPointer = function ({surface, cue, currentStage, pick, pan}) {
   function clear() {
     const id = contact?.id;
     contact = null;
+    awaitingMouseMotion = true;
+    firstMouseX = firstMouseY = undefined;
     if (id != null && surface.hasPointerCapture(id)) surface.releasePointerCapture(id);
     neutral();
   }
@@ -50,6 +54,16 @@ window.makeFlightPointer = function ({surface, cue, currentStage, pick, pan}) {
       }
     }
     if (stage==='free' && e.pointerType==='mouse') {
+      // WebKit can retarget the stationary launch-button pointer to the canvas
+      // as the menu disappears. Wait for movement before applying a flight input.
+      if (awaitingMouseMotion) {
+        const changedPosition = firstMouseX !== undefined &&
+          (e.clientX !== firstMouseX || e.clientY !== firstMouseY);
+        firstMouseX = e.clientX;
+        firstMouseY = e.clientY;
+        if (!e.movementX && !e.movementY && !changedPosition) return;
+        awaitingMouseMotion = false;
+      }
       const rect=surface.getBoundingClientRect(), cx=rect.width/2, cy=rect.height/2;
       steer(e.clientX-rect.left-cx,e.clientY-rect.top-cy,cx*.85,cy*.82,.065);
       showCue(rect.left+cx,rect.top+cy,'mouse');

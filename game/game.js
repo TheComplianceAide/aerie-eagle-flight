@@ -26,6 +26,7 @@
   let perchNotice="",perchNoticeUntil=0,nextPerchHUD=0;
   let dynamics, elapsed, distance, nextReadout, noticeUntil, accumulator;
   let landmarkLook=null,landmarkLookUntil=0;
+  let subject=null,previousSubject=null,subjectUntil=0,nextSighting=0;
   let cameraPerched=null,cameraBlend=1,previousOffset,previousRotation,transitionOffset,transitionRotation;
   let updateTalus, updateForest, updateHabitat, updateUnderstory, updateMist;
   let frameSeconds=0, frameCount=0, fastWindows=0;
@@ -44,10 +45,10 @@
     const halfDensityAreaOverMass = .075;
     const s = {
       x: spawn.x, y: spawn.y, z: spawn.z, yaw: spawn.yaw || 0, bank: 0, rollRate: 0,
-      airspeed: 17.5, path: -.062, alpha: .047, pitch: 0, phase: 0, effort: 0,
+      airspeed: 17.5, indicatedAirspeed: 17.5, path: -.062, alpha: .047, pitch: 0, phase: 0, effort: 0,
       loadFactor: 1, stall: 0, tuck: 0, climb: 0, verticalSpeed: -1,
       wingExtension: .94, brakeSpread: 0, turnTrim: 0, strokeBeat: 0,
-      wingLoadLeft: 0, wingLoadRight: 0, wingGustTuck: 0,
+      wingLoadLeft: 0, wingLoadRight: 0, wingGustTuck: 0, yawSlip: 0, tailTwist: 0,
       ridge: 0, thermal: 0, gust: 0, lift: 0, distance: 0, elapsed: 0, mode: "Gliding", contact: false
     };
     const floor = terrain.flightClearance || terrain.clearance || terrain.height;
@@ -56,12 +57,13 @@
       x:p.x + Math.cos(i*1.93)*90, z:p.z + Math.sin(i*1.93)*90
     }));
     let nextAirSample=0, hazard=-1, recovery=false, wingCycle=false, returnBank=null;
-    let poweredClimb=false, strokeLift=0;
+    let poweredClimb=false, strokeLift=0, cruiseHeadwind=0;
     const smooth = (a,b,x) => {const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t);};
     const air={windX:2.4,windZ:-1.25,gust:0,gustLift:0};
     const leftAir={}, rightAir={};
     let lastWingSample=-Infinity, lastCenterSample=-Infinity, trimWindX=0, trimWindY=0, trimWindZ=0;
     let leftPressure=0, rightPressure=0, peakLoad=0, tuckDepth=0, tuckStarted=-Infinity;
+    let crossFlowAngle=0, slipRate=0, relativeSpeedChange=0;
 
     function senseWings(dt) {
       const field=terrain.windField;
@@ -69,7 +71,7 @@
       if(field && spread>.04 && s.elapsed-lastWingSample>=1/40-1e-7){
         const sampleDt=s.elapsed-lastWingSample;
         lastWingSample=s.elapsed;
-        const sinYaw=Math.sin(s.yaw),cosYaw=Math.cos(s.yaw);
+        const heading=s.yaw+s.yawSlip, sinYaw=Math.sin(heading),cosYaw=Math.cos(heading);
         const sinBank=Math.sin(s.bank),cosBank=Math.cos(s.bank);
         const sinPitch=Math.sin(s.pitch),cosPitch=Math.cos(s.pitch);
         // Sample each lifting hand in world coordinates. The model is 2.2 m
@@ -88,34 +90,46 @@
         field.sample(s.x+dx,s.y+dy,s.z+dz,s.elapsed,rightAir,air);
         const leftUp=leftAir.ridge+leftAir.thermal+leftAir.gustLift+(leftAir.eddyLift||0);
         const rightUp=rightAir.ridge+rightAir.thermal+rightAir.gustLift+(rightAir.eddyLift||0);
+        const leftX=leftAir.windX+(leftAir.eddyX||0),leftZ=leftAir.windZ+(leftAir.eddyZ||0);
+        const rightX=rightAir.windX+(rightAir.eddyX||0),rightZ=rightAir.windZ+(rightAir.eddyZ||0);
+        const meanX=.5*(leftX+rightX),meanZ=.5*(leftZ+rightZ);
         // The wings trim to a sustained moving air mass. Rapid changes and
         // spanwise shear produce a local lift increment (in units of weight).
         const acclimate=sampleDt>.25?1:easing(1.7,sampleDt);
-        trimWindX+=((leftAir.windX+rightAir.windX)*.5-trimWindX)*acclimate;
+        trimWindX+=(meanX-trimWindX)*acclimate;
         trimWindY+=((leftUp+rightUp)*.5-trimWindY)*acclimate;
-        trimWindZ+=((leftAir.windZ+rightAir.windZ)*.5-trimWindZ)*acclimate;
+        trimWindZ+=(meanZ-trimWindZ)*acclimate;
+        const crossFlow=(meanX-trimWindX)*Math.cos(s.yaw)-(meanZ-trimWindZ)*Math.sin(s.yaw);
+        crossFlowAngle=Math.atan2(crossFlow,Math.max(4,s.airspeed));
+        // Velocity relative to the local gust differs from velocity through
+        // the slowly entrained air parcel that carries the bird's momentum.
+        const horizontal=s.airspeed*Math.cos(s.path);
+        relativeSpeedChange=Math.hypot(-Math.sin(s.yaw)*horizontal+trimWindX-meanX,
+          s.airspeed*Math.sin(s.path)+trimWindY-.5*(leftUp+rightUp),
+          -Math.cos(s.yaw)*horizontal+trimWindZ-meanZ)-s.airspeed;
         const nx=-cosYaw*sinBank+sinYaw*sinPitch*cosBank;
         const ny=cosPitch*cosBank,nz=sinYaw*sinBank+cosYaw*sinPitch*cosBank;
         const area=.28+.72*s.wingExtension;
         const liftSlope=4.75*halfDensityAreaOverMass*area*Math.max(3,s.airspeed)/gravity;
-        const pressure=(flow,up)=>{
-          const wx=flow.windX-trimWindX, wy=up-trimWindY, wz=flow.windZ-trimWindZ;
+        const pressure=(flowX,up,flowZ)=>{
+          const wx=flowX-trimWindX, wy=up-trimWindY, wz=flowZ-trimWindZ;
           const normalFlow=wx*nx+wy*ny+wz*nz;
           const headwind=(wx*sinYaw+wz*cosYaw)*cosPitch-wy*sinPitch;
           return spread*clamp(liftSlope*normalFlow+2*headwind/Math.max(3,s.airspeed),-1,1);
         };
-        leftPressure=pressure(leftAir,leftUp);
-        rightPressure=pressure(rightAir,rightUp);
+        leftPressure=pressure(leftX,leftUp,leftZ);
+        rightPressure=pressure(rightX,rightUp,rightZ);
       }else if(!field || spread<=.04){
         lastWingSample=-Infinity;
         leftPressure=rightPressure=0;
-        peakLoad=0;
+        crossFlowAngle=peakLoad=relativeSpeedChange=0;
       }
       // Compliance responds before corrective trim. Sustained, uniform wind
       // produces no oscillation; each side has to encounter a change in flow.
       const compliance=easing(25,dt);
       s.wingLoadLeft+=(leftPressure-s.wingLoadLeft)*compliance;
       s.wingLoadRight+=(rightPressure-s.wingLoadRight)*compliance;
+      s.indicatedAirspeed=Math.max(0,s.airspeed+relativeSpeedChange*spread);
       const common=.5*(s.wingLoadLeft+s.wingLoadRight);
       peakLoad=Math.max(common,peakLoad*Math.exp(-1.8*dt));
       // In steppe eagle footage a rapid unloading after a positive gust can
@@ -128,7 +142,17 @@
         peakLoad=0;
       }
       const age=s.elapsed-tuckStarted;
-      s.wingGustTuck=age<.40?tuckDepth*smooth(0,.10,age)*(1-smooth(.10,.40,age))*spread:0;
+      s.wingGustTuck=age<.375?tuckDepth*smooth(0,.17,age)*(1-smooth(.19,.375,age))*spread:0;
+      // The torso weathercocks into a new lateral gust. Differential drag
+      // initially yaws the beak against a roll; tail cant damps that skid.
+      // In a steady turn the track and body realign. Positive yaw is left,
+      // positive tail cant is the right side of the fan raised.
+      const freedom=spread*(1-(s.perchGrip||0));
+      const slipError=.82*clamp(crossFlowAngle,-.36,.36)*freedom-s.yawSlip;
+      const tailTarget=clamp(-1.15*slipError-.16*s.rollRate+.075*slipRate,-.32,.32)*freedom;
+      s.tailTwist+=(tailTarget-s.tailTwist)*easing(8,dt);
+      slipRate+=(22*slipError-6.7*slipRate-1.15*s.rollRate*freedom-3.4*s.tailTwist)*dt;
+      s.yawSlip=clamp(s.yawSlip+slipRate*dt,-.25,.25);
     }
     function sampleAirAndTerrain() {
       if(terrain.windField){
@@ -191,7 +215,13 @@
       s.rollRate+=(gustRoll-8.1*s.turnTrim*rollAuthority-(2.8+rollAuthority)*s.rollRate)*dt;
       s.bank=clamp(s.bank+s.rollRate*dt,-1.21,1.21);
 
-      const trimPath = -.074 + clamp((s.airspeed-16.4)*.02,-.19,.20);
+      // In a sustained headwind a gliding eagle trims faster to cover ground.
+      // Pitch trades height for speed; there is no thrust on this path. The
+      // normal stick, brake and stroke commands retain priority.
+      const headwind=trimWindX*Math.sin(s.yaw)+trimWindZ*Math.cos(s.yaw);
+      cruiseHeadwind+=(headwind-cruiseHeadwind)*easing(.36,dt);
+      const windBias=.33*clamp(cruiseHeadwind,-7,13)*(1-brake)*(input.flap?0:1-s.effort);
+      const trimPath = -.074 + clamp((s.airspeed-16.4-windBias)*.02,-.19,.20);
       // Start beating before pull-up speed reaches the stall. Leave a band
       // between entry and exit so a single downstroke cannot toggle the assist.
       if(s.climb<=.06 || s.airspeed>(braking?12.0:16.2))poweredClimb=false;
@@ -213,7 +243,11 @@
         (.2+.8*smooth(.04,.70,desiredPath-s.path));
       const groundFlare=flaring?smooth(.06,.47,hazard-s.path)*smooth(12,25,s.airspeed):0;
       const fanDemand=poweredClimb?brake*(1-.45*s.effort):brake;
-      const brakeCommand=Math.max(fanDemand,fastPullup,groundFlare);
+      // Check a long stoop by easing the fan and outer hand open as pressure
+      // builds. The extra area raises drag until it balances gravity along
+      // the dive, while a short pitch-over keeps the narrow silhouette.
+      const speedCheck=s.tuck*smooth(34,47,s.airspeed);
+      const brakeCommand=Math.max(fanDemand,fastPullup,groundFlare,.41*speedCheck);
       // The fan and the swept arm open over finite travel. At higher dynamic
       // pressure the pullout progressively reloads the extended wing.
       const fanTravel=brakeCommand>s.brakeSpread?lerpRate(2.9,1.45):3.8;
@@ -251,7 +285,8 @@
       s.tuck+=(diveDemand-s.tuck)*easing(diveDemand>s.tuck?2.0:4.8,dt);
       const efficientSpan=.96-.065*smooth(15,27,s.airspeed);
       const recoveryFlex=.085*s.effort*Math.max(0,-Math.sin(s.phase));
-      const targetSpan=efficientSpan*(1-s.brakeSpread)+s.brakeSpread-.47*s.tuck-recoveryFlex-.12*s.wingGustTuck;
+      const targetSpan=efficientSpan*(1-s.brakeSpread)+s.brakeSpread-.47*s.tuck-recoveryFlex-
+        .12*s.wingGustTuck+.07*speedCheck;
       const spanRate=targetSpan>s.wingExtension?lerpRate(1.6,.58):1.65;
       s.wingExtension+=clamp(targetSpan-s.wingExtension,-spanRate*dt,spanRate*dt);
       const velocityPressure=halfDensityAreaOverMass*s.airspeed*s.airspeed;
@@ -274,7 +309,11 @@
       const profile=.018+.32*separation+.021*s.effort+.165*s.brakeSpread;
       const drag=q*(profile+induced)+velocityPressure*.007+.045;
       const gustLift=gravity*.18*(s.wingLoadLeft+s.wingLoadRight);
-      const lift=q*liftCoefficient+strokeLift*6.7+gustLift;
+      // The leading edge rotates down as a gust reflex drops the hand.
+      // Its briefly lost incidence unloads the wing beyond the reduction
+      // in projected span, then recovers as the hand levels.
+      const incidenceRetention=1-.86*s.wingGustTuck;
+      const lift=q*liftCoefficient*incidenceRetention+strokeLift*6.7+gustLift;
       const thrust=strokeLift*9.3;
       // Tangential gravity exchanges kinetic and potential energy. Aerodynamic
       // lift turns the velocity vector; only thrust and moving air add energy.
@@ -283,10 +322,14 @@
       s.path=clamp(s.path+(lift*cosBank-gravity*Math.cos(s.path))/speed*dt,-1.34,1.13);
       s.yaw+=lift*Math.sin(s.bank)/(speed*Math.max(.28,Math.cos(s.path)))*dt;
       s.loadFactor=lift/gravity;
-      const bodyAngle=s.path+s.alpha*.68+.018+.225*s.brakeSpread;
+      const bodyAngle=s.path+s.alpha*.68+.018+.225*s.brakeSpread+
+        .021*(s.wingLoadLeft+s.wingLoadRight);
       s.pitch+=(bodyAngle-s.pitch)*easing(7,dt);
       const planar=s.airspeed*Math.cos(s.path);
-      const vx=-Math.sin(s.yaw)*planar+air.windX, vz=-Math.cos(s.yaw)*planar+air.windZ;
+      // A new parcel accelerates the bird over time; a sampled wind step
+      // cannot instantaneously displace its mass sideways.
+      const driftX=terrain.windField?trimWindX:air.windX,driftZ=terrain.windField?trimWindZ:air.windZ;
+      const vx=-Math.sin(s.yaw)*planar+driftX, vz=-Math.cos(s.yaw)*planar+driftZ;
       s.verticalSpeed=Math.sin(s.path)*s.airspeed+s.lift;
       const x=s.x+vx*dt,z=s.z+vz*dt,y=s.y+s.verticalSpeed*dt;
       if(y<=floor(x,z)+.25){s.contact=true;s.mode="Touchdown";return;}
@@ -440,7 +483,7 @@
   window.addEventListener("resize",resize);
   function startFlight(){
     const launch=world.launches?.[el("launchPoint")?.value] || world.spawn;
-    landmarkLook=null;
+    landmarkLook=subject=previousSubject=null;nextSighting=1.4;
     dynamics=makeFlight(launch,world);
     const s=dynamics.state;
     windSoarer.reset(s,world.windField.ensureLaunchCore(launch),launch.glance);
@@ -499,7 +542,7 @@
     choose.hidden=stage!=="free";el("airBrake").hidden=stage!=="free";
     choose.firstChild.textContent=t?"Next perch ":"Choose perch ";
     action.hidden=!t||stage==="push";
-    if(!action.hidden)action.textContent=stage==="perched"?"Push off":stage==="free"?"Land":"Break off";
+    if(!action.hidden)action.textContent=stage==="perched"?(s.perchLaunchPending?"Turning to launch":"Push off"):stage==="free"?"Land":"Break off";
     if(stage==="perched")status.textContent=t.label+" · Drag to look around";
     else if(stage==="push")status.textContent="Pushing off";
     else if(t){
@@ -611,6 +654,7 @@
     Object.assign(dynamics.state,{elapsed,distance});
     landmarkLook={x:place.x,y:(world.clearance||world.height)(place.x,place.z),z:place.z};
     landmarkLookUntil=elapsed+3.5;
+    subject=previousSubject=null;nextSighting=landmarkLookUntil+1;
     windSoarer.reset(dynamics.state,world.windField.ensureLaunchCore(launch),launch.glance);
     perching.reset(dynamics.state,false);nextPerchHUD=0;perchNotice="";
     resetCamera(dynamics.state,launch.glance,launch.lookDown);
@@ -643,7 +687,7 @@
     glance=arrivalGlance=arrivalDegrees*Math.PI/180;
     glanceTime=0;
     const mounted=cameraMode==="shoulder";
-    cameraYaw=s.yaw;cameraPath=mounted?s.pitch:s.path*.54;
+    cameraYaw=s.yaw+(mounted?(s.yawSlip||0):0);cameraPath=mounted?s.pitch:s.path*.54;
     cameraBank=mounted?s.bank*.72:0;cameraFov=mounted?72:76;
     camera.fov=cameraFov;camera.updateProjectionMatrix();
   }
@@ -655,14 +699,19 @@
     // Lean over the mount when looking sideways so the near wing stays below the shopfronts.
     const lean=Math.min(1,Math.abs(glance));
     const down=arrivalLookDown*clamp((6-glanceTime)/3,0,1);
-    cameraTarget.set((.137+.052*lean+.28*down)*aspectScale,.157+.100*lean+.16*down+.003*stroke,.058-.078*lean-.19*down);
+    // During the final high-angle flare the scapula rises between the lens
+    // and the neck. Let the mount sit higher and forward over that shoulder.
+    const flare=s.perchFlare||0;
+    cameraTarget.set((.137+.052*lean+.28*down)*aspectScale,
+      .157+.100*lean+.16*down+.003*stroke+.115*flare,
+      .058-.078*lean-.19*down-.083*flare);
     camera.position.copy(cameraTarget.applyQuaternion(eagle.object.quaternion)).add(player);
-    const yawError=Math.atan2(Math.sin(s.yaw-cameraYaw),Math.cos(s.yaw-cameraYaw));
+    const heading=s.yaw+(s.yawSlip||0);
+    const yawError=Math.atan2(Math.sin(heading-cameraYaw),Math.cos(heading-cameraYaw));
     cameraYaw+=yawError*easing(16,dt);
     // A mounted camera follows the body through a dive. Keep a portion of
     // the flight line visible as the body rotates upward in a landing flare.
-    const flare=s.perchFlare||0;
-    const sightPitch=s.pitch+(s.path-s.pitch)*(.08+.42*flare);
+    const sightPitch=s.pitch+(s.path-s.pitch)*(.08+.62*flare);
     cameraPath+=(sightPitch-cameraPath)*easing(10,dt);
     cameraBank+=(s.bank*.72-cameraBank)*easing(10,dt);
     glanceTime+=dt;
@@ -676,7 +725,7 @@
     // Damp the attitude of the boom, never the world-space translation of its
     // anchor. This keeps the same framing at 15 and 45 m/s.
     const yawError=Math.atan2(Math.sin(s.yaw-cameraYaw),Math.cos(s.yaw-cameraYaw));
-    cameraYaw+=yawError*easing(4.9,dt);
+    cameraYaw+=clamp(yawError*easing(4.9,dt),-1.9*dt,1.9*dt);
     cameraPath+=(s.path*.54-cameraPath)*easing(3.2,dt);
     cameraBank+=(s.bank*.13-cameraBank)*easing(3,dt);
     cameraFov+=(76+clamp((s.airspeed-15)*.12,0,5)-cameraFov)*easing(1.4,dt);
@@ -699,7 +748,10 @@
   }
   function positionPerched(s,dt){
     const view=perching.view,mounted=cameraMode==="shoulder";
-    cameraYaw+=Math.atan2(Math.sin(view.yaw-cameraYaw),Math.cos(view.yaw-cameraYaw))*easing(14,dt);
+    // A perched chase camera observes the steps from the approach side. The
+    // mounted view rotates with the shoulders and both views still pan by hand.
+    const sightYaw=mounted?view.yaw:view.orbitYaw;
+    cameraYaw+=Math.atan2(Math.sin(sightYaw-cameraYaw),Math.cos(sightYaw-cameraYaw))*easing(14,dt);
     cameraPath+=(view.pitch-cameraPath)*easing(12,dt);
     if(mounted){
       cameraTarget.set(.17,.285,.125);
@@ -735,12 +787,25 @@
     const s=dynamics.state;
     elapsed=s.elapsed;distance=s.distance;
     player.set(s.x,s.y,s.z);
-    eagle.object.position.copy(player);eagle.object.rotation.set(s.pitch,s.yaw,s.bank,"YXZ");
+    eagle.object.position.copy(player);eagle.object.rotation.set(s.pitch,s.yaw+(s.yawSlip||0),s.bank,"YXZ");
     s.gazeLanding=perching.stage==="approach"||perching.stage==="flare";
     s.gazeTurn=input.turn;
     s.gazeLook=input.look;
     s.gazeTarget=perching.stage==="push"||perching.stage==="perched"?null:perching.selected;
     s.gazeLandmark=elapsed<landmarkLookUntil?landmarkLook:null;
+    const cruising=perching.stage==="free"&&!s.gazeLandmark&&!s.gazeTarget&&
+      !input.turn&&!input.look&&!input.climb&&!input.brake&&!input.flap&&s.effort<.23&&
+      s.tuck<.2&&s.stall<.15&&Math.abs(s.bank)<.32&&s.airspeed<30;
+    if(subject&&(!cruising||elapsed>=subjectUntil||!world.wildlife?.inSight(subject)))subject=null;
+    if(cruising&&elapsed>=nextSighting){
+      subject=world.wildlife?.sighting(s,previousSubject)||null;
+      if(subject){
+        previousSubject=subject;
+        subjectUntil=elapsed+.60;
+        nextSighting=elapsed+5.4+1.2*Math.sin(elapsed*1.31);
+      }else nextSighting=elapsed+.72;
+    }
+    s.gazeSubject=subject;
     eagle.update(dt,elapsed,s.effort>.05,s.pitch,s.bank,s);
     if(audio&&soundOn){
       const stroke=Math.max(0,Math.sin(s.phase-.24));
@@ -775,7 +840,7 @@
     if(elapsed>=nextReadout){
       nextReadout=elapsed+.17;
       el("alt").textContent=Math.round(s.y+(world.altitudeOffset || 0)).toLocaleString();
-      el("speed").textContent=Math.round(s.airspeed*3.6);
+      el("speed").textContent=Math.round((perching.stage==="free"?s.indicatedAirspeed:s.airspeed)*3.6);
       if(el("flightMode"))el("flightMode").textContent=s.mode;
       if(el("vario"))el("vario").textContent=(s.verticalSpeed>=0?"+":"")+s.verticalSpeed.toFixed(1);
       const deg=((Math.round(-s.yaw*180/Math.PI)%360)+360)%360;

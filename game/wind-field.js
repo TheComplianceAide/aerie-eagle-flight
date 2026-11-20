@@ -195,6 +195,11 @@
       const medium=Math.sin(.289*along-.413*across-.131*y+.85*twist+phase);
       const fine=Math.sin(.561*along+.830*across+.213*y-.48*twist-phase);
       out.eddyLift=mixing*(1.05*large+.74*medium+.38*fine);
+      // The same eddies carry lateral momentum across the mean wind.
+      // The visible gust front still advects along the regional direction.
+      const side=mixing*(-.53*large+.61*medium-.24*fine);
+      out.eddyX=-direction.z*side;
+      out.eddyZ=direction.x*side;
       return out;
     }
     return {centers, get launchCenter(){return launchCenter;}, ensureLaunchCore, core, gust,

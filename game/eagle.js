@@ -36,10 +36,13 @@ window.makeEagle = function makeEagle(THREE) {
     return b;
   }
   const chest = bone('Thorax', null, 0, 0, 0);
-  const neck = bone('Neck', chest, 0, .012, zAt(.27));
+  const neckBase=bone('Cervical base',chest,0,.012,zAt(.325));
+  const neck=bone('Neck',neckBase,0,.019,zAt(.226));
   const rudder = bone('Tail base', chest, 0, -.004, zAt(.66));
-  const tailRays = [-1, 0, 1].map(side =>
-    bone('Tail fan ' + side, rudder, side * .018, -.003, zAt(.69)));
+  const tailRays=Array.from({length:12},(_,i)=>{
+    const side=(2*i-11)/11;
+    return {side,ray:bone('Rectrix '+(i+1),rudder,side*.018,-.003,zAt(.69))};
+  });
   const wings = [-1, 1].map(sign => {
     const shoulder = bone('Shoulder ' + sign, chest, sign * .093, .015, zAt(.33));
     const elbow = bone('Elbow ' + sign, shoulder, sign * .316, .031, zAt(.403));
@@ -58,7 +61,7 @@ window.makeEagle = function makeEagle(THREE) {
   const frontProfile = [[0,.25],[.15,.265],[.26,.25],[.42,.219],[.59,.208],[.78,.19],[.95,.13],[1.12,.19]];
   const rearProfile = [[0,.67],[.16,.693],[.33,.696],[.52,.674],[.74,.609],[.89,.563],[1.1,.405]];
   const skullProfile=[
-    [.049,.017,.029,.017,.017],[.073,.034,.026,.036,.030],[.097,.045,.026,.050,.042],
+    [.049,.014,.029,.014,.014],[.073,.025,.028,.024,.023],[.097,.039,.028,.044,.037],
     [.130,.056,.028,.057,.050],[.174,.067,.028,.060,.055],[.209,.074,.023,.060,.057],
     [.244,.079,.017,.058,.056],[.273,.088,.012,.059,.055],[.304,.089,.008,.055,.051]
   ];
@@ -92,16 +95,21 @@ window.makeEagle = function makeEagle(THREE) {
     }
     const tailWidth=.17+.14*smooth(.66,.785,v);
     const tail=smooth(.62,.76,v)*(1-smooth(tailWidth,tailWidth+.068,ax));
-    const head = (1 - smooth(.195, .32, v)) * (1 - smooth(.062, .104, ax));
-    const wingPortion = smooth(.060, .196, ax) * (1 - smooth(.681, .733, v)) * (1 - head) * (1 - tail);
+    const head=(1-smooth(.192,.272,v))*(1-smooth(.085,.116,ax));
+    const collar=(1-head)*(1-smooth(.262,.369,v))*(1-smooth(.077,.121,ax));
+    const wingPortion = smooth(.060, .196, ax) * (1 - smooth(.681, .733, v)) * (1-head-collar) * (1 - tail);
     const intoElbow = smooth(.222, .418, ax);
     const intoWrist = smooth(.494, .723, ax);
     const primary = smooth(.710, .94, ax);
-    add(chest, Math.max(0, 1 - tail - head - wingPortion));
+    add(chest, Math.max(0,1-tail-head-collar-wingPortion));
     add(neck, head);
-    const spread = smooth(.008, .13, ax);
-    add(tailRays[1], tail * (1 - spread));
-    add(tailRays[x < 0 ? 0 : 2], tail * spread);
+    add(neckBase,collar);
+    if(tail>0){
+      const bearing=Math.atan2(x,Math.max(.025,zAt(v)-zAt(.625)));
+      const ray=(clamp(bearing/.96,-1,1)+1)*5.5;
+      const i=Math.min(10,Math.floor(ray)),part=ray-i;
+      add(tailRays[i].ray,tail*(1-part));add(tailRays[i+1].ray,tail*part);
+    }
     add(wing.shoulder, wingPortion * (1 - intoElbow));
     add(wing.elbow, wingPortion * intoElbow * (1 - intoWrist));
     add(wing.wrist, wingPortion * intoWrist * (1 - primary));
@@ -311,14 +319,20 @@ window.makeEagle = function makeEagle(THREE) {
         float sideLoad=mix(featherLoads.x,featherLoads.y,step(0.,position.x));
         float outerCovert=smoothstep(.12,.28,abs(position.x))*smoothstep(-.15,.07,position.z);
         float reverseFlow=clamp(separatedFlow+.53*max(0.,sideLoad),0.,1.);
-        objectNormal.z-=outerCovert*aero.x*reverseFlow*.19;`)
+        float scapular=smoothstep(.066,.10,abs(position.x))*(1.-smoothstep(.20,.33,abs(position.x)))
+          *smoothstep(-.14,-.074,position.z)*(1.-smoothstep(.12,.20,position.z));
+        float eddy=sin(featherTime*2.1+position.z*36.+aero.y*.58)
+          +.51*sin(featherTime*3.7+position.x*17.-position.z*12.)+.24*sin(featherTime*8.3+aero.y);
+        float caught=scapular*smoothstep(.94,1.54,eddy+.34*abs(sideLoad))*clamp(featherWind-.31,0.,1.2);
+        objectNormal.z-=aero.x*(outerCovert*reverseFlow*.19+caught*.15);`)
         .replace('#include <begin_vertex>',`#include <begin_vertex>
         float wave=sin(featherTime*6.8-position.z*30.+position.x*15.+aero.y*.43);
         float flutter=sin(featherTime*12.3+aero.y+position.x*28.);
         float gust=sin(featherTime*2.85-position.z*61.+position.x*17.);
         float agitation=featherWind*(.25+.60*abs(sideLoad)*outerCovert);
         float bend=aero.x*aero.z*(.45+.33*wave+.18*flutter+.21*gust)*agitation;
-        float lifting=outerCovert*reverseFlow*aero.x*(.008+.004*sin(featherTime*18.+aero.y));
+        float lifting=aero.x*(outerCovert*reverseFlow*(.008+.004*sin(featherTime*18.+aero.y))
+          +caught*(.004+.005*aero.z/.003));
         float neckSide=clamp(position.x/.045,-1.,1.);
         float outside=max(0.,neckSide*napeTwist.x);
         float hackle=aero.x*aero.w;
@@ -503,11 +517,17 @@ window.makeEagle = function makeEagle(THREE) {
             vec3 eye=texture2D(sidePortrait,vec2(px.x/960.,1.-px.y/640.)).rgb;
             float eyeRegion=length((px-vec2(498.,253.))/vec2(98.,76.));
             float orbit=1.-smoothstep(.57,1.,eyeRegion);
-            float cere=smoothstep(335.,380.,px.x)*(1.-smoothstep(401.,457.,px.x))
-                      *smoothstep(194.,217.,px.y)*(1.-smoothstep(286.,319.,px.y));
-            float mask=max(orbit,cere*.76)*smoothstep(.026,.038,abs(skull.x));
+            // The portrait includes the nostril, the gape below the eye,
+            // and the short cheek feathers. Keep them in one rigid skull frame.
+            float cheek=(1.-smoothstep(690.,790.,px.x))
+                       *smoothstep(134.,182.,px.y)*(1.-smoothstep(421.,487.,px.y));
+            float tissue=smoothstep(.012,.07,max(eye.r,max(eye.g,eye.b)));
+            float billBase=1.-smoothstep(322.,416.,px.x);
+            float sideWeight=mix(smoothstep(.012,.033,abs(skull.x)),1.,billBase);
+            float mask=max(orbit,cheek*tissue*mix(.94,1.,billBase))*sideWeight;
             float lum=dot(eye,vec3(.2126,.7152,.0722));
             eye=mix(vec3(lum),eye,.78);
+            eye=mix(eye,mix(vec3(lum*.99,lum*.92,lum*.65),eye,.64),billBase);
             diffuseColor.rgb=mix(diffuseColor.rgb,eye,mask);
           `);
       };
@@ -550,7 +570,7 @@ window.makeEagle = function makeEagle(THREE) {
     // Each station also has an upper and lower pixel on the lateral photograph.
     const swatches=upper?[[169,336,345],[174,307,380],[183,285,383],[206,256,334],[243,229,323],[280,216,316],[315,208,313],[345,206,314],[367,210,318]]
       :[[196,340,344],[209,336,345],[246,325,348],[292,317,347],[347,317,347],[379,318,346]];
-    const points=[],uv=[],indices=[],sides=32,steps=(profile.length-1)*6;
+    const points=[],uv=[],cereUV=[],indices=[],sides=32,steps=(profile.length-1)*6;
     for(let j=0;j<=steps;j++){
       const f=j/6, i=Math.min(profile.length-2,Math.floor(f)), t=f-i;
       const section=profile[i].map((mid,k)=>{
@@ -568,14 +588,22 @@ window.makeEagle = function makeEagle(THREE) {
         const peak=THREE.MathUtils.lerp(swatch[1],next[1],t);
         const lip=THREE.MathUtils.lerp(swatch[2],next[2],t);
         uv.push(THREE.MathUtils.lerp(swatch[0],next[0],t)/960,1-THREE.MathUtils.lerp(lip,peak,vertical)/640);
+        cereUV.push(upper?(499+(zAt(v)-zAt(.136))*3980)/960:0,1-(257-(y-.040)*3550)/640);
         if(j<steps&&k<sides){const a=j*(sides+1)+k;indices.push(a,a+sides+1,a+1,a+1,a+sides+1,a+sides+2);}
       }
     }
     const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(points,3));
-    g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));g.setIndex(indices);g.computeVertexNormals();
+    g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));
+    g.setAttribute('cereUV',new THREE.Float32BufferAttribute(cereUV,2));g.setIndex(indices);g.computeVertexNormals();
     const m=new THREE.Mesh(g,new THREE.MeshStandardMaterial({map:sidePortrait,bumpMap:sidePortrait,bumpScale:.00019,roughness:upper?.48:.58,side:THREE.DoubleSide}));
     m.material.onBeforeCompile=shader=>{
-      shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>',`#include <map_fragment>
+      shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nattribute vec2 cereUV; varying vec2 joinedCere;')
+        .replace('#include <begin_vertex>','#include <begin_vertex>\njoinedCere=cereUV;');
+      shader.fragmentShader=shader.fragmentShader.replace('#include <common>','#include <common>\nvarying vec2 joinedCere;')
+        .replace('#include <map_fragment>',`#include <map_fragment>
+        vec3 root=texture2D(map,joinedCere).rgb;
+        float overlap=smoothstep(.246,.338,joinedCere.x)*smoothstep(.016,.082,max(root.r,max(root.g,root.b)));
+        diffuseColor.rgb=mix(diffuseColor.rgb,root,overlap);
         float pigment=dot(diffuseColor.rgb,vec3(.2126,.7152,.0722));
         diffuseColor.rgb=mix(vec3(pigment*.99,pigment*.92,pigment*.65),diffuseColor.rgb,.64);
         diffuseColor.rgb=max(diffuseColor.rgb,vec3(.125,.053,.014));
@@ -639,13 +667,17 @@ window.makeEagle = function makeEagle(THREE) {
     ankle.position.set(sign*.007,-.129,-.037);
     const tarsus=taperedCurve(ankle,'Scaled tarsus',[[0,.013,0,.014],[sign*.004,-.035,.014,.012],[sign*.005,-.079,-.005,.011],[sign*.007,-.129,-.037,.012]],gold);
     tarsus.position.sub(ankle.position);
-    const toes=[];
+    const toes=[],sole=[];
     for(let j=0;j<4;j++){
       const rear=j===3,heading=rear?Math.PI+sign*.12:(j-1)*.48+sign*.04;
       const toe=new THREE.Group();leg.add(toe);
       toe.position.set(sign*.007+(rear?0:(j-1)*.007),-.129,-.037+(rear?.009:0));
       toe.rotation.order='YXZ';toe.rotation.y=heading;toes.push(toe);
       const len=rear?.045:j===1?.058:.046;
+      // Sample the bearing surfaces of the pads and the hook around the branch.
+      for(const [height,reach] of [[-.033,.94],[-.027,1.06],[-.020,1.13],[-.011,.78],[-.010,.30],[-.007,0]]){
+        sole.push(new THREE.Vector3(0,height,-reach*len).applyQuaternion(toe.quaternion).add(toe.position).add(leg.position));
+      }
       taperedCurve(toe,'Toe pad',[[0,.002,0,.009],[0,-.003,-len*.30,.008],[0,-.001,-len*.55,.0072],[0,-.004,-len*.78,.0068],[0,-.004,-len*.86,.0058]],gold);
       for(const r of [.32,.53,.74]){
         const scale=new THREE.Mesh(new THREE.SphereGeometry(1,8,5),scute);
@@ -653,9 +685,28 @@ window.makeEagle = function makeEagle(THREE) {
       }
       taperedCurve(toe,'Hooked claw',[[0,-.004,-len*.80,.0055],[0,-.005,-len*.97,.0053],[0,-.011,-len*1.09,.0044],[0,-.020,-len*1.13,.0031],[0,-.027,-len*1.06,.0016],[0,-.033,-len*.94,.00035]],claw);
     }
-    return {leg,ankle,toes,sign,hip:leg.position.clone()};
+    return {leg,ankle,toes,sign,hip:leg.position.clone(),sole,stance:null,bearing:0,oldHeight:0,height:0};
   });
+  function seatOnBranch(foot,stance,bearing,s){
+    if(!stance?.supportAt)return 0;
+    const moving=stance.moving===foot.sign;
+    const target=moving?(stance.landingYaw??bearing):bearing;
+    if(foot.stance!==stance||Math.abs(foot.bearing-target)>.00001){
+      const cos=Math.cos(target),sin=Math.sin(target);
+      let highest=-Infinity;
+      for(const p of foot.sole){
+        const surface=stance.supportAt(s.x+p.x*cos+p.z*sin,s.z-p.x*sin+p.z*cos);
+        highest=Math.max(highest,surface-(s.y+p.y));
+      }
+      const height=Number.isFinite(highest)?clamp(highest,-.034,.015):0;
+      // Sample the actual branch triangles only when a foot chooses new footing.
+      foot.oldHeight=foot.stance===stance?foot.height:height;
+      foot.height=height;foot.bearing=target;foot.stance=stance;
+    }
+    return moving?blend(foot.oldHeight,foot.height,smooth(.12,.88,stance.progress)):foot.height;
+  }
   const tiltAngles=new THREE.Euler(),bodyTilt=new THREE.Quaternion(),levelFeet=new THREE.Quaternion(),bodyUp=new THREE.Vector3();
+  const stepRotation=new THREE.Quaternion(),standingAxis=new THREE.Vector3(0,1,0),weightShift=new THREE.Vector3();
   const blend=(flight,landing,amount)=>flight+(landing-flight)*amount;
   let phase = 0, effort = 0, tuck = 0, lastBank = 0, turnDemand = 0;
   let armSweep=0,handSweep=0,tailBrake=0,wingBrake=0,handBrake=0;
@@ -663,15 +714,21 @@ window.makeEagle = function makeEagle(THREE) {
   const wrap = angle => Math.atan2(Math.sin(angle),Math.cos(angle));
   const lastPosition=new THREE.Vector3(),gazeOrigin=new THREE.Vector3();
   const localHead=new THREE.Quaternion(),worldHead=new THREE.Quaternion(),headAngles=new THREE.Euler(0,0,0,'YXZ');
+  const neckPose=new THREE.Euler(0,0,0,'YXZ'),neckOrientation=new THREE.Quaternion();
   let gazeTime=-1,trackYaw=0,lockedYaw=0,lockedPitch=0,allowedShift=0,scanAt=3,scanEnds=0,scanNumber=0,lastAim=null;
+  // Median normalized yaw excursion from 31 measured head turns in eight
+  // Harris's hawk flights. CC0 head orientations: doi:10.17617/3.LVTWX0.
+  // Retarget the timing to the eagle's actual bearing and neck limits.
+  const headTurnCurve=[0,.0413,.0902,.1624,.2703,.4076,.5354,.6606,.7755,.8650,.9284,.9662,1];
+  let shiftStart=-1,shiftTime=.082,fromYaw=0,fromPitch=0,shiftYaw=0,shiftPitch=0,wasWatchingSubject=false;
 
   function updateGaze(time,step,pitch,bank,focus,fold,s,reset){
-    const heading=s.yaw??0, x=s.x??0, y=s.y??0, z=s.z??0;
+    const course=s.yaw??0,heading=course+(s.yawSlip??0), x=s.x??0, y=s.y??0, z=s.z??0;
     const dx=x-lastPosition.x,dz=z-lastPosition.z,planar=Math.hypot(dx,dz);
     const path=s.path??pitch;
     if(reset){
-      trackYaw=lockedYaw=heading;lockedPitch=.66*path;
-      allowedShift=time;scanAt=time+2.8;scanEnds=0;scanNumber=0;lastAim=null;
+      trackYaw=course;lockedYaw=heading;lockedPitch=.66*path;
+      shiftStart=-1;allowedShift=time;scanAt=time+3.6;scanEnds=0;scanNumber=0;lastAim=null;wasWatchingSubject=false;
     }else if(planar>.002){
       // Flight direction includes crosswind drift. Filter frame-to-frame motion
       // so head and body can briefly disagree without a twitch at yaw wraparound.
@@ -679,46 +736,62 @@ window.makeEagle = function makeEagle(THREE) {
     }
     lastPosition.set(x,y,z);gazeTime=time;
     localHead.setFromEuler(headAngles.set(pitch,heading,bank,'YXZ'));
-    gazeOrigin.copy(neck.position).applyQuaternion(chest.quaternion).add(chest.position).applyQuaternion(localHead).add(lastPosition);
+    gazeOrigin.copy(neck.position).applyQuaternion(neckBase.quaternion).add(neckBase.position)
+      .applyQuaternion(chest.quaternion).add(chest.position).applyQuaternion(localHead).add(lastPosition);
     const turn=clamp(s.gazeTurn??0,-1,1);
     const looking=clamp(s.gazeLook??0,-1,1);
-    let tracking=false;
-    for(let i=0;i<2&&!looking&&!tracking&&fold<.98;i++){
-      const aim=i===0?s.gazeTarget:s.gazeLandmark;
+    let tracking=false,watchingSubject=false,desiredYaw=trackYaw,desiredPitch=.74*path;
+    if(shiftStart>=0){
+      const at=clamp((time-shiftStart)/shiftTime,0,1)*(headTurnCurve.length-1);
+      const i=Math.min(headTurnCurve.length-2,Math.floor(at));
+      const fraction=blend(headTurnCurve[i],headTurnCurve[i+1],at-i);
+      lockedYaw=fromYaw+shiftYaw*fraction;lockedPitch=fromPitch+shiftPitch*fraction;
+      if(time>=shiftStart+shiftTime)shiftStart=-1;
+    }
+    for(let i=0;i<3&&!looking&&!tracking&&fold<.98;i++){
+      const subject=i===2;
+      if(subject&&(Math.abs(turn)>.06||focus>.28||fold>.05||Math.abs(s.climb??0)>.13))continue;
+      const aim=i===0?s.gazeTarget:i===1?s.gazeLandmark:s.gazeSubject;
       if(!aim||!Number.isFinite(aim.x)||!Number.isFinite(aim.y)||!Number.isFinite(aim.z))continue;
       const offsetX=aim.x-gazeOrigin.x,offsetZ=aim.z-gazeOrigin.z,distance=Math.hypot(offsetX,offsetZ);
       const bearing=Math.atan2(-offsetX,-offsetZ);
       const offset=wrap(bearing-heading),elevation=Math.atan2(aim.y-gazeOrigin.y,distance);
       const landing=i===0&&s.gazeLanding,hold=lastAim===aim;
-      const range=landing?Infinity:i===0?130:1800,arc=landing?1.38:i===0?.84:1.12;
+      const range=landing?Infinity:i===1?1800:130,arc=landing?1.38:i===1?1.12:.84;
       tracking=distance>.24&&distance<range*(hold?1.14:1)&&Math.abs(offset)<arc+(hold?.075:0)
         &&(landing||(Math.abs(elevation-path)<.68&&turn*offset<.28));
       if(tracking){
-        lockedYaw=bearing;lockedPitch=elevation;lastAim=aim;
+        desiredYaw=bearing;desiredPitch=elevation;lastAim=aim;watchingSubject=subject;
         scanEnds=0;scanAt=time+2.4;
       }
     }
+    if(wasWatchingSubject&&!watchingSubject){shiftStart=-1;allowedShift=time;}
+    wasWatchingSubject=watchingSubject;
     if(!tracking){
       const turnAngle=clamp(.63*bank-.30*turn,-.89,.89);
       lastAim=null;
       const commuting=Math.abs(turnAngle)<.15&&focus<.25&&fold<.2&&Math.abs(path)<.25&&!looking;
       if(commuting&&time>=scanAt){
         ++scanNumber;scanEnds=time+.53+.09*Math.sin(scanNumber*1.9);
-        scanAt=time+3.3+.49*Math.sin(scanNumber*2.4);
+        scanAt=time+4.8+1.37*Math.sin(scanNumber*2.4);
       }
       if(!commuting){scanEnds=0;scanAt=time+2.3;}
       const inspecting=time<scanEnds;
       const scan=inspecting?(scanNumber%2?1:-1)*(.39+.10*Math.sin(scanNumber*1.73)):0;
-      const desiredYaw=trackYaw+turnAngle+scan+looking*.98;
-      const desiredPitch=clamp(.74*path-.022-.12*Number(inspecting),-.88,.52);
-      const yawError=wrap(desiredYaw-lockedYaw),pitchError=desiredPitch-lockedPitch;
-      // Between short head saccades the gaze holds still in world space
-      // while the torso goes on turning. Larger turns take multiple shifts.
-      // Continuous visual pursuit of a chosen perch uses its line of sight above.
-      if(time>=allowedShift && (Math.abs(yawError)>.17||Math.abs(pitchError)>.096)){
-        lockedYaw+=clamp(yawError,-.46,.46);
-        lockedPitch+=clamp(pitchError,-.24,.24);
-        allowedShift=time+.12;
+      desiredYaw=trackYaw+turnAngle+scan+looking*.98;
+      desiredPitch=clamp(.74*path-.022-.12*Number(inspecting),-.88,.52);
+    }
+    const yawError=wrap(desiredYaw-lockedYaw),pitchError=desiredPitch-lockedPitch;
+    if(shiftStart<0){
+      if(time>=allowedShift&&(Math.abs(yawError)>.195||Math.abs(pitchError)>.103)){
+        fromYaw=lockedYaw;fromPitch=lockedPitch;
+        shiftYaw=clamp(yawError,-.44,.44);shiftPitch=clamp(pitchError,-.29,.29);
+        shiftTime=.073+.026*smooth(.12,.46,Math.hypot(shiftYaw,shiftPitch));
+        shiftStart=time;allowedShift=time+shiftTime+.12;
+      }else if(tracking&&Math.abs(yawError)<.195&&Math.abs(pitchError)<.103){
+        // Keep the perch in view as its bearing drifts, between reacquisitions.
+        const follow=1-Math.exp(-21*step);
+        lockedYaw+=yawError*follow;lockedPitch+=pitchError*follow;
       }
     }
     // Convert the desired nearly level world head into the moving thorax's
@@ -729,11 +802,14 @@ window.makeEagle = function makeEagle(THREE) {
     const yaw=blend(clamp(headAngles.y,-1.33,1.33),clamp(s.perchLook??0,-1.42,1.42),fold);
     const nod=blend(clamp(headAngles.x,s.gazeLanding?-1.19:-.72,.62),clamp((s.perchLookPitch??0)-chest.rotation.x,-.93,.52),fold);
     const roll=blend(clamp(headAngles.z,-.98,.98),0,fold);
-    const settle=reset?1:1-Math.exp(-26*step),maxMotion=reset?Math.PI:6.9*step;
-    neck.rotation.order='YXZ';
-    neck.rotation.y+=clamp((yaw-neck.rotation.y)*settle,-maxMotion,maxMotion);
-    neck.rotation.x+=clamp((nod-neck.rotation.x)*settle,-maxMotion,maxMotion);
-    neck.rotation.z+=clamp((roll-neck.rotation.z)*settle,-maxMotion,maxMotion);
+    const settle=reset?1:1-Math.exp(-65*step),maxMotion=reset?Math.PI:8.6*step;
+    neckPose.y+=clamp((yaw-neckPose.y)*settle,-maxMotion,maxMotion);
+    neckPose.x+=clamp((nod-neckPose.x)*settle,-maxMotion,maxMotion);
+    neckPose.z+=clamp((roll-neckPose.z)*settle,-maxMotion,maxMotion);
+    // Share flexion along the cervical column. The upper nape turns with
+    // the rigid cranium; the lower hackles stay in contact with the mantle.
+    neckBase.rotation.set(neckPose.x*.37,neckPose.y*.36,neckPose.z*.29,'YXZ');
+    neck.quaternion.copy(neckBase.quaternion).invert().multiply(neckOrientation.setFromEuler(neckPose));
   }
   function update(dt, time, flapping, pitch = 0, bank = 0, air = {}) {
     const step = clamp(dt, 0, .1);
@@ -741,14 +817,15 @@ window.makeEagle = function makeEagle(THREE) {
     const reset=gazeTime<0||time<gazeTime||lastPosition.distanceToSquared(gazeOrigin.set(air.x??0,air.y??0,air.z??0))>
       Math.max(9,(air.airspeed??18)*step*3+4)**2;
     if(reset){
-      lastBank=bank;previousHeading=air.yaw??0;turnDemand=0;napeTwist.value.set(0,0);
+      lastBank=bank;previousHeading=air.yaw??0;turnDemand=perchPivot=0;napeTwist.value.set(0,0);
       for(const wing of wings)wing.wristLoad=wing.tipLoad=0;
     }
     phase = Number.isFinite(air.phase) ? air.phase : (phase + step * 11.4) % (2 * Math.PI);
     const requestedEffort = Number.isFinite(air.effort) ? air.effort : (flapping ? 1 : 0);
-    effort += (requestedEffort - effort) * approach(9);
+    effort = reset?requestedEffort:effort+(requestedEffort-effort)*approach(9);
     const dive = Number.isFinite(air.tuck) ? air.tuck : smooth(.20, .68, -pitch);
-    tuck += (dive * (1 - effort) - tuck) * approach(3.6);
+    const desiredTuck=dive*(1-effort);
+    tuck=reset?desiredTuck:tuck+(desiredTuck-tuck)*approach(3.6);
     const stall = clamp(air.stall || 0, 0, 1);
     const load = clamp((air.loadFactor ?? 1) - 1, -.6, 1.7);
     const rollRate = step > .0001 ? clamp((bank - lastBank) / step, -2.3, 2.3) : 0;
@@ -761,12 +838,17 @@ window.makeEagle = function makeEagle(THREE) {
     // follow the upper arm through reversal as the wing unloads and opens.
     const extension=clamp(air.wingExtension??(1-.53*tuck),.38,1);
     const desiredSweep=Math.acos(extension);
-    armSweep+=(desiredSweep-armSweep)*approach(12);
-    handSweep+=(armSweep-handSweep)*approach(9);
     const brake=Math.max(clamp(air.brakeSpread||0,0,1),flare);
-    tailBrake+=(brake-tailBrake)*approach(17);
-    wingBrake+=(brake-wingBrake)*approach(11);
-    handBrake+=(wingBrake-handBrake)*approach(8);
+    if(reset){
+      // A restart or landmark arrival starts a new flight in this same rig.
+      armSweep=handSweep=desiredSweep;tailBrake=wingBrake=handBrake=brake;
+    }else{
+      armSweep+=(desiredSweep-armSweep)*approach(12);
+      handSweep+=(armSweep-handSweep)*approach(9);
+      tailBrake+=(brake-tailBrake)*approach(17);
+      wingBrake+=(brake-wingBrake)*approach(11);
+      handBrake+=(wingBrake-handBrake)*approach(8);
+    }
     // The wrist comes forward before the hand opens during the pitch-up.
     // This briefly gives the planform an M between approach and full flare.
     const flareFlex=clamp((tailBrake-handBrake)*2.4,0,1);
@@ -801,17 +883,32 @@ window.makeEagle = function makeEagle(THREE) {
       levelFeet.identity().slerp(bodyTilt,footPlant);
     }else levelFeet.identity();
     const compression=clamp(air.perchCompression??0,0,1)*footPlant;
+    const stance=air.perchStep;
+    const swing=stance?.moving ? Math.sin(Math.PI*clamp(stance.progress,0,1))**2 : 0;
     chest.position.x=0;
     chest.position.addScaledVector(bodyUp.set(0,1,0).applyQuaternion(levelFeet),-.038*compression);
     chest.rotation.x-=.15*compression;
+    if(swing>0){
+      // Unweight the moving foot. The breast stays over the one clasping the limb.
+      weightShift.set(-stance.moving*.020,.007,0).applyQuaternion(levelFeet);
+      chest.position.addScaledVector(weightShift,swing);
+    }
     const closing=Math.max(smooth(.48,.96,fold),smooth(.90,1,grip));
-    for(const {leg,ankle,toes,sign,hip} of perchFeet){
+    for(const foot of perchFeet){
+      const {leg,ankle,toes,sign,hip}=foot;
       leg.visible=grip>.012;
-      leg.position.copy(hip).applyQuaternion(levelFeet);
+      // Each planted claw holds its own compass bearing around the common
+      // perch point, even as the breast yaws and the near wing folds.
+      const footYaw=sign<0?stance?.leftYaw:stance?.rightYaw;
+      const localYaw=Number.isFinite(footYaw)?wrap(footYaw-heading-(air.yawSlip??0)):0;
+      stepRotation.setFromAxisAngle(standingAxis,localYaw).premultiply(levelFeet);
+      const inSwing=stance?.moving===sign?swing:0;
+      const seat=seatOnBranch(foot,stance,footYaw,air);
+      leg.position.copy(hip).applyQuaternion(stepRotation).addScaledVector(bodyUp,seat+.050*inSwing);
       leg.rotation.set(blend(-1.78,0,smooth(.025,.96,grip)),0,sign*.10*Math.sin(grip*Math.PI));
-      leg.quaternion.premultiply(levelFeet);
-      ankle.rotation.x=.48*compression;
-      for(const toe of toes)toe.rotation.x=blend(-.33,0,closing)+.19*(1-grip);
+      leg.quaternion.premultiply(stepRotation);
+      ankle.rotation.x=.48*compression+.31*inSwing;
+      for(const toe of toes)toe.rotation.x=blend(-.33,0,closing)+.19*(1-grip)-.27*inSwing;
     }
     for(const wing of wings){
       const {sign,shoulder,elbow,wrist,fan,alula}=wing;
@@ -832,7 +929,7 @@ window.makeEagle = function makeEagle(THREE) {
       shoulder.rotation.order=elbow.rotation.order=wrist.rotation.order='YZX';
       shoulder.rotation.z=sign*(armLift+effort*(.66*liftStroke-.067));
       shoulder.rotation.y=-sign*(humerusSweep+effort*(.12*recovery-.085*drive));
-      shoulder.rotation.x=.23*wingBrake-.071*roll+effort*.10*drive;
+      shoulder.rotation.x=.23*wingBrake-.071*roll+effort*.10*drive-.19*gustTuck;
       elbow.rotation.z=sign*(-.055+.14*tuck+.12*load+.17*wingBrake+.105*wristLoad-.10*gustTuck+effort*.16*Math.cos(phase-.51));
       elbow.rotation.y=sign*((.22+.20*tuck)*armSweep-.16*innerBank-.13*unloaded+
         effort*(.23*recovery-.075*Math.max(0,drive)));
@@ -842,7 +939,7 @@ window.makeEagle = function makeEagle(THREE) {
         effort*(.23*Math.cos(phase-.97)-.22*recovery));
       wrist.rotation.y=-sign*((1.02+.15*tuck)*handSweep+.18*unloaded+.04*innerBank+.52*flareFlex+
         effort*(.74*recovery-.045*Math.max(0,drive)));
-      wrist.rotation.x=.10*wingBrake-.05*load-.064*roll-.145*tipLoad-effort*(.27*recovery-.035*drive);
+      wrist.rotation.x=.10*wingBrake-.05*load-.064*roll-.145*tipLoad-.08*gustTuck-effort*(.27*recovery-.035*drive);
       alula.rotation.z=sign*(.48*separation)*(1-folded);
       alula.rotation.y=sign*(.43*separation)*(1-folded);
       const f=smooth(sign>0?.065:0,sign>0?.97:.91,fold);
@@ -872,26 +969,38 @@ window.makeEagle = function makeEagle(THREE) {
     }
     // The tail photograph is already a partial fan. Overlap its vanes in
     // ordinary transit, then open the outer rectrices under yaw and braking.
-    const spread=-.44+.32*smooth(.14,1.08,Math.abs(bank))+.21*Math.abs(rollTrim)+.27*stall+.095*effort-.24*tuck;
+    const slowStroke=effort*(1-.82*smooth(10,24,speed))*(1-.9*footPlant);
+    // Wing-induced downwash arrives at the tail after the power stroke.
+    // The outer rectrices spread and cup through that load, then overlap
+    // again on recovery. At cruising speed far less area is needed.
+    const wakePhase=phase-clamp(5.8/Math.max(5,speed),.16,.78);
+    const wake=Math.sin(wakePhase);
+    const spread=-.44+.32*smooth(.14,1.08,Math.abs(bank))+.21*Math.abs(rollTrim)+.27*stall+
+      .095*effort+slowStroke*(.18+.23*wake)-.24*tuck;
     const tailFan=blend(clamp(spread+1.01*tailBrake,-.68,.65),-.04,folded);
-    tailRays[0].rotation.y = -tailFan;
-    tailRays[2].rotation.y = tailFan;
+    const cup=(.072*tailBrake+slowStroke*(.055+.072*wake))*(1-folded);
+    for(const {side,ray} of tailRays){
+      const outer=Math.abs(side);
+      ray.rotation.y=side*tailFan;
+      ray.rotation.z=side*cup;
+      ray.rotation.x=outer*slowStroke*.065*Math.sin(wakePhase-outer*.36)*(1-folded);
+    }
     rudder.rotation.y=blend(-.085*bank+.088*rollTrim,0,folded);
-    rudder.rotation.x=.085*pitch+.045*(air.climb||0)+.08*stall+.08*Math.abs(rollTrim)+.025*effort*Math.cos(phase-1);
+    rudder.rotation.x=.085*pitch+.045*(air.climb||0)+.08*stall+.08*Math.abs(rollTrim)-.18*slowStroke*wake;
     rudder.rotation.x=blend(rudder.rotation.x-.30*tailBrake,-.19,folded);
     // Long rectrices clear a ledge as the eagle loads its legs. From a tree
     // limb they can hang further below its feet as the breast rises.
     const tailDownLimit=air.perchOnRock ? .14+.14*folded-.11*compression : .56+.10*folded-.42*perchPivot;
     const tailDown=pitch+chest.rotation.x+rudder.rotation.x;
     rudder.rotation.x-=footPlant*Math.max(0,tailDown-tailDownLimit);
-    rudder.rotation.z=blend(.22*bank-.12*rollTrim,0,folded);
-    const priorYaw=neck.rotation.y;
+    rudder.rotation.z=blend(.22*bank+(air.tailTwist??-.12*rollTrim),0,folded);
+    const priorYaw=neckPose.y;
     updateGaze(time,step,pitch,bank,fixation,folded,air,reset);
     featherTime.value=time;
     const airflow=clamp((air.airspeed || 17.5)/17.5,.4,2.3);
     featherWind.value+=(blend(airflow+.65*effort,.185,folded)*(.87+.13*Math.sin(time*1.37))-featherWind.value)*approach(5);
-    const neckVelocity=step>.0001&&!reset?(neck.rotation.y-priorYaw)/step:0;
-    napeTwist.value.x=neck.rotation.y;
+    const neckVelocity=step>.0001&&!reset?(neckPose.y-priorYaw)/step:0;
+    napeTwist.value.x=neckPose.y;
     napeTwist.value.y+=(clamp(neckVelocity*.60,-1,1)-napeTwist.value.y)*approach(12);
   }
   return {object, update};

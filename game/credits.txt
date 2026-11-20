@@ -667,3 +667,24 @@ Lac Berté, Côte-Nord, Québec
 See labrador-credits.txt for the mapped terrain, imagery, atmosphere and camp reconstruction.
 
 Dixville Notch terrain, highway and Balsams hotel references: see dixville-credits.txt.
+
+EAGLE FLIGHT AND MOVEMENT REFERENCES
+Freedom Conservation. Bald Eagle POV flight, Chamonix, Mont Blanc. Original camera reference.
+https://www.youtube.com/watch?v=bceztrkJuVk
+
+Kate V. Reynolds, Adrian L. R. Thomas and Graham K. Taylor (2014). Wing tucks are a response to atmospheric turbulence in the soaring flight of the steppe eagle Aquila nipalensis. The study and its flight recorder data informed the unloading response. CC BY 4.0.
+https://doi.org/10.1098/rsif.2014.0645
+
+Anna C. Carruthers, Adrian L. R. Thomas and Graham K. Taylor (2007). Automatic aeroelastic devices in the wings of a steppe eagle Aquila nipalensis. High-speed feather, wrist and alula observations.
+https://doi.org/10.1242/jeb.011197
+
+Marco Klein Heerenbrink, Lydia France, Graham Taylor and Caroline Brighton (2022). Supplementary data and code accompanying Optimization of avian perching manoeuvres. Normalized transition positions from the Harris's hawk data informed the optional swoop on open approaches. CC BY 4.0.
+https://doi.org/10.6084/m9.figshare.16529328
+https://creativecommons.org/licenses/by/4.0/
+
+Kay-Michael Voit and colleagues. Head-mounted camera for reconstructing outdoor behavior in freely flying birds (2026). Harris's hawk orientation records informed the normalized timing of short gaze shifts. Dataset released under CC0 1.0.
+https://doi.org/10.17617/3.LVTWX0
+https://doi.org/10.1038/s41592-026-03281-w
+
+Graham K. Taylor and colleagues (2016). Soaring energetics and glide performance in a moving atmosphere. The speed trim in a sustained headwind uses the slope of the recorded straight glides.
+https://doi.org/10.1098/rstb.2015.0398
