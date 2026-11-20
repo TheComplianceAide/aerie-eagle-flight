@@ -171,6 +171,16 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
     neck.quaternion.multiply(scanQ.setFromAxisAngle(SIDE, scan.pitch * scan.gain));
   }
   const stats = {springs: allSprings.length, oscillators: 8, blinks: 0, turbulence: 0, peakBend: 0, saturated: 0};
+  let lastAir = null, lastTime = -Infinity;
+  Object.defineProperty(stats, 'air', {get: () => lastAir, enumerable: false});
+  // Timers are absolute; a new flight may restart the clock, so re-arm them.
+  function rearm(time) {
+    eyes[0].next = time + rand(1.5, 4); eyes[1].next = eyes[0].next + rand(0, .03); eyes.forEach(e => { e.t = -1; });
+    lidBlinkAt = time + rand(20, 50); lidT = -1; saccadeCooldown = 0; drowsy = 0;
+    rouseAt = time + rand(30, 70); peerAt = time + rand(8, 20); shakeAt = time + rand(20, 45); preenAt = time + rand(40, 80);
+    rouseT = peerT = wagT = shakeT = preenT = -1; perchedFor = 0;
+    scan.t = -1; scan.next = time + rand(1, 3); scan.gain = 0; scan.quiet = 0; scan.yaw = scan.pitch = 0;
+  }
 
   // Channels eagle.js does not set every frame. They are restored to their
   // rest values before this layer adds to them, so offsets never accumulate.
@@ -188,7 +198,10 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
     const step = clamp(dt, 0, .05);
     if (step <= 0) return;
     const folded = pose.folded, perched = folded > .9, freeFlight = 1 - folded;
-    if (pose.reset) { allSprings.forEach(s => s.reset()); haveHead = false; lowL = lowR = fastL = fastR = 0; lowN = fastN = 1; turbulence = 0; }
+    if (pose.reset || time < lastTime) {
+      allSprings.forEach(s => s.reset()); haveHead = false; lowL = lowR = fastL = fastR = 0; lowN = fastN = 1; turbulence = 0; rearm(time);
+    }
+    lastTime = time; lastAir = air;
     const V = air.indicatedAirspeed ?? air.airspeed ?? 17;
     const q = clamp((V / 17.5) ** 2, 0, 5);                         // dynamic pressure vs cruise
     const n = air.loadFactor ?? 1;
@@ -423,7 +436,6 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
     uniforms.featherSlip.value += (slip * clamp(q, 0, 2) * freeFlight + perchSlip - uniforms.featherSlip.value) * (1 - Math.exp(-8 * step));
     uniforms.featherFluff.value += (fluff - uniforms.featherFluff.value) * (1 - Math.exp(-10 * step));
     stats.turbulence = turbulence; stats.wind = +windSpeed.toFixed(2); stats.headRoll = +headRoll.toFixed(3); stats.drowsy = +drowsy.toFixed(2);
-    Object.defineProperty(stats, 'air', {value: air, writable: true, configurable: true, enumerable: false});
     stats.tailBend = tailSprings.reduce((a, s) => a + s.offset, 0) / tailSprings.length;
     stats.primaryBend = primarySprings.reduce((a, s) => a + s.offset, 0) / primarySprings.length;
   }
