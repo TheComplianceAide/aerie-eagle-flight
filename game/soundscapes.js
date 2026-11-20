@@ -379,7 +379,8 @@
       ]
     },
     canyon: {
-      water: [{clip: 'scape-canyon-colorado-river', kind: 'river', ref: 35, reach: 1600, gain: .9, maxR: 1200, span: 140}],
+      // Riffles at the sandbars; the Glen Canyon tailwater is otherwise smooth and quiet.
+      water: [{clip: 'scape-canyon-colorado-river', kind: 'river', ref: 20, reach: 900, gain: .7, maxR: 800, span: 140}],
       beds: [{clip: 'scape-canyon-canyon-wind', ref: 1, gain: c => .10 + .38 * c.exposure * (.6 + .5 * c.gust)}],
       choruses: [{clip: 'scape-canyon-apache-cicada', habitat: 'trees', count: 3, r: [25, 160], ref: 14, reach: 600, gain: .5},
                  {clip: 'scape-canyon-desert-crickets', habitat: 'grass', count: 4, r: [15, 120], ref: 10, reach: 380, gain: .45}],
@@ -387,8 +388,7 @@
         {clip: 'scape-canyon-swifts', every: [9, 22], ref: 15, reach: 500, gain: .65, moving: true,
           where: c => { const path = passPath(c.ear, {offset: [20, 160], length: 420, speed: 28}); return {path: {...path, y: c.ear.y + rand(-40, 40)}}; }},
         {clip: 'scape-canyon-swallows', every: [16, 34], ref: 10, reach: 280, gain: .5, where: onCliff(40, 300)},
-        {clip: 'scape-canyon-rockfall', every: [70, 160], ref: 30, reach: 1400, gain: .7, where: onCliff(120, 700)},
-        {clip: 'scape-canyon-ravens-canyon', every: [40, 90], ref: 25, reach: 900, gain: .55, where: onCliff(100, 600)}
+        {clip: 'scape-canyon-rockfall', every: [70, 160], ref: 30, reach: 1400, gain: .7, where: onCliff(120, 700)}
       ]
     },
     swiss: {

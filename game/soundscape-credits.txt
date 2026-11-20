@@ -2,33 +2,155 @@ AERIE REGIONAL SOUNDSCAPES
 
 Field recordings placed in 3D in each world. Excerpts were trimmed, filtered below 45 Hz, level-matched and faded or loop-crossfaded. Thunder strikes and close raindrops are synthesised physically in the game. Reverberation is simulated per world with pyroomacoustics (MIT). Binaural rendering uses Omnitone 2.0 (Google, Apache-2.0; see omnitone-LICENSE.txt) with SADIE HRIRs.
 
-LAKE WINNIPESAUKEE
+MENDENHALL GLACIER
 
-scape-winnipesaukee-snowy-tree-cricket.m4a — “Snowy Tree Cricket (Oecanthus fultoni), iNaturalist observation 389519031.” Kent P. McFarland (kpmcfarland). Palmer Pl, Manchester Center, VT (43.180, -73.052), 8 Aug 2026, 21:20, 70 F and humid.. CC0 1.0.
-https://www.inaturalist.org/observations/389519031
-https://creativecommons.org/publicdomain/zero/1.0/
-Excerpt: 0.50 to 11.50 seconds; loop seam crossfaded; rumble removed; level matched.
+scape-alaska-calving.m4a — “Glacier Calvings and Fractures (Glaciers Soundscape Gallery).” H. Lentfer / NPS (Glacier Bay National Park). Margerie Glacier tidewater face, Glacier Bay National Park, SE Alaska (no exact geotag). Public domain (NPS).
+https://www.nps.gov/glba/learn/nature/glaciers-soundscape-gallery.htm
+https://www.nps.gov/aboutus/disclaimer.htm
+Excerpt: 155.00 to 170.00 seconds; faded; rumble removed; level matched.
 
-scape-winnipesaukee-true-katydid.m4a — “Night Woods.” widgetstudios. French Creek State Park, Douglassville, PA (40.212, -75.793); night, late summer to early fall.. CC0 1.0.
-https://freesound.org/people/widgetstudios/sounds/532301/
-https://creativecommons.org/publicdomain/zero/1.0/
+scape-alaska-calving-alt.m4a — “Glacier Calvings and Fractures (Glaciers Soundscape Gallery).” H. Lentfer / NPS (Glacier Bay National Park). Margerie Glacier tidewater face, Glacier Bay National Park, SE Alaska (no exact geotag). Public domain (NPS).
+https://www.nps.gov/glba/learn/nature/glaciers-soundscape-gallery.htm
+https://www.nps.gov/aboutus/disclaimer.htm
+Excerpt: 67.00 to 93.00 seconds; faded; rumble removed; level matched.
+
+scape-alaska-nugget-falls.m4a — “2013-04-12 falls creek falls.WAV.” Tim Kahn (tim.kahn). Falls Creek Falls, Gifford Pinchot NF, Carson, Washington (geotag 45.9095,-121.9133). CC BY 4.0.
+https://freesound.org/people/tim.kahn/sounds/184731/
+https://creativecommons.org/licenses/by/4.0/
+Excerpt: 30.00 to 150.00 seconds; loop seam crossfaded; rumble removed; level matched.
+
+scape-alaska-varied-thrush.m4a — “Varied Thrush (iNaturalist obs 211954458, sound 1005518).” Quinn (quinnbirds) via iNaturalist. Bamfield, west coast of Vancouver Island, BC (48.835,-125.135), 2024-04-25 08:02. CC BY-SA 4.0.
+https://www.inaturalist.org/observations/211954458
+https://creativecommons.org/licenses/by-sa/4.0/
+Excerpt: 0.50 to 16.50 seconds; faded; rumble removed; level matched.
+
+scape-alaska-pacific-wren.m4a — “Pacific Wren song (iNaturalist obs 384630847, sound 2086036).” bluefeathers via iNaturalist. Brotherhood Bridge Trail, Juneau, AK (58.3772,-134.6004), 2026-07-08 10:24. CC BY 4.0.
+https://www.inaturalist.org/observations/384630847
+https://creativecommons.org/licenses/by/4.0/
+Excerpt: 1.20 to 20.50 seconds; faded; rumble removed; level matched.
+
+scape-alaska-arctic-tern.m4a — “Arctic Tern (iNaturalist obs 395903843, sound 2140774).” bluefeathers via iNaturalist. Riverside Drive by the Mendenhall River, Juneau, AK (58.3839,-134.5834), 2026-07-25. CC BY 4.0.
+https://www.inaturalist.org/observations/395903843
+https://creativecommons.org/licenses/by/4.0/
+Excerpt: full length; faded; rumble removed; level matched.
+
+scape-alaska-meltwater.m4a — “WATRMisc_glacier melting and trickling through some rocks_TK_SASSMKH8020.wav.” Tim Kahn (tim.kahn). Glacier edge, Mount Hood, Parkdale, Oregon (geotag 45.375,-121.686). CC BY 4.0.
+https://freesound.org/people/tim.kahn/sounds/646189/
+https://creativecommons.org/licenses/by/4.0/
 Excerpt: 20.00 to 140.00 seconds; loop seam crossfaded; rumble removed; level matched.
 
-SURRY MOUNTAIN DAM & KEENE
-
-scape-surry-meadow-katydid.m4a — “Common Meadow Katydid (Orchelimum vulgare), iNaturalist observation 387483818.” Matt Pelikan (mpelikan). West Tisbury, Martha's Vineyard, MA (41.394, -70.697), 1 Aug 2026, 12:56 (midday).. CC BY 4.0.
-https://www.inaturalist.org/observations/387483818
+scape-alaska-mosquito-swarm.m4a — “Mosquitoes_In_Small_Wooden_Sauna_Room.wav.” ffilipp (Freesound). Small wooden sauna in forest, Finnish Lapland (no geotag). CC BY 4.0.
+https://freesound.org/people/ffilipp/sounds/345773/
 https://creativecommons.org/licenses/by/4.0/
-Excerpt: 2.00 to 20.00 seconds; loop seam crossfaded; rumble removed; level matched.
+Excerpt: 30.00 to 36.00 seconds; faded; rumble removed; level matched.
 
-MOOSEHEAD LAKE
+HORSESHOE BEND
 
-scape-moosehead-mosquitoes.m4a — “Light rain in nature with a mosquito.” vincauc. Pointe-Lebel, Quebec (49.174, -68.203), boreal Cote-Nord.. CC BY 4.0.
-https://freesound.org/people/vincauc/sounds/825268/
+scape-canyon-colorado-river.m4a — “national_water_12.flac.” Tim Kahn (tim.kahn). Small side stream flowing into the Colorado River 'somewhere deep in the Grand Canyon' (no geotag). CC BY 4.0.
+https://freesound.org/people/tim.kahn/sounds/49636/
 https://creativecommons.org/licenses/by/4.0/
-Excerpt: 13.50 to 18.00 seconds; faded; rumble removed; level matched.
+Excerpt: full length; loop seam crossfaded; rumble removed; level matched.
 
-scape-moosehead-field-crickets.m4a — “Maine Crickets.” yfjesse. South Portland, ME (43.631, -70.248); night.. CC0 1.0.
-https://freesound.org/people/yfjesse/sounds/424151/
+scape-canyon-swifts.m4a — “White-throated Swift (iNaturalist obs 248708725, sound 1237723).” Tero Linjama via iNaturalist. Apache County, Arizona (36.105,-109.365, accuracy ~10 km; Canyon de Chelly area), 2013-07-21. CC BY 4.0.
+https://www.inaturalist.org/observations/248708725
+https://creativecommons.org/licenses/by/4.0/
+Excerpt: 0.00 to 8.80 seconds; faded; rumble removed; level matched.
+
+scape-canyon-swallows.m4a — “Violet-green Swallow dawn song (iNaturalist obs 165693714, sound 726310).” Dillon Alexander via iNaturalist. Ramah, New Mexico (34.939,-108.486; El Morro/Zuni sandstone mesa country), 2023-06-05 04:00. CC0 1.0.
+https://www.inaturalist.org/observations/165693714
 https://creativecommons.org/publicdomain/zero/1.0/
-Excerpt: 30.00 to 150.00 seconds; loop seam crossfaded; rumble removed; level matched.
+Excerpt: 3.00 to 10.40 seconds; faded; rumble removed; level matched.
+
+scape-canyon-rockfall.m4a — “Badlands, small rocks, dropping tumbling down hill, ALBERTA, 100315.mp3.” TRP (Freesound). Badlands, Starland County, Alberta (geotag 51.511,-112.831). CC0 1.0.
+https://freesound.org/people/TRP/sounds/575449/
+https://creativecommons.org/publicdomain/zero/1.0/
+Excerpt: 29.50 to 35.00 seconds; faded; rumble removed; level matched.
+
+scape-canyon-canyon-wind.m4a — “Low wind in a desert canyon 1.” fran_marenco (Freesound). Desert canyon, Tinogasta, Catamarca, Argentina (geotag -27.68,-67.765). CC0 1.0.
+https://freesound.org/people/fran_marenco/sounds/852880/
+https://creativecommons.org/publicdomain/zero/1.0/
+Excerpt: 0.00 to 120.00 seconds; loop seam crossfaded; rumble removed; level matched.
+
+scape-canyon-apache-cicada.m4a — “Cicada singing, sound growing stronger near a river with a low stream, also crickets recorded at dusk in Tres Bellotas road.” Felix Blume (felix.blume). Tres Bellotas road near Arivaca, southern Arizona (no geotag), September 2013, dusk. CC0 1.0.
+https://freesound.org/people/felix.blume/sounds/640978/
+https://creativecommons.org/publicdomain/zero/1.0/
+Excerpt: 240.00 to 340.00 seconds; loop seam crossfaded; rumble removed; level matched.
+
+scape-canyon-desert-crickets.m4a — “zion_night_crickets.wav.” Michael Fousie (foosiemac). Zion Canyon, Zion National Park, Utah (no geotag), 2011-10-05 night. CC BY 3.0.
+https://freesound.org/people/foosiemac/sounds/130622/
+https://creativecommons.org/licenses/by/3.0/
+Excerpt: 0.00 to 120.00 seconds; loop seam crossfaded; rumble removed; level matched.
+
+OESCHINEN LAKE
+
+scape-swiss-alpine-falls.m4a — “Waterfall Saas-Fee Catchment South Big 01 100609.wav.” LG (Freesound). Large glacier-fed waterfall directly south of Saas-Fee, Valais (geotag 46.103,7.916), summer 2010. CC BY 4.0.
+https://freesound.org/people/LG/sounds/102067/
+https://creativecommons.org/licenses/by/4.0/
+Excerpt: 0.00 to 150.00 seconds; loop seam crossfaded; rumble removed; level matched.
+
+scape-swiss-black-redstart.m4a — “Black Redstart song (iNaturalist obs 400508740, sound 2159958).” Stefan Lanz (stibu) via iNaturalist. Gasel (Köniz), canton Bern (46.900,7.403), 2026-09-15 19:39. CC BY 4.0.
+https://www.inaturalist.org/observations/400508740
+https://creativecommons.org/licenses/by/4.0/
+Excerpt: 0.80 to 10.60 seconds; faded; rumble removed; level matched.
+
+scape-swiss-water-pipit.m4a — “Water Pipit song (iNaturalist obs 302576589, sound 1588085).” Antoine Marnat via iNaturalist. Hautes-Alpes (Écrins massif), France (45.091,6.358), 2025-07-31 11:04. CC BY 4.0.
+https://www.inaturalist.org/observations/302576589
+https://creativecommons.org/licenses/by/4.0/
+Excerpt: full length; faded; rumble removed; level matched.
+
+scape-swiss-rockfall-alps.m4a — “20120808_064004 Cathedral Mountain rock slide, slow blocky chunks.wav.” betchkal (Freesound; NPS Denali soundscape program uploader). Cathedral Mountain, Denali National Park, Alaska (geotag 63.575,-149.612). CC0 1.0.
+https://freesound.org/people/betchkal/sounds/500638/
+https://creativecommons.org/publicdomain/zero/1.0/
+Excerpt: 1.00 to 18.00 seconds; faded; rumble removed; level matched.
+
+scape-swiss-alpine-wind.m4a — “mountain wind heavy strong gusts Swiss Alps.flac.” kyles (Freesound). Swiss Alps (author title; no geotag or exact place). CC0 1.0.
+https://freesound.org/people/kyles/sounds/454092/
+https://creativecommons.org/publicdomain/zero/1.0/
+Excerpt: 40.00 to 80.00 seconds; loop seam crossfaded; rumble removed; level matched.
+
+scape-swiss-alpine-grasshoppers.m4a — “Grillen zirpen Wiese Niederhorn Schweiz.” TeemeisterYuLu (Freesound). Meadow on the Niederhorn above Lake Thun, Bernese Oberland (no geotag). CC0 1.0.
+https://freesound.org/people/TeemeisterYuLu/sounds/765039/
+https://creativecommons.org/publicdomain/zero/1.0/
+Excerpt: full length; loop seam crossfaded; rumble removed; level matched.
+
+YOSEMITE VALLEY
+
+scape-yosemite-yosemite-falls.m4a — “WATRFall_TopYosemiteFallsNight_Insects-RoaringWaterfall_ShaneVincent_AKG214_20230826.” Shane Vincent (ShangusBurger). Brink of Upper Yosemite Fall, Yosemite NP (no geotag), 2023-08-26 night. CC0 1.0.
+https://freesound.org/people/ShangusBurger/sounds/750012/
+https://creativecommons.org/publicdomain/zero/1.0/
+Excerpt: 60.00 to 180.00 seconds; loop seam crossfaded; rumble removed; level matched.
+
+scape-yosemite-merced-river.m4a — “small river.” cbmontes (Freesound). Merced River, Yosemite Valley (geotag 37.744,-119.570). CC0 1.0.
+https://freesound.org/people/cbmontes/sounds/510829/
+https://creativecommons.org/publicdomain/zero/1.0/
+Excerpt: 36.00 to 126.00 seconds; loop seam crossfaded; rumble removed; level matched.
+
+scape-yosemite-coyote.m4a — “Coyote1_4.wav.” scotthopkins (Freesound). Tagged 'yosemite', August 2016, early morning (no geotag). CC BY 4.0.
+https://freesound.org/people/scotthopkins/sounds/361306/
+https://creativecommons.org/licenses/by/4.0/
+Excerpt: 2.00 to 21.00 seconds; faded; rumble removed; level matched.
+
+scape-yosemite-brewers-blackbird.m4a — “Brewer's Blackbird (iNaturalist obs 345711099, sound 1827473).” Aniket Murarka via iNaturalist. Clovis, California (36.858,-119.714), 2026-03-28. CC0 1.0.
+https://www.inaturalist.org/observations/345711099
+https://creativecommons.org/publicdomain/zero/1.0/
+Excerpt: 0.30 to 8.20 seconds; faded; rumble removed; level matched.
+
+scape-yosemite-steller-jay-yosemite.m4a — “Steller's Jay (iNaturalist obs 73787338, sound 186677).” Stuart Fisher (genghisattenborough) via iNaturalist. Mariposa County, CA (37.7489,-119.5501 = Yosemite Valley), 2011-04-14. CC BY 4.0.
+https://www.inaturalist.org/observations/73787338
+https://creativecommons.org/licenses/by/4.0/
+Excerpt: 0.00 to 3.20 seconds; faded; rumble removed; level matched.
+
+scape-yosemite-rockfall-granite.m4a — “Sound Gallery - Rockfall.” NPS Natural Sounds and Night Skies. File name says YOSE (Yosemite) but the page caption says Yellowstone; location uncertain. Public domain (NPS).
+https://www.nps.gov/subjects/sound/rockfall.htm
+https://www.nps.gov/aboutus/disclaimer.htm
+Excerpt: full length; faded; rumble removed; level matched.
+
+scape-yosemite-sierra-cicada.m4a — “Okanagana bella (iNaturalist obs 123932029, sound 485431).” Ken-ichi Ueda (kueda) via iNaturalist. Round Top Lake Trail, Alpine County, California (38.679,-120.016), 2022-06-26 14:16. CC0 1.0.
+https://www.inaturalist.org/observations/123932029
+https://creativecommons.org/publicdomain/zero/1.0/
+Excerpt: 0.50 to 12.50 seconds; loop seam crossfaded; rumble removed; level matched.
+
+scape-yosemite-dusk-crickets.m4a — “Northern California Crickets.” ellie.vanderlip (Freesound). Los Altos Hills, California (geotag 37.357,-122.139), summer night. CC0 1.0.
+https://freesound.org/people/ellie.vanderlip/sounds/704381/
+https://creativecommons.org/publicdomain/zero/1.0/
+Excerpt: 10.00 to 110.00 seconds; loop seam crossfaded; rumble removed; level matched.
