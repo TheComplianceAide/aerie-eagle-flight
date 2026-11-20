@@ -68,6 +68,8 @@ window.makeSpatialAudio = function makeSpatialAudio(context, world, options = {}
   let raptor = false;
   function setRaptorHearing(on) {
     if (on === raptor) return; raptor = on;
+    // Make-up gain: the raptor curve removes wind lows and hiss, not loudness.
+    final.gain.setTargetAtTime(on ? 4 : 2.5, context.currentTime, .1);
     try { output.disconnect(); } catch (e) {}
     if (on) { output.connect(hearing[0]); hearing[hearing.length - 1].connect(final); }
     else { try { hearing[hearing.length - 1].disconnect(final); } catch (e) {} output.connect(final); }
