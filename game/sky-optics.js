@@ -5,7 +5,7 @@ window.addAtmosphericOptics=function addAtmosphericOptics(T,scene,w){
     alaska:'Parhelion over the Juneau Icefield',swiss:'Broken solar halo above Oeschinensee',
     lofoten:'Parhelia over Reinefjorden',winnipesaukee:'Sun pillar over the Broads',
     dixville:'Crepuscular fan over Table Rock',moosehead:'Lake shafts off Mount Kineo',
-    canyon:'Sunlit dust above the Colorado',surry:'Slant light in the valley inversion',
+    canyon:'Sunlit dust above the Colorado',surry:'Slant light in the reservoir haze',
     yosemite:'Anticrepuscular rays over the valley',milford:'Sun shafts in fjord mist',
     labrador:'Supernumerary fringes in the sun shower',crater:'Sheet lightning within the front'
   }[w.region];
@@ -22,7 +22,7 @@ window.addAtmosphericOptics=function addAtmosphericOptics(T,scene,w){
     canyon:[660,220,1250,133,71,.00135,83,[.91,.654,.443]],
     moosehead:[1050,380,2050,164,96,.00152,98,[1.,.844,.638]],
     dixville:[1420,400,1620,142,88,.00061,86,[1.,.749,.492]],
-    surry:[1740,510,2180,220,52,.00155,39,[.972,.732,.774]],
+    surry:[1740,510,2180,260,56,.00048,45,[.818,.800,.715]],
     milford:[1780,490,1680,212,116,.00148,112,[.95,.862,.718]],
     yosemite:[2200,660,2470,254,143,.00118,167,[.958,.822,.707]]
   }[w.region];

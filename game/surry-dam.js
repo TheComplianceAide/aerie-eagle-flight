@@ -37,9 +37,19 @@
         dense*=1.-rocks;
         float bedding=desert*(1.-veg);`);
 
+    terrain.fragmentShader=terrain.fragmentShader.replace('/* canopy transmission */',`
+      // Multiple overlapping grades of fractured granite darken the voids
+      // between blocks across the upstream face.
+      float upFace=1.-smoothstep(-4.,2.,across);
+      float apron=rocks*(1.-smoothstep(300.,1100.,d));
+      float mineral=clamp(lum(stones)*1.16-.13,.13,.79);
+      vec3 blockBed=pow(vec3(mineral)*vec3(.97,.99,1.),vec3(2.2));
+      c=mix(c,blockBed*(.65+.35*incidence),apron*(.60+.27*upFace));
+      /* canopy transmission */`);
     const material = (opts) => new THREE.MeshStandardMaterial({roughness:.88,...opts});
     const roadTex = colorMap('lakeside-roof.webp');
-    const roadMat = material({color:0x777577,map:roadTex,roughness:.93});
+    const pavement=colorMap('keene-asphalt.webp');
+    const roadMat = material({color:0xb4afa6,map:pavement,bumpMap:pavement,bumpScale:.012,roughness:.94});
     const shoulder = material({color:0xa7a6a0,map:colorMap('surry-riprap.webp')});
     const concrete = material({color:0xb4b4ac,map:colorMap('shore-stone.webp'),roughness:.94});
     const granite = material({color:0xb6afa1,map:colorMap('shore-stone.webp'),roughness:.94});
@@ -76,13 +86,27 @@
     const dummy=new THREE.Object3D();
     const gap=3.9,total=Math.ceil(length/gap);
     const railPosts=new THREE.InstancedMesh(new THREE.BoxGeometry(.11,1.03,.18),weathered,2*total);
-    const beams=new THREE.InstancedMesh(new THREE.BoxGeometry(gap+.05,.28,.092),rails,2*total);
+    // Folded W-beam galvanised rails show a bright upper lip and a
+    // darker middle web, especially in the long view along the crest.
+    const railShape=[[-.157,0],[-.12,.042],[-.078,.065],[-.018,.012],[.018,.012],[.078,.065],[.12,.042],[.157,0]];
+    const railPositions=[],railIndices=[];
+    for(let i=0;i<railShape.length;i++){
+      const [y,z]=railShape[i];
+      railPositions.push(-gap*.505,y,z,gap*.505,y,z);
+      if(i){const k=2*i;railIndices.push(k-2,k-1,k,k,k-1,k+1);}
+    }
+    const beamGeometry=new THREE.BufferGeometry();
+    beamGeometry.setAttribute('position',new THREE.Float32BufferAttribute(railPositions,3));
+    beamGeometry.setIndex(railIndices);beamGeometry.computeVertexNormals();
+    const sheet=rails.clone();sheet.side=THREE.DoubleSide;sheet.color.setHex(0xc0c7c6);sheet.metalness=.28;sheet.roughness=.52;
+    const beams=new THREE.InstancedMesh(beamGeometry,sheet,2*total);
     for(let side=0;side<2;side++)for(let i=0;i<total;i++){
       const off=side===0?-3.55:3.55, along=Math.min(length-.2,i*gap+.15);
       const [x,z]=at(along,off), [bx,bz]=at(Math.min(length-.7,along+gap*.5),off);
       dummy.rotation.set(0,-Math.atan2(dz,dx),0);
       dummy.position.set(x,crestDeck(x,z)+.45,z);dummy.updateMatrix();
       railPosts.setMatrixAt(side*total+i,dummy.matrix);
+      dummy.rotation.y+=side===0?0:Math.PI;
       dummy.position.set(bx,crestDeck(bx,bz)+.66,bz);dummy.updateMatrix();
       beams.setMatrixAt(side*total+i,dummy.matrix);
     }
@@ -168,21 +192,22 @@
     let seed=664177;
     const random=()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296);
     const rockGeometry=new THREE.IcosahedronGeometry(1,0);
-    const rockMat=material({color:0xffffff});
-    const rocks=new THREE.InstancedMesh(rockGeometry,rockMat,5800);
+    const rockMap=colorMap('shore-stone.webp');
+    const rockMat=material({color:0xffffff,map:rockMap,bumpMap:rockMap,bumpScale:.055,flatShading:true});
+    const rocks=new THREE.InstancedMesh(rockGeometry,rockMat,17600);
     const color=new THREE.Color();
     for(let i=0;i<rocks.count;i++){
-      const along=31+random()*479, side=random()>.48?1:-1;
+      const along=18+random()*506, side=random()>.66?1:-1;
       const endFade=Math.min(1,along/104,(length-along)/102);
       const across=side*(6.5+random()*endFade*(side===1?69:54));
       const [x,z]=at(along,across);
-      const radius=.14+Math.pow(random(),2)*.51;
-      const y=elevation(x,z)-.06;
+      const radius=.22+Math.pow(random(),1.64)*.71;
+      const y=ground(x,z)-.035;
       dummy.position.set(x,y,z);
       dummy.rotation.set(random()*2.3,random()*6.28,random()*3.4);
-      dummy.scale.set(radius*(1+random()*.5),radius*.63,radius*(.85+random()*.64));
+      dummy.scale.set(radius*(1+random()*.5),radius*(.44+random()*.36),radius*(.70+random()*.63));
       dummy.updateMatrix();rocks.setMatrixAt(i,dummy.matrix);
-      const gray=.225+random()*.22;
+      const gray=.56+random()*.38;
       color.setRGB(gray*1.028,gray*1.008,gray*.96);rocks.setColorAt(i,color);
     }
     rocks.computeBoundingSphere();scene.add(rocks);

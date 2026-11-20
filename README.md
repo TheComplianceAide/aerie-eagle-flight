@@ -91,6 +91,8 @@ Low passes reveal wind-bent photographed grasses, shrubs, and ferns. Position an
 
 On a low shoreline pass, ripples turn toward the bank and leave a dark band on the exposed gravel. The water at Mendenhall Lake carries more glacial sediment than the clear shallows at Oeschinen. On the Merced and the Ashuelot, the current runs fastest away from the banks. The game models these waves, currents and shallow beds from the terrain and local setting.
 
+In Moosehead, the low-sun cloud bank moves with the wind and appears in the lake reflection. At Surry Mountain Dam, look along the riprap crest toward the pale sun or across the still reservoir to see the forested ridges fade into daytime haze. The Route 26 departure in Dixville looks west into the rock teeth from the eastern bend.
+
 Choose **Wildlife shallows** for a low departure past each region’s fish and shore birds. At Moosehead and Winnipesaukee, watch for mixed mallard and American black duck rafts, individual loons or pairs, and passing Canada goose flocks. Lac Berté’s shallows include brook trout.
 
 See the [scenery and field-recording credits](game/credits.txt) for the source imagery, terrain, bird recordings, and their individual licenses. [Three.js](game/three-LICENSE.txt) and the bundled [pako decompressor](tools/pako/LICENSE) include their license notices.

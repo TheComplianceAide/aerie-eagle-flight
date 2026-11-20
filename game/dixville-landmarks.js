@@ -170,9 +170,12 @@ window.addDixvilleLandmarks = function(T, scene, sites, elevation) {
       const pt=(a,dy)=>[x+nx*a,centre+(yR-yL)*a/(2*(width+1))+.38+dy,z+nz*a];
       const row=layers.map(([a,b],j)=>[pt(a,.025*Math.min(j,2)),pt(b,.025*Math.min(j,2))]);
       if(prior)layers.forEach(([a,b,m],j)=>face(m,prior[j][0],prior[j][1],row[j][1],row[j][0],(b-a)/4,1));
-      if(main && x>=-300&&x<=135&&z<165 && prior){
-        // North side faces the water regardless of polyline direction.
-        const rail=nz>0?-width-.52:width+.52,side=layers.length;
+      const lakeRail=x>=-300&&x<=135&&z<165;
+      const gorgeRail=x>=530&&x<=677&&z>310;
+      if(main && (lakeRail||gorgeRail) && prior){
+        // The reservoir edge is north of the road. The gorge photograph looks
+        // west with the guardrail on the downhill south shoulder.
+        const rail=(nz>0?-1:1)*(gorgeRail?-1:1)*(width+.52),side=layers.length;
         const bottom=pt(rail,.70),top=pt(rail,.93);row[side]=[bottom,top];
         if(prior[side])face(steel,prior[side][0],bottom,top,prior[side][1]);
         if(phase++%2===0){const f=frame(bottom[0],bottom[1],bottom[2]);block(f,.19,.22,-.83,.18,wood);}
@@ -208,6 +211,23 @@ window.addDixvilleLandmarks = function(T, scene, sites, elevation) {
     face(enamel,f(-.36,1.89,0),f(.36,1.89,0),f(.36,2.79,0),f(-.36,2.79,0));
   }
   roadsideSign(-173,39,-1.39);
+  // The black/yellow obstruction marker stands at the end of the eastern
+  // guardrail. Project onto the actual road edge so its post meets the gravel.
+  const stripeCanvas=document.createElement('canvas');stripeCanvas.width=64;stripeCanvas.height=160;
+  const paint=stripeCanvas.getContext('2d');
+  paint.fillStyle='#d49737';paint.fillRect(0,0,64,160);paint.fillStyle='#262823';
+  for(let y=-100;y<220;y+=50){paint.beginPath();paint.moveTo(0,y);paint.lineTo(64,y+44);paint.lineTo(64,y+68);paint.lineTo(0,y+24);paint.fill();}
+  const stripeMap=new T.CanvasTexture(stripeCanvas);stripeMap.colorSpace=T.SRGBColorSpace;
+  const marker=material(0xffffff,stripeMap);
+  for(const path of sites.highway)for(let j=1;j<path.length;j++){
+    const [x1,z1]=path[j-1],[x2,z2]=path[j],x=676.5;
+    if((x1-x)*(x2-x)>0||Math.abs(x2-x)<.01)continue;
+    const f=(x-x1)/(x2-x1),z=z1+(z2-z1)*f;
+    if(z<310||z>435)continue;
+    const frameAtPost=frame(x,elevation(x,z+4.45),z+4.45,-Math.PI*.5);
+    block(frameAtPost,.12,.11,-.35,2.33,steel);
+    face(marker,frameAtPost(-.21,1.0,0),frameAtPost(.21,1.0,0),frameAtPost(.21,2.33,0),frameAtPost(-.21,2.33,0));
+  }
   // Loose blocks sit at the bases of the measured slopes, uphill of the travel lanes.
   let seed=592;function rand(){seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;}
   sites.highway.forEach(path=>{
@@ -230,27 +250,7 @@ window.addDixvilleLandmarks = function(T, scene, sites, elevation) {
       }
     }
   });
-  // Split crest of Table Rock. Keep the fissure open and carry each face down
-  // into the measured slope, so the silhouette also works on a pass beneath it.
-  const peakY=elevation(25.7,338.3),ledge=frame(25.7,peakY,338.3,-.42);
-  function tooth(outline,offset=0){
-    const rim=outline.map(([u,v,h])=>ledge(u,h+offset,v));
-    const bottom=rim.map(([x,y,z])=>{
-      const bx=25.7+(x-25.7)*1.19,bz=338.3+(z-338.3)*1.10;
-      return [bx,elevation(bx,bz)-2.4,bz];
-    });
-    const center=rim.reduce((sum,p)=>sum.map((v,i)=>v+p[i]/rim.length),[0,0,0]);center[1]+=.28;
-    for(let i=0;i<rim.length;i++){
-      const j=(i+1)%rim.length,a=rim[i],b=rim[j];
-      tri(rock,a,b,center,[a[0]/4,a[2]/4,b[0]/4,b[2]/4,center[0]/4,center[2]/4]);
-      const width=Math.hypot(a[0]-b[0],a[2]-b[2])/4;
-      face(rock,bottom[i],bottom[j],b,a,width,Math.max(1,(a[1]-bottom[i][1])/4));
-    }
-  }
-  tooth([[-3,5,.0],[-3.4,-3,1.05],[-2,-10,1.4],[-1.35,-13.6,1.17],[-.40,-9.9,.6],[-.38,-1,.82],[.10,5,.1]]);
-  tooth([[.52,4,.15],[.13,-2,.53],[.22,-6.8,1.15],[1.05,-10,1.44],[1.95,-7,.92],[2.9,2,.54]]);
-  tooth([[-4.9,5,-.08],[-5.2,-.5,.30],[-4.4,-5.1,.88],[-3.62,-3,.70],[-3.5,4,.0]],-1.05);
-  bounds(24,335,8,18,-.42,peakY+1.65);
+  // The one-metre survey resolves the split crest of Table Rock directly.
   const group=new T.Group();group.name='Dixville Notch landmarks';
   for(const [m,{p,uv}] of batches)if(p.length){
     const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(p,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));g.computeVertexNormals();

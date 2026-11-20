@@ -1,15 +1,17 @@
-// Morning inversion in the Ashuelot valley. Integrate patchy, shallow fog
+// Daytime haze above Surry Reservoir. Integrate the shallow valley fog
 // up to the visible surface so nearby houses stay clear and successive tree
 // lines, bridge piers and distant hills disappear into the same air.
 window.addKeeneWeather=function addKeeneWeather(T,scene,{clock,sky,terrain,sun}){
   const light=scene.children.find(o=>o.isDirectionalLight);
-  light.color.set(0xffb684);light.intensity=1.88;
+  light.color.set(0xffedcd);light.intensity=1.20;
   const hemisphere=scene.children.find(o=>o.isHemisphereLight);
-  hemisphere.groundColor.set(0x6f6371);
-  scene.fog.color.set(0xd0afc6);
-  terrain.fragmentShader=terrain.fragmentShader.replace('/* canopy transmission */',`
-    c*=mix(vec3(.67,.64,.89),vec3(1.07,.86,.77),sunlit*(.74+.26*incidence));
-    /* canopy transmission */`);
+  hemisphere.color.set(0xe3e7e6);
+  hemisphere.groundColor.set(0x777a70);
+  hemisphere.intensity=1.65;
+  scene.fog.color.set(0xb2bdbe);
+  terrain.fragmentShader=terrain.fragmentShader
+    .replace('vec3(.51,.61,.76)','vec3(.62,.67,.71)')
+    .replace('vec3(1.25,.98,.69)','vec3(.83,.81,.73)');
   const uniforms={keeneDayTime:clock,keeneDaySun:{value:sun}};
   const fog=`
     uniform float keeneDayTime;
@@ -41,9 +43,16 @@ window.addKeeneWeather=function addKeeneWeather(T,scene,{clock,sky,terrain,sun})
         +keeneBank(eye,ray,dist,vec3(206.,157.,386.),vec3(1770.,45.,425.),vec2(.30,.954),.0030)
         +keeneBank(eye,ray,dist,vec3(1230.,156.,2650.),vec3(1670.,32.,380.),vec2(.49,.872),.0025)
         +keeneBank(eye,ray,dist,vec3(1650.,148.,4580.),vec3(970.,17.,275.),vec2(.13,.992),.0018);
-      float facing=pow(max(0.,dot(ray,keeneDaySun)),4.);
-      vec3 air=mix(vec3(.425,.419,.565),vec3(.995,.660,.487),.13+.80*facing);
-      return mix(color,air,1.-exp(-min(density,6.)));
+      // Successive wooded ridges lose contrast with distance, even above the
+      // patchy banks. Integrate an exponential height profile to the first
+      // visible surface. The mirror camera sees the same air as the eagle.
+      float path=min(dist,29000.);
+      float change=clamp(ray.y*path/345.,-10.,10.);
+      float column=abs(change)<.015 ? 1.-change*.5 : (1.-exp(-change))/change;
+      float aerosol=.00029*exp(clamp((166.-eye.y)/345.,-8.,.55))*path*column;
+      float facing=pow(max(0.,dot(ray,keeneDaySun)),2.4);
+      vec3 air=mix(vec3(.431,.479,.518),vec3(.613,.566,.477),facing);
+      return mix(color,air,1.-exp(-min(.47*density+aerosol,7.)));
     }`;
   function appendMain(shader,code){
     const main=shader.indexOf('void main'),body=shader.indexOf('{',main);
@@ -57,7 +66,8 @@ window.addKeeneWeather=function addKeeneWeather(T,scene,{clock,sky,terrain,sun})
   Object.assign(sky.material.uniforms,uniforms);
   sky.material.fragmentShader=fog+'\n'+sky.material.fragmentShader.replace(skyEnd,`
     /* before local precipitation */
-    gl_FragColor.rgb=ashuelotAir(gl_FragColor.rgb,cameraPosition,d,30000.);
+    gl_FragColor.rgb=ashuelotAir(gl_FragColor.rgb,cameraPosition,d,
+      min(7600.,180./max(.019,d.y)));
     `+skyEnd);
   // Attach after buildings, wildlife, canopy and the eagle have been added.
   // Both the ordinary camera and the reflected camera see the same banks.

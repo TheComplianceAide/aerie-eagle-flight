@@ -52,3 +52,6 @@ https://polyhaven.com/a/qwantani_sunrise_puresky
 https://polyhaven.com/a/wasteland_clouds_puresky
 
 Lake and ocean reflection material derived from Three.js Water (MIT). Existing terrain scans, water normals and the fir-tree model are credited in credits.txt. The locations, terrain and imagery are real. Lighting, water, close surface materials, waterfalls and vegetation are rendered as a simulation.
+
+Moosehead Lake's moving cloud deck is adapted from the 8K Citrus Orchard (Pure Sky) photograph by Dimitrios Savva, processed by Jarod Guest, hosted by Poly Haven under CC0. The panorama represents simulated summer conditions. Its sun is registered to the local scene lighting.
+https://polyhaven.com/a/citrus_orchard_puresky

@@ -15,28 +15,59 @@ window.makeMovingWeather = async function makeMovingWeather(THREE, scene, world)
     milford:       [2670, 11800, .51, .37, 2.9, .86],
     winnipesaukee: [1670, 4250, .49, .40, 2.1, .91],
     moosehead:     [1640, 3850, .45, .43, 2.0, .86],
-    surry:         [1540, 3950, .51, .39, 2.2, .89]
+    surry:         [1830, 6300, .58, .15, 1.8, .89]
   };
   const [height, span, threshold, strength, upperWind, width] = profiles[world.region] ||
     [(world.waterLevel ?? world.spawn.y) + 1600, 4400, .49, .43, 2.5, .85];
   const field = world.windField;
-  const texture = await new THREE.TextureLoader().loadAsync('cloud-field.png');
-  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  const photographedDeck = world.region === 'moosehead';
+  const texture = photographedDeck ? world.skyTexture : await new THREE.TextureLoader().loadAsync('cloud-field.png');
+  if (!photographedDeck) texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
   const uniforms = {
     cloudField: {value:texture}, cloudHeight: {value:height}, cloudSpan: {value:span},
     cloudThreshold: {value:threshold}, cloudStrength: {value:strength}, cloudWidth: {value:width},
     cloudSun: {value:world.sunDirection}, cloudDirection: {value:new THREE.Vector2(field.direction.x,field.direction.z)},
     cloudTravel: {value:0}, cloudSeed: {value:new THREE.Vector2(.19*field.phase,.37*field.phase)}
   };
+  // At Moosehead, the lake and flight cameras look into a photographed cloud
+  // deck. Ground and water sample that same deck along the solar ray.
+  const deckCoordinates = photographedDeck ? `
+    uniform vec3 cloudAnchor;
+    vec3 deckDirection(vec2 p) {
+      return normalize(vec3(p.x-cloudAnchor.x,cloudHeight-cloudAnchor.y,p.y-cloudAnchor.z));
+    }
+    vec2 deckUV(vec3 ray) {
+      return vec2(.5+atan(ray.z,ray.x)*.15915494,.5+asin(clamp(ray.y,-1.,1.))*.31830989);
+    }
+    vec3 deckLight(vec2 p) {
+      // Exchange wind-advected cloud fields over many minutes. Both samples
+      // coincide continuously at each wrap, including on hours-long flights.
+      const float span=13800.;
+      float phase=mod(cloudTravel/span,1.);
+      vec2 a=p-cloudDirection*(phase*span);
+      vec2 b=a+cloudDirection*span;
+      return mix(texture2D(cloudField,deckUV(deckDirection(a))).rgb,
+                 texture2D(cloudField,deckUV(deckDirection(b))).rgb,smoothstep(.20,.90,phase));
+    }
+  ` : '';
+  if (photographedDeck) {
+    uniforms.cloudAnchor = {value:new THREE.Vector3(world.spawn.x,world.spawn.y,world.spawn.z)};
+  }
   const cloudSampling = `
     uniform sampler2D cloudField;
     uniform vec3 cloudSun;
     uniform vec2 cloudDirection, cloudSeed;
     uniform float cloudHeight, cloudWidth, cloudSpan, cloudThreshold, cloudStrength, cloudTravel;
+    ${deckCoordinates}
     float cloudDensity(vec2 p){
+      ${photographedDeck ? `
+      vec3 sky=deckLight(p);
+      // White and grey cloud have much less blue chroma than the open sky.
+      return smoothstep(.36,.91,(sky.r+.75*sky.g)/(1.75*max(.015,sky.b)));
+      ` : `
       vec2 crosswind=vec2(-cloudDirection.y,cloudDirection.x);
       vec2 coord=vec2(dot(p,cloudDirection)-cloudTravel,dot(p,crosswind)*cloudWidth)/cloudSpan;
-      return texture2D(cloudField,coord+cloudSeed).r;
+      return texture2D(cloudField,coord+cloudSeed).r;`}
     }
     float cloudCover(float density){return smoothstep(cloudThreshold-.115,cloudThreshold+.145,density);}
   `;
@@ -79,10 +110,9 @@ window.makeMovingWeather = async function makeMovingWeather(THREE, scene, world)
         opacity*=.44;
       `:''}
       ${world.region==='surry'?`
-        // First light colours the thin cloud deck; the river-valley inversion
-        // is applied in front of it by the regional weather material.
-        underside=vec3(.43,.40,.56);lit=mix(vec3(.70,.55,.69),vec3(1.,.72,.56),silver);
-        opacity*=.22;
+        // Thin midday cloud blends into the wider veil around the sun.
+        underside=vec3(.59,.63,.65);lit=mix(vec3(.77,.79,.80),vec3(.88,.85,.76),silver);
+        opacity*=.13;
       `:''}
       vec3 cloud=mix(underside,lit,clamp(rim+.26*(1.-opacity),0.,1.));
       gl_FragColor.rgb=mix(gl_FragColor.rgb,${linearOutput ? "pow(cloud,vec3(2.2))" : "cloud"},.73*opacity);
@@ -121,7 +151,23 @@ window.makeMovingWeather = async function makeMovingWeather(THREE, scene, world)
         prior.call(this,shader,renderer);
         Object.assign(shader.uniforms,uniforms);
         if(sky){
-          shader.fragmentShader=cloudSampling+lightSurface(shader.fragmentShader,coverSky(shader.fragmentShader.includes(precipitation)));
+          if (photographedDeck) {
+            // Preserve the sun's bearing and the photographic horizon as the
+            // eagle moves under the cloud base. The water mirror uses this ray too.
+            shader.fragmentShader=cloudSampling+shader.fragmentShader.replace(
+              'gl_FragColor=vec4(texture2D(map,uv).rgb,1.);', `
+              vec3 upper=texture2D(map,uv).rgb;
+              float below=cloudHeight-cameraPosition.y;
+              if(d.y>.004 && below>0.){
+                vec2 intersection=cameraPosition.xz+d.xz*below/max(.004,d.y);
+                float horizon=smoothstep(.004,.056,d.y);
+                float glare=1.-smoothstep(.984,.998,dot(d,cloudSun));
+                upper=mix(upper,deckLight(intersection),horizon*glare);
+              }
+              gl_FragColor=vec4(upper,1.);`);
+          } else {
+            shader.fragmentShader=cloudSampling+lightSurface(shader.fragmentShader,coverSky(shader.fragmentShader.includes(precipitation)));
+          }
         }else{
           // Survey grids and skinned/instanced meshes already have densely
           // spaced vertices. Sampling there preserves scarce fragment samplers

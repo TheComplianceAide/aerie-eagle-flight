@@ -30,3 +30,9 @@ https://www.nhstateparks.org/find-parks-trails/dixville-notch-state-park
 https://www.openstreetmap.org/node/10169383124
 https://www.openstreetmap.org/node/10169383197
 https://polyhaven.com/a/rock_face_03
+
+On the westbound Route 26 departure, the two exposed south-wall crests use a one-metre USGS 3DEP inset. The road bearing and position were estimated by fitting the visible skyline to the elevation model. Slope, convexity and orthophotography guide the rock and forest cover. The local field references guided the interpreted graphite-colored faces and the roadside guardrail. Crown estimates coincident with bare cliff returns were screened and exposed stands include narrow evergreens. The water, sky and sunlight keep the existing autumn dawn. The rock material combines CC0 photogrammetric fracture and lichen scans with the Rock Face 03 substrate listed above.
+https://www.usgs.gov/3d-elevation-program
+https://ngmdb.usgs.gov/Geolex/Units/Dixville_1406.html
+https://polyhaven.com/a/marble_cliff_01
+https://polyhaven.com/a/lichen_rock

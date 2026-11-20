@@ -28,14 +28,14 @@
     },
     moosehead:{
       'Rockwood':['bank',15,'Mount Kineo'],'Lily Bay':['bank',295],'Mount Kineo':['ridge',193,'Kineo Cove'],
-      'Little Kineo Mountain':['ridge',212,'Mount Kineo'],'Farm Island':['bank',138,'Mount Kineo'],
+      'Little Kineo Mountain':['ridge',212,'Mount Kineo'],
       'Spencer Bay':['vista',257,'Mount Kineo'],'Kineo Cove':['vista',2,'Mount Kineo']
     },
     winnipesaukee:{
-      'Bear Island':['bank',135,'The Broads'],'Mount Major':['ridge',3,'Rattlesnake Island'],
+      'Mount Major':['ridge',3,'Rattlesnake Island'],
       'Sleepers Island':['bank',12,'Rattlesnake Island'],'Rattlesnake Island':['ridge',217,'Mount Major'],
       'Diamond Island':['bank',242,'Mount Major'],'Wolfeboro Bay':['vista',245,'The Broads'],
-      'Meredith Bay':['bank',145,'Bear Island'],'The Broads':['vista',130,'Rattlesnake Island']
+      'Meredith Bay':['bank',145,'The Broads'],'The Broads':['vista',130,'Rattlesnake Island']
     },
     surry:{'Ashuelot River':['bank',170],'Ashuelot River Park':['bank',121]},
     lofoten:{
@@ -123,8 +123,8 @@
     return best;
   }
   const lakeMargins={
-    winnipesaukee:['Bear Island','Sleepers Island','Diamond Island','Wolfeboro Bay','Meredith Bay'],
-    moosehead:['Lily Bay','Farm Island','Spencer Bay']
+    winnipesaukee:['Sleepers Island','Diamond Island','Wolfeboro Bay','Meredith Bay'],
+    moosehead:['Lily Bay','Spencer Bay']
   };
   function islandPass(w,p){
     if(!lakeMargins[w.region]?.includes(p.name)||!w.shorelines?.length)return;

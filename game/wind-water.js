@@ -39,7 +39,7 @@ window.addReadableWindWater=function(T,scene,world){
     if(mesh.isWater && m.uniforms.shoreField){
       // Atlas lakes, fjords, and open coasts. Keep nearby submerged gravel visible.
       shader=shader.replace('vec3 n=normalize(vec3(slope.x,1.,slope.y));',`
-        float front=windOnWater(p)*mix(.76,1.,fetch);
+        float front=windOnWater(p)*mix(.76,1.,fetch)*${world.region==='surry'?'.18':'1.'};
         slope=slope*(1.+.56*front)+catspawSlope(p,footprint,front);
         vec3 n=normalize(vec3(slope.x,1.,slope.y));`)
         .replace('float rough=.045+.045*fetch*seaState;', 'float rough=.045+.045*fetch*seaState+.033*front;')

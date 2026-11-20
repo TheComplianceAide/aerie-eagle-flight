@@ -20,9 +20,20 @@
     scene.traverse(mesh=>{
       if(!mesh.isWater)return;
       const mat=mesh.material,atlas=!!mat.uniforms.shoreField;
-      const energy=({dixville:.52,lofoten:1.65,milford:1.25,labrador:1.10,moosehead:1.05,alaska:.88,swiss:.58,crater:.85,surry:.58})[region]||.92;
+      const energy=({dixville:.52,lofoten:1.65,milford:1.25,labrador:1.10,moosehead:1.05,alaska:.88,swiss:.58,crater:.85})[region]||.92;
       let shader=waves+'\n'+mat.fragmentShader;
-      if(atlas){
+      if(atlas&&region==='surry'){
+        // The sheltered dam pool is glassy between small moving cat's paws.
+        // Long gravity waves rolling across the entire basin would stripe its
+        // reflected hills. Short capillary waves remain in patchy light wind.
+        shader=shader.replace('vec2 slope=slopes(p,time,footprint,fetch,wind);',`
+          vec2 drift=vec2(.030,-.018)*time;
+          float capillaryPatch=texture2D(normalSampler,p*.00091+drift*.012).r;
+          capillaryPatch+=.42*(texture2D(normalSampler,vec2(p.y*.0017,-p.x*.0012)-drift*.008).g-.5);
+          float rippled=smoothstep(.48,.72,capillaryPatch);
+          vec2 slope=slopes(p,time,footprint,fetch,wind)*(.09+.61*rippled);
+        `).replace('incident*shoaling','incident*.22*shoaling');
+      }else if(atlas){
         shader=shader.replace('vec2 slope=slopes(p,time,footprint,fetch,wind);',`
           float energy=${energy.toFixed(2)}*(.32+.68*fetch)*(.62+.38*smoothstep(0.,14.,bank));
           vec3 wave=waterWaves(p,time,footprint,energy);

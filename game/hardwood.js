@@ -48,11 +48,18 @@ window.addHardwoods=function addHardwoods(T,scene,trees,options){
     return origin+.005+.49*clamp(p,0.,1.);
   }`;
   const autumn=region==='dixville';
-  const autumnLeaves=autumn?`
+  const leafColor=autumn?`
     float leafMask=smoothstep(.005,.072,color.g-min(color.r,color.b));
     float leafValue=dot(color,vec3(.24,.61,.15));
     vec3 pigment=species<.5?vec3(1.98,.92,.33):species<1.5?vec3(1.83,1.31,.48):species<2.5?vec3(1.64,.71,.29):vec3(1.28,1.13,.63);
     color=mix(color,leafValue*pigment,leafMask*.97);
+  `:region==='surry'?`
+    // The reservoir references show summer hardwoods. Keep the photographed
+    // crown shading but replace yellow and red atlas foliage with leaf-on green.
+    float foliage=smoothstep(.012,.074,max(color.r,color.g)-color.b);
+    float value=dot(color,vec3(.24,.61,.15));
+    vec3 summerTone=mix(vec3(.57,.81,.61),vec3(.70,.90,.62),fract(species*.39));
+    color=mix(color,summerTone*value,foliage*.96);
   `:'';
   const finish=`
     vec3 linearColor=mix(pow((color+.055)/1.055,vec3(2.4)),color/12.92,lessThanEqual(color,vec3(.04045)));
@@ -95,7 +102,7 @@ window.addHardwoods=function addHardwoods(T,scene,trees,options){
       float noise=fract(dot(gl_FragCoord.xy,vec2(.7548777,.5698403)));
       if(alpha<.24||noise>fade)discard;
       vec3 color=mix(side.rgb*side.a,top.rgb*top.a,tilt)/max(alpha,.04);
-      ${autumnLeaves}
+      ${leafColor}
       color*=mix(vec3(.56,.64,.72),vec3(.93,.96,.92),keyLight)*(.90+.15*phase);
       ${finish}`});
   const quad=new T.PlaneGeometry(1,1),cells=new Map(),stands=new Map(),point=new T.Vector3();
@@ -192,7 +199,7 @@ window.addHardwoods=function addHardwoods(T,scene,trees,options){
         vec4 leaf=texture2D(leaves,tileUV(coord,species));float noise=fract(dot(gl_FragCoord.xy,vec2(.7548777,.5698403)));
         if(leaf.a<.36||noise<fade)discard;
         vec3 color=leaf.rgb;
-        ${autumnLeaves}
+        ${leafColor}
         color*=illum;
         ${finish}`});
   const boughs=new T.InstancedMesh(twigGeometry,closeMat,stems.instanceMatrix.count);

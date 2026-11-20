@@ -488,6 +488,8 @@ class Water extends Mesh {
   const [focusX,focusZ]=survey.innerCenter || [0,0];
   const notchSurveys=dixville?[
     ...(window.dixvilleNotchRock?[{x:0,z:300,half:360,grid:unpack(window.dixvilleNotchRock),step:2}]:[]),
+    // The two road-facing teeth resolve down to a metre inside the broader gorge survey.
+    {x:98,z:370,half:160,grid:unpack(window.dixvilleCrags),step:1},
     ...window.dixvilleBrooks.map(b=>({x:b.x,z:b.z,half:b.half,grid:unpack(b.terrain),step:b.half/96}))
   ]:[];
   const brook=window.aerieRegionalFalls?.[region],localDEM=window.aerieFallsSurveys?.[region];
@@ -535,10 +537,10 @@ class Water extends Mesh {
   }
   const loader=new THREE.TextureLoader();
   function texture(file,repeat=false){const tex=loader.load(file);tex.anisotropy=12;if(repeat)tex.wrapS=tex.wrapT=THREE.RepeatWrapping;return tex;}
-  const lightAngles={moosehead:[-84,15.5],winnipesaukee:[-112,4.2],surry:[-52,8.5],yosemite:[157,12.4],crater:[-70,8],lofoten:[-115,4.3],milford:[-71,8]};
+  const lightAngles={moosehead:[-84,15.5],winnipesaukee:[-112,4.2],surry:[167,19],yosemite:[157,12.4],crater:[-70,8],lofoten:[-115,4.3],milford:[-71,8]};
   const [azimuth,altitude]=(settings.lightAngles||lightAngles[region]).map(THREE.MathUtils.degToRad);
   const sun=new THREE.Vector3(Math.cos(azimuth)*Math.cos(altitude),Math.sin(altitude),Math.sin(azimuth)*Math.cos(altitude));
-  const skyMap=texture(surry?'keene-first-light.webp':settings.skyMap||'atlas-'+region+'-sky.webp');
+  const skyMap=texture(settings.skyMap||'atlas-'+region+'-sky.webp');
   skyMap.colorSpace=THREE.SRGBColorSpace;skyMap.wrapS=THREE.RepeatWrapping;
   skyMap.minFilter=THREE.LinearFilter;skyMap.generateMipmaps=false;
   const fog=dixville?0xc5b7b6:region==='milford'?0xb2b9b9:0xb6bfc8;
@@ -556,7 +558,7 @@ class Water extends Mesh {
   const geology='jointed';
   const aerial=texture('atlas-'+region+'-photo.webp'),ranges=texture('atlas-'+region+'-ranges.webp'),stone=texture('atlas-'+geology+'-rock.webp',true),grain=texture('rock.jpg',true),sod=texture('soil-'+window.aerieSoil(region)+'.webp',true);
   const color=new THREE.Color(fog);
-  const terrainLight=texture(surry?'keene-dawn-sun.webp':'atlas-'+region+'-light.webp'),fracture=texture('atlas-'+geology+'-relief.webp',true);
+  const terrainLight=texture('atlas-'+region+'-light.webp'),fracture=texture('atlas-'+geology+'-relief.webp',true);
   const canopyMap=new THREE.DataTexture(cover,384,384,THREE.RedFormat);
   canopyMap.minFilter=canopyMap.magFilter=THREE.LinearFilter;canopyMap.needsUpdate=true;
   const localShoreMask=surry||dixville;
@@ -774,21 +776,40 @@ class Water extends Mesh {
       float mountainShade=texture2D(ridgeLight,vec2(xz.x,-xz.y)/farSpan+.5).r;
       float backRange=smoothstep(halfMap*.78,halfMap*1.13,extent);
       c*=mix(1.,clamp(.62+mountainShade*.83,.72,1.34),backRange*.94);
-      float summit=1.-smoothstep(14.,66.,length(wp.xz-vec2(26.,338.)));
-      vec2 edge=(wp.xz-vec2(85.,360.))/vec2(365.,162.);
-      float flank=clamp(1.25-dot(edge,edge),0.,1.)*(1.-smoothstep(.62,.89,normal.y))*smoothstep(623.,718.,wp.y);
-      float exposed=max(summit*smoothstep(692.,749.,wp.y),flank*.88);
-      // The two-metre photogrammetric scan carries actual fracture relief.
-      // Large folded blocks and small broken mica faces follow different scales.
-      vec2 alongFold=vec2(wp.x*.80+wp.z*.60,wp.y-.19*wp.x+.12*wp.z);
-      vec2 acrossFold=vec2(wp.z*.82-wp.x*.57,wp.y+.11*wp.z);
-      vec2 topFace=mat2(.86,-.51,.51,.86)*xz;
-      vec2 rockUV=mix(mix(acrossFold,alongFold,axis),topFace,smoothstep(.48,.87,normal.y));
-      vec4 rockFine=texture2D(notchStone,rockUV*.34+.06*warp);
-      vec4 rockLarge=texture2D(notchStone,rockUV*.068+.09*warp+.39);
-      float mineral=texture2D(notchStone,rockUV*.92).r;
-      vec3 scarp=mix(rockLarge.rgb,rockFine.rgb,.58)*(.87+.18*mineral+.12*rockFine.a);
-      c=mix(c,scarp*vec3(.99,1.02,1.06),exposed*.94);
+      // Registered slope, convexity and exposed stone mapped from 3DEP and NAIP.
+      vec2 cragUV=vec2(xz.x-150.,350.-xz.y)/768.+.5;
+      float inCrags=1.-smoothstep(.476,.5,max(abs(cragUV.x-.5),abs(cragUV.y-.5)));
+      vec2 scarpData=texture2D(ridgeLight,clamp(cragUV,0.,1.)).gb;
+      vec3 site=vec3(scarpData,clamp(.5+3.*(photo.r-photo.g),.1,.91));
+      float exposed=site.r*inCrags;
+      // Foliation descends diagonally through the flutes. Let the longer
+      // upright ribs read as single faces across many metres of smaller joints.
+      vec3 rockPosition=wp-vec3(98.,700.,370.);
+      vec2 faceX=vec2(rockPosition.z,rockPosition.y+.26*rockPosition.z);
+      vec2 faceZ=vec2(rockPosition.x,rockPosition.y-.22*rockPosition.x);
+      float faceBlend=smoothstep(.12,.90,axis);
+      vec2 top=mat2(.86,-.51,.51,.86)*rockPosition.xz;
+      float cap=smoothstep(.65,.93,normal.y);
+      vec4 fineX=texture2D(notchStone,faceX*vec2(.22,.18)+.027*warp);
+      vec4 fineZ=texture2D(notchStone,faceZ*vec2(.22,.18)-.032*warp+.34);
+      vec4 rockFine=mix(mix(fineZ,fineX,faceBlend),texture2D(notchStone,top*.23),cap);
+      vec4 longX=texture2D(notchStone,faceX*vec2(.067,.039)+.07*warp);
+      vec4 longZ=texture2D(notchStone,faceZ*vec2(.074,.043)-.06*warp+.35);
+      vec4 rockLarge=mix(mix(longZ,longX,faceBlend),texture2D(notchStone,top*.081+.17),cap);
+      vec3 scarp=mix(rockLarge.rgb,rockFine.rgb,.40)*(.66+.30*rockLarge.a+.11*rockFine.a);
+      float ribLight=clamp(.62+.65*site.g+.25*(rockLarge.a-.55),.54,1.1);
+      vec3 mineral=mix(vec3(.75,.83,.95),vec3(.98,.98,.92),site.b*.63);
+      c=mix(c,scarp*mineral*ribLight,exposed*.99);
+      // Relight the scanned fractures in world space. Derivatives keep their
+      // tilt continuous on both sides of the texture projection seam.
+      float depth=(rockLarge.a-.5)*1.36+(rockFine.a-.5)*.17;
+      vec3 edgeU=dFdx(wp),edgeV=dFdy(wp);
+      vec3 basisU=cross(edgeV,normal),basisV=cross(normal,edgeU);
+      float signedArea=dot(edgeU,basisU);
+      vec3 grad=(dFdx(depth)*basisU+dFdy(depth)*basisV)*sign(signedArea)/max(.0001,abs(signedArea));
+      vec3 schistNormal=normalize(normal-grad/max(1.,length(grad)*.88));
+      relieved=normalize(mix(relieved,schistNormal,exposed));
+      incidence=max(0.,dot(relieved,sun));
       if(d<310.&&(length(xz-brookKnots[11])<105.||length(xz-brookKnots[34])<105.)){
         float brookD=100.,halfBed=1.4;
         for(int j=0;j<45;j++){
@@ -1061,8 +1082,8 @@ class Water extends Mesh {
     const east=cuts('x'),south=cuts('z');
     for(let j=1;j<south.length;j++)for(let i=1;i<east.length;i++){
       const x=(east[i-1]+east[i])*.5,z=(south[j-1]+south[j])*.5;
-      const area=notchSurveys.find(a=>Math.abs(x-a.x)<a.half&&Math.abs(z-a.z)<a.half);
-      const step=area?.step||(Math.max(Math.abs(x),Math.abs(z))<core?4:12);
+      const steps=notchSurveys.filter(a=>Math.abs(x-a.x)<a.half&&Math.abs(z-a.z)<a.half).map(a=>a.step);
+      const step=steps.length?Math.min(...steps):(Math.max(Math.abs(x),Math.abs(z))<core?4:12);
       subdivide(east[i-1],south[j-1],east[i],south[j],step);
     }
   }else{
@@ -1142,13 +1163,13 @@ class Water extends Mesh {
       for(const hole of survey.shoreHoles||[])outline.holes.push(new THREE.Path(hole.map(vec)));
       g=new THREE.ShapeGeometry(outline);
     }else g=new THREE.PlaneGeometry(farH*2.4,farH*2.4);
-    const waterColors={moosehead:0x25505c,winnipesaukee:0x20505e,surry:0x254b58,crater:0x0a3977,milford:0x163d49,lofoten:0x215364};
+    const waterColors={moosehead:0x25505c,winnipesaukee:0x20505e,surry:0x454d49,crater:0x0a3977,milford:0x163d49,lofoten:0x215364};
     water=new Water(g,{textureWidth:1024,textureHeight:512,waterNormals:texture('waternormals.jpg',true),sunDirection:sun,waterColor:waterColors[region]??settings.sea,fog:true});
     Object.assign(water.material.uniforms,{
       shoreTexel:{value:1/(surry?2048:dixville?768:region==='labrador'?640:1024)},
       shoreField:{value:texture('atlas-'+region+'-shore.webp')},terrainLight:{value:terrainLight},
       pebbles:{value:texture('shore-pebbles.webp',true)},basinSpan:{value:h*2},
-      oceanSurf:{value:region==='lofoten'?.24:region==='milford'?.09:0},seaState:{value:region==='lofoten'?1.28:newEngland?.87:.94},
+      oceanSurf:{value:region==='lofoten'?.24:region==='milford'?.09:0},seaState:{value:region==='lofoten'?1.28:surry?.14:newEngland?.87:.94},
       rockyBed:{value:newEngland?1:.75}
     });
     Object.assign(water.material.uniforms,shoreDetail.uniforms,{

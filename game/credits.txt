@@ -700,15 +700,13 @@ https://polyhaven.com/a/cliff_side
 https://polyhaven.com/license
 
 
-CRATER LAKE FLOOR AND ASHUELOT VALLEY DAWN
+CRATER LAKE FLOOR AND SURRY RESERVOIR DAYLIGHT
 Submerged caldera elevations use the 2000 USGS–National Park Service multibeam survey published by James V. Gardner and Peter Dartnell in USGS Digital Data Series 72. Depths referenced to the survey lake level of 1,882.6 m were averaged to a 32 m grid and reconciled with the game surface and mapped shoreline.
 https://pubs.usgs.gov/dds/dds-72/site/data.htm
 https://doi.org/10.3133/ds72
 
-The Keene sky combines the upper cloud field from Bryanston Park Sunrise, photographed by Dario Barresi, with the horizon from Qwantani Dusk 2 (Pure Sky), photographed by Greg Zaal and processed by Jarod Guest. Both are CC0 Poly Haven panoramas. Dawn terrain shadows are computed from the Surry USGS height grid. The modeled Ashuelot valley inversion follows the National Weather Service description of radiation fog in sheltered river valleys.
-https://polyhaven.com/a/bryanston_park_sunrise
-https://polyhaven.com/a/qwantani_dusk_2_puresky
-https://polyhaven.com/license
+The Surry reservoir sky combines a modeled hazy daylight aureole with fine overhead cloud structure from Poly Haven’s CC0 Industrial Sunset 02 (Pure Sky). The dam and reservoir photographs supplied by the player guided the lighting, still-water reflections, tree-line contrast and crest materials. They are not distributed. The sun direction and height are an artistic reconstruction. Its terrain shadow field is computed from USGS elevations. Patches of low Ashuelot valley fog are modeled from National Weather Service guidance.
+https://polyhaven.com/a/industrial_sunset_02_puresky
 https://www.weather.gov/safety/fog-radiation
 
 
