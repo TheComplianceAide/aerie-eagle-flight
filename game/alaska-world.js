@@ -414,9 +414,22 @@ class Water extends Mesh {
     }
     return hit;
   }
+  // Smooth the wet face of the 10 m survey where its triangles meet the
+  // 18 cm water plane. The dry bank, roots and usable rock shelves keep their
+  // original heights. The rendered surface and contact use the same function.
+  function shallowCove(x,z,y){
+    if(x<=0||x>=300||z<=1500||z>=1800||y<=-2.22||y>=1.12)return y;
+    const smooth=THREE.MathUtils.smoothstep;
+    const mask=smooth(x,0,15)*smooth(300-x,0,15)*smooth(z,1500,1515)*smooth(1800-z,0,15)
+      *smooth(y,-2.22,-1.58)*(1-smooth(y,.52,1.12));
+    const smoothed=(4*y+2*(surveyElevation(x-4,z)+surveyElevation(x+4,z)+surveyElevation(x,z-4)+surveyElevation(x,z+4))
+      +surveyElevation(x-4,z-4)+surveyElevation(x+4,z-4)+surveyElevation(x-4,z+4)+surveyElevation(x+4,z+4))/16;
+    const bar=.105*Math.sin(.46*x+.31*z)+.049*Math.cos(.68*z-.29*x);
+    return y+mask*(smoothed-y+bar);
+  }
   function elevation(x,z){
     const y=surveyElevation(x,z),p=channelAt(x,z);
-    if(!p)return y;
+    if(!p)return shallowCove(x,z,y);
     const blend=THREE.MathUtils.smoothstep(p.distance,8,34);
     return THREE.MathUtils.lerp(p.bed+Math.max(0,p.distance-5)*.24,y,blend);
   }
@@ -440,11 +453,43 @@ class Water extends Mesh {
   blueIce.wrapS=blueIce.wrapT=THREE.MirroredRepeatWrapping;
   const ridgeRock=map('cliff-strata.jpg',true), ridgeNormal=map('cliff-strata-normal.jpg',true);
   const alpineRelief=map('alaska-alpine-relief.webp');
+  const shoreAtlas=map('mendenhall-shore.webp');
   const fieldGround=map('field-ground-scans.webp');
   const ground=new THREE.ShaderMaterial({uniforms:{groundScan:{value:fieldGround},alpineRelief:{value:alpineRelief},ridgeRock:{value:ridgeRock},ridgeNormal:{value:ridgeNormal},lightMap:{value:terrainLight},iceDetail:{value:iceDetail},blueIce:{value:blueIce},face:{value:glacierFace},mountain:{value:mountain},localPhoto:{value:outerPhoto},photoRect:{value:new THREE.Vector4(-18000,-18000,36000,0)},outerPhoto:{value:outerPhoto},snow:{value:snow},earth:{value:earth},sun:{value:sun}},
     vertexShader:`varying vec3 p,n;void main(){p=position;n=normal;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
     fragmentShader:`${window.aerieFieldShader('alaska')}
     uniform sampler2D groundScan,alpineRelief,ridgeRock,ridgeNormal;uniform vec4 photoRect;varying vec3 p,n;uniform sampler2D lightMap,iceDetail,blueIce,face,mountain,localPhoto,outerPhoto,snow,earth;uniform vec3 sun;
+
+#ifdef MENDENHALL_BANK
+    // A real shoreline mask limits each surface to the visitor-side coves.
+    // Only this ice-free tile reuses the glacier face sampler for the bank.
+    vec3 bankPhoto(vec2 meterUV,vec2 tile){
+      return texture2D(face,(tile+(vec2(.008)+.984*fract(meterUV)))*.5).rgb;
+    }
+    vec3 visitorShore(vec3 color,vec3 pos,vec3 normal,float range){
+      vec2 uv=(pos.xz-vec2(-64.,1330.))/640.;
+      if(any(lessThan(uv,vec2(0.)))||any(greaterThan(uv,vec2(1.)))||range>700.)return color;
+      vec4 layers=texture2D(face,vec2(.5+.5*uv.x,.5*(1.-uv.y)));
+      float weight=max(layers.r,layers.g);
+      if(weight<.002&&layers.a>.995)return color;
+      // Two rotations sample actual fractures and rounded cobbles on different
+      // bearings; mask boundaries are independent of the repeating recordings.
+      mat2 dip=mat2(.827,.562,-.562,.827);
+      vec2 groundUV=dip*pos.xz;
+      float drift=.5+.28*sin(pos.x*.113-pos.z*.057)+.19*sin(pos.z*.196+pos.x*.041);
+      vec3 bed=mix(bankPhoto(groundUV*.264+vec2(.27,.33),vec2(0.,1.)),
+                   bankPhoto(groundUV*vec2(.125,.196)+vec2(1.3,-.3),vec2(0.,1.)),.26+.27*drift);
+      vec3 cobbles=mix(bankPhoto(groundUV*.465,vec2(0.)),bankPhoto(dip*groundUV*.277+.39,vec2(0.)),.22+.39*drift);
+      // Preserve the survey's broad terrain colour and contact shading. Wet
+      // fines darken only at the surveyed waterline, leaving dry gravel pale.
+      float broad=clamp(.82+.51*dot(color,vec3(.24,.6,.16)),.80,1.10);
+      float fade=1.-smoothstep(320.,700.,range);
+      color=mix(color,bed*broad,clamp(layers.r*1.67,0.,.91)*fade);
+      color=mix(color,cobbles*broad,clamp(layers.g*1.72,0.,.93)*fade);
+      color*=1.-.24*layers.b*fade;
+      return color*mix(1.,layers.a,fade);
+    }
+#endif
 
     // Sample a ninety-metre photographed turf and scree outcrop. The measured
     // displacement shifts protruding stones across the line of sight during a
@@ -591,6 +636,9 @@ class Water extends Mesh {
       float till=(1.-max(snowfield,sheet))*(1.-smoothstep(.29,.85,exposed))*smoothstep(.51,.90,nn.y);
       float lowWood=forest*(1.-smoothstep(320.,650.,p.y));
       base=regionalSoil(groundScan,p,nn,base,sun,d,lowWood,1.-smoothstep(2.,26.,abs(p.y)),till);
+#ifdef MENDENHALL_BANK
+      base=visitorShore(base,p,nn,d);
+#endif
       float viewSky=mix(1.,relief.b,surveyed);
       float beam=mix(clamp(.45+1.6*light,0.,1.),relief.r,surveyed);
       float facet=mix(light,relief.g*2.-1.,surveyed*(1.-.83*forest));
@@ -682,7 +730,15 @@ class Water extends Mesh {
       const westCrest=x>=-3600&&x<-1200&&z>=-4800&&z<-1200;
       const fallsPatch=x===0&&z===0;
       const steps=fallsPatch?300:westCrest?300:icePatch?240:Math.max(Math.abs(x+600),Math.abs(z+600))<6250?120:75;
-      patch(x,z,x+1200,z+1200,steps,steps,material);
+      if((x===0||x===-1200)&&z===1200){
+        const bank=new THREE.ShaderMaterial({uniforms:{...material.uniforms,face:{value:shoreAtlas}},defines:{MENDENHALL_BANK:1},vertexShader:material.vertexShader,fragmentShader:material.fragmentShader});
+        if(x<0)patch(x,z,x+1200,z+1200,120,120,bank);
+        else for(let row=0;row<4;row++)for(let col=0;col<4;col++){
+          const west=x+col*300,north=z+row*300;
+          const divisions=col===0&&row===1?150:col===0&&row===0?60:30;
+          patch(west,north,west+300,north+300,divisions,divisions,bank);
+        }
+      }else patch(x,z,x+1200,z+1200,steps,steps,material);
     }
   }
   const edges=[-18000,-7200,7200,18000];
@@ -890,8 +946,98 @@ class Water extends Mesh {
     };
   }
 
+  // Quantized, draped meshes reconstruct landforms in the southeast coves.
+  // The small clasts share spatial batches with separate viewing distances.
+  const beachTriangles=new Map(),beachMeshes=[];
+  const beachCell=(x,z)=>Math.floor(x/12)*2048+Math.floor(z/12);
+  const beachMaterial=new THREE.ShaderMaterial({
+    uniforms:{atlas:{value:shoreAtlas},sun:{value:sun}},
+    vertexShader:`attribute vec3 stoneData;varying vec3 wp,nv,sd;
+      void main(){wp=position;nv=normal;sd=stoneData;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+    fragmentShader:`uniform bool linearOutput;uniform sampler2D atlas;uniform vec3 sun;varying vec3 wp,nv,sd;
+      vec3 capture(vec2 uv,vec2 q){return texture2D(atlas,(q+.008+.984*fract(uv))*.5).rgb;}
+      void main(){
+        vec3 N=normalize(nv);
+        vec2 q=vec2(step(.5,sd.y),1.);
+        vec2 floorUV=mat2(.84,.54,-.54,.84)*wp.xz;
+        float face=1.-smoothstep(.37,.87,N.y);
+        vec2 fractureUV=vec2(dot(wp.xz,vec2(.79,.61)),wp.y-.08*wp.x+.042*wp.z);
+        vec3 top=capture(floorUV*vec2(.31,.43),q);
+        vec3 side=capture(fractureUV*.41+vec2(.32,.71),q);
+        vec3 mineral=mix(top,side,face);
+        float variation=dot(capture(floorUV*.111+.74,q),vec3(.24,.59,.17));
+        mineral*=.83+.37*variation;
+        // The darkest edge is at the stone/ground contact; wetting follows
+        // absolute lake height, never a repeating texture or an object's UV.
+        vec2 auv=clamp((wp.xz-vec2(-64.,1330.))/640.,0.,1.);
+        float wet=texture2D(atlas,vec2(.5+.5*auv.x,.5*(1.-auv.y))).b*(1.-smoothstep(.55,2.3,wp.y));
+        mineral*=1.-.26*wet;
+        vec3 V=normalize(cameraPosition-wp),H=normalize(V+sun);
+        float beam=max(0.,dot(N,sun));
+        vec3 rock=mineral*(vec3(.53,.65,.77)*(.72+.28*max(0.,N.y))+vec3(.73,.54,.32)*sqrt(beam))*sd.x;
+        rock+=vec3(.16,.16,.15)*(.10+.90*wet)*pow(max(0.,dot(N,H)),22.+wet*28.)*beam;
+        float haze=1.-exp(-length(cameraPosition-wp)*.000075);
+        gl_FragColor=vec4(mix(rock,vec3(.62,.70,.75),haze),1.);
+        if(linearOutput){vec3 c=max(gl_FragColor.rgb,vec3(0.));gl_FragColor.rgb=mix(c/12.92,pow((c+.055)/1.055,vec3(2.4)),step(vec3(.04045),c));}
+      }`
+  });
+  beachMaterial.uniforms.linearOutput={value:false};
+  const perchStone=beachMaterial.clone();
+  perchStone.uniforms={...beachMaterial.uniforms,linearOutput:{value:false}};
+  perchStone.vertexShader=`attribute vec3 color;varying vec3 wp,nv,sd;
+    void main(){wp=(modelMatrix*vec4(position,1.)).xyz;nv=normalize(mat3(modelMatrix)*normal);sd=vec3(.93+.11*color.r,0.,1.);
+      gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`;
+  function localPerchStone(site){
+    return site.x>-15&&site.x<335&&site.z>1360&&site.z<1770?perchStone:null;
+  }
+
+  new THREE.FileLoader().setResponseType('arraybuffer').load('mendenhall-stones.bin',buffer=>{
+    const stream=new DataView(buffer);
+    if(stream.getUint32(0,false)!==0x4d534831)return;
+    let offset=8;
+    for(let group=0;group<stream.getUint32(4,true);group++){
+      const vertexCount=stream.getUint32(offset,true),indexCount=stream.getUint32(offset+4,true),loose=stream.getUint8(offset+8);offset+=12;
+      const positions=new Float32Array(vertexCount*3),normals=new Int8Array(vertexCount*3),details=new Float32Array(vertexCount*3);
+      for(let v=0;v<vertexCount;v++,offset+=12){
+        const k=v*3;positions[k]=185+stream.getInt16(offset,true)/64;positions[k+1]=stream.getInt16(offset+2,true)/64;positions[k+2]=1610+stream.getInt16(offset+4,true)/64;
+        for(let axis=0;axis<3;axis++)normals[k+axis]=stream.getInt8(offset+6+axis);
+        details[k]=stream.getUint8(offset+9)/213;details[k+1]=stream.getUint8(offset+10);details[k+2]=stream.getUint8(offset+11);
+      }
+      const indices=new Uint16Array(buffer,offset,indexCount);offset+=indexCount*2;
+      const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(positions,3));geo.setAttribute('normal',new THREE.BufferAttribute(normals,3,true));
+      geo.setAttribute('stoneData',new THREE.BufferAttribute(details,3));geo.setIndex(new THREE.BufferAttribute(indices,1));geo.computeBoundingSphere();
+      const mesh=new THREE.Mesh(geo,beachMaterial);mesh.name=loose?'Mendenhall loose shore cobbles':'Mendenhall jointed blocks and polished beds';
+      mesh.onBeforeRender=(renderer,scene,camera)=>{beachMaterial.uniforms.linearOutput.value=!!camera.userData.lakeReflection;};
+      scene.add(mesh);beachMeshes.push({mesh,range:geo.boundingSphere.radius+(loose?145:750)});
+      // Index the real upward-facing landform triangles for low passes and
+      // perching. Paw-sized clasts stay inside normal ground clearance.
+      if(loose)continue;
+      for(let k=0;k<indexCount;k+=3){
+        const a=indices[k]*3,b=indices[k+1]*3,c=indices[k+2]*3;
+        const ax=positions[a],az=positions[a+2],bx=positions[b],bz=positions[b+2],cx=positions[c],cz=positions[c+2];
+        const det=(bz-cz)*(ax-cx)+(cx-bx)*(az-cz);if(det>=-.000001)continue;
+        const tri=[ax,az,positions[a+1],bx,bz,positions[b+1],cx,cz,positions[c+1],1/det];
+        for(let ix=Math.floor(Math.min(ax,bx,cx)/12);ix<=Math.floor(Math.max(ax,bx,cx)/12);ix++)
+          for(let iz=Math.floor(Math.min(az,bz,cz)/12);iz<=Math.floor(Math.max(az,bz,cz)/12);iz++){
+            const key=ix*2048+iz;if(!beachTriangles.has(key))beachTriangles.set(key,[]);beachTriangles.get(key).push(tri);
+          }
+      }
+    }
+  });
+  function shoreClearance(x,z,y){
+    for(const [ax,az,ay,bx,bz,by,cx,cz,cy,inv] of beachTriangles.get(beachCell(x,z))||[]){
+      const a=((bz-cz)*(x-cx)+(cx-bx)*(z-cz))*inv,b=((cz-az)*(x-cx)+(ax-cx)*(z-cz))*inv;
+      if(a>=0&&b>=0&&a+b<=1)y=Math.max(y,a*ay+b*by+(1-a-b)*cy);
+    }
+    return y;
+  }
+  function updateShore(player){
+    if(!player)return;
+    for(const {mesh,range} of beachMeshes)mesh.visible=mesh.geometry.boundingSphere.center.distanceToSquared(player)<range*range;
+  }
+
   function clearance(x,z){
-    let y=height(x,z);
+    let y=shoreClearance(x,z,height(x,z));
     const gridX=Math.floor(x/96),gridZ=Math.floor(z/96);
     for(let j=-1;j<=1;j++)for(let i=-1;i<=1;i++)for(const stone of ledges.get((gridX+i)*8192+gridZ+j)||[]){
       const r=((x-stone.x)**2+(z-stone.z)**2)/((stone.s*.55)**2);
@@ -941,9 +1087,9 @@ class Water extends Mesh {
     mesh.onBeforeRender=(renderer,scene,camera)=>{material.uniforms.linearOutput.value=!!camera.userData.lakeReflection;};
   });
   const sunMask=map('alaska-tree-light.webp');
-  return {region:"alaska",treeGrid:{cells,size:48,cell},waterfalls,forestLightSpan:14400,elevation,clearance,height,trees,sunMask,sunDirection:sun,skyTexture:skyMap,waterLevel:0,lakeLevel:0,lakePolygon:shore,altitudeOffset:18,spawn:lakeLaunch,
-    launches:{lake:lakeLaunch,ridge,shore:shoreLaunch,spray:sprayPass,spur:{x:612,y:68.4704,z:977,yaw:-.08159},alpine:{x:-2900,z:-2010,y:elevation(-2900,-2010)+58,yaw:-.28}},bounds:{minX:-6890,maxX:6890,minZ:-6890,maxZ:6890},
+  return {region:"alaska",localPerchStone,treeGrid:{cells,size:48,cell},waterfalls,forestLightSpan:14400,elevation,clearance,height,trees,sunMask,sunDirection:sun,skyTexture:skyMap,waterLevel:0,lakeLevel:0,lakePolygon:shore,altitudeOffset:18,spawn:lakeLaunch,
+    launches:{lake:lakeLaunch,ridge,shore:shoreLaunch,spruce:{x:173,y:26,z:1630,yaw:.38,lookDown:12},spray:sprayPass,spur:{x:612,y:68.4704,z:977,yaw:-.08159},alpine:{x:-2900,z:-2010,y:elevation(-2900,-2010)+58,yaw:-.28}},bounds:{minX:-6890,maxX:6890,minZ:-6890,maxZ:6890},
     landmarks:[{name:'West alpine crest',x:-2900,z:-2010},{name:'Upper crevasse field',x:1500,z:-4130},{name:'Blue Ice Passage',x:-116,z:-1010},{name:'Nugget Falls beach',x:473,z:927},{name:'Medial moraine',x:632,z:-2450},{name:'Mendenhall Glacier',x:40,z:-1400},{name:'Nugget Falls',x:518,z:658},{name:'Mendenhall Lake',x:-700,z:680},{name:'West Glacier Ridge',x:-860,z:-1890}],
-    update(dt,time,player){updateTerrainLOD(player);updateLedges(player);clock.value=time;lake.material.uniforms.time.value=time*.72;}
+    update(dt,time,player){updateTerrainLOD(player);updateLedges(player);updateShore(player);clock.value=time;lake.material.uniforms.time.value=time*.72;}
   };
 };

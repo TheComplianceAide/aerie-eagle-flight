@@ -50,6 +50,9 @@
     attribute vec3 anchor;
     attribute vec4 traits, tone;
     varying vec3 wp, wn;
+    #ifdef MENDENHALL_SITKA
+    varying vec3 localMetres;
+    #endif
     varying vec4 barkUV, foliage, lighting;
     void main(){
       float h=clamp(position.y,0.,1.);
@@ -60,6 +63,13 @@
       float slice=h*7.9999;
       float native=mix(nativeRadius[int(floor(slice))],nativeRadius[int(ceil(slice))],fract(slice));
       float width=mix(traits.x,clamp(radius/max(.055,native),traits.x*.26,traits.x*4.8),smoothstep(.04,.36,h)*.92);
+      #ifdef MENDENHALL_SITKA
+      // Keep the photographed lean and damaged tops in all three levels. Scale
+      // the entire crown to the original habitat footprint about its fixed root.
+      float radiusRatio=texture2D(envelope,vec2(4.5/9.,(traits.z*5.+1.5)/envRows)).r*1.7;
+      width=traits.x*clamp(radiusRatio/max(.10,nativeRadius[0]),.24,1.65);
+      localMetres=position*vec3(width,traits.x,width);
+      #endif
       mat2 yaw=mat2(cos(traits.y),sin(traits.y),-sin(traits.y),cos(traits.y));
       vec2 offset=yaw*position.xz*width;
       wp=anchor+vec3(offset.x,h*traits.x,offset.y);
@@ -87,11 +97,24 @@
     uniform sampler2D photo;
     varying float fadeLow;
     varying vec4 barkUV,foliage;
+    #ifdef MENDENHALL_SITKA
+    varying vec3 localMetres;
+    #endif
     vec2 atlas(float inset){
+      #ifdef MENDENHALL_SITKA
+      if(abs(barkUV.z-3.)<.1){
+        // Meter-scale bark detail continues along both trunk and lateral limbs.
+        vec2 tile=floor(barkUV.xy*4.);
+        vec2 grain=vec2(barkUV.x*6.3,localMetres.y*.86+length(localMetres.xz)*.77);
+        return (tile+.5+(fract(grain)-.5)*vec2(.72,.63))*.25;
+      }
+      return barkUV.xy;
+      #else
       float slot=floor(barkUV.z+.5);
       vec2 st=clamp(barkUV.xy,0.,1.);
       if(slot>2.5)st=fract(barkUV.xy);
       return (mix(vec2(inset),vec2(1.-inset),st)+vec2(mod(slot,2.),floor(slot*.5)))*.5;
+      #endif
     }`;
   const fragment=`
     ${sampleSurface}
@@ -106,13 +129,18 @@
       vec4 albedo=texture2D(photo,atlas(.005859375));
       if(barkUV.w>.5&&albedo.a<.34)discard;
       vec3 n=normalize(wn)*(gl_FrontFacing?1.:-1.);
+      #ifndef MENDENHALL_SITKA
       vec3 dx=dFdx(wp),dy=dFdy(wp);
       vec2 du=dFdx(barkUV.xy),dv=dFdy(barkUV.xy);
       vec3 t=dx*dv.y-dy*du.y,b=dy*du.x-dx*dv.x;
       float inv=inversesqrt(max(max(dot(t,t),dot(b,b)),1.e-8));
       vec3 bump=texture2D(relief,atlas(.01171875)).xyz*2.-1.;
       n=normalize(n*max(.5,bump.z)+.36*inv*(t*bump.x+b*bump.y)*sign(du.x*dv.y-du.y*dv.x));
+      #endif
       vec3 c=albedo.rgb;
+      #ifdef MENDENHALL_SITKA
+      c*=mix(vec3(1.02),vec3(1.17,1.06,.99),barkUV.w);
+      #endif
       float broad=1.-smoothstep(.1,1.1,barkUV.z);
       if(broad>.5&&leafSeason>.5){
         float leafValue=dot(c,vec3(.24,.61,.15));
@@ -125,6 +153,9 @@
       }else{
         c*=mix(vec3(.94,.94,.95),foliage.rgb,barkUV.w);
       }
+      #ifdef MENDENHALL_SITKA
+      if(abs(barkUV.z-4.)<.1)c=albedo.rgb*vec3(1.50,1.08,.70);
+      #endif
       float lit=regionalCanopySun(wp+n*.05,.00034)*mix(.12,1.,lighting.w);
       float cosine=dot(n,sunVector),sky=.5+.5*n.y;
       float ao=mix(.62,1.,clamp(.51*lighting.x+.58*lighting.y,0.,1.));
@@ -184,6 +215,14 @@
   }
   const inSurvey=(region,x,z)=>region==='dixville'&&x>=-2&&x<=1&&z>=1&&z<=3;
   const rootSeed=t=>(Math.imul(Math.round(t.x*4),73856093)^Math.imul(Math.round(t.z*4),19349663))>>>0;
+  const sitkaLabels=['cone-bearing adult','open juvenile','broom-bearing spruce','broken-top survivor'];
+  function sitkaModel(seed,height){
+    const variation=(Math.imul(seed^(seed>>>16),0x45d9f3b)>>>0)/4294967296;
+    const juvenile=height<13?.61:height<22?.26:.08;
+    if(variation<juvenile)return 6;
+    if(variation<.66)return 5;
+    return variation<.84?7:8;
+  }
   window.makeCanopyStream=function(T,renderer,scene,world){
     const mobile=window.matchMedia('(pointer: coarse)').matches;
     const limit=mobile?150:350,far=mobile?99:146,capacity=[mobile?2:4,mobile?12:26,limit];
@@ -216,7 +255,7 @@
       terrainIllumination:{value:world.sunMask||null},lightSpan:{value:world.forestLightSpan||8000},useSurveyLight:{value:world.sunMask?1:0},
       aerialTint:{value:scene.fog?.color.clone()||new T.Color(.6,.64,.68)},fogStrength:{value:scene.fog?.density?Math.min(.001,scene.fog.density*.65):.00029}};
     const counters={region:surveyRegion,ready:false,error:null,activeTiles:0,surveyTiles:0,overviewCells:grid?.cells.size||0,indexCellSize:grid?.size||CELL,drawnCrowns:0,
-      measuredCrowns:0,ordinaryCrowns:0,addedCrowns:0,species:{},lod:[0,0,0],shadowDraws:0,lastBuildMs:0,cacheCells:0,indexedTrees:grid?trees.length:0,maskedMaterials:0};
+      measuredCrowns:0,ordinaryCrowns:0,addedCrowns:0,species:{},sitkaReady:false,sitkaForms:{},lod:[0,0,0],shadowDraws:0,lastBuildMs:0,cacheCells:0,indexedTrees:grid?trees.length:0,maskedMaterials:0};
     let stopped=false,offset=grid?trees.length:0,lastCheck=-Infinity,lastBuild=-Infinity,lastShadow=-Infinity,dirty=true,pendingAssets=false,assetRetry=0;
     const previous=new T.Vector3(Infinity,Infinity,Infinity),eye=new T.Vector3(),shadowEye=new T.Vector3(Infinity,Infinity,Infinity);
     let lodState=new Map(),idleIndex=null;
@@ -283,24 +322,34 @@
       pendingAssets=true;
       const allocated=[];
       try{
-        const [bytes,color,normal]=await Promise.all([unpack('specimens.bin',ab.signal),photo('surfaces.webp'),photo('relief.webp')]);
+        const localForms=surveyRegion==='alaska'
+          ? Promise.all([unpack('sitka-forms.bin',ab.signal),photo('sitka-branches.webp')]).catch(error=>{
+              if(!stopped)console.warn('Mendenhall Sitka assets:',error.message||error);
+              return null;
+            })
+          : null;
+        const [bytes,color,normal,sitka]=await Promise.all([unpack('specimens.bin',ab.signal),photo('surfaces.webp'),photo('relief.webp'),localForms]);
         if(stopped)return;
         common.photo.value=color;common.relief.value=normal;
-        for(const record of readGeometries(T,bytes)){
-          const g=record.geometry,uniforms={...common,nativeRadius:{value:record.r}};
+        const specimens=readGeometries(T,bytes);
+        if(sitka)specimens.push(...readGeometries(T,sitka[0]));
+        for(const record of specimens){
+          const regional=record.m>=5;
+          const g=record.geometry,uniforms={...common,photo:regional?{value:sitka[1]}:common.photo,nativeRadius:{value:record.r}};
+          const defines=regional?{MENDENHALL_SITKA:1}:{};
           for(const [attr,n] of [['anchor',3],['traits',4],['tone',4],['coverageLow',1]]){
             g.setAttribute(attr,new T.InstancedBufferAttribute(new Float32Array((2*capacity[record.l]+spill)*n),n).setUsage(T.DynamicDrawUsage));
           }
           const vs=(squall?'#define CANOPY_CALDERA\n'+squall.glsl:'')+wind.glsl+vertex;
-          const material=new T.ShaderMaterial({side:T.DoubleSide,vertexShader:vs,fragmentShader:fragment,uniforms});
-          const depth=new T.ShaderMaterial({side:T.DoubleSide,vertexShader:vs,fragmentShader:depthFragment,uniforms});
+          const material=new T.ShaderMaterial({side:T.DoubleSide,defines,vertexShader:vs,fragmentShader:fragment,uniforms});
+          const depth=new T.ShaderMaterial({side:T.DoubleSide,defines,vertexShader:vs,fragmentShader:depthFragment,uniforms});
           const mesh=new T.Mesh(g,material),caster=new T.Mesh(g,depth);
           g.instanceCount=0;mesh.frustumCulled=caster.frustumCulled=false;
           mesh.visible=caster.visible=false;foliageGroup.add(mesh);shadowScene.add(caster);
           groups[record.m*3+record.l]={g,mesh,caster,used:0};
           allocated.push(g,material,depth);
         }
-        installTags();owned.push(...allocated);dirty=true;counters.ready=true;counters.error=null;
+        counters.sitkaReady=!!sitka;installTags();owned.push(...allocated);dirty=true;counters.ready=true;counters.error=null;
       }catch(error){
         foliageGroup.clear();shadowScene.clear();groups.length=0;
         for(const item of allocated)item.dispose();
@@ -343,7 +392,8 @@
       }
       if(!(h>.38)||!Number.isFinite(y))return null;
       const shrub=s.family==='shrub',radius=Math.max(.18,(t.width||h*.53)*.5*(s.aspect||1));
-      const model=shrub?4:s.family==='needle'?1+((seed>>>8)%3):0;
+      const model=counters.sitkaReady&&s.name==='Sitka spruce'?sitkaModel(seed,h)
+        :shrub?4:s.family==='needle'?1+((seed>>>8)%3):0;
       const env=new Uint8Array(45),phase=(seed%1039)*.0178;
       for(let ring=0;ring<5;ring++){
         for(let az=0;az<8;az++){
@@ -488,7 +538,7 @@
       rows.sort((a,b)=>a.d-b.d);
       const selected=rows.slice(0,limit),highLimit=mobile?13:18,midLimit=mobile?32:48;
       const capEdge=rows.length>limit?Math.max(14,selected[limit-1].d):far;
-      const nextState=new Map(),counts=[0,0,0],species={},timeStep=Number.isFinite(lastBuild)?clamp(seconds-lastBuild,.01,.12):.055;
+      const nextState=new Map(),counts=[0,0,0],species={},sitkaForms={},timeStep=Number.isFinite(lastBuild)?clamp(seconds-lastBuild,.01,.12):.055;
       let measured=0,ordinary=0,added=0,drawn=0,animating=false;
       for(const g of groups)g.used=0;
       maskBytes.fill(0);maskStart.value.set(eye.x-maskWorld*.5,eye.z-maskWorld*.5);
@@ -510,6 +560,10 @@
         }else{from=null;draw(t,lod,drawn,0,opacity);}
         envelopeBytes.set(t.env,drawn*45);drawn++;counts[lod]++;
         species[t.species]=(species[t.species]||0)+1;
+        if(t.model>=5){
+          const label=sitkaLabels[t.model-5];
+          sitkaForms[label]=(sitkaForms[label]||0)+1;
+        }
         if(t.kind==='survey')measured++;else if(t.kind==='fill')added++;else ordinary++;
         // The measured inventory needs a wider root match; infill uses its exact
         // seeded root so distant regional stand cards also give way to the live specimen.
@@ -537,7 +591,7 @@
       envelope.needsUpdate=drawn+outgoing>0;mask.needsUpdate=true;maskEnabled.value=drawn+outgoing>0?1:0;
       lodState=nextState;lastBuild=seconds;previous.copy(eye);dirty=remaining||animating;
       Object.assign(counters,{activeTiles:active.filter(a=>cells.has(a.id)).length,surveyTiles:active.filter(a=>cells.get(a.id)?.survey).length,
-        drawnCrowns:drawn,measuredCrowns:measured,ordinaryCrowns:ordinary,addedCrowns:added,species,lod:counts,cacheCells:cells.size,lastBuildMs:Math.round((performance.now()-started)*10)/10});
+        drawnCrowns:drawn,measuredCrowns:measured,ordinaryCrowns:ordinary,addedCrowns:added,species,sitkaForms,lod:counts,cacheCells:cells.size,lastBuildMs:Math.round((performance.now()-started)*10)/10});
     }
     function shadowPass(seconds){
       if(!counters.drawnCrowns){shadows.regionalCanopyShadowOn.value=0;return;}
@@ -582,6 +636,6 @@
       // Outer silhouettes wait until coverage is known, including independent lidar cells.
       return offset<trees.length||inSurvey(surveyRegion,ix,iz)||originalTrees(ix,iz,0,true);
     }
-    return {getCanopyNeighbors:getNearby,hasOriginalCell,clearance,update,dispose,maskMaterial,stats:()=>({...counters,lod:[...counters.lod],species:{...counters.species}})};
+    return {getCanopyNeighbors:getNearby,hasOriginalCell,clearance,update,dispose,maskMaterial,stats:()=>({...counters,lod:[...counters.lod],species:{...counters.species},sitkaForms:{...counters.sitkaForms}})};
   };
 })();

@@ -381,7 +381,8 @@ window.makePerchHabitat=function makePerchHabitat(T,scene,world,region){
       let mesh=slots.find(m=>m.userData.site?.id===p.id);
       if(mesh&&mesh.position.x===p.x&&mesh.position.z===p.z&&mesh.rotation.y===p.yaw)continue;
       mesh=mesh||slots.find(m=>!m.visible);if(!mesh)break;
-      mesh.geometry.dispose();mesh.geometry=build(p);mesh.material=p.type==='branch'?bark:rock;
+      mesh.geometry.dispose();mesh.geometry=build(p);mesh.material=p.type==='branch'?bark:(world.localPerchStone?.(p)||rock);
+      mesh.onBeforeRender=(renderer,scene,camera)=>{const flag=mesh.material.uniforms?.linearOutput;if(flag)flag.value=!!camera.userData.lakeReflection;};
       mesh.position.set(p.x,p.y,p.z);mesh.rotation.y=p.yaw;mesh.name=p.label;
       mesh.userData.site=p;mesh.visible=true;mesh.castShadow=true;mesh.receiveShadow=true;
     }

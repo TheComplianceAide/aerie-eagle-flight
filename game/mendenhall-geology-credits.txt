@@ -1,0 +1,21 @@
+MENDENHALL LAKE, SOUTHEAST VISITOR-SIDE COVES
+
+The prominent local group at game x=144 m, z=1593 m is near 58.41869 N, 134.54371 W. Coordinates are offsets east and south from the game's rounded UTM zone 8N origin. The lake outline, elevations, near-infrared vegetation index and recorded tree stems constrain the reconstruction. The landward overlap of the rendered water polygon lies under solid terrain. The surveyed lake outline and ground height determine where debris occurs.
+
+The 2019 Geological Society of America Penrose field guide describes interbedded metavolcanic rock and calcareous greywacke at the Mendenhall Glacier Visitor Center. Glacial abrasion exposes stretched layers, joints and fracture surfaces. The forms here represent worn, asymmetric bedrock, jointed blocks, and mixed loose sediment along the nearby shore. Individual stone positions, lithologies, joint orientations and minor beach bars are inferred. Vegetated banks, mixed sediment and surface tints vary across these parts of the foreland.
+https://www.geosociety.org/documents/gsa/penconf/2019/2019-penrose-field-guide.pdf#page=36
+https://www.fs.usda.gov/sites/nfs/files/r10/tongass/publication/MendenhallBrochure2025_0.pdf
+
+The source photographs below are CC0 surface analogues. Regraded albedos occupy a joint atlas shared by rocky terrain, local landable ledges and 3D stone batches. A separate atlas quadrant registers surface exposure, loose gravel, wetting and contact shadows in map coordinates.
+
+Rock Face 04. Dimitrios Savva.
+https://polyhaven.com/a/rock_face_04
+Rock Face 03. Dario Barresi, photography. Rico Cilliers, processing.
+https://polyhaven.com/a/rock_face_03
+Dry River Pebbles. Amal Kumar.
+https://polyhaven.com/a/dry_river_pebbles
+Gravelly Sand. Dario Barresi.
+https://polyhaven.com/a/gravelly_sand
+https://polyhaven.com/license
+
+The pilot contains 28 worn bedrock exposures, 98 jointed blocks and 845 small clasts. Shapes are reconstructed in three morphology families with distinct profiles, jointing, burial and face normals. The 15 spatial batches contain 44,345 triangles. Substantial surfaces use their rendered upper triangles for flight clearance. Smaller clasts share ground clearance. Habitat and local perch rendering retain their existing roots and footholds.

@@ -1,6 +1,6 @@
 (() => {
   const worlds = {
-    alaska: { name: ['Mendenhall', 'Glacier'], region: 'Juneau, Alaska', description: 'Follow the western crest above the icefield, then descend over spruce forest to Mendenhall Lake.', launches: { lake: 'Glacier terminus', ridge: 'West Glacier Ridge', shore: 'Nugget Falls beach', spray: 'Nugget Falls spray pass', spur: 'Around the Nugget Falls spur', alpine: 'West alpine crest' } },
+    alaska: { name: ['Mendenhall', 'Glacier'], region: 'Juneau, Alaska', description: 'Follow the western crest above the icefield, then descend over spruce forest to Mendenhall Lake.', launches: { lake: 'Glacier terminus', ridge: 'West Glacier Ridge', shore: 'Nugget Falls beach', spray: 'Nugget Falls spray pass', spur: 'Around the Nugget Falls spur', alpine: 'West alpine crest', spruce: 'Spruce and stone shoreline' } },
     canyon: { name: ['Horseshoe', 'Bend'], region: 'Arizona, USA', description: 'Bank around the sandstone bend and follow the Colorado River below the rim.', launches: { lake: 'Horseshoe overlook', ridge: 'River corridor', shore: 'Colorado sandbar', wall: 'Sunlit sandstone wall' } },
     swiss: { name: ['Oeschinen', 'Lake'], region: 'Bernese Alps, Switzerland', description: 'Follow the waterfalls from the high cliffs to the spruce-lined lakeshore.', launches: { lake: 'Lake overlook', falls: 'Waterfall approach', forest: 'Forest edge', shore: 'Western gravel beach' } }
   };
@@ -34,7 +34,7 @@
   document.getElementById('wildlifeCredits').href=asset('wildlife-credits.txt');
   document.getElementById('opticCredits').href=asset('atmospheric-optics-credits.txt');
   function previewName(id,start){
-    if(['game','wildlife','wall','spur','reeds','spray'].includes(start))return id+'-'+start+'-view.webp';
+    if(['game','wildlife','wall','spur','reeds','spray','spruce'].includes(start))return id+'-'+start+'-view.webp';
     if(start==='lookout')return 'perch-'+id+'-view.jpg';
     if(id==='dixville')return 'dixville-'+start+'-view.jpg';
     if(id==='labrador')return start==='ridge'?'labrador-ridge-view.webp':'labrador-'+start+'-view.jpg';
@@ -68,6 +68,7 @@
       game:'Follow the animals at the forest or shoreline edge. Game Vision identifies nearby species as you fly.',
       wall:'Follow the broken ledges on your right. Bank left past the fallen sandstone blocks into the open canyon.',
       cabin:'Fly out of the shower toward the white cabin. Look for sunlight catching the wet roof and the puddles by the shore.',
+      spruce:'Follow the spruce-lined bank, then bank left toward the lake for a view of the exposed rock.',
       spur:'Glide around the spur with sound on. Listen for the high hiss of Nugget Falls as the cascade comes into view.',
       reeds:'Follow the dark ripples toward the sedge beds and watch the gust reach the trees along the shore.',
       spray:'Follow the shoreline toward Nugget Falls. Watch the spray lift off the ledges and bend downwind.'
@@ -92,7 +93,7 @@
     const departures=Object.entries(w.launches).filter(([value])=>value!=='lookout');
     launch.replaceChildren(...departures.map(([value,label])=>new Option(label,value)),lowFlight);
     if (Object.hasOwn(w.launches,start)) launch.value = start;
-    else if(picker.value==='alaska') launch.value='alpine';
+    else if(picker.value==='alaska') launch.value='spruce';
     for (const button of list.children) button.setAttribute('aria-pressed', String(button.dataset.choice === picker.value));
     remember();
   }

@@ -7,3 +7,5 @@ The twelve Table Rock, New Hampshire cells store the heights, positions and five
 https://www.fisheries.noaa.gov/inport/item/71770
 https://s3-us-west-2.amazonaws.com/usgs-lidar-public/USGS_LPC_CT_River_Lot6_Winnipesaulee_2015_LAS_2017/ept.json
 https://nhgeodata.unh.edu/image/rest/services/ImageServices/NH_2021_2022_6in_RGB/ImageServer
+
+Mendenhall Lake, Alaska: the four Sitka spruce growth forms use the Aerie-Mendenhall-Sitka-Spruce-Sheet-v2 RGBA artwork. The leaning cone-bearing adult, open juvenile, localized yellow broom, and broken-top survivor were modeled as separate three-dimensional specimens. Bark, bough and broom samples from that sheet are supplemented by the photographed CC0 fir bark and needles credited above. The mesh depths and growth-form assignments are artist interpretations at the existing game tree positions.
