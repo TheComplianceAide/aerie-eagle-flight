@@ -238,6 +238,8 @@
     const forward=new THREE.Vector3(),up=new THREE.Vector3();
     const buffers=new Map(), loading=new Map(), loops=new Map(), shots=new Set();
     let enabled=false, generation=0, tick=0, started=false;
+    // Regional 3D soundscape (soundscapes.js): created once the world exists.
+    let scape=null,scapeExtras={},scapeBeds=new Set();
     let eagleDue=0, birdDue=0, animalDue=0, birdIndex=0, animalIndex=0, wildlifeUntil=0;
     const nextPhrase=new Map();
     let previousStage=null,pending=null,quietUntil=0,loonTake=0;
@@ -278,6 +280,7 @@
     }
     function startBed(id,buffer,token){
       if(!enabled||generation!==token||!buffer||loops.has(id))return;
+      if(scape&&scape.adopt(id,buffer)){scapeBeds.add(id);return;}
       const bed=channel(buffer);
       bed.source.loop=true;
       bed.gain.gain.value=0;
@@ -288,6 +291,7 @@
     function setEnabled(value){
       if(enabled===value)return;
       enabled=value;generation++;
+      scape?.setEnabled(value);
       const now=context.currentTime;
       master.gain.cancelScheduledValues(now);
       master.gain.setTargetAtTime(enabled?.86:0,now,.055);
@@ -314,6 +318,14 @@
     function voice(id,gain,pan,cutoff,anchor=null){
       const buffer=buffers.get(id);
       if(!buffer)return false;
+      if(anchor&&scape?.engine){
+        // Delay, Doppler, ISO air absorption, terrain shading and the world's
+        // simulated reverberation are applied by the spatial engine.
+        const s=scape.engine.play(buffer,{x:anchor.x,y:anchor.y,z:anchor.z},{gain:gain*1.1,ref:clamp(anchor.reach*.18,12,95),
+          reach:anchor.reach*1.3,wet:.42,rate:random(.982,1.015)});
+        if(s&&anchor.actor)s.onUpdate=()=>{s.x=anchor.actor.x;s.y=anchor.actor.y;s.z=anchor.actor.z;};
+        return !!s;
+      }
       const c=channel(buffer,anchor);
       c.gain.gain.value=gain;
       if(!anchor)c.pan.pan.value=pan;
@@ -369,6 +381,14 @@
     let lastShore=null,shoreX=Infinity,shoreZ=Infinity,shoreSearchLow=false;
     function update(s,world,dt,camera,stage='free'){
       if(!enabled||!s||!world)return;
+      if(scape===null&&window.makeSoundscape){
+        try{
+          scape=window.makeSoundscape(context,world,region,master);scape.setEnabled(true);window.aerieSoundscapeDebug=scape;
+          // Beds that started before the soundscape existed move into 3D now.
+          for(const [id,c] of [...loops])if(scape.adopt(id,c.source.buffer)){c.source.stop();loops.delete(id);scapeBeds.add(id);}
+        }catch(error){console.warn('Aerie soundscape unavailable',error);scape=false;}
+      }
+      if(scape)scape.update(s,camera,dt,scapeExtras);
       if(camera){
         const listener=context.listener,eye=camera.position;
         place(listener,eye.x,eye.y,eye.z);
@@ -418,6 +438,7 @@
       const exposure=clamp((agl-12)/190+.51*ridge*(1-.63*canopy),0,1);
       const gust=world.windField?.sample(s.x,s.y,s.z,s.elapsed||0,gustSample)?.gust??window.aerieWind(s.x,s.z,s.elapsed||0);
       const speed=clamp((s.airspeed||0)/32,0,1.3);
+      scapeExtras={exposure,gust,canopy,shore:lastShore};
       air.gain.setTargetAtTime((.045+.12*speed+.63*exposure)*(.70+.37*gust)*(1-.46*canopy),now,.55);
       shelf.frequency.setTargetAtTime(550+1320*speed+2850*exposure+530*gust,now,.55);
       for(const shot of shots){
