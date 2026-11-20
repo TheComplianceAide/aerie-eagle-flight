@@ -9,7 +9,7 @@ const browser = { window: {} };
 vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../game/perch-flight.js'), 'utf8'), browser);
 const { makePerchFlight } = browser.window;
 
-function checkDeparture(kind, exitAngle, tickRate, pushAfter) {
+function approach(kind, exitAngle) {
   const ground = { height: () => 0, clearance: () => 0 };
   const perch = {
     type: kind, x: 0, y: 5, z: 0, yaw: 0, direction: { x: 0, z: 1 },
@@ -25,6 +25,11 @@ function checkDeparture(kind, exitAngle, tickRate, pushAfter) {
   };
   flight.reset(state, true);
   flight.land(state);
+  return {flight,state,perch};
+}
+
+function checkDeparture(kind, exitAngle, tickRate, pushAfter) {
+  const {flight,state,perch} = approach(kind, exitAngle);
   let landedAt, requested = false, released = false;
   let previousFeet, steps = 0, lastMoving = 0;
   const dt = 1 / tickRate;
@@ -67,3 +72,47 @@ for (const kind of ['branch', 'rock']) {
   }
 }
 console.log('Passed 108 perch turns and departures.');
+
+function checkBreakOff(kind, speed, clear) {
+  const {flight,state} = approach(kind, Math.PI);
+  const dt = 1/120, controls = {climb:0,turn:0,look:0};
+  let oldPosition;
+  while (state.airspeed > speed && flight.stage !== 'perched') {
+    oldPosition = new THREE.Vector3(state.x,state.y,state.z);
+    flight.advance(state,dt,controls);
+  }
+  const atBreak = [state.x,state.y,state.z,state.yaw,state.path,state.airspeed,state.wingExtension];
+  const plan = {turn:0};
+  const preview = (s,velocity) => {
+    const measured = new THREE.Vector3(s.x,s.y,s.z).sub(oldPosition).multiplyScalar(1/dt);
+    assert.ok(velocity.distanceTo(measured) < 1e-8, 'Go-around lost the incoming ground velocity');
+    return clear ? plan : null;
+  };
+  flight.cancel(state,preview);
+  assert.deepEqual([state.x,state.y,state.z,state.yaw,state.path,state.airspeed,state.wingExtension],atBreak);
+  if (clear && speed > 5.5) {
+    assert.equal(flight.stage,'free');
+    assert.equal(state.goAround,plan);
+    return;
+  }
+  assert.equal(state.perchLaunchPending,true);
+  flight.cancel(state,preview);
+  assert.equal(state.perchLaunchPending,false,'Player could not cancel automatic takeoff');
+  flight.cancel(state,preview);
+  let onSupport=false, launched=false;
+  for (let tick=0;tick<20/dt&&flight.stage!=='free';tick++) {
+    flight.advance(state,dt,controls);
+    if (flight.stage==='perched' && state.perchGrip>.99 && !state.airspeed) onSupport=true;
+    if (flight.stage==='push') {
+      assert.ok(onSupport,'Applied leg impulse before taking weight on the perch');
+      launched=true;
+    }
+  }
+  assert.ok(onSupport && launched && flight.stage==='free');
+}
+for (const kind of ['branch','rock']) {
+  for (const speed of [12,9.1,8.9,4]) {
+    for (const clear of [false,true]) checkBreakOff(kind,speed,clear);
+  }
+}
+console.log('Passed 16 airborne break-offs and touch-and-go departures.');

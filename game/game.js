@@ -200,11 +200,21 @@
       s.elapsed += dt;
       if(s.elapsed>=nextAirSample){sampleAirAndTerrain();nextAirSample=s.elapsed+.14;}
       senseWings(dt);
-      s.climb=input.climb;
+      const escape=s.goAround;
+      const escapeAge=escape?s.elapsed-escape.began:0;
+      const assisting=escape?1-smooth(1.5,2.6,escapeAge):0;
+      const power=escape?.powered&&!input.brake?assisting*(1+Math.min(input.climb,0)):0;
+      if(escape){
+        const reaching=1-smooth(0,.38,escapeAge);
+        s.perchGrip=escape.grip*reaching;s.perchFlare=escape.flare*reaching;
+        if(escapeAge>=2.6)s.goAround=null;
+      }
+      s.climb=input.climb||power*.68;
       const brake=clamp(Number(input.brake)||0,0,1);
       const braking=brake>.5;
       s.lift+=(s.ridge+s.thermal+air.gustLift-s.lift)*easing(1.8,dt);
-      const commandedBank=returnBank===null ? -input.turn*.94 : returnBank;
+      const turn=input.turn||(escape?escape.turn*assisting:0);
+      const commandedBank=returnBank===null ? -turn*.94 : returnBank;
       // Differential wing loading rolls the body first. As the commanded
       // bank is reached the opposite wing catches the roll; lift turns the track.
       const rollError=commandedBank-s.bank;
@@ -231,7 +241,7 @@
       const climbAngle=poweredClimb ? clamp(.09+(s.airspeed-13.5)*.065,-.18,.40) : .40;
       // A commanded flare takes precedence over the stick's automatic flapping.
       // If the bird is genuinely short of airspeed, strokes can recover the glide.
-      const beatRequest=input.flap&&(!braking||s.airspeed<10.7);
+      const beatRequest=(input.flap||power>.15)&&(!braking||s.airspeed<10.7);
       // A braking bird can round out while it has kinetic energy to trade.
       // Below that speed its open wings still produce drag and it settles.
       const brakingPath=brake*(.12*smooth(13,25,s.airspeed)-.18*(1-smooth(9,14,s.airspeed)));
@@ -329,8 +339,15 @@
       // A new parcel accelerates the bird over time; a sampled wind step
       // cannot instantaneously displace its mass sideways.
       const driftX=terrain.windField?trimWindX:air.windX,driftZ=terrain.windField?trimWindZ:air.windZ;
-      const vx=-Math.sin(s.yaw)*planar+driftX, vz=-Math.cos(s.yaw)*planar+driftZ;
+      let vx=-Math.sin(s.yaw)*planar+driftX, vz=-Math.cos(s.yaw)*planar+driftZ;
       s.verticalSpeed=Math.sin(s.path)*s.airspeed+s.lift;
+      if(escape&&escapeAge<.55){
+        // The guided approach carries ground velocity. Let the wings take
+        // up the local air mass without an instantaneous change of course.
+        if(!escape.drift)escape.drift={x:escape.vx-vx,y:escape.vy-s.verticalSpeed,z:escape.vz-vz};
+        const carry=1-smooth(0,.55,escapeAge);
+        vx+=escape.drift.x*carry;vz+=escape.drift.z*carry;s.verticalSpeed+=escape.drift.y*carry;
+      }
       const x=s.x+vx*dt,z=s.z+vz*dt,y=s.y+s.verticalSpeed*dt;
       if(y<=floor(x,z)+.25){s.contact=true;s.mode="Touchdown";return;}
       s.x=x;s.y=y;s.z=z;s.distance+=Math.hypot(vx,s.verticalSpeed,vz)*dt;
@@ -346,6 +363,21 @@
       else s.mode="Gliding";
     }
     return {state:s,step,senseWings};
+  }
+  function planGoAround(s,velocity){
+    const powered=s.airspeed<15||s.path<-.34;
+    const departure={began:s.elapsed,powered,turn:0,grip:s.perchGrip||0,flare:s.perchFlare||0,
+      vx:velocity.x,vy:velocity.y,vz:velocity.z};
+    const neutral={turn:0,climb:0,look:0,brake:0,flap:false};
+    // Check forward escapes using the same controls, lift, wind and collision
+    // surface as the player. Prefer straight flight when there is room.
+    for(const turn of [0,-.55,.55,-.92,.92]){
+      const trial=makeFlight(s,world);
+      Object.assign(trial.state,s,{goAround:{...departure,turn}});
+      for(let tick=0;tick<540&&!trial.state.contact;tick++)trial.step(1/60,neutral);
+      if(!trial.state.contact&&trial.state.airspeed>10.5&&trial.state.stall<.3)return {...departure,turn};
+    }
+    return null;
   }
   function audioIcon() {
     const label = soundOn ? "Mute sound" : "Turn sound on";
@@ -516,9 +548,12 @@
   function perchAction(){
     if(!started||paused||!perching)return;
     const s=dynamics.state,stage=perching.stage;
-    if(stage==="perched"){perching.push(s);resetInput();glance=arrivalGlance=0;}
+    if(stage==="perched"){
+      if(s.perchLaunchPending)s.perchLaunchPending=false;
+      else{perching.push(s);resetInput();glance=arrivalGlance=0;}
+    }
     else if(stage==="free"){if(!perching.selected)choosePerch();if(perching.selected)perching.land(s);pointer.clear();}
-    else if(stage==="approach"||stage==="flare"){perching.cancel(s);resetCamera(s);}
+    else if(stage==="approach"||stage==="flare")perching.cancel(s,planGoAround);
     nextPerchHUD=0;
   }
   el("choosePerch").onclick=choosePerch;
@@ -542,12 +577,12 @@
     choose.hidden=stage!=="free";el("airBrake").hidden=stage!=="free";
     choose.firstChild.textContent=t?"Next perch ":"Choose perch ";
     action.hidden=!t||stage==="push";
-    if(!action.hidden)action.textContent=stage==="perched"?(s.perchLaunchPending?"Turning to launch":"Push off"):stage==="free"?"Land":"Break off";
-    if(stage==="perched")status.textContent=t.label+" · Drag to look around";
+    if(!action.hidden)action.textContent=s.perchLaunchPending?"Stay on perch":stage==="perched"?"Push off":stage==="free"?"Land":"Break off";
+    if(stage==="perched")status.textContent=t.label+(s.perchLaunchPending?" · Turning to launch":" · Drag to look around");
     else if(stage==="push")status.textContent="Pushing off";
     else if(t){
       const text=stage==="flare"?"Landing flare":t.label+" · "+Math.round(rang)+" m";
-      status.textContent=stage==="approach"?"Approaching "+text:text;
+      status.textContent=s.perchLaunchPending?"Landing, then taking off":stage==="approach"?"Approaching "+text:text;
     }else status.textContent=elapsed<perchNoticeUntil?perchNotice:"";
   }
   const flightCodes=["KeyW","KeyA","KeyS","KeyD","KeyQ","KeyE","KeyB","ArrowLeft","ArrowRight","ArrowUp","ArrowDown","Space"];

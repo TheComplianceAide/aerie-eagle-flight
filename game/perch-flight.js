@@ -12,7 +12,7 @@ window.makePerchFlight=function(T,world,habitat,route){
   let strokeForce=0;
   let stance=null,arrivalYaw=0,nextFoot=1,stepPause=0,stepStart=0,stepEnd=0,stepDuration=0,exitLook=0;
   let settleTime=0,openYaw=0,selectionRange=750,lookYaw=0,lookPitch=0,baseYaw=0,pushTime=0,refresh=0,selection=[],selectionTime=-99;
-  const station=new T.Vector3(),ahead=new T.Vector3();
+  const station=new T.Vector3(),ahead=new T.Vector3(),velocity=new T.Vector3();
   function select(target){
     selected=target||null;habitat.select(selected);selectionTime=-99;
     if(!target)usingRoute=false;
@@ -160,13 +160,19 @@ window.makePerchFlight=function(T,world,habitat,route){
   function land(s){
     if(!selected||stage!=='free')return;
     track=makeTrack(s,selected);along=0;stage='approach';s.contact=false;
+    s.goAround=null;s.perchLaunchPending=false;
+    velocity.set(-Math.sin(s.yaw)*s.airspeed*Math.cos(s.path),s.verticalSpeed,-Math.cos(s.yaw)*s.airspeed*Math.cos(s.path));
     s.perchFold=s.perchGrip=s.perchFlare=0;
     s.perchOnRock=selected.type==='rock';strokeForce=0;
   }
-  function cancel(s){
+  function cancel(s,planFlight){
     if(stage==='approach'||stage==='flare'){
-      if(s.airspeed<9){push(s);return;}
-      stage='free';track=null;s.perchGrip=s.perchFlare=s.perchFold=0;s.perchOnRock=false;s.path=clamp(s.path,-.35,.25);
+      if(s.perchLaunchPending){s.perchLaunchPending=false;return;}
+      const departure=s.airspeed>5.5 && planFlight(s,velocity);
+      // Once the feet are reaching or all forward escapes are blocked, finish
+      // the flare, take weight and spring from the support into its clear exit.
+      if(!departure){s.perchLaunchPending=true;return;}
+      stage='free';track=null;s.perchOnRock=false;s.goAround=departure;
     }
     if(stage==='free'){select(null);selection=[];}
   }
@@ -201,9 +207,8 @@ window.makePerchFlight=function(T,world,habitat,route){
     }
   }
   function push(s){
-    if(!selected||!['perched','flare','approach'].includes(stage))return;
-    const fromRest=stage==='perched';
-    if(fromRest&&stance&&(stance.moving||Math.max(Math.abs(openYaw-stance.leftYaw),Math.abs(openYaw-stance.rightYaw))>=.002)){
+    if(!selected||stage!=='perched')return;
+    if(stance&&(stance.moving||Math.max(Math.abs(openYaw-stance.leftYaw),Math.abs(openYaw-stance.rightYaw))>=.002)){
       s.perchLaunchPending=true;return;
     }
     s.perchLaunchPending=false;
@@ -219,17 +224,17 @@ window.makePerchFlight=function(T,world,habitat,route){
     const lift=begin.clone().addScaledVector(dir,2.5);lift.y+=1.8;
     track=new T.CatmullRomCurve3([begin,lift,away],false,'centripetal');
     track.pushYaw=Math.atan2(-dir.x,-dir.z);
-    track.fromRest=fromRest;
-    track.entrySpeed=fromRest?3.4:Math.max(3.4,s.airspeed);
+    track.entrySpeed=3.4;
     track.releaseSpeed=15.3;
     track.pushDuration=2*track.getLength()/(track.entrySpeed+track.releaseSpeed);
     track.startFold=s.perchFold||0;
     track.startGrip=s.perchGrip||0;
-    if(fromRest)s.phase=0;
+    s.phase=0;
   }
   function advance(s,dt,input){
     if(stage==='free')return false;
     const update=(p)=>{
+      velocity.set((p.x-s.x)/dt,(p.y-s.y)/dt,(p.z-s.z)/dt);
       s.distance+=Math.hypot(p.x-s.x,p.y-s.y,p.z-s.z);
       s.verticalSpeed+=(clamp((p.y-s.y)/dt,-25,25)-s.verticalSpeed)*ease(8,dt);
       s.x=p.x;s.y=p.y;s.z=p.z;
@@ -259,7 +264,7 @@ window.makePerchFlight=function(T,world,habitat,route){
       pushTime+=dt;
       // The leg impulse begins on the support. Keep the toes anchored while
       // the body crouches and extends; bring the hands up for the first stroke.
-      const preload=track.fromRest?.24:0;
+      const preload=.24;
       if(pushTime<=preload){
         s.mode='Pushing off';s.perchGrip=1;s.perchFlare=0;
         s.perchCompression=smooth(pushTime,0,.13)*(1-smooth(pushTime,.13,preload));
@@ -281,7 +286,7 @@ window.makePerchFlight=function(T,world,habitat,route){
       s.wingExtension=lerp(.62,.97,smooth(flightTime,0,.28));
       s.brakeSpread=s.turnTrim=0;s.mode='Pushing off';
       s.perchGrip=track.startGrip*(1-smooth(flightTime,0,.16));
-      s.perchFold=(track.fromRest?.28:1)*track.startFold*(1-smooth(flightTime,0,.18));
+      s.perchFold=.28*track.startFold*(1-smooth(flightTime,0,.18));
       s.perchCompression=s.perchFlare=s.perchLook=s.perchLookPitch=0;
       s.yaw+=angle(track.pushYaw-s.yaw)*ease(6.6,dt);
       s.path=Math.atan2(ahead.y-old.y,Math.hypot(ahead.x-old.x,ahead.z-old.z)+.00001);
@@ -334,7 +339,7 @@ window.makePerchFlight=function(T,world,habitat,route){
       s.pitch+=(bodyPitch-s.pitch)*ease(8,dt);
       s.perchGrip=1-smooth(timeToGo,.06,.86);s.perchFlare=pitchUp;
       if(timeToGo<1.30)stage='flare';
-      s.mode=stage==='flare'?'Landing flare':'Approaching perch';
+      s.mode=s.perchLaunchPending?'Touch and go':stage==='flare'?'Landing flare':'Approaching perch';
       update(station);
       if(along===track.length){
         s.touchdownSpeed=s.airspeed;
