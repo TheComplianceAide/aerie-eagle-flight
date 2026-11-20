@@ -280,7 +280,7 @@
         depth.gain.setTargetAtTime(.32 * flap, now, .1);
         lfo.frequency.setTargetAtTime(20 + .35 * v, now, .2);
         band.frequency.setTargetAtTime(180 + 6 * v, now, .2);
-        out.gain.setTargetAtTime(.55, now, .2);
+        out.gain.setTargetAtTime(.32, now, .2);
       },
       stop(now) { out.gain.setTargetAtTime(0, now, .1); }
     };
@@ -501,6 +501,8 @@
     const spec = scapes[region] || {}, air = climate[region] || {};
     const engine = window.makeSpatialAudio(context, world, {climate: air});
     engine.setSurveyPath(window.aerieSoundPath);
+    // The 3D field carries the world; the head-locked wind layers step back ~4 dB.
+    window.aerieWindTrim = .62;
     // Today's air at the real location, when reachable; the stored climate otherwise.
     liveAir(region).then(airNow => { if (airNow) { engine.setClimate(airNow); engine.live = airNow; } });
     engine.output.connect(destination);

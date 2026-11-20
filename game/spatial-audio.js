@@ -54,7 +54,12 @@ window.makeSpatialAudio = function makeSpatialAudio(context, world, options = {}
   // Raptor hearing (Eagle Ears): diurnal raptor audiograms are most sensitive
   // near 1-4 kHz and fall steeply above ~6 kHz (Dooling 1980; Dooling,
   // Lohr & Dent 2000). Bypassed for normal listening.
-  const final = context.createGain(), hearing = [];
+  // Mix level of the 3D field against the head-locked wind, then a gentle
+  // limiter so a near thunder clap over a waterfall cannot clip.
+  const final = context.createGain(), hearing = [], mixOut = context.createGain(), limiter = context.createDynamicsCompressor();
+  final.gain.value = 2.5;
+  limiter.threshold.value = -9; limiter.knee.value = 6; limiter.ratio.value = 6; limiter.attack.value = .004; limiter.release.value = .25;
+  final.connect(limiter).connect(mixOut);
   for (const [type, f, g, q] of [['highpass', 160, 0, .7], ['peaking', 2200, 5, .9], ['highshelf', 6000, -12, .7], ['lowpass', 9500, 0, .7]]) {
     const b = context.createBiquadFilter(); b.type = type; b.frequency.value = f; b.gain.value = g; b.Q.value = q; hearing.push(b);
   }
@@ -321,7 +326,7 @@ window.makeSpatialAudio = function makeSpatialAudio(context, world, options = {}
   }
   function setSurveyPath(fn) { surveyPath = fn; }
   return {
-    context, output: final, play, loop, setHeadProfile, setRaptorHearing, get profile() { return profile; }, update, setImpulse, setSurveyPath, absorption, airCutoff, setClimate, climate,
+    context, output: mixOut, mixGain: final, play, loop, setHeadProfile, setRaptorHearing, get profile() { return profile; }, update, setImpulse, setSurveyPath, absorption, airCutoff, setClimate, climate,
     get speed() { return SPEED; }, ear, order, get walls() { return walls; }, get ready() { return rendererReady; }, get count() { return live.size; }
   };
 };

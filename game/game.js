@@ -420,7 +420,7 @@
     const audible=soundOn&&started&&!paused;
     if(audible && !fieldAudio)fieldAudio=window.makeFieldAudio?.(audio,world.region);
     fieldAudio?.setEnabled(audible);
-    volume.gain.setTargetAtTime(audible?.12:0,audio.currentTime,.14);
+    volume.gain.setTargetAtTime(audible?.12*(window.aerieWindTrim??1):0,audio.currentTime,.14);
   }
   function toggleSound(){
     soundOn=!soundOn;
