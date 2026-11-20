@@ -123,6 +123,43 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
   let lidBlinkAt = rand(20, 50), lidT = -1, saccadeCooldown = 0, drowsy = 0;
   const membraneCurve = u => u < .45 ? smooth(0, .45, u) : 1 - smooth(.45, 1, u); // close fast, open a little slower
 
+  // ---- voice: the bill follows the eagle's own calls ----------------------------------
+  // field-audio.js announces each call with its loudness envelope. The lower
+  // mandible swings about its gape hinge with the syllables; on a perch, a
+  // loud call throws the head back (the bald eagle's head-throw display).
+  const mandible = neck.children.find(c => c.name === 'Lower mandible');
+  const jaw = {open: 0, loud: 0, env: null, rate: 60, start: 0, pending: null};
+  let jawHinge = null, jawRestP = null, jawRestQ = null;
+  if (mandible) {
+    mandible.geometry.computeBoundingBox();
+    const b = mandible.geometry.boundingBox;
+    jawHinge = new THREE.Vector3(0, b.max.y - .002, b.max.z - .004);
+    jawRestP = mandible.position.clone(); jawRestQ = mandible.quaternion.clone();
+  }
+  const onCall = e => { if (e.detail?.envelope?.length) jaw.pending = e.detail; };
+  window.addEventListener('aerie-eagle-call', onCall);
+  const jawQ = new THREE.Quaternion(), jawV = new THREE.Vector3();
+  function updateVoice(time, step) {
+    if (jaw.pending) { jaw.env = jaw.pending.envelope; jaw.rate = jaw.pending.rate || 60; jaw.start = time; jaw.pending = null; }
+    let target = 0;
+    if (jaw.env) {
+      const x = (time - jaw.start) * jaw.rate, i = Math.floor(x);
+      if (i >= jaw.env.length - 1) jaw.env = null;
+      else if (i >= 0) target = jaw.env[i] + (jaw.env[i + 1] - jaw.env[i]) * (x - i);
+    }
+    // The bill snaps open on each syllable and closes a little more slowly.
+    jaw.open += (target - jaw.open) * (1 - Math.exp(-step / (target > jaw.open ? .02 : .05)));
+    jaw.loud += (target - jaw.loud) * (1 - Math.exp(-step / .35));
+    if (!mandible) return;
+    const angle = -.36 * clamp(jaw.open, 0, 1);
+    jawQ.setFromAxisAngle(SIDE_X, angle);
+    mandible.quaternion.copy(jawRestQ).multiply(jawQ);
+    // Keep the hinge fixed: p = rest + R0 (hinge - R hinge).
+    jawV.copy(jawHinge).applyQuaternion(jawQ).negate().add(jawHinge).applyQuaternion(jawRestQ);
+    mandible.position.copy(jawRestP).add(jawV);
+  }
+  const SIDE_X = new THREE.Vector3(1, 0, 0);
+
   // ---- wind at the perch ------------------------------------------------------------
   let windSource = null, windAt = -1;
   const windSample = {}, wind = new THREE.Vector3(), windMean = new THREE.Vector3(), windLocal = new THREE.Vector3();
@@ -282,7 +319,14 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
     neck.parent.getWorldQuaternion(tmpQ);
     const stabilised = tmpQ.invert().multiply(headWorld);
     neck.quaternion.slerp(stabilised, .9 * freeFlight + .5 * folded);
-    updateScan(time, step, perched, air, peerT >= 0 || rouseT >= 0 || preenT >= 0 || shakeT >= 0);
+    updateVoice(time, step);
+    updateScan(time, step, perched, air, peerT >= 0 || rouseT >= 0 || preenT >= 0 || shakeT >= 0 || jaw.loud > .15);
+    // Head-throw while calling from a perch; a slight lift of the head in flight.
+    if (jaw.loud > .01) {
+      const throwBack = clamp(jaw.loud * 1.6, 0, 1) * (perched ? .5 : .12);
+      neck.quaternion.multiply(scanQ.setFromAxisAngle(SIDE, throwBack));
+      neckBase.quaternion.multiply(scanQ.setFromAxisAngle(SIDE, throwBack * .15));
+    }
     // Preening: the bill drops into the breast plumage and works it in short
     // nibbles, the head turned a little to one side.
     if (preenT >= 0) {
@@ -438,7 +482,7 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
     const perchSlip = clamp(windLocal.x / 8, -1, 1) * folded;
     uniforms.featherSlip.value += (slip * clamp(q, 0, 2) * freeFlight + perchSlip - uniforms.featherSlip.value) * (1 - Math.exp(-8 * step));
     uniforms.featherFluff.value += (fluff - uniforms.featherFluff.value) * (1 - Math.exp(-10 * step));
-    stats.turbulence = turbulence; stats.wind = +windSpeed.toFixed(2); stats.headRoll = +headRoll.toFixed(3); stats.drowsy = +drowsy.toFixed(2);
+    stats.turbulence = turbulence; stats.wind = +windSpeed.toFixed(2); stats.headRoll = +headRoll.toFixed(3); stats.drowsy = +drowsy.toFixed(2); stats.bill = +jaw.open.toFixed(3);
     stats.tailBend = tailSprings.reduce((a, s) => a + s.offset, 0) / tailSprings.length;
     stats.primaryBend = primarySprings.reduce((a, s) => a + s.offset, 0) / primarySprings.length;
   }
@@ -446,6 +490,7 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
   function setWindSource(field) { windSource = field && typeof field.sample === 'function' ? field : null; windAt = -1; }
   // For tests: start a perched behaviour now ('rouse' or 'peer').
   function trigger(name) {
+    if (name === 'call') { const n = 150, e = new Float32Array(n); for (let i = 0; i < n; i++) e[i] = Math.max(0, Math.sin(i / 60 * 2 * Math.PI * 4.2)) * (i < 120 ? 1 : 0); jaw.pending = {envelope: e, rate: 60}; }
     if (name === 'rouse') rouseT = 0; else if (name === 'peer') { peerT = 0; peerAxis = 0; }
     else if (name === 'shake') shakeT = 0; else if (name === 'preen') { preenT = 0; preenDur = 3; preenSide = 1; }
   }
