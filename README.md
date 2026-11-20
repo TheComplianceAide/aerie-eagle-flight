@@ -30,7 +30,7 @@ Cloud shadows cross the spruce ridges, the cabin, and the lake while a sun showe
 
 ## Finding wildlife
 
-Every range has a named wildlife departure. In flight, press **V** or tap the **eye** to turn on Game Vision. The nearest species appear with their distance and bearing. An on-screen marker follows a visible animal. A close animal ahead of the eagle can trigger one of its recorded calls. Use the speaker button to control the sound.
+Every range has a named wildlife departure. In flight, press **V** or tap **Game Vision** to identify nearby animals. The game remembers your choice. Wildlife departures open with the overlay on until you choose a preference. The nearest species appear with their distance and bearing. An on-screen marker follows a visible animal. A close animal ahead of the eagle can trigger one of its recorded calls. Use the speaker button to control the sound.
 
 The [regional wildlife credits](game/wildlife-credits.txt) document species and licensed recordings. New regions can register their local species, encounter and habitat through [the wildlife catalog](game/game-ranges.js). The [atmospheric optics credits](game/atmospheric-optics-credits.txt) describe the light conditions modeled in the ranges.
 
@@ -84,6 +84,8 @@ Take the **Nugget Falls spray pass** in Alaska to see the water separate into st
 | Crater Lake · Caldera overlook | Look across Wizard Island. A break in the storm lights the western rim while a dark shelf of cloud and falling rain cross the lake. |
 
 ## Scenery and credits
+
+Forests and ground cover continue between landmarks in every world. A twelve-cell lidar inset follows the ground and crowns at Table Rock. Other woodland fills use regional land cover and representative plant specimens. [Flight study, regional coverage and source photographs](docs/regional-scenery.md)
 
 The playable worlds include Oeschinen Lake, Mendenhall Glacier, Horseshoe Bend, Yosemite Valley, Crater Lake, Lofoten, Milford Sound, Lake Winnipesaukee, Moosehead Lake, Surry Mountain Dam with Keene, Lac Berté in Québec, and Dixville Notch at dawn in New Hampshire.
 

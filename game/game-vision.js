@@ -5,6 +5,15 @@ window.makeGameVision = function(T,world,button,layer) {
   const points=new T.Vector3();
   const compass=['N','NE','E','SE','S','SW','W','NW'];
   let active=false,nextScan=-Infinity,scan=[],nearest=[],lastRows='';
+  function startFlight(wildlifeDeparture){
+    let preference=null;
+    try{preference=localStorage.getItem('aerie:gameVision');}catch{}
+    setActive(preference===null?wildlifeDeparture:preference==='on');
+  }
+  function toggle(){
+    setActive(!active);
+    try{localStorage.setItem('aerie:gameVision',active?'on':'off');}catch{}
+  }
   function setActive(value) {
     active=value;
     button.setAttribute('aria-pressed',String(active));layer.hidden=!active;
@@ -64,5 +73,5 @@ window.makeGameVision = function(T,world,button,layer) {
     }
     for(let i=count;i<pins.length;i++)pins[i].hidden=true;
   }
-  return {toggle:()=>setActive(!active),setActive,update};
+  return {toggle,startFlight,update};
 };

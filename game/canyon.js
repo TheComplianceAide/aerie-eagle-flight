@@ -77,10 +77,10 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
   shared.crossbeds.value.wrapS=shared.crossbeds.value.wrapT=THREE.MirroredRepeatWrapping;
   const vertex=`varying vec3 wp,n;varying vec2 tc;
     void main(){wp=position;n=normal;tc=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`;
-  shared.scrubFloor={value:texture('soil-dry.webp',true)};
+  shared.scrubFloor={value:texture('field-ground-scans.webp')};
   const fragment=`
     uniform sampler2D scrubFloor,wallRelief;
-    ${window.aerieFloorShader}
+    ${window.aerieFieldShader('canyon')}
     uniform sampler2D terrainField,bankRadiance,crossbeds;
     uniform sampler2D photo,strata,grain,flow,ripple,panorama,sand,pebbles,pebbleNormal,bankMap;
     uniform vec3 sun;uniform float clock;varying vec2 tc;varying vec3 wp,n;
@@ -232,10 +232,12 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
       // the canyon floor during sunset, even when the rim blocks the sun.
       vec3 indirect=vec3(.61,.69,.82)*(.75+.25*openSky)+vec3(.14,.071,.032)*(1.-openSky);
       vec3 sunward=vec3(.57,.35,.17)*(.27+.73*sqrt(incidence))*sunVisibility;
+      float terrace=(1.-face)*(1.-wet)*smoothstep(2.,25.,signedBank);
+      float bankMoisture=1.-smoothstep(4.,36.,signedBank);
+      dry=regionalSoil(scrubFloor,wp,normal,dry,sun,dist,smoothstep(.00,.07,aerial.g-aerial.r)*.30,bankMoisture,terrace);
       dry*=indirect+sunward;
       float groundPass=closeGround*(1.-face)*(1.-wet)*smoothstep(3.,26.,signedBank);
-      vec3 pebbly=floorColor(scrubFloor,wp.xz,.16);
-      dry=mix(dry,pebbly*vec3(1.12,.91,.76)*(indirect+sunward),.84*groundPass);
+      vec3 pebbly=soilCapture(scrubFloor,wp.xz*.32,10.).rgb;
       // Grit and fallen fragments collect where the survey rises sharply
       // within a few metres. Leave the smooth river bars free of scree.
       if(groundPass>.005){

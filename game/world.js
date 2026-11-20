@@ -436,7 +436,9 @@ class Water extends Mesh {
   const strata=texture('cliff-strata.jpg',true), strataNormal=texture('cliff-strata-normal.jpg',true), surveyNormals=texture('survey-normals.jpg');
   const alpineVertex = `varying vec3 wp,norm;varying vec2 tileUv;
     void main(){wp=position;norm=normal;tileUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`;
-  const alpineFragment = `uniform sampler2D karstLight;uniform sampler2D photo,stone,normalMap,earth,sunMask,strata,strataNormal,surveyNormals;uniform vec3 sun;
+  const fieldGround=texture('field-ground-scans.webp');
+  const alpineFragment = `${window.aerieFieldShader('swiss')}
+    uniform sampler2D groundScan;uniform sampler2D karstLight;uniform sampler2D photo,stone,normalMap,earth,sunMask,strata,strataNormal,surveyNormals;uniform vec3 sun;
     varying vec3 wp,norm;varying vec2 tileUv;
 
     // Sample a ninety-metre photographed turf and scree outcrop. The measured
@@ -517,6 +519,9 @@ class Water extends Mesh {
       if(alpineFloor>.001)rgb=mix(rgb,tundraColour(earth,wp,n,rgb,d),.72*alpineFloor);
       float soilTexture=dot(underfoot,vec3(.30,.55,.15));
       rgb*=1.+(1.-rockMix)*closeup*.65*(soilTexture-.38);
+      float woodland=vegetation*(1.-smoothstep(230.,570.,wp.y));
+      float meadow=(1.-rockMix)*(1.-snow)*smoothstep(.52,.91,n.y);
+      rgb=regionalSoil(groundScan,wp,n,rgb,sun,d,woodland,1.-smoothstep(1.4,20.,abs(wp.y)),meadow);
       lum=dot(rgb,vec3(.27,.60,.13));
       vec2 vd=(wp.xz+4000.)/8000.;
       float area=1.-smoothstep(.482,.500,max(abs(vd.x-.5),abs(vd.y-.5)));
@@ -549,7 +554,7 @@ class Water extends Mesh {
     }`;
   function terrainMaterial(photo) {
     return new THREE.ShaderMaterial({
-      uniforms:{karstLight:{value:karstLight},photo:{value:photo},stone:{value:stone},normalMap:{value:stoneNormal},earth:{value:earth},
+      uniforms:{groundScan:{value:fieldGround},karstLight:{value:karstLight},photo:{value:photo},stone:{value:stone},normalMap:{value:stoneNormal},earth:{value:earth},
         sunMask:{value:visibility},strata:{value:strata},strataNormal:{value:strataNormal},surveyNormals:{value:surveyNormals},sun:{value:sun}},
       vertexShader:alpineVertex,fragmentShader:alpineFragment
     });
@@ -673,6 +678,7 @@ class Water extends Mesh {
     forest:{x:-1280,y:clearance(-1280,420)+43,z:420,yaw:-1.61}
   };
   return {
+    treeGrid:{cells:treeCells,size:32,cell:(x,z)=>Math.floor(x/32)*1024+Math.floor(z/32)},
     waterfalls,height,elevation,clearance,spawn,launches,trees,skyTexture:skyMap,sunMask:visibility,sunDirection:sun,waterLevel:0,lakeLevel:0,lakePolygon:shore,altitudeOffset:survey.heightOffset,
     bounds:{minX:-3700,maxX:3700,minZ:-3700,maxZ:3700},
     landmarks:[{name:'Western gravel beach',x:-647,z:466},{name:'Lakeshore meadow',x:-688,z:497,discoveryRadius:42},{name:'Oeschinensee',x:30,z:260},{name:'Fründen Falls',x:472,z:922},

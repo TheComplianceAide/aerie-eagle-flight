@@ -3,10 +3,34 @@
 (() => {
   const spans={dixville:16000,alaska:18000,swiss:16000,canyon:12800,moosehead:31000,winnipesaukee:24500,surry:17000};
   let active,field,size,half;
+  async function loadTableGround(){
+    const img=new Image(),file='dixville-table-ground.png';
+    img.src=window.aerieAssetURL?.(file)||file;await img.decode();
+    const canvas=document.createElement('canvas');canvas.width=img.width;canvas.height=img.height;
+    const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.drawImage(img,0,0);
+    const bytes=ctx.getImageData(0,0,img.width,img.height).data;
+    const field=new Uint16Array(img.width*img.height),width=img.width;
+    for(let z=0;z<img.height;z++){
+      let height=0;
+      for(let x=0;x<width;x++){
+        const k=z*width+x;height=(height+(bytes[4*k]<<8)+bytes[4*k+1])&65535;field[k]=height;
+      }
+    }
+    return function tableHeight(x,z){
+      const u=(x+256)*2,v=(z-128)*2;
+      const i=Math.min(width-2,Math.floor(u)),j=Math.min(img.height-2,Math.floor(v));
+      const fx=u-i,fz=v-j,k=j*width+i;
+      const cm=fx+fz<1?field[k]*(1-fx-fz)+field[k+1]*fx+field[k+width]*fz:
+        field[k+width+1]*(fx+fz-1)+field[k+width]*(1-fx)+field[k+1]*(1-fz);
+      return 500+cm*.01;
+    };
+  }
   window.prepareRangeRelief=async region=>{
     if(active===region)return;
     const filename='range-'+region+'-relief.png',img=new Image();
-    img.src=window.aerieAssetURL?.(filename)||filename;await img.decode();
+    img.src=window.aerieAssetURL?.(filename)||filename;
+    const [,table]=await Promise.all([img.decode(),region==='dixville'?loadTableGround().catch(()=>null):null]);
+    window.dixvilleTableHeight=table;
     const canvas=document.createElement('canvas');canvas.width=canvas.height=img.width;
     const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.drawImage(img,0,0);
     const bytes=ctx.getImageData(0,0,img.width,img.height).data;

@@ -26,7 +26,6 @@ window.addHabitat = function addHabitat(THREE,scene,world,region) {
     return habitatPixels[k+2]>128||habitatPixels[k]<119?0:habitatPixels[k+1]/255;
   };
   const pebble=repeat('shore-pebbles.webp');
-  const meadow=region==='swiss'?repeat('soil-boreal.webp'):null;
   const glacial=region==='alaska';
   // This field intersects each rendered lake polygon with the terrain triangles
   // at water level. Red is signed distance, green is bed depth, blue is grade.
@@ -177,20 +176,15 @@ window.addHabitat = function addHabitat(THREE,scene,world,region) {
       const sw=region==='swiss', name=sw?'wp':'p', col=sw?'rgb':'base', norm=sw?'n':'nn';
       const anchor=sw?'vec2 vd=(wp.xz+4000.)/8000.;':'float haze=';
       if(!mat.fragmentShader.includes(anchor))continue;
-      Object.assign(mat.uniforms,marginUniforms,{habitatGround:{value:field},beachScan:{value:loose},sodScan:{value:meadow}});
-      // Alaska already binds its local tundra scan. Reuse it to keep the
-      // complete mountain, glacier and shoreline pass within 16 texture units.
-      const turf=glacial?'earth':'sodScan';
+      Object.assign(mat.uniforms,marginUniforms,{beachScan:{value:loose}});
       const layers=`
         if(d<250.){
-          vec2 pos=${name}.xz, uvbank=vec2(pos.x,-pos.y)/${(2*extent).toFixed(1)}+.5;
-          vec3 bi=texture2D(habitatGround,uvbank).rgb;
+          vec2 pos=${name}.xz;
           vec3 margin=marginAt(pos);float bank=-margin.x, gentle=smoothstep(.63,.94,${norm}.y);
           float beach=(1.-smoothstep(7.,37.,abs(bank)))*gentle;
-          float herb=smoothstep(.13,.72,bi.g)*gentle*(1.-beach);
+          beach*=smoothstep(-1.2,.1,${name}.y)*(1.-smoothstep(2.8,11.,${name}.y));
           vec3 gravel=texture2D(beachScan,pos*.40).rgb;
-          vec3 sward=floorColor(${turf},pos,smoothstep(.24,.92,bi.g)*.87);
-          vec3 groundColor=mix(gravel,sward,herb/(herb+beach+.001));
+          vec3 groundColor=gravel;
           float lightValue=clamp(dot(${col},vec3(.29,.58,.13))/.40,.51,1.42);
           float reach=washReach(pos,margin.z,habitatClock);
           float low=1.-smoothstep(.28,1.0,${name}.y-.18);
@@ -199,10 +193,10 @@ window.addHabitat = function addHabitat(THREE,scene,world,region) {
           groundColor*=lightValue*mix(1.08,.66,damp);
           groundColor=mix(groundColor,groundColor*vec3(.65,.81,.83)+vec3(.017,.028,.035),thin*.81);
           groundColor+=vec3(.045,.061,.067)*(damp+.7*thin)*pow(max(0.,dot(normalize(cameraPosition-${name}),reflect(-sun,${norm}))),18.);
-          ${col}=mix(${col},groundColor,(1.-smoothstep(42.,240.,d))*max(herb,beach)*(1.-bi.b)*.94);
+          ${col}=mix(${col},groundColor,(1.-smoothstep(42.,240.,d))*beach*.94);
         }
       `;
-      mat.fragmentShader=window.aerieFloorShader+shoreMotion+'\nuniform sampler2D habitatGround,beachScan,sodScan;\n'+mat.fragmentShader.replace(anchor,layers+anchor);
+      mat.fragmentShader=shoreMotion+'\nuniform sampler2D beachScan;\n'+mat.fragmentShader.replace(anchor,layers+anchor);
     }
   }
   const tileMap=new Map();

@@ -433,16 +433,18 @@ class Water extends Mesh {
     fragmentShader:`varying vec3 ray;uniform sampler2D sky;void main(){vec3 d=normalize(ray);vec2 uv=vec2(.968+atan(d.z,d.x)*.15915494,.5+asin(d.y)*.31830989);vec3 c=texture2D(sky,uv).rgb; gl_FragColor=vec4(mix(c,vec3(.98,.79,.64),.09*exp(-abs(d.y)*6.)),1.);}`}));
   sky.frustumCulled=false;sky.renderOrder=-1000;scene.add(sky);
   const outerPhoto=map('alaska-horizon.jpg');
-  const snow=map('alaska-snow.jpg',true),cliff=map('rock.jpg',true),earth=map('alpine-tundra.webp',true);
+  const snow=map('alaska-snow.jpg',true),earth=map('alpine-tundra.webp',true);
   const glacierFace=map('alaska-ice-face.jpg',true), mountain=map('alaska-mountain.jpg',true);
   glacierFace.wrapS=glacierFace.wrapT=mountain.wrapS=mountain.wrapT=THREE.MirroredRepeatWrapping;
   const terrainLight=map('alaska-sun.webp'),iceDetail=map('alaska-ice-relief.webp'),blueIce=map('alaska-blue-ice.webp',true);
   blueIce.wrapS=blueIce.wrapT=THREE.MirroredRepeatWrapping;
   const ridgeRock=map('cliff-strata.jpg',true), ridgeNormal=map('cliff-strata-normal.jpg',true);
   const alpineRelief=map('alaska-alpine-relief.webp');
-  const ground=new THREE.ShaderMaterial({uniforms:{alpineRelief:{value:alpineRelief},ridgeRock:{value:ridgeRock},ridgeNormal:{value:ridgeNormal},lightMap:{value:terrainLight},iceDetail:{value:iceDetail},blueIce:{value:blueIce},face:{value:glacierFace},mountain:{value:mountain},localPhoto:{value:outerPhoto},photoRect:{value:new THREE.Vector4(-18000,-18000,36000,0)},outerPhoto:{value:outerPhoto},snow:{value:snow},cliff:{value:cliff},earth:{value:earth},sun:{value:sun}},
+  const fieldGround=map('field-ground-scans.webp');
+  const ground=new THREE.ShaderMaterial({uniforms:{groundScan:{value:fieldGround},alpineRelief:{value:alpineRelief},ridgeRock:{value:ridgeRock},ridgeNormal:{value:ridgeNormal},lightMap:{value:terrainLight},iceDetail:{value:iceDetail},blueIce:{value:blueIce},face:{value:glacierFace},mountain:{value:mountain},localPhoto:{value:outerPhoto},photoRect:{value:new THREE.Vector4(-18000,-18000,36000,0)},outerPhoto:{value:outerPhoto},snow:{value:snow},earth:{value:earth},sun:{value:sun}},
     vertexShader:`varying vec3 p,n;void main(){p=position;n=normal;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
-    fragmentShader:`uniform sampler2D alpineRelief,ridgeRock,ridgeNormal;uniform vec4 photoRect;varying vec3 p,n;uniform sampler2D lightMap,iceDetail,blueIce,face,mountain,localPhoto,outerPhoto,snow,cliff,earth;uniform vec3 sun;
+    fragmentShader:`${window.aerieFieldShader('alaska')}
+    uniform sampler2D groundScan,alpineRelief,ridgeRock,ridgeNormal;uniform vec4 photoRect;varying vec3 p,n;uniform sampler2D lightMap,iceDetail,blueIce,face,mountain,localPhoto,outerPhoto,snow,earth;uniform vec3 sun;
 
     // Sample a ninety-metre photographed turf and scree outcrop. The measured
     // displacement shifts protruding stones across the line of sight during a
@@ -473,7 +475,7 @@ class Water extends Mesh {
       float sheet=irr.b*float(p.x>-1200.&&p.x<2800.&&p.z<-400.&&p.z>-4800.);
       float ice=sheet;float snowfield=smoothstep(.56,.8,max(base.b,base.r))*smoothstep(.39,.63,base.g);
       vec3 weights=pow(abs(nn),vec3(4.));weights/=max(.001,weights.x+weights.y+weights.z);
-      vec3 stone=texture2D(cliff,p.zy*.088).rgb*weights.x+texture2D(cliff,p.xz*.088).rgb*weights.y+texture2D(cliff,p.xy*.088).rgb*weights.z;
+      vec3 stone=soilCapture(groundScan,p.zy*.088,4.).rgb*weights.x+soilCapture(groundScan,p.xz*.088,4.).rgb*weights.y+soilCapture(groundScan,p.xy*.088,4.).rgb*weights.z;
       float forest=smoothstep(.004,.05,base.g-base.r)*smoothstep(.012,.085,base.g-base.b);
       vec3 substrate=mix(stone,texture2D(earth,p.xz*.14).rgb,forest);
       float fleck=dot(substrate,vec3(.30,.54,.16));base*=mix(.73+fleck*.68,1.,smoothstep(120.,1900.,d));
@@ -505,7 +507,7 @@ class Water extends Mesh {
       // Stable aerial colour anchors the broad formations. Fine side-projected
       // fractures remain visible on a rock wall during the last part of an approach.
       base=mix(base,gray,rocky*nearFace*(.78-.30*smoothstep(240.,1600.,d)));
-      float crag=texture2D(cliff,p.xz/43.+p.y*.003).r;
+      float crag=soilCapture(groundScan,p.xz/43.+p.y*.003,4.).r;
       base*=1.+(crag-.47)*.40*(1.-snowfield)*(1.-ice)*(1.-smoothstep(1700.,5000.,d));
       vec2 snowUV=p.xz*.12;float grain=texture2D(snow,snowUV).r;
       base*=1.+(.25*(grain-.65))*max(ice,snowfield)*(1.-smoothstep(70.,1200.,d));
@@ -535,7 +537,7 @@ class Water extends Mesh {
       base=clamp((base-.37)*1.035+.373,0.,1.);
       // Talus and mineral grains break into smaller scales at low altitude, with a
       // blue-grey ambient contribution on ridges away from the setting sun.
-      vec3 micro=mix(texture2D(cliff,p.zy*.29).rgb,texture2D(cliff,p.xy*.29).rgb,axis);
+      vec3 micro=mix(soilCapture(groundScan,p.zy*.29,4.).rgb,soilCapture(groundScan,p.xy*.29,4.).rgb,axis);
       float granule=dot(micro,vec3(.26,.58,.16));
       float scree=clamp((granule-.38)*.91+(vein-.45)*.54,-.33,.37);
       base*=1.+rocky*scree*(1.-smoothstep(65.,520.,d));
@@ -569,8 +571,8 @@ class Water extends Mesh {
         float rockLuma=dot(.69*cliffPhoto+.31*wide,vec3(.24,.59,.17));
         float mineral=clamp((rockLuma-.075)*3.9,0.,1.);
         vec3 schist=mix(vec3(.147,.158,.168),vec3(.69,.684,.642),mineral);
-        float grains=dot(mix(texture2D(cliff,floorUv*17.).rgb,
-                             texture2D(cliff,wallUv*17.).rgb,side),vec3(.25,.56,.19));
+        float grains=dot(mix(soilCapture(groundScan,floorUv*17.,4.).rgb,
+                             soilCapture(groundScan,wallUv*17.,4.).rgb,side),vec3(.25,.56,.19));
         schist*=.86+.28*grains;
         float parent=dot(base,vec3(.25,.57,.18));
         schist*=clamp(.82+.45*parent,.80,1.13);
@@ -586,6 +588,9 @@ class Water extends Mesh {
       float facetDetail=(measured.g-surround)*2.;
       float rockExposure=max(exposed,.52*(1.-forest)*smoothstep(.14,.42,1.-nn.y));
       base*=exp2(facetDetail*surveyed*(.21+1.25*rockExposure+.70*sheet));
+      float till=(1.-max(snowfield,sheet))*(1.-smoothstep(.29,.85,exposed))*smoothstep(.51,.90,nn.y);
+      float lowWood=forest*(1.-smoothstep(320.,650.,p.y));
+      base=regionalSoil(groundScan,p,nn,base,sun,d,lowWood,1.-smoothstep(2.,26.,abs(p.y)),till);
       float viewSky=mix(1.,relief.b,surveyed);
       float beam=mix(clamp(.45+1.6*light,0.,1.),relief.r,surveyed);
       float facet=mix(light,relief.g*2.-1.,surveyed*(1.-.83*forest));
@@ -936,7 +941,7 @@ class Water extends Mesh {
     mesh.onBeforeRender=(renderer,scene,camera)=>{material.uniforms.linearOutput.value=!!camera.userData.lakeReflection;};
   });
   const sunMask=map('alaska-tree-light.webp');
-  return {region:"alaska",waterfalls,forestLightSpan:14400,elevation,clearance,height,trees,sunMask,sunDirection:sun,skyTexture:skyMap,waterLevel:0,lakeLevel:0,lakePolygon:shore,altitudeOffset:18,spawn:lakeLaunch,
+  return {region:"alaska",treeGrid:{cells,size:48,cell},waterfalls,forestLightSpan:14400,elevation,clearance,height,trees,sunMask,sunDirection:sun,skyTexture:skyMap,waterLevel:0,lakeLevel:0,lakePolygon:shore,altitudeOffset:18,spawn:lakeLaunch,
     launches:{lake:lakeLaunch,ridge,shore:shoreLaunch,spray:sprayPass,spur:{x:612,y:68.4704,z:977,yaw:-.08159},alpine:{x:-2900,z:-2010,y:elevation(-2900,-2010)+58,yaw:-.28}},bounds:{minX:-6890,maxX:6890,minZ:-6890,maxZ:6890},
     landmarks:[{name:'West alpine crest',x:-2900,z:-2010},{name:'Upper crevasse field',x:1500,z:-4130},{name:'Blue Ice Passage',x:-116,z:-1010},{name:'Nugget Falls beach',x:473,z:927},{name:'Medial moraine',x:632,z:-2450},{name:'Mendenhall Glacier',x:40,z:-1400},{name:'Nugget Falls',x:518,z:658},{name:'Mendenhall Lake',x:-700,z:680},{name:'West Glacier Ridge',x:-860,z:-1890}],
     update(dt,time,player){updateTerrainLOD(player);updateLedges(player);clock.value=time;lake.material.uniforms.time.value=time*.72;}

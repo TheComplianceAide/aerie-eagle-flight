@@ -14,7 +14,7 @@
     dixville: {title:'Moose in the notch', anchor:[-320.72905,-242.78546], course:207, rise:0, animals:['moose','snowshoe-hare','white-tailed-deer']},
     labrador: {title:'Moose in the spruce narrows', anchor:[384.798,1849.3513], course:234, rise:0, animals:['moose','snowshoe-hare']},
     surry: {title:'White-tailed deer by the reservoir', anchor:[-1519.3332,-3297.69], course:189, rise:0, animals:['white-tailed-deer','snowshoe-hare']},
-    winnipesaukee: {title:'White-tailed deer above the Broads', anchor:[1057.6031,1909.6066], course:180, rise:0, animals:['white-tailed-deer','snowshoe-hare']}
+    winnipesaukee: {title:'White-tailed deer above the Broads', anchor:[1057.6031,1909.6066], course:160, rise:0, animals:['white-tailed-deer','snowshoe-hare']}
   };
   // Model dimensions are metres at the shoulder (back for small mammals).
   const species = {

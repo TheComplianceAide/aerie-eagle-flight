@@ -23,6 +23,7 @@ window.addForest = function addForest(THREE, scene, world) {
   // A small movement at the ends of the boughs; the trunk remains anchored.
   const time = {value: 0};
   const observer = {value:new THREE.Vector3()};
+  nearMaterial.userData.canopyRoot="instanceMatrix[3].xyz";
   nearMaterial.onBeforeCompile = shader => {
     Object.assign(shader.uniforms,wind.uniforms,squall?.uniforms);
     shader.uniforms.firTime = time;
@@ -154,6 +155,7 @@ window.addForest = function addForest(THREE, scene, world) {
         if(promoted>.5||dot(delta,delta)>reachSquared){gl_Position=vec4(2.,2.,2.,1.);return;}
         float spin = dimensions.z;`)
     });
+    standMaterial.userData.canopyRoot="rootPosition";
     return {near,rectangle,standMaterial};
   });
   // Keep ridgeline crowns resident in spatial batches. As the viewer approaches

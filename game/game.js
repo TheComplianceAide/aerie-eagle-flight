@@ -19,10 +19,15 @@
   }
   cameraButton?.addEventListener("click",switchCamera);
   updateCameraButton();
-  window.addEventListener("worldchange",()=>{if(renderer||launchPending)location.reload();});
+  window.addEventListener("worldchange",()=>{if(renderer||launchPending){disposeCanopy();location.reload();}});
   const keys = new Set(), found = new Set();
   let renderer, scene, camera, world, eagle, player, gaze, cameraTarget;
-  let gameVision;
+  let gameVision,canopy;
+  function disposeCanopy(){
+    canopy?.dispose();
+    canopy=null;
+  }
+  window.addEventListener("pagehide",event=>{if(!event.persisted)disposeCanopy();});
   let updateLight,updateOptics, updateWeather,perching,perchRoute,perchMarker,windSoarer;
   let perchNotice="",perchNoticeUntil=0,nextPerchHUD=0;
   let dynamics, elapsed, distance, nextReadout, noticeUntil, accumulator;
@@ -182,7 +187,7 @@
         const ahead=s.airspeed*Math.cos(s.path)*seconds;
         const px=s.x-Math.sin(heading)*ahead+air.windX*seconds;
         const pz=s.z-Math.cos(heading)*ahead+air.windZ*seconds;
-        const angle=Math.atan2(floor(px,pz)+2.2-s.y,Math.max(1,ahead));
+        const angle=Math.atan2(floor(px,pz,s.y)+2.2-s.y,Math.max(1,ahead));
         hazard=Math.max(hazard,angle);
       }
       const edge=Math.min(s.x-bounds.minX,bounds.maxX-s.x,s.z-bounds.minZ,bounds.maxZ-s.z);
@@ -350,7 +355,7 @@
         vx+=escape.drift.x*carry;vz+=escape.drift.z*carry;s.verticalSpeed+=escape.drift.y*carry;
       }
       const x=s.x+vx*dt,z=s.z+vz*dt,y=s.y+s.verticalSpeed*dt;
-      if(y<=floor(x,z)+.25){s.contact=true;s.mode="Touchdown";return;}
+      if(y<=floor(x,z,y)+.25){s.contact=true;s.mode="Touchdown";return;}
       s.x=x;s.y=y;s.z=z;s.distance+=Math.hypot(vx,s.verticalSpeed,vz)*dt;
       if(recovery)s.mode="Stall recovery";
       else if(brake>.12&&s.brakeSpread>.14)s.mode="Air braking";
@@ -483,7 +488,7 @@
       world.habitat=perchHabitat;
       perchRoute=window.makePerchRoute(THREE,world,region);
       world.launches.lookout=perchRoute.approach;
-      world.flightClearance=(x,z)=>Math.max((world.clearance||world.height)(x,z),perchHabitat.clearance(x,z));
+      world.flightClearance=(x,z,altitude)=>Math.max((world.clearance||world.height)(x,z),perchHabitat.clearance(x,z),canopy?.clearance?.(x,z,altitude)??-Infinity);
       world.windField=window.makeWindField(world,region);
       perching=window.makePerchFlight(THREE,world,perchHabitat,perchRoute);
       perchMarker=new THREE.Vector3();
@@ -508,14 +513,17 @@
       if(region==="surry")window.lightKeeneStreet(THREE,renderer,scene,world,eagle.object);
       updateWeather=await window.makeMovingWeather(THREE,scene,world);
       updateOptics=window.addAtmosphericOptics(THREE,scene,world);
+      world.canopyStream=canopy=window.makeCanopyStream(THREE,renderer,scene,world);
     } catch(error) {
+      disposeCanopy();
       loadPromise=null;world=null;eagle=null;renderer.dispose();renderer=null;
       throw error;
     } finally {
       manager.onLoad=priorLoad;manager.onProgress=priorProgress;manager.onError=priorError;
     }
   }
-  const pixelRatioLimit=matchMedia("(pointer: coarse)").matches?1.35:2;
+  const touchFirst=matchMedia("(pointer: coarse)").matches;
+  const pixelRatioLimit=touchFirst?1.35:2;
   function resize(){
     if(!renderer || !camera)return;
     const w=app.clientWidth,h=app.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();
@@ -530,7 +538,7 @@
     perching.reset(s,el("launchPoint").value==="lookout");
     nextPerchHUD=0;perchNotice="";perchNoticeUntil=0;
     resetCamera(s,launch.glance,launch.lookDown);
-    gameVision.setActive(launchPicker.value==="game");
+    gameVision.startFlight(["game","wildlife"].includes(launchPicker.value));
     fieldAudio?.resetEncounters();
     elapsed=0;distance=0;accumulator=0;nextReadout=0;noticeUntil=0;
     frameSeconds=0;frameCount=0;fastWindows=0;
@@ -886,7 +894,9 @@
     windSoarer.update(dt,s);
     if(fieldAudio&&soundOn)fieldAudio.update(s,world,dt,camera,perching.stage);
     updateWeather(elapsed);
-    world.update(dt,elapsed,player);updateLight?.(player,elapsed);updateMist?.(player,elapsed);updateOptics?.(player,elapsed);renderer.render(scene,camera);updatePerchHUD(s);gameVision.update(player,camera,elapsed);
+    world.update(dt,elapsed,player);updateLight?.(player,elapsed);updateMist?.(player,elapsed);updateOptics?.(player,elapsed);
+    canopy?.update(player,elapsed);
+    renderer.render(scene,camera);updatePerchHUD(s);gameVision.update(player,camera,elapsed);
     if(s.contact){showDialog("contact");return;}
     if(elapsed>=nextReadout){
       nextReadout=elapsed+.17;
@@ -914,7 +924,7 @@
       const fps=frameCount/frameSeconds, current=renderer.getPixelRatio();
       fastWindows=fps>54?fastWindows+1:0;
       let next=current;
-      if(fps<28)next=Math.max(Math.min(devicePixelRatio,pixelRatioLimit,1.5),current-.12);
+      if(fps<(touchFirst?30:28))next=Math.max(Math.min(devicePixelRatio,pixelRatioLimit,touchFirst?1:1.5),current-.12);
       else if(fastWindows>=4){next=Math.min(devicePixelRatio,pixelRatioLimit,current+.12);fastWindows=0;}
       if(Math.abs(next-current)>.01)renderer.setPixelRatio(next);
       frameSeconds=0;frameCount=0;

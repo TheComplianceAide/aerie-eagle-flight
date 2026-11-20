@@ -105,6 +105,7 @@ window.addHardwoods=function addHardwoods(T,scene,trees,options){
       ${leafColor}
       color*=mix(vec3(.56,.64,.72),vec3(.93,.96,.92),keyLight)*(.90+.15*phase);
       ${finish}`});
+  mat.userData.canopyRoot="root";
   const quad=new T.PlaneGeometry(1,1),cells=new Map(),stands=new Map(),point=new T.Vector3();
   function insert(map,size,t){
     const key=Math.floor(t.x/size)+':'+Math.floor(t.z/size);let batch=map.get(key);
@@ -149,6 +150,7 @@ window.addHardwoods=function addHardwoods(T,scene,trees,options){
   trunk.setIndex(new T.BufferAttribute(new Uint16Array(bytes(scan.i)),1));trunk.computeVertexNormals();
   const bark=texture('shore-bark.webp');bark.colorSpace=T.SRGBColorSpace;bark.wrapS=bark.wrapT=T.RepeatWrapping;
   const stems=new T.InstancedMesh(trunk,new T.MeshStandardMaterial({map:bark,roughness:.96,color:0xaaa495}),1800);
+  stems.material.userData.canopyRoot="instanceMatrix[3].xyz";
   stems.count=0;stems.frustumCulled=false;stems.instanceMatrix.setUsage(T.DynamicDrawUsage);scene.add(stems);
   const twigGeometry=new T.BufferGeometry(),p=[],n=[],u=[],idx=[];
   for(let k=0;k<scan.sprays.length;k++){
@@ -202,6 +204,7 @@ window.addHardwoods=function addHardwoods(T,scene,trees,options){
         ${leafColor}
         color*=illum;
         ${finish}`});
+  closeMat.userData.canopyRoot="instanceMatrix[3].xyz";
   const boughs=new T.InstancedMesh(twigGeometry,closeMat,stems.instanceMatrix.count);
   boughs.instanceMatrix=stems.instanceMatrix;boughs.count=0;boughs.frustumCulled=false;scene.add(boughs);
   const last=new T.Vector3(Infinity,Infinity,Infinity),frame=new T.Object3D();

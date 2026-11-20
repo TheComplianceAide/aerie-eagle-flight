@@ -17,24 +17,108 @@
     surry:           [[25,19,14,15,11,14,2], .94, .91, .09],
     moosehead:       [[16,23,8,24,15,10,4], .95, .93, .19]
   };
-  window.aerieSoil=region=>region==='canyon'?'dry':
-    ['dixville','surry','moosehead','winnipesaukee'].includes(region)?'temperate':
-    region==='milford'?'rainforest':'boreal';
-  // Continuous mirrored UVs preserve derivatives at tile boundaries on WebGL 1 and 2.
-  window.aerieFloorShader=`
-    vec4 soilSample(sampler2D field,vec2 p,float woodland){
-      vec2 phase=abs(mod(p,2.)-1.);
-      return texture2D(field,vec2(.004+.992*phase.x,(1.-woodland+.004+.992*phase.y)*.5));
+  // Indices in field-ground-scans.webp. Each regional assemblage specifies an
+  // opening, canopy litter, stream margin, exposed substrate and aerial outcrop.
+  const soils={
+    alaska:        [0,1,7,4,8],     swiss:       [6,1,7,5,8],
+    canyon:        [10,11,3,13,9],  yosemite:    [6,1,3,5,9],
+    crater:        [10,1,7,5,9],    lofoten:     [0,6,7,4,8],
+    milford:       [0,14,7,12,8],   dixville:    [6,2,3,4,8],
+    labrador:      [6,1,7,4,8],     winnipesaukee:[0,15,3,5,8],
+    surry:         [0,2,3,5,8],     moosehead:   [0,1,7,4,8]
+  };
+  window.aerieFieldShader=function(region){
+    const [opening,litter,bank,stone,aerial]=soils[region];
+    const humidity={alaska:.91,swiss:.74,canyon:.05,yosemite:.27,crater:.24,lofoten:.80,milford:.98,dixville:.49,labrador:.86,winnipesaukee:.49,surry:.53,moosehead:.87}[region];
+    return `
+    float fieldGrain(vec2 grid){
+      vec2 cell=floor(grid),f=fract(grid);f=f*f*(3.-2.*f);
+      vec4 s=vec4(dot(cell,vec2(.1031,.11369)))+vec4(0.,.1031,.11369,.21679);
+      s=fract(s)*vec4(39.43,39.43,39.43,39.43);s=fract(s*(s+19.19));
+      return mix(mix(s.x,s.y,f.x),mix(s.z,s.w,f.x),f.y);
     }
-    vec3 floorColor(sampler2D field,vec2 xz,float woodland){
-      vec2 p=xz*.34;
-      float soilBlend=smoothstep(-.57,.57,sin(p.x*.27+.4*sin(p.y*.43))+cos(p.y*.33));
-      vec2 spun=mat2(.84,-.54,.54,.84)*p+vec2(.37,.68);
-      vec4 openFloor=soilSample(field,p,0.);
-      vec4 forestFloor=soilSample(field,spun,1.);
-      vec4 f=mix(openFloor,forestFloor,smoothstep(.14,.89,woodland+.25*(soilBlend-.5)));
-      return f.rgb*(.83+.35*f.a);
+    vec4 soilCapture(sampler2D gallery,vec2 uv,float tile){
+      // Fold continuous world coordinates into an inset tile. Mirrored gutters
+      // preserve derivatives and keep neighbouring materials out of lower mips.
+      vec2 phase=abs(mod(uv,2.)-1.);
+      vec2 cell=vec2(mod(tile,4.),floor(tile*.25));
+      return texture2D(gallery,(cell+.015625+phase*.96875)*.25);
+    }
+    void fieldCoordinates(vec2 xz,out vec2 a,out vec2 b,out float weight){
+      float selector=4.*fieldGrain(xz*.13+vec2(.18,4.1))+1.6*fieldGrain(xz*.091);
+      float sector=floor(selector);weight=smoothstep(.19,.81,fract(selector));
+      float angle=2.39996*sector,nextAngle=angle+2.39996;
+      vec2 r=vec2(cos(angle),sin(angle)),r1=vec2(cos(nextAngle),sin(nextAngle));
+      a=mat2(r.x,r.y,-r.y,r.x)*xz+sector*vec2(3.11,-1.27);
+      b=mat2(r1.x,r1.y,-r1.y,r1.x)*xz+(sector+1.)*vec2(3.11,-1.27);
+    }
+    vec4 fieldBlend(sampler2D gallery,vec2 a,vec2 b,float weight,float tile){
+      if(weight<.001)return soilCapture(gallery,a,tile);
+      if(weight>.999)return soilCapture(gallery,b,tile);
+      vec4 first=soilCapture(gallery,a,tile);
+      vec4 second=soilCapture(gallery,b,tile);
+      return mix(first,second,smoothstep(.0001,.9999,weight+(second.a-first.a)*.26*sin(3.14159*weight)));
+    }
+    vec3 regionalSoil(sampler2D gallery,vec3 at,vec3 normal,vec3 ortho,vec3 sun,
+                      float range,float canopy,float wet,float eligibility){
+      float coverage=clamp(eligibility,0.,1.)*(1.-smoothstep(800.,2500.,range));
+      if(coverage<.008)return ortho;
+      vec2 xz=at.xz;
+      float stand=fieldGrain(xz*.013+vec2(4.8,8.2));
+      float patchiness=fieldGrain(xz*.091);
+      float woody=clamp(canopy*1.16+.28*(stand-.5),0.,1.);
+      float shade=1.-smoothstep(-.2,.6,dot(normal,sun));
+      float runoff=clamp(wet*(.39+.60*stand)+${humidity.toFixed(2)}*(.12+.88*woody)*(.12+.7*stand+.26*shade),0.,1.);
+      // The 15–20 m aerial scans resolve real patches of turf, bare rock and
+      // till from flight height. Unrelated orientations keep outcrop patterns
+      // from lining up in rows under a grazing view.
+      mat2 turn=mat2(.857,.515,-.515,.857);
+      float metres=${aerial===8?'15.':'20.'};
+      vec2 surveyUV=turn*xz/metres;
+      vec4 meso=mix(soilCapture(gallery,surveyUV+vec2(.12,.39),${aerial}.),
+                    soilCapture(gallery,turn*turn*surveyUV*.81+vec2(.65,.13),${aerial}.),smoothstep(.17,.80,stand));
+      float aerialY=dot(meso.rgb,vec3(.27,.57,.16));
+      float reliefPatch=clamp((meso.a-.50)*1.4+(aerialY-.34)*.85,-.69,.69);
+      float exposure=smoothstep(.11,.57,1.-normal.y+.40*(stand-.32)+.35*reliefPatch-.15*woody);
+      vec3 slopeColor=ortho*(1.+reliefPatch*(.36+.36*exposure)+.25*(stand-.5));
+      vec3 result=mix(ortho,slopeColor,coverage);
+      float fine=coverage*(1.-smoothstep(32.,410.,range));
+      if(fine<.006)return result;
+      // Vary the origin *and* orientation across natural patches. Adjacent
+      // orientation pairs share one sample, so crossing a patch is continuous.
+      vec2 phaseA,phaseB;float phase;
+      fieldCoordinates(xz,phaseA,phaseB,phase);
+      vec4 exposed=fieldBlend(gallery,turn*phaseA*.46,turn*phaseB*.46,phase,${stone}.);
+      vec4 sward=fieldBlend(gallery,phaseA*.44,phaseB*.44,phase,${opening}.);
+      vec4 litter=fieldBlend(gallery,turn*phaseA*.54,turn*phaseB*.54,phase,${litter}.);
+      vec4 bank=fieldBlend(gallery,phaseA*.78+.39,phaseB*.78+.39,phase,${bank}.);
+      vec4 cover=mix(sward,litter,smoothstep(.24,.77,woody+.25*(patchiness-.5)+.27*(litter.a-sward.a)));
+      cover=mix(cover,bank,smoothstep(.24,.73,runoff+.34*(patchiness-.5)+.34*(bank.a-cover.a)));
+      cover=mix(cover,exposed,smoothstep(.18,.83,exposure+.37*(exposed.a-cover.a)+.18*(patchiness-.5)));
+      float groundY=dot(ortho,vec3(.27,.57,.16));
+      // A nadir photograph sees crown tops. Below the canopy, resolve the
+      // actual litter color, while openings inherit some local seasonal hue.
+      vec3 natural=mix(cover.rgb,(cover.rgb+.035)*(ortho+.08)/(groundY+.135),.26*(1.-woody));
+      natural*=clamp(.71+.82*groundY,.70,1.26)*(.75+.47*cover.a);
+      natural*=clamp(1.+reliefPatch*.51+.27*(patchiness-.5),.60,1.40);
+      // Keep the longer, irregular shape of the local mapped glade or ledge
+      // rather than losing that illumination entirely underneath close detail.
+      natural=mix(natural,natural*clamp((result+.09)/(groundY+.09),vec3(.65),vec3(1.53)),.40);
+      // Reconstruct surface slope from the scan's measured height. Derive in
+      // world space to keep the light direction fixed while the camera banks.
+      vec3 dx=dFdx(at),dy=dFdy(at);
+      vec3 u=cross(dy,normal),v=cross(normal,dx);
+      float area=dot(dx,u);
+      vec3 gradient=(dFdx(cover.a)*u+dFdy(cover.a)*v)*sign(area)/max(abs(area),.00001);
+      vec3 relieved=normalize(normal-gradient*(.039+.037*exposure));
+      float relief=dot(relieved,sun)-dot(normal,sun);
+      natural*=clamp(1.+relief*.84,.72,1.29);
+      // Wet soil retains a little sky at grazing angles. Moving water and wave
+      // wash have their own material, applied after this pass.
+      natural*=mix(vec3(1.),vec3(.79,.85,.84),runoff);
+      return mix(result,natural,fine*(.81+.14*woody));
     }`;
+  };
   const baseHeights=[.40,.64,.18,.78,.96,.74,1.06];
   const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
   window.aerieWind=(x,z,t)=>.5+.5*Math.sin(.69*t+.033*x+.018*z);
@@ -58,9 +142,10 @@
     const photo=half?readMap(loader,'cover-'+region+'.png'):null;
     const downtown=region==='surry'?readMap(loader,'cover-keene-streets.png'):null;
     const survey=world.elevation||world.height;
-    function suitability(x,z){
+    const regional=window.aerieCanopyProfile(world);
+    function observed(x,z){
       let cover=world.groundCover(x,z);
-      if(cover<0)return 0;
+      if(cover<0)return -1;
       if(photo){
         const local=downtown&&x>1640&&x<2280&&z>4210&&z<4930;
         const green=local?downtown((x-1640)/640,(z-4210)/720):photo(.5+x/(2*half),.5+z/(2*half));
@@ -68,6 +153,12 @@
         cover=Math.max(cover*.73,green*.86);
       }
       return cover;
+    }
+    function suitability(x,z){
+      const cover=observed(x,z),land=regional.landAt(x,z);
+      if(cover<0||land===4||land===5||land===7||land===8)return 0;
+      if(land===6)return region==='canyon'?cover*.26:cover*.12;
+      return Math.max(cover,land===1?.45:land===9?.82:land===2||land===3||land===11?.55:0);
     }
     world.vegetationAt=suitability;
     const group=new T.Group();group.name='Scanned ground vegetation';scene.add(group);
@@ -145,6 +236,8 @@
       for(const name of ['planting','trait'])geometry.setAttribute(name,new T.InstancedBufferAttribute(new Float32Array(4*capacity),4).setUsage(T.DynamicDrawUsage));
       geometry.instanceCount=0;const mesh=new T.Mesh(geometry,mat);mesh.frustumCulled=false;group.add(mesh);return geometry;
     }
+    const growth=window.makeRegionalGrowth(T,world,wind,clock,loader,batch,coarse);
+    const updateSparseForest=window.makeRegionalForest(T,scene,world,loader);
     const fine=records.map(r=>{
       if(!r.p)return null;
       const g=new T.BufferGeometry();
@@ -289,18 +382,31 @@
         }
       }
       for(let i=0;i<10;i++){
-        const cx=(ix+rand())*size,cz=(iz+rand())*size,c=suitability(cx,cz);
-        if(c<.07||rand()>c*density)continue;
+        const cx=(ix+rand())*size,cz=(iz+rand())*size;
+        const community=regional.zone(cx,cz,observed(cx,cz));
+        if(community.cover<.07||rand()>community.cover*density)continue;
         let kind=0,draw=rand()*100;while(kind<6&&draw>=weights[kind])draw-=weights[kind++];
-        const count=kind<3?4+Math.floor(rand()*6):1+Math.floor(rand()*3);
+        // Wind-clipped alpine openings carry blades and cushions. Shaded moist
+        // stands carry ferns or low woody growth. Marsh ground favours sedges.
+        if(community.alpine>.55)kind=rand()<.69?2:0;
+        else if(community.wet>.55&&rand()<.67)kind=1;
+        else if(community.land===1&&community.shelter>.50&&kind===0)kind=3;
+        const special=rand()<(region==='milford'?.38:region==='canyon'?.46:.26)?growth.choose(community,rand()):null;
+        const clustered=special?.index>=0;
+        const count=clustered?(region==='milford'?1:1+Math.floor(rand()*2)):kind<3?4+Math.floor(rand()*6):1+Math.floor(rand()*3);
         for(let j=0;j<count;j++){
           const x=cx+(rand()-.5)*4.8,z=cz+(rand()-.5)*4.8;
           if(bounds&&(x<bounds.minX||x>bounds.maxX||z<bounds.minZ||z>bounds.maxZ))continue;
           const suitable=suitability(x,z);
-          if(suitable<.055||habitat.wet(x,z,survey(x,z)))continue;
+          const land=regional.landAt(x,z);
+          const alpineHerb=community.alpine>.55&&(land===2||land===3||land===11)&&!world.blockVegetationAt?.(x,z);
+          if((suitable<.055&&!alpineHerb)||habitat.wet(x,z,survey(x,z)))continue;
           const y=habitat.surface(x,z),slope=Math.hypot(habitat.surface(x+1,z)-y,habitat.surface(x,z+1)-y);
           if(slope>(kind===3?1.27:1.05)||!Number.isFinite(y))continue;
-          result.push([x,y-.025,z,baseHeights[kind]*scale*(.57+rand()*.93),rand()*6.283,rand(),kind,records[kind].span]);
+          if(clustered){
+            const h=special.height*(.62+.81*rand())*(1-.22*community.rock);
+            result.push([x,y-.025,z,h,rand()*6.283,rand(),8+special.index,1]);
+          }else result.push([x,y-.025,z,baseHeights[kind]*scale*(.57+rand()*.93),rand()*6.283,rand(),kind,records[kind].span]);
         }
       }
       return result;
@@ -311,9 +417,10 @@
       g.attributes.trait.setXYZW(i,p[4],p[5],p[6],full?-p[7]:p[7]);g.instanceCount++;return true;
     }
     const last=new T.Vector3(Infinity,Infinity,Infinity);
-    const batches=[rush,distantRush,far,...fine].filter(Boolean);
+    const batches=[rush,distantRush,far,...fine,...growth.geometries,growth.distant].filter(Boolean);
     return (eye,t)=>{
       wind.update(world.windField,eye,t);
+      updateSparseForest(eye);
       wildlife(eye,t);
       clock.value=t;
       if(last.distanceToSquared(eye)<16)return;
@@ -328,6 +435,12 @@
         for(const p of patch(mx+u,mz+v)){
           const d=(eye.x-p[0])**2+(eye.y-p[1])**2+(eye.z-p[2])**2;
           if(d>reach*reach)continue;
+          if(p[6]>=8){
+            const canPlace=d<(growth.near+6)**2;
+            const overflow=canPlace&&!put(growth.geometries[p[6]-8],p);
+            if(d<growth.far**2&&(overflow||d>(growth.near-6)**2))put(growth.distant,p,overflow);
+            continue;
+          }
           if(p[6]===7){
             if(d<(coarse?47:67)**2)put(distantRush&&d>(coarse?15:23)**2?distantRush:rush,p);
             continue;

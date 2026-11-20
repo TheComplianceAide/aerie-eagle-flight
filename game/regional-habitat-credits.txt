@@ -1,0 +1,56 @@
+Aerie — regional plant communities
+
+Land-cover maps
+
+© ESA WorldCover project 2021 / Contains modified Copernicus Sentinel data (2021) processed by ESA WorldCover consortium. ESA WorldCover 2021 v200, Zanaga et al. (2022), CC BY 4.0.
+https://doi.org/10.5281/zenodo.7254221
+https://esa-worldcover.org/en/data-access
+https://github.com/ESA-WorldCover/esa-worldcover-datasets
+https://creativecommons.org/licenses/by/4.0/
+
+The WorldCover maps were reprojected into each game's local survey coordinate system. The synchronous run-length encoded maps cover the entire flyable footprint at approximately 13–38 metres per sample. The Alaska map also incorporates the Mendenhall glacier footprint from the existing game survey. The code combines those mapped classes with existing photographic vegetation masks, surface slope, local water, building and dam exclusions, and the transition to alpine ground. Site-specific orthophotos, land-cover measurements, canopy surveys, native terrain and ice source credits are in credits.txt, atlas-credits.txt, dixville-credits.txt and labrador-credits.txt.
+
+Individual species and plant placements added between crown records are ecological reconstructions. A mapped forest pixel supports the presence of forest at that scale. Neither the map nor the modeled species assignment identifies a particular tree. Geographic inputs have different acquisition dates and resolutions. Previously derived LiDAR crowns keep their recorded locations and dimensions. In original-free regions, regional-crowns.webp uses four camera elevations/azimuths for eight crown forms captured from the same five photographed three-dimensional canopy specimens. Their source material credits are in canopy-data/credits.txt. Distant captures and close models occupy the same deterministic coordinates. The Table Rock survey additionally retains measurements of crown cross-section.
+
+Photographic botanical materials
+
+The native ground-growth geometry uses isolated lamina, blade, bark and frond materials from the following Poly Haven captures, CC0. Their cropped colour and alpha were packed into regional-growth.webp. Curved mesh shoots, individual jointed stems, leaf arrangement and tree-fern caudices are modeled for the game. regional-growth-stands.webp contains four rendered viewpoints for each of the eight modeled forms. The photographic donors supply surface detail. Local species assignments are inferred.
+https://polyhaven.com/a/fern_02
+https://polyhaven.com/a/shrub_03
+https://polyhaven.com/a/grass_medium_02
+https://polyhaven.com/a/bark_brown_02
+https://polyhaven.com/license
+
+Ecological references
+
+Mendenhall Glacier, Alaska. USDA Forest Service, Arland S. Harris and Wilbur A. Farr, The Forest Ecosystem of Southeast Alaska 7, Forest Ecology and Timber Management. The early alder, willow and cottonwood community after glacial retreat develops into spruce and hemlock forest on older ground. Aerie places alder, cottonwood, Sitka spruce and western hemlock within applicable mapped vegetation.
+https://research.fs.usda.gov/download/treesearch/25367.pdf
+
+Oeschinensee, Switzerland. Canton of Bern, Regionaler Waldplan Amt Frutigen und Gemeinden Därligen und Leissigen, including Oeschinensee forest sites and stone-pine, open spruce and pine components. The Bernese regional landscape plan documents larch and Swiss stone pine south of the lake. Above forest, low plants use the mapped alpine grass, shrub and moss classes.
+https://www.weu.be.ch/content/dam/weu/dokumente/awn/de/rwp-1/21_Amt-Frutigen-Gemeinden-Daerligen-Leissigen.pdf
+https://brossa.ch/wp-content/uploads/03_Richtplan-Landschaft-Teil-B_G4.pdf
+
+Horseshoe Bend, Arizona. Glen Canyon National Recreation Area's Final Off-Road Vehicle Management Plan / Environmental Impact Statement describes the Colorado Plateau's shallow rocky soils and blackbrush, sand sagebrush and Mormon-tea shrub communities. The regional understory has jointed desert shoots and pale, wind-bent grass in vegetated openings.
+https://parkplanning.nps.gov/showFile.cfm?projectID=19520&sfid=265929
+
+Yosemite and Crater Lake, United States. The National Park Service's vegetation-zone and tree descriptions guide the Yosemite ponderosa pine, incense cedar, white fir and California black oak community, and the hemlock, red fir, and high whitebark pine community around Crater Lake.
+https://www.nps.gov/yose/learn/nature/plants.htm
+https://www.nps.gov/crla/learn/nature/trees.htm
+
+Moosehead Lake, Maine. Maine Bureau of Parks and Lands, Moosehead Region Management Plan, and Maine Natural Areas Program, Spruce–Northern Hardwoods Forest. These describe mixed hardwoods lower down, the higher spruce and fir zone, and cedar, maple and alder associations on wet ground.
+https://www.maine.gov/dacf/parks/get_involved/planning_and_acquisition/management_plans/docs/MooseheadMgmtPlan-FINAL-part1_reduced.pdf
+https://www.maine.gov/dacf/mnap/features/communities/sprucenorthernhardwood.htm
+
+Lake Winnipesaukee, Surry and Keene, and Dixville Notch, New Hampshire. NH Fish and Game's State Wildlife Action Plan habitat accounts document hemlock–hardwood–pine, northern hardwood–conifer, and high-elevation spruce–fir habitats. Surry's municipal Natural Resources Inventory describes the local transitional hemlock–hardwood–pine community. The three worlds vary in composition, wetness and the transition to balsam fir and red spruce.
+https://www.wildlife.nh.gov/sites/g/files/ehbemt746/files/inline-documents/sonh/appendixb-habitats.pdf
+https://surry.nh.gov/wp-content/uploads/2026/06/Surry-NRI_final-report_MoosewoodEcological_5-2-2026.pdf
+
+Lac Berté, Québec. Ministère des Ressources naturelles et des Forêts, Côte-Nord integrated tactical forest management plan 2023–2028. Black spruce–moss and balsam fir–paper birch forest domains inform the game’s spruce, fir, birch and low bog vegetation.
+https://cdn-contenu.quebec.ca/cdn-contenu/forets/documents/planification/Cote-Nord/plans/DS_AnalyseEnjeux_PAFIT_R09_MRNF.pdf
+
+Reinefjorden, Lofoten, Norway. Lofotodden National Park's vegetation guide and the official management plan describe moorland, coastal meadow and mountain plant communities. Woody growth is confined to mapped copses or low scrub. Exposed areas carry tussocks and heath.
+https://www.lofotoddennp.com/en/vegetation-and-wildlife/
+https://fpnv.naturbase.no/Plan/View?naturvernId=VV00003401
+
+Piopiotahi / Milford Sound, New Zealand. Department of Conservation, Fiordland Day Walks. Silver beech and associated native forest, including rimu, understory tree ferns and the transition to alpine plants, guide the modeled rainforest.
+https://www.doc.govt.nz/globalassets/documents/parks-and-recreation/tracks-and-walks/fiordland/fiordland-day-walks.pdf

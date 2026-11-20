@@ -1,0 +1,9 @@
+The representative conifer trunks and branch structures derive from fir_sapling_medium, the photographed branch sprays from fir_tree_01, and the representative broadleaf from tree_small_02. All source meshes and materials are CC0 from Poly Haven.
+https://polyhaven.com/a/fir_sapling_medium
+https://polyhaven.com/a/fir_tree_01
+https://polyhaven.com/a/tree_small_02
+
+The twelve Table Rock, New Hampshire cells store the heights, positions and five-level, eight-direction crown fits inferred from USGS/FEMA 2015–16 airborne multi-return lidar. The overhead colour samples derive from New Hampshire GRANIT six-inch orthophotography (2021–22). Individual branches, leaves and tree species are representative.
+https://www.fisheries.noaa.gov/inport/item/71770
+https://s3-us-west-2.amazonaws.com/usgs-lidar-public/USGS_LPC_CT_River_Lot6_Winnipesaulee_2015_LAS_2017/ept.json
+https://nhgeodata.unh.edu/image/rest/services/ImageServices/NH_2021_2022_6in_RGB/ImageServer

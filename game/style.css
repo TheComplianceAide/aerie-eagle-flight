@@ -141,5 +141,15 @@ main:not([data-mode=flight]) #gameVision,main.clearView #gameVision,main:has(.mo
 .gamePin{position:absolute;left:0;top:0}
 .gamePin i{position:absolute;left:-5px;top:-5px;width:10px;height:10px;border:1.5px solid #ffe8a7;border-radius:50%;box-shadow:0 0 0 1px #222d23a0}
 .gamePin span{position:absolute;left:6px;bottom:7px;background:#10211ddd;color:#fff3d3;font-size:11px;font-weight:600;white-space:nowrap;padding:2px 5px;border-radius:3px}
-@media(max-width:790px){#visionToggle span{display:none}#visionToggle{padding:0;width:43px}.gameReadout{top:75px;max-width:48vw;padding:7px 9px}.gameReadout li{font-size:11px;gap:7px}}
+@media(max-width:790px){#visionToggle{padding:0 10px;white-space:nowrap}.gameReadout{top:75px;max-width:48vw;padding:7px 9px}.gameReadout li{font-size:11px;gap:7px}}
 @media(max-width:405px){main[data-mode=flight] nav{gap:3px}main[data-mode=flight] .brand{width:44px}main[data-mode=flight] nav .icon{width:36px;min-width:36px}}
+
+@media(max-width:600px){
+  main[data-mode=flight] nav #visionToggle{
+    position:absolute;right:0;top:calc(100% + 8px);
+    width:auto;min-height:44px;padding:0 12px;gap:7px;
+    background:#172722e8;border-color:#f5e5bb9c;
+  }
+  main[data-mode=flight] nav #visionToggle[aria-pressed=true]{background:#efe0b9;color:#192720}
+  .gameReadout{max-width:calc(100% - 142px)}
+}

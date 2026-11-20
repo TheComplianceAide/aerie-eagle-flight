@@ -1,6 +1,6 @@
 // A destination's elevation surveys and textures are opened when the player takes flight.
 (() => {
-  const base = ['eagle.js','terrain-bounce.js','flight-light.js','terrain-acoustics.js','field-audio.js','perch-flight.js','perch-habitat.js','plant-models.js','understory.js','wildlife-models.js','fauna-shapes.js','land-models.js','land-wildlife.js','fish-schools.js','wildlife.js','game-vision.js','scenic-flights.js','range-relief.js','water-surface.js','wind-field.js','wind-water.js','wind-soarer.js','moving-weather.js','sky-optics.js','valley-mist.js'];
+  const base = ['eagle.js','terrain-bounce.js','flight-light.js','terrain-acoustics.js','field-audio.js','perch-flight.js','perch-habitat.js','plant-models.js','regional-habitat.js','regional-growth.js','regional-forest.js','canopy-stream.js','understory.js','wildlife-models.js','fauna-shapes.js','land-models.js','land-wildlife.js','fish-schools.js','wildlife.js','game-vision.js','scenic-flights.js','range-relief.js','water-surface.js','wind-field.js','wind-water.js','wind-soarer.js','moving-weather.js','sky-optics.js','valley-mist.js'];
   const trees = ['fir-data.js','forest.js'];
   const scripts = {
     alaska: ['waterfall-system.js','alaska-survey.js','alaska-world.js','talus-data.js','habitat.js',...trees],
@@ -15,7 +15,7 @@
         tag.onload=resolve;
         tag.onerror=()=>reject(new Error('Unable to open '+name));
         const url=window.aerieAssetURL?.(name)||name;
-        tag.src=url===name&&location.protocol!=='file:'?url+'?v=0.15.0':url;
+        tag.src=url===name&&location.protocol!=='file:'?url+'?v=0.16.0':url;
         document.head.appendChild(tag);
       });
       loaded.set(name,request.catch(error=>{loaded.delete(name);throw error;}));
@@ -37,7 +37,7 @@
       surry:['regional-waterfalls.js','falls-terrain-surry.js','waterfall-system.js','architecture.js','keene-weather.js','surry-dam.js','keene-city-data.js','keene-frontages.js','keene-streetscape.js','keene-city.js','keene-light.js']
     }[region]||[];
     const streams=region==='yosemite'?['river-'+region+'.js']:[];
-    await Promise.all([...streams,...base,...files,...surveyDetail].map(open));
+    await Promise.all([...streams,...base,'habitat-data/'+region+'.js',...files,...surveyDetail].map(open));
     await window.prepareRangeRelief(region);
   };
 })();

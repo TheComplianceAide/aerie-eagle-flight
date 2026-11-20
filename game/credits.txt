@@ -744,3 +744,9 @@ The regional sky effects and their physical reference sources are described in a
 
 REGIONAL WATERFALL SURVEYS
 See regional-waterfalls-credits.txt for the mapped cascades, sources, terrain resolution and land-manager references.
+
+REGIONAL GROUND PHOTOGRAPHY
+See field-ground-credits.txt for the individual scan photographers and the Table Rock lidar/ortho survey.
+
+REGIONAL VEGETATION
+See regional-habitat-credits.txt for land-cover data and species references, and canopy-data/credits.txt for specimen photography and measured crowns.

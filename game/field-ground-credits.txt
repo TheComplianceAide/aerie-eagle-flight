@@ -1,0 +1,27 @@
+REGIONAL GROUND PHOTOGRAPHY
+The field-ground-scans atlas combines diffuse color, ambient occlusion and measured displacement from these CC0 photogrammetry assets. They are material analogues for the simulated habitats. The geographic pattern and terrain color come from each region’s mapped terrain, aerial photograph and canopy survey.
+
+Leafy Grass — Charlotte Baglioni — https://polyhaven.com/a/leafy_grass
+Ground076 — Lennart Demes, ambientCG, CC0 — https://ambientcg.com/a/Ground076
+Leaves Forest Ground — Dario Barresi, Dimitrios Savva — https://polyhaven.com/a/leaves_forest_ground
+Brown Mud Rocks 01 — Rob Tuytel — https://polyhaven.com/a/brown_mud_rocks_01
+Lichen Rock — Rico Cilliers — https://polyhaven.com/a/lichen_rock
+Ground019 — Lennart Demes, ambientCG, CC0 — https://ambientcg.com/a/Ground019
+Grass Ground — Charlotte Baglioni — https://polyhaven.com/a/grass_ground
+Moss001 — Lennart Demes, ambientCG, CC0 — https://ambientcg.com/a/Moss001
+Aerial Grass Rock — Rob Tuytel — https://polyhaven.com/a/aerial_grass_rock
+Aerial Ground Rock — Rob Tuytel — https://polyhaven.com/a/aerial_ground_rock
+Dry Ground Rocks — Rob Tuytel — https://polyhaven.com/a/dry_ground_rocks
+Cracked Red Ground — Amal Kumar — https://polyhaven.com/a/cracked_red_ground
+Ground068 — Lennart Demes, ambientCG, CC0 — https://ambientcg.com/a/Ground068
+Dry Riverbed Rock — Amal Kumar — https://polyhaven.com/a/dry_riverbed_rock
+Moss002 — Lennart Demes, ambientCG, CC0 — https://ambientcg.com/a/Moss002
+Forest Floor — eye-candy.xyz — https://polyhaven.com/a/forest_floor
+
+Table Rock, Dixville Notch. USGS/FEMA 2015–2016 airborne lidar ground returns, sampled at 0.5 m in UTM zone 19N, twelve 128 m footprints. Overhead color is NH GRANIT six-inch 2021/2022 orthophotography resampled to 0.2 m. The local ground is blended into the existing survey over eight metres at the outside boundary.
+https://www.fisheries.noaa.gov/inport/item/71770
+https://s3-us-west-2.amazonaws.com/usgs-lidar-public/USGS_LPC_CT_River_Lot6_Winnipesaulee_2015_LAS_2017/ept.json
+https://nhgeodata.unh.edu/image/rest/services/ImageServices/NH_2021_2022_6in_RGB/ImageServer
+
+Horseshoe Bend. The damaged color block on the dry plateau was replaced with the July 14, 2023, 30 cm USDA NAIP survey (tile az_m_3611104_se_12_030_20230714_20240104). The same correction is included in the river-bank reflection field.
+https://planetarycomputer.microsoft.com/api/stac/v1/collections/naip/items/az_m_3611104_se_12_030_20230714_20240104
