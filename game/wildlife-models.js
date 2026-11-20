@@ -82,7 +82,9 @@ window.makeWildlifeModels=function(T,scene){
       gl_FragColor=vec4(color,alpha);}`;
   function batchFor(key){
     if(batches.has(key))return batches.get(key);
-    const [kind,aspect,rect,encoded]=window.faunaShapes[key],fish=kind==='fish';
+    const [kind,aspect,rect,encoded,skinFile]=window.faunaShapes[key],fish=kind==='fish';
+    const skin=skinFile?new T.TextureLoader().load(skinFile):textures[kind];
+    if(skinFile)skin.anisotropy=8;
     const depth=atob(encoded),pos=[],uv=[],anatomy=[],indices=[];
     const [left,top,width,height]=rect;
     function vertexAt(x,y,z,u,v,wing=0){
@@ -116,7 +118,7 @@ window.makeWildlifeModels=function(T,scene){
     const geometry=new T.BufferGeometry();
     for(const [name,values,n] of [['position',pos,3],['uv',uv,2],['anatomy',anatomy,3]])geometry.setAttribute(name,new T.Float32BufferAttribute(values,n));
     geometry.setIndex(indices);geometry.computeVertexNormals();
-    const material=new T.ShaderMaterial({uniforms:{atlas:{value:textures[kind]},isFish:{value:fish?1:0}},
+    const material=new T.ShaderMaterial({uniforms:{atlas:{value:skin},isFish:{value:fish?1:0}},
       vertexShader:'uniform float isFish;\n'+vertex,fragmentShader:fragment,side:T.DoubleSide,transparent:fish,depthWrite:!fish});
     const capacity=320,mesh=new T.InstancedMesh(geometry,material,capacity);
     mesh.name=key;mesh.frustumCulled=false;mesh.count=0;mesh.renderOrder=fish?5:0;

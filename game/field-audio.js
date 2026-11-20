@@ -12,6 +12,7 @@
     crater:{beds:{lake:'lapping-caldera',canopy:'leaves-montane'},birds:['nutcracker','jay','cl-bluebird','cl-junco','cl-robin','cl-raven'],animals:['american-pika']},
     lofoten:{beds:{inlet:'inlet'},birds:['kittiwake','oystercatcher','meadow-pipit','no-eider','no-gull','no-tern'],animals:['norwegian-sheep']},
     milford:{beds:{lake:'lapping-fjord',cascade:'falls-spray'},birds:['bellbird','kea','nz-shelduck','nz-fantail','nz-tomtit','nz-tui'],animals:['nz-fur-seal']},
+    labrador:{beds:{lake:'lapping-boreal',canopy:'leaves-boreal'},birds:['loon-moosehead','ne-goose','ak-raven','thrush','cl-junco'],animals:['juneau-red-squirrel']},
     winnipesaukee:{beds:{lake:'lapping-islands',canopy:'leaves-hardwood'},birds:['loon-winnipesaukee','nh-vireo','ne-goose','nh-mallard','me-black-duck','nh-heron','nh-kingfisher'],animals:['nh-bullfrog']},
     surry:{beds:{lake:'lapping-reservoir',canopy:'leaves-hardwood',river:'stream-forest'},birds:['nh-kingfisher','nh-vireo','ne-goose','nh-mallard','nh-heron','nh-wood-duck'],animals:['nh-spring-peeper']},
     moosehead:{beds:{lake:'lapping-boreal',canopy:'leaves-boreal'},birds:['loon-moosehead','me-kinglet','ne-goose','me-black-duck','nh-mallard','nh-kingfisher','me-chickadee'],animals:['maine-green-frog']}
@@ -304,7 +305,7 @@
       const breeze=windSource;breeze.connect(shelf);breeze.onended=()=>breeze.disconnect();breeze.start(0,Math.random()*airBuffer.duration);
       const token=generation;
       for(const [role,id] of Object.entries(profile.beds))load(id).then(buffer=>startBed(role,buffer,token));
-      if(region==='moosehead')load('maine-loon-reply');
+      if(profile.birds.includes('loon-moosehead'))load('maine-loon-reply');
       for(const id of [...profile.birds,...profile.animals,...playerCalls])load(id);
       previousStage=null;pending=null;quietUntil=now;
       eagleDue=now+(started?random(14,24):random(3.9,5.4));

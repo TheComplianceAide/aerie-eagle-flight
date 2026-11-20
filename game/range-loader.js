@@ -14,7 +14,8 @@
         const tag=document.createElement('script');
         tag.onload=resolve;
         tag.onerror=()=>reject(new Error('Unable to open '+name));
-        tag.src=window.aerieAssetURL?.(name)||name;
+        const url=window.aerieAssetURL?.(name)||name;
+        tag.src=url===name&&location.protocol!=='file:'?url+'?v=0.7.0':url;
         document.head.appendChild(tag);
       });
       loaded.set(name,request.catch(error=>{loaded.delete(name);throw error;}));
@@ -26,6 +27,7 @@
     const files=scripts[region]||['atlas-'+region+'-survey.js','atlas-worlds.js','hardwood.js','scanned-hardwood.js',...(lakes?['lakeside.js']:[]),...trees];
     const mist=['alaska','milford','lofoten','yosemite','napali'].includes(region)?['valley-mist.js']:[];
     const surveyDetail={
+      labrador:['labrador-camp-ground.js','labrador-cabin.js','labrador-weather.js'],
       yosemite:['atlas-yosemite-crowns.js'],bryce:['atlas-bryce-relief.js','tropic-reservoir.js'],
       winnipesaukee:['winnipesaukee-waterfront-data.js','winnipesaukee-waterfront.js'],
       surry:['surry-dam.js','keene-city-data.js','keene-frontages.js','keene-streetscape.js','keene-city.js','keene-light.js']

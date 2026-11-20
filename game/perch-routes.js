@@ -68,6 +68,22 @@
       path: [[667,194,14],[511,133,12],[396,84,10],[334,66,15]],
       perch: ['branch',279,52,'Kineo Cove shoreline limb'],
     },
+    labrador: {
+      name: 'Lac Berté cabin shore glide',
+      label: 'Pass the cabin over the water and land on a rock overlooking the shore.',
+      fromSurvey({cabin,lookout,landmarks}) {
+        const frontX=Math.sin(cabin.yaw),frontZ=Math.cos(cabin.yaw);
+        // Follow the bank toward the lookout, with the cabin in sight on the way past.
+        const side=Math.sign((lookout.x-cabin.x)*frontZ-(lookout.z-cabin.z)*frontX)||1;
+        const alongX=frontZ*side,alongZ=-frontX*side;
+        const offshore=cabin.waterDistance+16;
+        const pass=(along,out,above)=>[cabin.x+alongX*along+frontX*out,cabin.z+alongZ*along+frontZ*out,above];
+        return {sight:landmarks[0].name,
+          path:[pass(-130,offshore+44,17),pass(-52,offshore+11,13),pass(0,offshore,11),
+            [lookout.x+frontX*27,lookout.z+frontZ*27,10.5]],
+          perch:['ledge',lookout.x,lookout.z,'Lac Berté shoreline ledge']};
+      },
+    },
     winnipesaukee: {
       name: 'Alton Bay bandstand pass', sight: 'Alton Bay Water Bandstand',
       label: 'Pass the water bandstand and cross the bay to the wooded eastern bank.',
@@ -87,8 +103,9 @@
   window.PERCH_ROUTE_DESCRIPTIONS = Object.fromEntries(Object.entries(routes).map(([region, route]) => [region, route.label]));
 
   window.makePerchRoute = function makePerchRoute(THREE, world, region) {
-    const entry = routes[region];
-    if (!entry) return null;
+    const route = routes[region];
+    if (!route) return null;
+    const entry = route.fromSurvey ? {...route,...route.fromSurvey(window.ATLAS_SURVEYS[region])} : route;
     const landmark = world.landmarks.find(mark => mark.name === entry.sight);
     if (!landmark) return null;
     const [sx, sz, sightLabel] = entry.sightPoint || [landmark.x, landmark.z, landmark.name];

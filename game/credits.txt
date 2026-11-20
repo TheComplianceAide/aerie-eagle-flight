@@ -662,3 +662,6 @@ Canada Goose formation — Cornell Lab of Ornithology, https://www.allaboutbirds
 Yellow perch ecology — U.S. Fish & Wildlife Service, https://www.fws.gov/species/yellow-perch-perca-flavescens
 Convict tang ecology — Waikīkī Aquarium, https://www.waikikiaquarium.org/experience/animal-guide/fishes/surgeonfishes/convict-tang/
 Tropic Reservoir shoreline — USGS National Hydrography Dataset. https://hydro.nationalmap.gov/arcgis/rest/services/nhd/MapServer
+
+Lac Berté, Côte-Nord, Québec
+See labrador-credits.txt for the mapped terrain, imagery, atmosphere and camp reconstruction.

@@ -4,6 +4,7 @@ window.addRegionalWildlife=function(T,scene,w){
   const region=w.region,{birds,sizes,species,scenes}=window.aerieFauna,profile=scenes[region];
   const ground=w.elevation||w.height,h=w.habitat,models=window.makeWildlifeModels(T,scene);
   const reservoir=region==='bryce'?window.tropicReservoir.build(T,scene,w):null;
+  const feedingFish={moosehead:'atlantic-salmon',labrador:'brook-trout'}[region];
   const stations={alaska:[-424,-476],swiss:[-613,437],canyon:[-322,-32],yosemite:[-728,1256],
     bryce:[-8990,1898],crater:[-3209,1679],lofoten:[923,2104],milford:[2371,3244],
     napali:[-2535,272],winnipesaukee:[1210,1854],moosehead:[648,-662],surry:[-1142,-3101]};
@@ -131,7 +132,9 @@ window.addRegionalWildlife=function(T,scene,w){
   let resident,launch,lastTime=-1,nextCheck=0;
   function prepare(){
     if(resident)return;
-    const [sx,sz]=stations[region],near=findWater(sx,sz,150);
+    const fishing=window.ATLAS_SURVEYS?.[region]?.fishing;
+    const [sx,sz]=fishing?[fishing.x,fishing.z]:stations[region];
+    const near=findWater(sx,sz,150);
     if(!near)throw Error('Missing surveyed wildlife water at '+region);
     // Favour a short run of navigable water so the departure sees animals
     // before shore. Steep banks and trees are included in the approach clearance.
@@ -171,9 +174,10 @@ window.addRegionalWildlife=function(T,scene,w){
           placeGroup(site,'hawaiian-monk-seal',randomAt(site.x,site.z));sites.set(site.key,site);}
       }
     }
-    launch={x:pick.bx,y:Math.max(pick.y,(w.clearance||w.height)(pick.bx,pick.bz))+4.8,z:pick.bz,
+    let launchHeight=4.8;
+    launch={x:pick.bx,y:Math.max(pick.y,(w.clearance||w.height)(pick.bx,pick.bz))+launchHeight,z:pick.bz,
       yaw:Math.atan2(pick.bx-pick.x,pick.bz-pick.z),glance:0};
-    if(region==='moosehead'){
+    if(feedingFish){
       // Survey the whole low pass before choosing its bearing. Keep successive
       // feeding lies on the visible, right-hand side of the shoulder camera.
       let bestRun=-Infinity,course;
@@ -194,12 +198,13 @@ window.addRegionalWildlife=function(T,scene,w){
       }
       if(course){
         const {dx,dz,rightX,rightZ,bx,bz}=course;
-        launch={x:bx,y:Math.max(pick.y,(w.clearance||w.height)(bx,bz))+2.65,z:bz,yaw:Math.atan2(-dx,-dz),glance:-19};
+        launchHeight=2.65;
+        launch={x:bx,y:Math.max(pick.y,(w.clearance||w.height)(bx,bz))+launchHeight,z:bz,yaw:Math.atan2(-dx,-dz),glance:-19};
         for(const d of [15,43,76,112,148]){
           const drift=(d+29)/17.5;
           const x=pick.x+dx*d+rightX*3.1+2.4*drift,z=pick.z+dz*d+rightZ*3.1-1.25*drift;
           if(!Number.isFinite(waterAt(x,z)))continue;
-          const feeding=fish.populate({x,z,findWater},randomAt(Math.round(x),Math.round(z)),true,['atlantic-salmon']);
+          const feeding=fish.populate({x,z,findWater},randomAt(Math.round(x),Math.round(z)),true,[feedingFish]);
           for(const school of feeding){
             // These are feeding lies. Stagger independent surface visits
             // across the corridor, even when the first school contains one fish.
@@ -209,8 +214,9 @@ window.addRegionalWildlife=function(T,scene,w){
         }
       }
     }
-    w.landmarks.push({name:region==='bryce'?'Tropic Reservoir shallows':region==='moosehead'?'Wildlife shallows · Salmon rise':'Wildlife shallows',x:pick.x,z:pick.z,
-      discoveryRadius:72,approach:[launch.x,launch.z,pick.x,pick.z,region==='moosehead'?2.65:4.8,launch.glance]});
+    const shallows={bryce:'Tropic Reservoir shallows',moosehead:'Wildlife shallows · Salmon rise',labrador:'Wildlife shallows · Brook trout'}[region]||'Wildlife shallows';
+    w.landmarks.push({name:shallows,x:pick.x,z:pick.z,discoveryRadius:72,
+      approach:[launch.x,launch.z,pick.x,pick.z,launchHeight,launch.glance]});
   }
   Object.defineProperty(w.launches,'wildlife',{enumerable:true,get(){prepare();return launch;}});
   function birdPose(a,f,t,dt,player){
@@ -291,7 +297,7 @@ window.addRegionalWildlife=function(T,scene,w){
     const dt=lastTime<0?0:clamp(t-lastTime,0,.15);lastTime=t;
     if(t>=nextCheck||t===0){
       nextCheck=t+.8;
-      if(region==='moosehead'&&player.y-w.waterLevel<42)stockNearbyShore(player);
+      if(feedingFish&&player.y-w.waterLevel<42)stockNearbyShore(player);
       for(const [key,s] of sites)if(!s.curated&&Math.hypot(player.x-s.x,player.z-s.z)>530)sites.delete(key);
       const ix=Math.round(player.x/310),iz=Math.round(player.z/310),key=ix+','+iz;
       if(!sites.has(key)&&Math.hypot(player.x-resident.x,player.z-resident.z)>195&&player.y-h.surface(player.x,player.z)<230)

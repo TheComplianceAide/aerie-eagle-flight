@@ -7,6 +7,7 @@
   Object.assign(worlds,{
     winnipesaukee: {name:['Lake','Winnipesaukee'],region:'New Hampshire, USA',description:'Follow the wooded islands across the Broads, skim the boardwalk at Weirs Beach, or turn over the bandstand at Alton Bay.',launches:{lake:'Rattlesnake Island',ridge:'Island channel',weirs:'Weirs Beach',alton:'Alton Bay'}},
     surry: {name:['Surry Dam','& Keene'],region:'New Hampshire, USA',description:'Skim the dam and its wooded reservoir, then follow the Ashuelot River valley to downtown Keene.',launches:{lake:'Surry Mountain Dam',ridge:'Keene Main Street',valley:'Ashuelot Valley overlook'}},
+    labrador: {name:['Lac','Berté'],region:'Côte-Nord, Québec, Canada',description:'A sun shower crosses the narrows. Follow the rainbow over the spruce islands or skim the white cabin and log steps on the point.',launches:{rainbow:'Rainbow over the narrows',cabin:'Cabin flyby',lake:'Lake overlook',ridge:'Spruce narrows'}},
     moosehead: {name:['Moosehead','Lake'],region:'Maine, USA',description:'Bank past the cliffs of Mount Kineo, then follow the forested shoreline toward Rockwood.',launches:{lake:'Mount Kineo cliffs',ridge:'Rockwood crossing'}},
     napali: {name:['Nā Pali','Coast'],region:'Kauaʻi, Hawaiʻi',description:'Follow the folds of the volcanic cliffs from a hanging valley to the Pacific.',launches:{lake:'Kalalau sea cliffs',ridge:'Kalalau beach'}},
     yosemite: {name:['Yosemite','Valley'],region:'California, USA',description:'Bank between granite walls above the Merced River and its forested valley floor.',launches:{lake:'El Capitan overlook',ridge:'Valley floor'}},
@@ -30,6 +31,7 @@
   const mapSource=document.getElementById('mapSource');
   document.getElementById('creditsLink').href=asset('credits.txt');
   function previewName(id,start){
+    if(id==='labrador')return start==='cabin'?'labrador-cabin-view.jpg':start==='rainbow'?'labrador-rainbow-view.jpg':'labrador-lake-view.jpg';
     if(start==='wildlife')start='lake';
     if(start==='lookout')return 'perch-'+id+'-view.jpg';
     if(id==='swiss')return {lake:'valley.jpg',falls:'falls-view.jpg',forest:'forest-view.jpg',shore:'swiss-shore-view.jpg'}[start];
@@ -38,7 +40,8 @@
   function preview(id,start){
     document.getElementById('landscape').style.backgroundImage='url("'+asset(previewName(id,start))+'")';
   }
-  picker.value = Object.hasOwn(worlds, initial.get('world')) ? initial.get('world') : 'alaska';
+  const initialWorld=initial.get('world')==='lac-berte'?'labrador':initial.get('world');
+  picker.value = Object.hasOwn(worlds, initialWorld) ? initialWorld : 'alaska';
   for (const [id, w] of Object.entries(worlds)) {
     const button = document.createElement('button');
     button.type = 'button';
@@ -53,7 +56,7 @@
     list.append(button);
   }
   function remember() {
-    const params = new URLSearchParams({world:picker.value, launch:launch.value});
+    const params = new URLSearchParams({world:picker.value==='labrador'?'lac-berte':picker.value, launch:launch.value});
     try { history.replaceState(null, '', '#'+params); } catch { location.hash = params.toString(); }
     app.dataset.departure = launch.value;
     document.querySelector('.intro p').textContent=launch.value==='lookout'?window.PERCH_ROUTE_DESCRIPTIONS[picker.value]:worlds[picker.value].description;
@@ -62,10 +65,10 @@
   function show(start) {
     const w = worlds[picker.value];
     app.dataset.world = picker.value;
-    const mapCredits={moosehead:'Map © OpenStreetMap contributors',winnipesaukee:'USGS · USDA · OpenStreetMap · Microsoft',surry:'USGS · USDA · City of Keene · OpenStreetMap'};
+    const mapCredits={labrador:'Lac Berté · scenery credits',moosehead:'Map © OpenStreetMap contributors',winnipesaukee:'USGS · USDA · OpenStreetMap · Microsoft',surry:'USGS · USDA · City of Keene · OpenStreetMap'};
     mapSource.hidden=!mapCredits[picker.value];
     mapSource.textContent=mapCredits[picker.value]||'';
-    mapSource.href=asset(picker.value==='winnipesaukee'?'atlas-credits.txt':'credits.txt');
+    mapSource.href=asset(picker.value==='labrador'?'labrador-credits.txt':picker.value==='winnipesaukee'?'atlas-credits.txt':'credits.txt');
     document.querySelector('h1').innerHTML = w.name[0]+'<br><em>'+w.name[1]+'</em>';
     document.querySelector('.intro .eyebrow').innerHTML = '<i></i>'+w.region.toUpperCase();
     document.querySelector('.intro p').textContent = w.description;

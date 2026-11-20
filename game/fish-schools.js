@@ -6,6 +6,7 @@ window.makeFishSchools=function(region,waterAt,disturb){
     yosemite:['rainbow','brown-trout'],bryce:['rainbow','brown-trout'],crater:['kokanee','rainbow'],
     napali:['convict-tang','yellow-tang'],milford:['spotty','blue-cod'],lofoten:['saithe','atlantic-cod'],
     winnipesaukee:['smallmouth','atlantic-salmon','lake-trout'],surry:['yellow-perch','smallmouth'],
+    labrador:['brook-trout'],
     moosehead:['yellow-perch','atlantic-salmon','lake-trout']
   }[region];
   // Minimum/maximum group, length range, spacing in body lengths, cruise effort.
@@ -13,7 +14,7 @@ window.makeFishSchools=function(region,waterAt,disturb){
     'yellow-perch':[18,84,.14,.32,1.6,.86],'convict-tang':[9,38,.13,.24,1.85,.81],
     'yellow-tang':[1,6,.16,.22,3,.58],kokanee:[7,27,.28,.42,2,.82],saithe:[9,35,.30,.61,2,.93],
     sockeye:[3,13,.55,.77,2.5,.82],'dolly-varden':[1,5,.35,.62,3,.58],rainbow:[1,3,.28,.54,4,.74],
-    'brown-trout':[1,2,.38,.62,5,.6],'lake-trout':[1,3,.48,.83,5,.65],
+    'brown-trout':[1,2,.38,.62,5,.6],'lake-trout':[1,3,.48,.83,5,.65],'brook-trout':[1,3,.24,.47,4.6,.65],
     'atlantic-salmon':[1,4,.38,.62,4,.79],smallmouth:[1,5,.25,.46,3,.63],
     carp:[2,8,.39,.70,2,.4],'atlantic-cod':[2,8,.43,.79,2.8,.66],'blue-cod':[1,3,.28,.47,3,.56],spotty:[3,11,.16,.26,2.4,.72]
   };
@@ -74,10 +75,10 @@ window.makeFishSchools=function(region,waterAt,disturb){
       if(Number.isFinite(level)){a.x=x;a.z=z;a.level=level;}
       // A feeding rise approaches the film, rolls through the turn, then
       // sounds again. Individuals in a school reach the surface at different times.
-      const salmon=a.skin==='atlantic-salmon'||a.skin==='sockeye';
-      const period=(salmon?7.4:13)+a.seed*(salmon?.65:1.4);
+      const surfaceFeeder=a.skin==='atlantic-salmon'||a.skin==='sockeye'||a.skin==='brook-trout';
+      const period=(surfaceFeeder?7.4:13)+a.seed*(surfaceFeeder?.65:1.4);
       const cycle=(t/period+(a.risePhase??a.seed/tau))%1;
-      const rise=(!salmon&&members.length>8&&i%5!==0)?0:Math.max(0,1-Math.abs(cycle-.45)*4.5);
+      const rise=(!surfaceFeeder&&members.length>8&&i%5!==0)?0:Math.max(0,1-Math.abs(cycle-.45)*4.5);
       const lift=rise*rise*(3-2*rise)*(1-a.scare);
       const normalDepth=Math.max(a.length*.13,a.depth-.048*Math.sin(t*.83+a.seed));
       const y=a.level-(normalDepth*(1-lift)+a.length*.09*lift)-.36*a.scare;

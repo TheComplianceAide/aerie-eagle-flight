@@ -416,9 +416,9 @@ class Water extends Mesh {
   const loader=new THREE.TextureLoader();
   function texture(file,repeat=false){const tex=loader.load(file);tex.anisotropy=12;if(repeat)tex.wrapS=tex.wrapT=THREE.RepeatWrapping;return tex;}
   const lightAngles={moosehead:[-84,15.5],winnipesaukee:[-112,4.2],surry:[-52,19],napali:[-36,15],yosemite:[-43,6.5],bryce:[-48,14.5],crater:[-70,8],lofoten:[-115,4.3],milford:[-71,8]};
-  const [azimuth,altitude]=lightAngles[region].map(THREE.MathUtils.degToRad);
+  const [azimuth,altitude]=(settings.lightAngles||lightAngles[region]).map(THREE.MathUtils.degToRad);
   const sun=new THREE.Vector3(Math.cos(azimuth)*Math.cos(altitude),Math.sin(altitude),Math.sin(azimuth)*Math.cos(altitude));
-  const skyMap=texture('atlas-'+region+'-sky.webp');
+  const skyMap=texture(settings.skyMap||'atlas-'+region+'-sky.webp');
   skyMap.colorSpace=THREE.SRGBColorSpace;skyMap.wrapS=THREE.RepeatWrapping;
   skyMap.minFilter=THREE.LinearFilter;skyMap.generateMipmaps=false;
   const fog=region==='milford'?0xb2b9b9:region==='bryce'?0xcdb29c:0xb6bfc8;
@@ -612,7 +612,7 @@ class Water extends Mesh {
       .replace('float bedding=desert*(1.-veg);',`float bedding=desert*(1.-veg);
         c*=mix(vec3(1.),vec3(1.065,.977,.885),bedding);`);
   }
-  if(survey.innerCenter||region==='bryce'){
+  if((survey.innerCenter && settings.detailOrtho!==false)||region==='bryce'){
     terrain.uniforms.detailOrtho={value:texture('atlas-'+region+'-detail.webp')};
     terrain.uniforms.orthoOrigin={value:new THREE.Vector2(focusX,focusZ)};
     terrain.fragmentShader='uniform sampler2D detailOrtho;uniform vec2 orthoOrigin;\n'+terrain.fragmentShader.replace('photo=mix(photo,vec3(lum(photo))', `
@@ -703,7 +703,7 @@ class Water extends Mesh {
       g=new THREE.ShapeGeometry(outline);
     }else g=new THREE.PlaneGeometry(farH*2.4,farH*2.4);
     const waterColors={moosehead:0x25505c,winnipesaukee:0x20505e,surry:0x254b58,crater:0x0a3977,napali:0x096f77,milford:0x163d49,lofoten:0x215364};
-    water=new Water(g,{textureWidth:1024,textureHeight:512,waterNormals:texture('waternormals.jpg',true),sunDirection:sun,waterColor:waterColors[region],fog:true});
+    water=new Water(g,{textureWidth:1024,textureHeight:512,waterNormals:texture('waternormals.jpg',true),sunDirection:sun,waterColor:waterColors[region]??settings.sea,fog:true});
     Object.assign(water.material.uniforms,{
       shoreField:{value:texture('atlas-'+region+'-shore.webp')},terrainLight:{value:terrainLight},
       pebbles:{value:texture('shore-pebbles.webp',true)},basinSpan:{value:h*2},
@@ -724,6 +724,7 @@ class Water extends Mesh {
   const roofHeight=surry?window.makeKeeneCity(THREE,scene,{survey,height:elevation,sunMask:terrainLight}):
     settlement?window.addLakesideBuildings(THREE,scene,settlement,elevation,settings.water):null;
   const waterfrontHeight=waterfront?.build(elevation,settings.water);
+  const cabin=survey.cabin?window.addLabradorCabin(THREE,scene,{elevation,height:elevation,waterLevel:settings.water,lakeLevel:settings.water},survey.cabin):null;
   const lakeBounds=surry?survey.shore.reduce(([x0,x1,z0,z1],[x,z])=>
     [Math.min(x,x0),Math.max(x,x1),Math.min(z,z0),Math.max(z,z1)],[Infinity,-Infinity,Infinity,-Infinity]):null;
   function inLake(x,z){
@@ -735,11 +736,12 @@ class Water extends Mesh {
     return (y<settings.water+margin&&inLake(x,z))||Number.isFinite(dam.riverHeight(x,z));
   }
   function plant(tree,isFir){
-    if(dam?.onDam(tree.x,tree.z))return;
+    if(dam?.onDam(tree.x,tree.z)||cabin?.inClearing(tree.x,tree.z))return;
     if(Number.isFinite(roofHeight?.(tree.x,tree.z))||Number.isFinite(waterfrontHeight?.(tree.x,tree.z)))return;
     trees.push(tree);(isFir?firTrees:broadTrees).push(tree);
     const id=cell(tree.x,tree.z);if(!cells.has(id))cells.set(id,[]);cells.get(id).push(tree);
   }
+  for(const tree of cabin?.campTrees||[])plant(tree,true);
   const crownPoints=region==='yosemite'?window.yosemiteCanopy:survey.crownPoints;
   if(crownPoints){
     const records=bytes(crownPoints),view=new DataView(records.buffer);
@@ -754,7 +756,7 @@ class Water extends Mesh {
   waterfront?.createTrees(plant,elevation,settings.water);
   const conifer=settings.conifers??['yosemite','bryce','crater'].includes(region);
   const firFraction=newEngland?clamp(settings.mixedFirFraction??(region==='moosehead'?.56:.30),0,1):(conifer?1:0);
-  const treeSpacing=newEngland?clamp((settings.treeSpacing??18)*.68,10,20):(region==='milford'?16:region==='napali'?17:region==='lofoten'?24:region==='bryce'?17:21);
+  const treeSpacing=newEngland?clamp((settings.treeSpacing??18)*.68,10,20):(settings.treeSpacing??(region==='milford'?16:region==='napali'?17:region==='lofoten'?24:region==='bryce'?17:21));
   for(let z=-h;z<h && (region!=='yosemite'||!crownPoints);z+=treeSpacing)for(let x=-h;x<h;x+=treeSpacing){
     const px=x+rand()*treeSpacing,pz=z+rand()*treeSpacing,y=elevation(px,pz);
     if(survey.crownPoints&&Math.max(Math.abs(px-focusX),Math.abs(pz-focusZ))<1445)continue;
@@ -778,6 +780,7 @@ class Water extends Mesh {
     }
   }
   const sunMask=terrainLight;
+  const updateWeather=region==='labrador'?window.addBerteWeather(THREE,scene,{sun,clock,sky,water,terrain,settings,survey}):null;
   window.shadeAtlasForest(THREE,terrain,trees,sun,h);
   const updateHardwoods=broadTrees.length?window.addHardwoods(THREE,scene,broadTrees,{region,sun,sunMask,half:h,fogColor:color,clock}):null;
   const spray=texture('waternormals.jpg',true);
@@ -822,7 +825,7 @@ class Water extends Mesh {
     return ground<settings.water+.16&&inLake(x,z)?settings.water+.16:ground;
   }
   function clearance(x,z){
-    let y=Math.max(height(x,z),roofHeight?.(x,z)??-Infinity,dam?.structureHeight(x,z)??-Infinity,waterfrontHeight?.(x,z)??-Infinity);const ix=Math.floor(x/50),iz=Math.floor(z/50);
+    let y=Math.max(height(x,z),cabin?.clearance(x,z)??-Infinity,roofHeight?.(x,z)??-Infinity,dam?.structureHeight(x,z)??-Infinity,waterfrontHeight?.(x,z)??-Infinity);const ix=Math.floor(x/50),iz=Math.floor(z/50);
     for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++){
       const id=(ix+dx+500)*1024+iz+dz+500,group=cells.get(id);
       if(group)for(const t of group){const d=Math.hypot(x-t.x,z-t.z)/(t.width*.5);if(d<1)y=Math.max(y,t.y+t.height*(1-d*d*.68));}
@@ -833,15 +836,20 @@ class Water extends Mesh {
   const spawn=start(settings.launch),low=start(settings.low);
   const launches={lake:spawn,ridge:low};
   for(const [key,tuple] of Object.entries(waterfront?.launches||settings.extraLaunches||{}))launches[key]=start(tuple);
-  const landmarks=waterfront?[...survey.landmarks.filter(mark=>!waterfront.landmarks.some(local=>local.name===mark.name)),...waterfront.landmarks]:survey.landmarks;
+  let landmarks=waterfront?[...survey.landmarks.filter(mark=>!waterfront.landmarks.some(local=>local.name===mark.name)),...waterfront.landmarks]:survey.landmarks;
+  if(cabin){
+    const {cabin:porch,rainbow}=settings.extraLaunches;
+    landmarks=landmarks.map(mark=>mark.x===survey.cabin.x&&mark.z===survey.cabin.z?{...mark,approach:porch}:mark);
+    landmarks.push({name:'Rainbow overlook',x:rainbow[0],z:rainbow[1],approach:rainbow});
+  }
   function groundCover(x,z){
     const y=elevation(x,z);
-    if(y>settings.top+110||wetGround(x,z,y,.45)||dam?.onDam(x,z)||
+    if(cabin?.inClearing(x,z)||y>settings.top+110||wetGround(x,z,y,.45)||dam?.onDam(x,z)||
       Number.isFinite(roofHeight?.(x,z))||Number.isFinite(waterfrontHeight?.(x,z)))return -1;
     return growth(x,z);
   }
   return {region,height,elevation,clearance,spawn,launches,landmarks,groundCover,coverHalf:h,cityTerrainMaterial:surry?terrain:null,
     bounds:{minX:region==='bryce'?-9850:-(settings.flightHalf||h)+90,maxX:(settings.flightHalf||h)-90,minZ:-(settings.flightHalf||h)+90,maxZ:(settings.flightHalf||h)-90},waterLevel:settings.water,lakeLevel:settings.water,
-    skyTexture:skyMap,sunDirection:sun,sunMask,trees,firTrees,forestLightSpan:2*h,longForest:newEngland||region==='yosemite',useFirForest:firTrees.length>0,altitudeOffset:0,
-    update(dt,t,player){clock.value=t;updateHardwoods?.(player);if(water)water.material.uniforms.time.value=t*.65;}};
+    skyTexture:skyMap,sunDirection:sun,sunMask,trees,firTrees,forestLightSpan:2*h,longForest:newEngland||region==='yosemite'||region==='labrador',useFirForest:firTrees.length>0,altitudeOffset:0,
+    update(dt,t,player){clock.value=t;updateWeather?.(dt,t,player);updateHardwoods?.(player);if(water)water.material.uniforms.time.value=t*.65;}};
 };
