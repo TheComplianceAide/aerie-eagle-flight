@@ -43,7 +43,8 @@ window.addRegionalWildlife=function(T,scene,w){
     }
     return null;
   }
-  const fish=window.makeFishSchools(region,waterAt),sites=new Map();
+  const ripples=window.makeFishRipples(T,scene,w,waterAt);
+  const fish=window.makeFishSchools(region,waterAt,ripples.emit),sites=new Map();
   const social={
     loon:[1,2],goose:[5,15],nene:[2,5],mallard:[3,12],'black-duck':[2,8],'wood-duck':[2,6],
     merganser:[2,7],eider:[5,22],shelduck:[2,4],heron:[1,1],kingfisher:[1,1],dipper:[1,2],
@@ -107,6 +108,26 @@ window.addRegionalWildlife=function(T,scene,w){
     if(water)site.schools=fish.populate({...water,findWater},random,curated);
     sites.set(key,site);return site;
   }
+  function stockNearbyShore(player){
+    // Open-water flights cross the large bird habitat cells between their
+    // centres. Stock persistent feeding pockets on the actual nearshore shelf.
+    const spacing=94,cx=Math.round(player.x/spacing),cz=Math.round(player.z/spacing);
+    for(let i=-1;i<=1;i++)for(let j=-1;j<=1;j++){
+      const col=cx+i,row=cz+j,key='shore:'+col+','+row;
+      if(sites.has(key))continue;
+      const random=randomAt(col+137,row-251);
+      const x=(col+(random()-.5)*.46)*spacing,z=(row+(random()-.5)*.46)*spacing;
+      if(Math.hypot(x-player.x,z-player.z)>145)continue;
+      const site={key,x,z,curated:false,flocks:[],schools:[]};sites.set(key,site);
+      if(Math.hypot(x-resident.x,z-resident.z)<165||!Number.isFinite(waterAt(x,z)))continue;
+      let bank=false;
+      for(let k=0;k<8;k++){
+        const a=k*tau/8;
+        if(!Number.isFinite(waterAt(x+Math.cos(a)*94,z+Math.sin(a)*94))){bank=true;break;}
+      }
+      if(bank&&random()<.80)site.schools=fish.populate({x,z,findWater},random,false);
+    }
+  }
   let resident,launch,lastTime=-1,nextCheck=0;
   function prepare(){
     if(resident)return;
@@ -152,8 +173,44 @@ window.addRegionalWildlife=function(T,scene,w){
     }
     launch={x:pick.bx,y:Math.max(pick.y,(w.clearance||w.height)(pick.bx,pick.bz))+4.8,z:pick.bz,
       yaw:Math.atan2(pick.bx-pick.x,pick.bz-pick.z),glance:0};
-    w.landmarks.push({name:region==='bryce'?'Tropic Reservoir shallows':'Wildlife shallows',x:pick.x,z:pick.z,
-      discoveryRadius:72,approach:[launch.x,launch.z,pick.x,pick.z,4.8]});
+    if(region==='moosehead'){
+      // Survey the whole low pass before choosing its bearing. Keep successive
+      // feeding lies on the visible, right-hand side of the shoulder camera.
+      let bestRun=-Infinity,course;
+      for(let i=0;i<32;i++){
+        const a=i*tau/32,dx=Math.cos(a),dz=Math.sin(a),rightX=-dz,rightZ=dx;
+        const bx=pick.x-dx*29,bz=pick.z-dz*29;
+        if(!Number.isFinite(waterAt(bx,bz)))continue;
+        let score=0;
+        for(let d=-29;d<=158;d+=7){
+          const seconds=(d+29)/17.5;
+          const x=pick.x+dx*d+2.4*seconds,z=pick.z+dz*d-1.25*seconds;
+          if([0,5,-3].every(off=>Number.isFinite(waterAt(x+rightX*off,z+rightZ*off))))score++;
+          else break;
+        }
+        // Avoid looking into the brightest stripe of reflected sky.
+        score-=.45*Math.max(0,dx*w.sunDirection.x+dz*w.sunDirection.z);
+        if(score>bestRun){bestRun=score;course={dx,dz,rightX,rightZ,bx,bz};}
+      }
+      if(course){
+        const {dx,dz,rightX,rightZ,bx,bz}=course;
+        launch={x:bx,y:Math.max(pick.y,(w.clearance||w.height)(bx,bz))+2.65,z:bz,yaw:Math.atan2(-dx,-dz),glance:-19};
+        for(const d of [15,43,76,112,148]){
+          const drift=(d+29)/17.5;
+          const x=pick.x+dx*d+rightX*3.1+2.4*drift,z=pick.z+dz*d+rightZ*3.1-1.25*drift;
+          if(!Number.isFinite(waterAt(x,z)))continue;
+          const feeding=fish.populate({x,z,findWater},randomAt(Math.round(x),Math.round(z)),true,['atlantic-salmon']);
+          for(const school of feeding){
+            // These are feeding lies. Stagger independent surface visits
+            // across the corridor, even when the first school contains one fish.
+            school.members.forEach((a,i)=>{a.risePhase=(.48-drift/(7.4+a.seed*.65)+i*.31+1)%1;});
+          }
+          resident.schools.push(...feeding);
+        }
+      }
+    }
+    w.landmarks.push({name:region==='bryce'?'Tropic Reservoir shallows':region==='moosehead'?'Wildlife shallows · Salmon rise':'Wildlife shallows',x:pick.x,z:pick.z,
+      discoveryRadius:72,approach:[launch.x,launch.z,pick.x,pick.z,region==='moosehead'?2.65:4.8,launch.glance]});
   }
   Object.defineProperty(w.launches,'wildlife',{enumerable:true,get(){prepare();return launch;}});
   function birdPose(a,f,t,dt,player){
@@ -234,6 +291,7 @@ window.addRegionalWildlife=function(T,scene,w){
     const dt=lastTime<0?0:clamp(t-lastTime,0,.15);lastTime=t;
     if(t>=nextCheck||t===0){
       nextCheck=t+.8;
+      if(region==='moosehead'&&player.y-w.waterLevel<42)stockNearbyShore(player);
       for(const [key,s] of sites)if(!s.curated&&Math.hypot(player.x-s.x,player.z-s.z)>530)sites.delete(key);
       const ix=Math.round(player.x/310),iz=Math.round(player.z/310),key=ix+','+iz;
       if(!sites.has(key)&&Math.hypot(player.x-resident.x,player.z-resident.z)>195&&player.y-h.surface(player.x,player.z)<230)
@@ -269,6 +327,7 @@ window.addRegionalWildlife=function(T,scene,w){
         fish.update(school,player,t,dt);for(const a of school.members)models.draw(a);
       }
     }
+    ripples.update(player,t);
     models.end();
   }
   w.wildlife={nearest,waterAt,sites,prepare,fish:fish.roster};return update;

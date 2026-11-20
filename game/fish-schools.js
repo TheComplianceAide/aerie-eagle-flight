@@ -1,6 +1,6 @@
 // Metres, body lengths per second and local encounter sizes. Schools vary
 // together in age and size, while mature stream predators hold individual lies.
-window.makeFishSchools=function(region,waterAt){
+window.makeFishSchools=function(region,waterAt,disturb){
   const roster={
     alaska:['sockeye','dolly-varden'],swiss:['lake-trout','rainbow'],canyon:['rainbow','brown-trout','carp'],
     yosemite:['rainbow','brown-trout'],bryce:['rainbow','brown-trout'],crater:['kokanee','rainbow'],
@@ -18,11 +18,11 @@ window.makeFishSchools=function(region,waterAt){
     carp:[2,8,.39,.70,2,.4],'atlantic-cod':[2,8,.43,.79,2.8,.66],'blue-cod':[1,3,.28,.47,3,.56],spotty:[3,11,.16,.26,2.4,.72]
   };
   const tau=2*Math.PI,clamp=(v,a,b)=>Math.min(b,Math.max(a,v)),angle=d=>Math.atan2(Math.sin(d),Math.cos(d));
-  function populate(site,random,curated){
+  function populate(site,random,curated,selection=roster){
     const schools=[];
-    for(let j=0;j<roster.length;j++){
+    for(let j=0;j<selection.length;j++){
       if(!curated&&random()<.36)continue;
-      const skin=roster[j],[lo,hi,short,long,gap,cruise]=traits[skin];
+      const skin=selection[j],[lo,hi,short,long,gap,cruise]=traits[skin];
       const size=short+(long-short)*random(),count=lo+Math.floor((hi-lo+1)*random()**1.45);
       const offset=j*(curated?5.2:8),home=site.findWater(site.x+Math.sin(j*2.4)*offset,site.z+Math.cos(j*2.4)*offset,9);
       if(!home)continue;
@@ -34,7 +34,7 @@ window.makeFishSchools=function(region,waterAt){
         if(!Number.isFinite(level))continue;
         const length=size*(.88+random()*.24),depth=length*(.62+random()*.9),phase=random()*tau;
         members.push({skin,x,z,y:level-depth,depth,level,length,heading:direction+random()*.25,pitch:0,bank:0,
-          speed:cruise*length,phase,mode:0,effort:.3,seed:random()*tau,scare:0,offsetX:x-home.x,offsetZ:z-home.z});
+          speed:cruise*length,phase,mode:0,effort:.3,seed:random()*tau,scare:0,lastSwirl:-Infinity,offsetX:x-home.x,offsetZ:z-home.z});
       }
       if(members.length)schools.push(school);
     }
@@ -72,10 +72,26 @@ window.makeFishSchools=function(region,waterAt){
       a.speed+=(a.length*effort-a.speed)*(1-Math.exp(-dt*2.7));
       const x=a.x+Math.cos(a.heading)*a.speed*dt,z=a.z+Math.sin(a.heading)*a.speed*dt,level=waterAt(x,z);
       if(Number.isFinite(level)){a.x=x;a.z=z;a.level=level;}
-      const y=a.level-a.depth-.36*a.scare+.048*Math.sin(t*.83+a.seed);
+      // A feeding rise approaches the film, rolls through the turn, then
+      // sounds again. Individuals in a school reach the surface at different times.
+      const salmon=a.skin==='atlantic-salmon'||a.skin==='sockeye';
+      const period=(salmon?7.4:13)+a.seed*(salmon?.65:1.4);
+      const cycle=(t/period+(a.risePhase??a.seed/tau))%1;
+      const rise=(!salmon&&members.length>8&&i%5!==0)?0:Math.max(0,1-Math.abs(cycle-.45)*4.5);
+      const lift=rise*rise*(3-2*rise)*(1-a.scare);
+      const normalDepth=Math.max(a.length*.13,a.depth-.048*Math.sin(t*.83+a.seed));
+      const y=a.level-(normalDepth*(1-lift)+a.length*.09*lift)-.36*a.scare;
       a.pitch=clamp((y-a.y)*1.3,-.22,.22);a.y+=(y-a.y)*(1-Math.exp(-3*dt));
-      a.bank=clamp(-delta*.16,-.38,.38);a.phase+=dt*tau*(.76+effort*1.35);
+      a.bank=clamp(-delta*.16,-.38,.38)+.38*lift*Math.sin(a.seed+cycle*tau);a.phase+=dt*tau*(.76+effort*1.35);
       a.effort=clamp(pulse*.56+a.scare,.1,1);
+      const depth=a.level-a.y;
+      const rising=depth<a.length*.37&&lift>.52;
+      const fleeing=a.scare>.75&&depth<a.length*.86;
+      if(dt>0&&(rising||fleeing)&&t-a.lastSwirl>(fleeing?1.8:2.4)){
+        const strength=fleeing?.86:.55+.45*lift;
+        disturb(a,t,strength);
+        a.lastSwirl=t;
+      }
     }
   }
   return {populate,update,roster};

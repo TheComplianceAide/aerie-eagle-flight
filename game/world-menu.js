@@ -17,7 +17,7 @@
   });
   for(const [id,w] of Object.entries(worlds)){
     w.launches.lookout=window.PERCH_ROUTE_NAMES[id];
-    w.launches.wildlife=id==='bryce'?'Tropic Reservoir shallows':'Wildlife shallows';
+    w.launches.wildlife=id==='bryce'?'Tropic Reservoir shallows':id==='moosehead'?'Wildlife shallows · Salmon rise':'Wildlife shallows';
   }
   const app = document.getElementById('app');
   const picker = document.getElementById('worldPicker');
