@@ -33,6 +33,8 @@ def process(world, role, cfg):
     fs, x = decode(os.path.join(SRC, world, cfg['file']))
     a = int(cfg.get('start', 0) * fs); b = int(cfg['end'] * fs) if cfg.get('end') else len(x)
     x = x[a:b]
+    if 'channel' in cfg:   # out-of-phase stereo: take one channel instead of summing
+        x = x[:, [min(cfg['channel'], x.shape[1] - 1)]]
     if cfg.get('mono', not cfg.get('loop')):
         x = x.mean(axis=1, keepdims=True)
     elif x.shape[1] == 1:
@@ -80,3 +82,4 @@ with open(os.path.join(GAME, 'soundscape-credits.txt'), 'w') as f:
     for w in names:
         rows = [c for (ww, c) in credits if ww == w]
         if rows: f.write(f'\n{names[w]}\n\n' + '\n'.join(rows))
+    f.write('\nACOUSTICS, HEADS AND LIVE AIR\n\nBinaural rendering: Omnitone 2.0 (Google, Apache-2.0; omnitone-LICENSE.txt). Its built-in SADIE KU100 decoder is the default head.\nHead profiles hrir-fabian, -small, -small-medium, -medium, -large-medium, -large: HUTUBS HRTF database, Audio Communication Group, Technische Universität Berlin (subjects pp1, pp27, pp2, pp8, pp5, pp36). CC BY 4.0. Converted to third-order decoders (least squares below 1.5 kHz, magnitude least squares above) by tools/acoustics/make_hrirs.py.\nhttps://sofacoustics.org/data/database/hutubs/\nhttps://creativecommons.org/licenses/by/4.0/\nhrir-eagle: rigid-sphere head model (Duda & Martens 1998) with a 4 cm radius and ears at 100 degrees azimuth, -10 degrees elevation.\nEagle Ears hearing curve follows diurnal raptor audiograms (Dooling 1980; Dooling, Lohr & Dent 2000): most sensitive near 1-4 kHz, falling above about 6 kHz.\nWorld reverberation: ir-*.m4a simulated with pyroomacoustics (MIT) by tools/acoustics/make_irs.py.\nAir absorption: ISO 9613-1. Live air: Open-Meteo forecast API (CC BY 4.0), NOAA GFS/HRRR for US worlds; https://open-meteo.com/\n')
