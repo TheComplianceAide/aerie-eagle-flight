@@ -411,3 +411,254 @@ https://www.swisstopo.admin.ch/en/orthoimage-swissimage
 https://dataspace.copernicus.eu/
 https://www.pgc.umn.edu/data/arcticdem/
 https://www.usgs.gov/national-hydrography/national-hydrography-dataset
+
+REGIONAL WILDLIFE EXCERPTS
+
+Each track retains the source license listed below. Excerpts were trimmed, filtered, level-adjusted, faded and encoded for playback. Locations refer to where each recording was made.
+
+field-ak-dipper.mp3 — Cinclus mexicanus. Syd Cannings. Whitehorse, YT, Canada.
+https://www.inaturalist.org/observations/41947162
+CC BY 4.0 https://creativecommons.org/licenses/by/4.0/
+
+field-ak-goose.mp3 — Branta canadensis. Zoe O.. Peace River, CA-BC, CA.
+https://www.inaturalist.org/observations/403150942
+CC BY 4.0 https://creativecommons.org/licenses/by/4.0/
+
+field-ak-mallard.mp3 — Anas platyrhynchos. bluefeathers. Riverside Rotary Park, Juneau, AK, USA.
+https://www.inaturalist.org/observations/414159027
+CC BY 4.0 https://creativecommons.org/licenses/by/4.0/
+
+field-ak-raven.mp3 — Corvus corax. bluefeathers. Juneau, AK, USA.
+https://www.inaturalist.org/observations/407716813
+CC BY 4.0 https://creativecommons.org/licenses/by/4.0/
+
+field-alpine-marmot.mp3 — Marmota marmota. Carol Ann McCormick. Hérens, CH-VS, CH.
+https://www.inaturalist.org/observations/290712238
+CC BY 4.0 https://creativecommons.org/licenses/by/4.0/
+
+field-american-pika.mp3 — Ochotona princeps. Kieran Hanrahan. Clackamas County, OR, USA.
+https://www.inaturalist.org/observations/171905169
+CC BY 4.0 https://creativecommons.org/licenses/by/4.0/
+
+field-az-merganser.mp3 — Mergus merganser. Morgan Cantrell. Fairfax, CA 94930, USA.
+https://www.inaturalist.org/observations/73844026
+CC BY 4.0 https://creativecommons.org/licenses/by/4.0/
+
+field-az-peregrine.mp3 — Falco peregrinus. Daryl Nolan. San Juan County, UT, USA.
+https://www.inaturalist.org/observations/188970662
+CC0 1.0 https://creativecommons.org/publicdomain/zero/1.0/
+
+field-az-raven.mp3 — Corvus corax. Indio Brown. Kanab, UT 84741, USA.
+https://www.inaturalist.org/observations/391645086
+CC BY 4.0 https://creativecommons.org/licenses/by/4.0/
+
+field-az-rock-wren.mp3 — Salpinctes obsoletus. Robbie Hannawacker. San Juan County, US-UT, US.
+https://www.inaturalist.org/observations/118008451
+CC0 1.0 https://creativecommons.org/publicdomain/zero/1.0/
+
+field-bc-chickadee.mp3 — Poecile gambeli. Adam Breneman. Grand Canyon Village, AZ 86023, USA.
+https://www.inaturalist.org/observations/320263925
+CC BY 4.0 https://creativecommons.org/licenses/by/4.0/
+
+field-bc-nuthatch.mp3 — Sitta pygmaea. Richard Littauer. W Meadow Rd, Durango, CO, US.
+https://www.inaturalist.org/observations/107110851
+CC BY 4.0 https://creativecommons.org/licenses/by/4.0/
+
+field-bc-tanager.mp3 — Piranga ludoviciana. Robbie Hannawacker. Canyonlands National Park, San Juan County, US-UT, US.
+https://www.inaturalist.org/observations/119657426
+CC0 1.0 https://creativecommons.org/publicdomain/zero/1.0/
+
+field-bc-woodpecker.mp3 — Leuconotopicus villosus. Robbie Hannawacker. Canyonlands National Park, San Juan County, US-UT, US.
+https://www.inaturalist.org/observations/76854221
+CC0 1.0 https://creativecommons.org/publicdomain/zero/1.0/
+
+field-bryce-raven.mp3 — Corvus corax. Indio Brown. Kanab, UT 84741, USA.
+https://www.inaturalist.org/observations/391645086
+CC BY 4.0 https://creativecommons.org/licenses/by/4.0/
+
+field-canyon-treefrog.mp3 — Dryophytes arenicolor. gsexauer. Grand Canyon, Grand Canyon National Park, Coconino County, US-AZ, US.
+https://www.inaturalist.org/observations/160920045
+CC0 1.0 https://creativecommons.org/publicdomain/zero/1.0/
+
+field-canyon-wren.mp3 — Catherpes mexicanus. Fyn Kynd. Washington County, UT, USA.
+https://www.inaturalist.org/observations/42260301
+CC BY-SA 4.0 https://creativecommons.org/licenses/by-sa/4.0/
+
+field-ch-accentor.mp3 — Prunella collaris. Yves Bas. Frepestel.
+https://www.inaturalist.org/observations/200367181
+CC BY 4.0 https://creativecommons.org/licenses/by/4.0/
+
+field-ch-mallard.mp3 — Anas platyrhynchos. RAUL DAL SANTO. 20014 Nerviano MI, Italia.
+https://www.inaturalist.org/observations/215203707
+CC BY-SA 4.0 https://creativecommons.org/licenses/by-sa/4.0/
+
+field-ch-raven.mp3 — Corvus corax. Attila Oláh. 6763 Mairengo, Switzerland.
+https://www.inaturalist.org/observations/69781589
+CC BY 4.0 https://creativecommons.org/licenses/by/4.0/
+
+field-ch-wagtail.mp3 — Motacilla alba. Roberto Cirio. 11010 Rhêmes-Notre-Dame AO, Italia.
+https://www.inaturalist.org/observations/233985509
+CC BY 4.0 https://creativecommons.org/licenses/by/4.0/
+
+field-cl-bluebird.mp3 — Sialia currucoides. Sydney Gerig. Mt. Rainier NP - Sunrise - First Burroughs Trail.
+https://www.inaturalist.org/observations/60028025
+CC BY 4.0 https://creativecommons.org/licenses/by/4.0/
+
+field-cl-junco.mp3 — Junco hyemalis. Bryce. Crater Lake National Park, Klamath County, US-OR, US.
+https://www.inaturalist.org/observations/230589459
+CC BY 4.0 https://creativecommons.org/licenses/by/4.0/
+
+field-cl-raven.mp3 — Corvus corax. Noland Martin. Idleyld Park, OR 97447, USA.
+https://www.inaturalist.org/observations/87933503
+CC BY 4.0 https://creativecommons.org/licenses/by/4.0/
+
+field-cl-robin.mp3 — Turdus migratorius. Noland Martin. Eugene, OR 97405, USA.
+https://www.inaturalist.org/observations/88599294
+CC BY 4.0 https://creativecommons.org/licenses/by/4.0/
+
+field-douglas-squirrel.mp3 — Tamiasciurus douglasii. Rajan Rao. Tuolumne County, CA, USA.
+https://www.inaturalist.org/observations/186634739
+CC BY 4.0 https://creativecommons.org/licenses/by/4.0/
+
+field-golden-mantled-squirrel.mp3 — Callospermophilus lateralis. yklenner. San Juan National Forest - Headquarters, Bayfield, CO, US.
+https://www.inaturalist.org/observations/182085071
+CC0 1.0 https://creativecommons.org/publicdomain/zero/1.0/
+
+field-hawaiian-monk-seal.mp3 — Neomonachus schauinslandi. Dan Rapp / USFWS Pacific. Midway Atoll National Wildlife Refuge.
+https://www.flickr.com/photos/usfwspacific/55270389324/
+Public domain, U.S. Government work
+
+field-hi-cardinal.mp3 — Paroaria coronata. Grze Swis. Hawaii, US.
+https://www.inaturalist.org/observations/279953530
+CC BY 4.0 https://creativecommons.org/licenses/by/4.0/
+
+field-hi-nene.mp3 — Branta sandvicensis. Evan Herman-Tran. Princeville, HI 96722, USA.
+https://www.inaturalist.org/observations/398335352
+CC BY 4.0 https://creativecommons.org/licenses/by/4.0/
+
+field-hi-plover.mp3 — Pluvialis fulva. Damien Wallace. Waialua, HI 96791, USA.
+https://www.inaturalist.org/observations/320745287
+CC0 1.0 https://creativecommons.org/publicdomain/zero/1.0/
+
+field-hi-shama.mp3 — Copsychus malabaricus. Tuoichen. Koke`e Forest, HI, USA.
+https://www.inaturalist.org/observations/263184443
+CC BY 4.0 https://creativecommons.org/licenses/by/4.0/
+
+field-juneau-red-squirrel.mp3 — Tamiasciurus hudsonicus. bluefeathers. Duck Creek, Juneau, AK, USA .
+https://www.inaturalist.org/observations/403636959
+CC BY 4.0 https://creativecommons.org/licenses/by/4.0/
+
+field-kauai-shearwater.mp3 — Ardenna pacifica. Lisa Wiencek Gerbec. Daniel K. Inouye Kīlauea Point Lighthouse, Kilauea, HI, US.
+https://www.inaturalist.org/observations/221436042
+CC BY 4.0 https://creativecommons.org/licenses/by/4.0/
+
+field-kea.mp3 — Nestor notabilis. darmozrac. 9679, New Zealand.
+https://www.inaturalist.org/observations/155284922
+CC BY 4.0 https://creativecommons.org/licenses/by/4.0/
+
+field-maine-green-frog.mp3 — Lithobates clamitans. Richard Lyon. Burnham, ME, USA.
+https://www.inaturalist.org/observations/218269212
+CC BY 4.0 https://creativecommons.org/licenses/by/4.0/
+
+field-maine-loon-reply.mp3 — Gavia immer. itinerantmonk108. Maine, USA.
+https://freesound.org/people/itinerantmonk108/sounds/751848/
+CC0 1.0 https://creativecommons.org/publicdomain/zero/1.0/
+
+field-me-black-duck.mp3 — Anas rubripes. Dan MacNeal. Renfrew County, ON, Canada.
+https://www.inaturalist.org/observations/120647463
+CC BY 4.0 https://creativecommons.org/licenses/by/4.0/
+
+field-me-chickadee.mp3 — Poecile atricapillus. Richard Littauer. North Jay, ME 04239, USA.
+https://www.inaturalist.org/observations/55237935
+CC BY 4.0 https://creativecommons.org/licenses/by/4.0/
+
+field-ne-goose.mp3 — Branta canadensis. InAweofGod'sCreation. River Rd, Livermore Falls, ME, USA.
+https://www.inaturalist.org/observations/156962323
+CC BY 4.0 https://creativecommons.org/licenses/by/4.0/
+
+field-nh-bullfrog.mp3 — Lithobates catesbeianus. Lythronax246. Northfield, NH, US.
+https://www.inaturalist.org/observations/218379797
+CC BY 4.0 https://creativecommons.org/licenses/by/4.0/
+
+field-nh-heron.mp3 — Ardea herodias herodias. Richard Littauer. East Montpelier, VT, USA.
+https://www.inaturalist.org/observations/60733584
+CC BY 4.0 https://creativecommons.org/licenses/by/4.0/
+
+field-nh-kingfisher.mp3 — Megaceryle alcyon. Steven Lamonde. Hillsborough County, US-NH, US.
+https://www.inaturalist.org/observations/131817429
+CC BY 4.0 https://creativecommons.org/licenses/by/4.0/
+
+field-nh-mallard.mp3 — Anas platyrhynchos. Nick Kleinschmidt. Grantham, Sullivan, NH 03753, USA.
+https://www.inaturalist.org/observations/72268172
+CC BY 4.0 https://creativecommons.org/licenses/by/4.0/
+
+field-nh-spring-peeper.mp3 — Pseudacris crucifer. Michael Nerrie. March Hill Rd, Walpole, NH, US.
+https://www.inaturalist.org/observations/347228832
+CC BY 4.0 https://creativecommons.org/licenses/by/4.0/
+
+field-nh-wood-duck.mp3 — Aix sponsa. Jill DeVito, PhD. Bellows Falls, VT, US.
+https://www.inaturalist.org/observations/273424706
+CC0 1.0 https://creativecommons.org/publicdomain/zero/1.0/
+
+field-no-eider.mp3 — Somateria mollissima. Donald Davesne. Garður, Iceland.
+https://www.inaturalist.org/observations/222389109
+CC BY 4.0 https://creativecommons.org/licenses/by/4.0/
+
+field-no-gull.mp3 — Larus canus. Jono. 9901 Kirkenes, Norway.
+https://www.inaturalist.org/observations/221981670
+CC BY 4.0 https://creativecommons.org/licenses/by/4.0/
+
+field-no-tern.mp3 — Sterna paradisaea. Pieter Huybrechts. 6W63+G9H Camping Borðeyri, 500 Borðeyri, IJsland.
+https://www.inaturalist.org/observations/231149062
+CC0 1.0 https://creativecommons.org/publicdomain/zero/1.0/
+
+field-norwegian-sheep.mp3 — Ovis aries. michaelperfect. Bømlo, Norway.
+https://freesound.org/people/michaelperfect/sounds/710298/
+CC0 1.0 https://creativecommons.org/publicdomain/zero/1.0/
+
+field-nz-fantail.mp3 — Rhipidura fuliginosa fuliginosa. Heidi Meudt. Te Anau, Te Anau 9600, New Zealand.
+https://www.inaturalist.org/observations/344767439
+CC BY 4.0 https://creativecommons.org/licenses/by/4.0/
+
+field-nz-fur-seal.mp3 — Arctocephalus forsteri. Department of Conservation (NZ). Razorback, Stephens Island, New Zealand.
+https://dxcprod.doc.govt.nz/nature/native-animals/marine-mammals/seals/nz-fur-seal/facts/
+CC BY 4.0 https://creativecommons.org/licenses/by/4.0/
+
+field-nz-shelduck.mp3 — Tadorna variegata. eklemp. Mossburn, Southland, NZ.
+https://www.inaturalist.org/observations/412566193
+CC BY 4.0 https://creativecommons.org/licenses/by/4.0/
+
+field-nz-tomtit.mp3 — Petroica macrocephala macrocephala. Richard Littauer. Fiordland, NZ-SO-SL, NZ-SO, NZ.
+https://www.inaturalist.org/observations/144246346
+CC BY 4.0 https://creativecommons.org/licenses/by/4.0/
+
+field-nz-tui.mp3 — Prosthemadera novaeseelandiae novaeseelandiae. Eric Knight. Haast 7886, New Zealand.
+https://www.inaturalist.org/observations/197284520
+CC BY 4.0 https://creativecommons.org/licenses/by/4.0/
+
+field-oystercatcher.mp3 — Haematopus ostralegus. zappapy. Finnkroken kai, Finnkrokan, Norvège.
+https://www.inaturalist.org/observations/375231016
+CC0 1.0 https://creativecommons.org/publicdomain/zero/1.0/
+
+field-yo-acorn.mp3 — Melanerpes formicivorus. Elizabeth. Casa Mendoza, Three Rivers, CA 93271, USA.
+https://www.inaturalist.org/observations/407642706
+CC0 1.0 https://creativecommons.org/publicdomain/zero/1.0/
+
+field-yo-chickadee.mp3 — Poecile gambeli. Tim Messick. Alpine County, CA, USA.
+https://www.inaturalist.org/observations/296607824
+CC BY 4.0 https://creativecommons.org/licenses/by/4.0/
+
+field-yo-dipper.mp3 — Cinclus mexicanus. Cricket Raspet. Pfeiffer Big Sur State Park, Monterey County, US-CA, US.
+https://www.inaturalist.org/observations/163520650
+CC BY 4.0 https://creativecommons.org/licenses/by/4.0/
+
+ENVIRONMENTAL SOUND
+The lapping, stream, falls-spray and leaves tracks use filtered random noise shaped by the broadband envelopes of the previously credited lake, stream, waterfall and pine recordings. Wildlife voices use the individually credited excerpts.
+
+WILDLIFE AND TROPIC RESERVOIR
+The animal textures are generated illustrations of individual species made with OpenAI ImageGen. Each side profile is mapped to a contoured mesh. Wing motion, schooling, flock sizes, and encounters are simulations. Group sizes vary by habitat and represent encounters rather than population counts.
+American Black Duck flocks and habitat — Cornell Lab of Ornithology, https://www.allaboutbirds.org/guide/American_Black_Duck/id
+Canada Goose formation — Cornell Lab of Ornithology, https://www.allaboutbirds.org/guide/Canada_Goose/id
+Yellow perch ecology — U.S. Fish & Wildlife Service, https://www.fws.gov/species/yellow-perch-perca-flavescens
+Convict tang ecology — Waikīkī Aquarium, https://www.waikikiaquarium.org/experience/animal-guide/fishes/surgeonfishes/convict-tang/
+Tropic Reservoir shoreline — USGS National Hydrography Dataset. https://hydro.nationalmap.gov/arcgis/rest/services/nhd/MapServer

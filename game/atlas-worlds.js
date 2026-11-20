@@ -395,7 +395,8 @@ class Water extends Mesh {
   function farHeight(x,z){
     const base=sample(far,farH,x,z);
     const shore=settings.water===undefined?1:smoothstep(base-settings.water,2,25);
-    return base+shore*window.rangeRelief(region,x,z);
+    const height=base+shore*window.rangeRelief(region,x,z);
+    return region==='bryce'?window.tropicReservoir.ground(x,z,height):height;
   }
   function elevation(x,z){
     const r=Math.max(Math.abs(x),Math.abs(z));
@@ -840,7 +841,7 @@ class Water extends Mesh {
     return growth(x,z);
   }
   return {region,height,elevation,clearance,spawn,launches,landmarks,groundCover,coverHalf:h,cityTerrainMaterial:surry?terrain:null,
-    bounds:{minX:-(settings.flightHalf||h)+90,maxX:(settings.flightHalf||h)-90,minZ:-(settings.flightHalf||h)+90,maxZ:(settings.flightHalf||h)-90},waterLevel:settings.water,lakeLevel:settings.water,
+    bounds:{minX:region==='bryce'?-9850:-(settings.flightHalf||h)+90,maxX:(settings.flightHalf||h)-90,minZ:-(settings.flightHalf||h)+90,maxZ:(settings.flightHalf||h)-90},waterLevel:settings.water,lakeLevel:settings.water,
     skyTexture:skyMap,sunDirection:sun,sunMask,trees,firTrees,forestLightSpan:2*h,longForest:newEngland||region==='yosemite',useFirForest:firTrees.length>0,altitudeOffset:0,
     update(dt,t,player){clock.value=t;updateHardwoods?.(player);if(water)water.material.uniforms.time.value=t*.65;}};
 };

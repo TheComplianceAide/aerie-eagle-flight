@@ -29,7 +29,7 @@
   let frameSeconds=0, frameCount=0, fastWindows=0;
   let glance=0, arrivalGlance=0, glanceTime=0;
   let cameraYaw, cameraPath, cameraBank, cameraFov, loadPromise, launchPending=false;
-  let last = performance.now(), started = false, paused = false, touchFlap = false;
+  let last = performance.now(), started = false, paused = false, touchFlap = false, pointerBrake = false;
   let audio, wind, wingRush, windLevel, volume, fieldAudio, previousFocus;
   let soundOn=true;
   try { soundOn=localStorage.getItem("aerie:sound")!=="off"; } catch {}
@@ -44,6 +44,7 @@
       x: spawn.x, y: spawn.y, z: spawn.z, yaw: spawn.yaw || 0, bank: 0, rollRate: 0,
       airspeed: 17.5, path: -.062, alpha: .047, pitch: 0, phase: 0, effort: 0,
       loadFactor: 1, stall: 0, tuck: 0, climb: 0, verticalSpeed: -1,
+      wingExtension: .94, brakeSpread: 0, turnTrim: 0, strokeBeat: 0,
       ridge: 0, thermal: 0, lift: 0, distance: 0, elapsed: 0, mode: "Gliding", contact: false
     };
     const floor = terrain.flightClearance || terrain.clearance || terrain.height;
@@ -52,7 +53,7 @@
       x:p.x + Math.cos(i*1.93)*90, z:p.z + Math.sin(i*1.93)*90
     }));
     let nextAirSample=0, hazard=-1, recovery=false, wingCycle=false, returnBank=null;
-    let poweredClimb=false;
+    let poweredClimb=false, strokeLift=0;
     const smooth = (a,b,x) => {const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t);};
     const windX = 2.4, windZ = -1.25;
     function sampleAirAndTerrain() {
@@ -87,45 +88,81 @@
         returnBank=clamp(error*1.15,-.92,.92)*(1-smooth(20,180,edge));
       }
     }
+    function lerpRate(low,high){
+      return low+(high-low)*smooth(18,40,s.airspeed);
+    }
     function step(dt,input) {
       if(s.contact)return;
       s.elapsed += dt;
       if(s.elapsed>=nextAirSample){sampleAirAndTerrain();nextAirSample=s.elapsed+.14;}
       s.climb=input.climb;
+      const brake=clamp(Number(input.brake)||0,0,1);
+      const braking=brake>.5;
       s.lift+=(s.ridge+s.thermal-s.lift)*easing(1.8,dt);
-      const rollCommand=returnBank===null ? -input.turn*.94 : returnBank;
-      const authority=.5+.5*smooth(7,15,s.airspeed);
-      s.rollRate+=(clamp((rollCommand-s.bank)*3.5,-2.5,2.5)*authority-s.rollRate)*easing(6.1,dt);
+      const commandedBank=returnBank===null ? -input.turn*.94 : returnBank;
+      // Differential wing loading rolls the body first. As the commanded
+      // bank is reached the opposite wing catches the roll; lift turns the track.
+      const rollError=commandedBank-s.bank;
+      const trimCommand=clamp(-1.8*rollError+.29*s.rollRate,-1,1);
+      s.turnTrim+=(trimCommand-s.turnTrim)*easing(10,dt);
+      const rollAuthority=clamp((s.airspeed/16)**1.5,.34,1.7)*s.wingExtension;
+      s.rollRate+=(-8.1*s.turnTrim*rollAuthority-(2.8+rollAuthority)*s.rollRate)*dt;
       s.bank=clamp(s.bank+s.rollRate*dt,-1.21,1.21);
 
       const trimPath = -.074 + clamp((s.airspeed-16.4)*.02,-.19,.20);
       // Start beating before pull-up speed reaches the stall. Leave a band
       // between entry and exit so a single downstroke cannot toggle the assist.
-      if(s.climb<=.06 || s.airspeed>16.2)poweredClimb=false;
-      else if(s.climb>.12 && s.airspeed<14.3)poweredClimb=true;
+      if(s.climb<=.06 || s.airspeed>(braking?12.0:16.2))poweredClimb=false;
+      else if(s.climb>.12 && s.airspeed<(braking?10.7:14.3))poweredClimb=true;
       // As speed falls, ease the nose over to spend the next stroke on both
       // forward speed and height. The stroke supplies the actual lift below.
       const climbAngle=poweredClimb ? clamp(.09+(s.airspeed-13.5)*.065,-.18,.40) : .40;
-      const requestedPath = trimPath*(1-Math.abs(s.climb)) +
-        (s.climb<0 ? s.climb*1.04 : s.climb*climbAngle) + (input.flap && !poweredClimb ? .17 : 0);
+      // A commanded flare takes precedence over the stick's automatic flapping.
+      // If the bird is genuinely short of airspeed, strokes can recover the glide.
+      const beatRequest=input.flap&&(!braking||s.airspeed<10.7);
+      // A braking bird can round out while it has kinetic energy to trade.
+      // Below that speed its open wings still produce drag and it settles.
+      const brakingPath=brake*(.12*smooth(13,25,s.airspeed)-.18*(1-smooth(9,14,s.airspeed)));
+      const requestedPath = trimPath*(1-Math.abs(s.climb)) + brakingPath +
+        (s.climb<0 ? s.climb*1.04 : s.climb*climbAngle) + (beatRequest && !poweredClimb ? .17 : 0);
       const flaring=hazard>requestedPath+.025;
       const desiredPath=clamp(Math.max(requestedPath,hazard+.018),-1.1,.64);
-      const wantsStroke=input.flap || poweredClimb || (flaring && s.airspeed<12);
+      const fastPullup=Math.max(0,s.climb)*smooth(16.5,30,s.airspeed)*
+        (.2+.8*smooth(.04,.70,desiredPath-s.path));
+      const groundFlare=flaring?smooth(.06,.47,hazard-s.path)*smooth(12,25,s.airspeed):0;
+      const fanDemand=poweredClimb?brake*(1-.45*s.effort):brake;
+      const brakeCommand=Math.max(fanDemand,fastPullup,groundFlare);
+      // The fan and the swept arm open over finite travel. At higher dynamic
+      // pressure the pullout progressively reloads the extended wing.
+      const fanTravel=brakeCommand>s.brakeSpread?lerpRate(2.9,1.45):3.8;
+      s.brakeSpread+=clamp(brakeCommand-s.brakeSpread,-fanTravel*dt,fanTravel*dt);
+      const wantsStroke=beatRequest || poweredClimb || (flaring && s.airspeed<12);
       if(wantsStroke)wingCycle=true;
       if(wingCycle) {
-        const hz=1.9+.45*(1-smooth(10,23,s.airspeed));
+        const hz=2.17+.43*(1-smooth(10,23,s.airspeed));
         s.phase+=Math.PI*2*hz*dt;
         if(s.phase>=Math.PI*2){s.phase%=Math.PI*2;if(!wantsStroke)wingCycle=false;}
       }
       s.effort+=(Number(wingCycle)-s.effort)*easing(wingCycle?7:4.8,dt);
+      s.strokeBeat=s.effort*Math.sin(s.phase);
       const downstroke=Math.max(0,Math.sin(s.phase));
       const stroke=s.effort*downstroke*downstroke;
-      const tuckCommand=clamp(-s.climb,0,1)*(1-s.effort)*(flaring?0:1);
-      s.tuck+=(tuckCommand-s.tuck)*easing(2.3,dt);
-      const q=halfDensityAreaOverMass*s.airspeed*s.airspeed*(1-.48*s.tuck);
+      strokeLift+=(stroke-strokeLift)*easing(23,dt);
+      const diveDemand=clamp(-s.climb,0,1)*(1-s.effort)*(flaring?0:1)*(1-brake);
+      s.tuck+=(diveDemand-s.tuck)*easing(diveDemand>s.tuck?2.0:4.8,dt);
+      const efficientSpan=.96-.065*smooth(15,27,s.airspeed);
+      const recoveryFlex=.085*s.effort*Math.max(0,-Math.sin(s.phase));
+      const targetSpan=efficientSpan*(1-s.brakeSpread)+s.brakeSpread-.47*s.tuck-recoveryFlex;
+      const spanRate=targetSpan>s.wingExtension?lerpRate(1.6,.58):1.65;
+      s.wingExtension+=clamp(targetSpan-s.wingExtension,-spanRate*dt,spanRate*dt);
+      const velocityPressure=halfDensityAreaOverMass*s.airspeed*s.airspeed;
+      // The wing's arm stays above the body while the hand sweeps. The lifting
+      // area shrinks more slowly than the full wingspan squared.
+      const area=.28+.72*s.wingExtension;
+      const q=velocityPressure*area;
       const cosBank=Math.max(.4,Math.cos(s.bank));
-      const normalTarget=gravity*Math.cos(s.path)/cosBank +
-        clamp((desiredPath-s.path)*s.airspeed*1.45,-10,14);
+      const normalTarget=gravity*Math.cos(s.path)/cosBank+
+        clamp((desiredPath-s.path)*s.airspeed*1.45,-10,14.6);
       let alphaCommand=clamp((normalTarget/Math.max(1,q)-.22)/4.75,-.12,.34);
       if(!recovery && s.airspeed<10 && s.alpha>.199)recovery=true;
       if(recovery && s.airspeed>13.1)recovery=false;
@@ -134,10 +171,11 @@
       s.stall+=(Number(recovery)-s.stall)*easing(recovery?3.3:2,dt);
       const separation=smooth(.20,.34,s.alpha);
       const liftCoefficient=.22+4.75*s.alpha-.70*separation;
-      const induced=.057*liftCoefficient*liftCoefficient;
-      const drag=q*(.025+induced+.32*separation+.023*s.effort)+.045;
-      const lift=q*liftCoefficient+stroke*6.2;
-      const thrust=stroke*8.9;
+      const induced=.054*area/(s.wingExtension*s.wingExtension)*liftCoefficient*liftCoefficient;
+      const profile=.018+.32*separation+.021*s.effort+.165*s.brakeSpread;
+      const drag=q*(profile+induced)+velocityPressure*.007+.045;
+      const lift=q*liftCoefficient+strokeLift*6.7;
+      const thrust=strokeLift*9.3;
       // Tangential gravity exchanges kinetic and potential energy. Aerodynamic
       // lift turns the velocity vector; only thrust and moving air add energy.
       const speed=Math.max(3,s.airspeed);
@@ -145,7 +183,7 @@
       s.path=clamp(s.path+(lift*cosBank-gravity*Math.cos(s.path))/speed*dt,-1.34,1.13);
       s.yaw+=lift*Math.sin(s.bank)/(speed*Math.max(.28,Math.cos(s.path)))*dt;
       s.loadFactor=lift/gravity;
-      const bodyAngle=s.path+s.alpha*.65+.018;
+      const bodyAngle=s.path+s.alpha*.68+.018+.225*s.brakeSpread;
       s.pitch+=(bodyAngle-s.pitch)*easing(7,dt);
       const planar=s.airspeed*Math.cos(s.path);
       const vx=-Math.sin(s.yaw)*planar+windX, vz=-Math.cos(s.yaw)*planar+windZ;
@@ -154,6 +192,7 @@
       if(y<=floor(x,z)+.25){s.contact=true;s.mode="Touchdown";return;}
       s.x=x;s.y=y;s.z=z;s.distance+=Math.hypot(vx,s.verticalSpeed,vz)*dt;
       if(recovery)s.mode="Stall recovery";
+      else if(brake>.12&&s.brakeSpread>.14)s.mode="Air braking";
       else if(flaring && hazard>-.06)s.mode="Flaring";
       else if(poweredClimb && s.effort>.5)s.mode="Powered climb";
       else if(s.effort>.5)s.mode="Powered flight";
@@ -211,7 +250,7 @@
   el("sound").onclick=toggleSound;audioIcon();
   if (!document.fullscreenEnabled) el("expand").hidden=true;
   el("expand").onclick=async()=>{if(document.fullscreenElement)await document.exitFullscreen();else await app.requestFullscreen();};
-  function resetInput(){keys.clear();pointer.clear();touchFlap=false;}
+  function resetInput(){keys.clear();pointer.clear();touchFlap=false;pointerBrake=false;}
   function showDialog(type) {
     if(type==="places"&&!started)return;
     previousFocus=document.activeElement;
@@ -349,7 +388,7 @@
     if(elapsed<nextPerchHUD&&app.dataset.perchStatus===stage)return;
     nextPerchHUD=elapsed+.14;app.dataset.perchStatus=stage;
     const choose=el("choosePerch"),action=el("perchAction"),status=el("perchStatus");
-    choose.hidden=stage!=="free";
+    choose.hidden=stage!=="free";el("airBrake").hidden=stage!=="free";
     choose.firstChild.textContent=t?"Next perch ":"Choose perch ";
     action.hidden=!t||stage==="push";
     if(!action.hidden)action.textContent=stage==="perched"?"Push off":stage==="free"?"Land":"Break off";
@@ -360,7 +399,7 @@
       status.textContent=stage==="approach"?"Approaching "+text:text;
     }else status.textContent=elapsed<perchNoticeUntil?perchNotice:"";
   }
-  const flightCodes=["KeyW","KeyA","KeyS","KeyD","KeyQ","KeyE","ArrowLeft","ArrowRight","ArrowUp","ArrowDown","Space"];
+  const flightCodes=["KeyW","KeyA","KeyS","KeyD","KeyQ","KeyE","KeyB","ArrowLeft","ArrowRight","ArrowUp","ArrowDown","Space"];
   window.addEventListener("keydown",event=>{
     if(started&&!paused&&!event.repeat){
       if(event.code==="KeyP"){event.preventDefault();choosePerch();return;}
@@ -396,6 +435,25 @@
   el("flap").onpointerdown=e=>{el("flap").setPointerCapture(e.pointerId);
     if(perching?.stage==="perched"){perchAction();return;}touchFlap=true;};
   el("flap").onlostpointercapture=()=>{touchFlap=false;};
+  const brakeButton=el("airBrake");
+  brakeButton.addEventListener("pointerdown",event=>{
+    if(!started||paused||perching.stage!=="free")return;
+    event.preventDefault();
+    brakeButton.setPointerCapture(event.pointerId);pointerBrake=true;
+  });
+  const releaseBrake=()=>{pointerBrake=false;};
+  brakeButton.addEventListener("pointerup",releaseBrake);
+  brakeButton.addEventListener("pointercancel",releaseBrake);
+  brakeButton.addEventListener("lostpointercapture",releaseBrake);
+  // Native keyboard activation also works when the control has focus.
+  brakeButton.addEventListener("keydown",event=>{
+    if(!["Enter","Space"].includes(event.code))return;
+    event.preventDefault();event.stopPropagation();pointerBrake=true;
+  });
+  brakeButton.addEventListener("keyup",event=>{
+    if(["Enter","Space"].includes(event.code)){event.stopPropagation();releaseBrake();}
+  });
+  brakeButton.addEventListener("blur",releaseBrake);
   function fillPlaces(){
     const list=el("placeList");
     list.replaceChildren();
@@ -487,7 +545,11 @@
     camera.position.copy(cameraTarget.applyQuaternion(eagle.object.quaternion)).add(player);
     const yawError=Math.atan2(Math.sin(s.yaw-cameraYaw),Math.cos(s.yaw-cameraYaw));
     cameraYaw+=yawError*easing(16,dt);
-    cameraPath+=(s.pitch-cameraPath)*easing(11,dt);
+    // A mounted camera follows the body through a dive. Keep a portion of
+    // the flight line visible as the body rotates upward in a landing flare.
+    const flare=s.perchFlare||0;
+    const sightPitch=s.pitch+(s.path-s.pitch)*(.08+.42*flare);
+    cameraPath+=(sightPitch-cameraPath)*easing(10,dt);
     cameraBank+=(s.bank*.72-cameraBank)*easing(10,dt);
     glanceTime+=dt;
     const manual=Number(keys.has("KeyQ"))-Number(keys.has("KeyE"));
@@ -543,6 +605,7 @@
       turn:clamp(held("KeyD","ArrowRight")-held("KeyA","ArrowLeft")+stick.x,-1,1),
       climb:clamp(held("KeyW","ArrowUp")-held("KeyS","ArrowDown")+stick.y,-1,1),
       look:Number(keys.has("KeyQ"))-Number(keys.has("KeyE")),
+      brake:keys.has("KeyB")||pointerBrake,
       flap:keys.has("Space")||touchFlap||stick.y>.75
     };
     // Fixed physics ticks make the same wing stroke produce the same energy

@@ -15,7 +15,10 @@
     lofoten: {name:['Lofoten','Islands'],region:'Reinefjorden, Norway',description:'Trace the saltwater fjord between sheer mountain faces and narrow islands.',launches:{lake:'Fjord overlook',ridge:'Reinefjorden channel'}},
     milford: {name:['Milford','Sound'],region:'Fiordland, New Zealand',description:'Follow the rainforest walls and waterfall channels along Piopiotahi.',launches:{lake:'Mitre Peak overlook',ridge:'Bowen Falls approach'}}
   });
-  for(const [id,w] of Object.entries(worlds))w.launches.lookout=window.PERCH_ROUTE_NAMES[id];
+  for(const [id,w] of Object.entries(worlds)){
+    w.launches.lookout=window.PERCH_ROUTE_NAMES[id];
+    w.launches.wildlife=id==='bryce'?'Tropic Reservoir shallows':'Wildlife shallows';
+  }
   const app = document.getElementById('app');
   const picker = document.getElementById('worldPicker');
   const launch = document.getElementById('launchPoint');
@@ -27,6 +30,7 @@
   const mapSource=document.getElementById('mapSource');
   document.getElementById('creditsLink').href=asset('credits.txt');
   function previewName(id,start){
+    if(start==='wildlife')start='lake';
     if(start==='lookout')return 'perch-'+id+'-view.jpg';
     if(id==='swiss')return {lake:'valley.jpg',falls:'falls-view.jpg',forest:'forest-view.jpg',shore:'swiss-shore-view.jpg'}[start];
     return id+'-'+start+'-view.jpg';

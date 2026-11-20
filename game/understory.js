@@ -50,6 +50,7 @@
     return (u,v)=>pixels&&u>=0&&v>=0&&u<1&&v<1?pixels[(Math.floor(u*w)+Math.floor(v*h)*w)*4]/255:0;
   }
   window.addUnderstory=function addUnderstory(T,scene,world){
+    const wildlife=window.addRegionalWildlife(T,scene,world);
     const {region,habitat}=world,[weights,scale,density,dry]=profiles[region];
     const loader=new T.TextureLoader(),half=world.coverHalf;
     const photo=half?readMap(loader,'cover-'+region+'.png'):null;
@@ -178,6 +179,7 @@
     const last=new T.Vector3(Infinity,Infinity,Infinity);
     const batches=[far,...fine.filter(Boolean)];
     return (eye,t)=>{
+      wildlife(eye,t);
       clock.value=t;
       if(last.distanceToSquared(eye)<16)return;
       last.copy(eye);const gap=eye.y-habitat.surface(eye.x,eye.z);

@@ -9,6 +9,7 @@ window.makePerchFlight=function(T,world,habitat,route){
   const xyz=p=>new T.Vector3(p.x,p.y,p.z);
   const contactHeight=.20;
   let routeTarget=null,selected=null,usingRoute=false,stage='free',track,along=0;
+  let strokeForce=0;
   let settleTime=0,openYaw=0,selectionRange=750,lookYaw=0,lookPitch=0,baseYaw=0,pushTime=0,refresh=0,selection=[],selectionTime=-99;
   const station=new T.Vector3(),ahead=new T.Vector3();
   function select(target){
@@ -19,6 +20,7 @@ window.makePerchFlight=function(T,world,habitat,route){
     stage='free';refresh=0;selection=[];track=null;usingRoute=onRoute;
     if(onRoute&&!routeTarget)routeTarget=habitat.resolveRoute(route.perch);
     select(onRoute?routeTarget:null);
+    s.perchOnRock=false;
     s.perchGrip=s.perchFold=s.perchFlare=s.perchLook=s.perchLookPitch=0;
   }
   function choose(s){
@@ -70,29 +72,71 @@ window.makePerchFlight=function(T,world,habitat,route){
       next(entry.clone().addScaledVector(side,radius).addScaledVector(outward,radius*.65).setY(lerp(begin.y,entry.y,.4)));
       next(entry.clone().addScaledVector(outward,radius*1.5).setY(lerp(begin.y,entry.y,.7)));
     }
-    next(entry);const lead=entry.clone().lerp(end,.65);
-    lead.y=Math.max(lead.y,end.y+.51);next(lead);next(end);
+    next(entry);
+    // Swoop just below an exposed perch, then trade speed for height. Keep the
+    // higher approach for a rock face or a crown that closes off that corridor.
+    const lead=entry.clone().lerp(end,.67);
+    let allowed=target.type!=='rock';
+    const wish=end.y-1.15;
+    const dir=selected.direction;
+    const clearance=world.clearance||world.height;
+    for(let i=0;i<=10&&allowed;i++){
+      const t=i/10,p=entry.clone().lerp(end,t);
+      const y=t<.67?lerp(entry.y,wish,t/.67):lerp(wish,end.y,(t-.67)/.33);
+      for(const side of [-1.0,0,1.0]){
+        const x=p.x+side*dir.z,z=p.z-side*dir.x;
+        const surface=Math.max(clearance(x,z),habitat.surface?.(x,z)??-Infinity,habitat.clearance(x,z));
+        if(t<.98 && surface+.28>y){allowed=false;break;}
+      }
+    }
+    lead.y=allowed?wish:Math.max(lead.y,end.y+.51);
+    const descendingBranch=target.type==='branch'&&!allowed;
+    next(lead);next(end);
     const curve=new T.CatmullRomCurve3(controls,false,'centripetal');
     curve.arcLengthDivisions=400;
-    const n=clamp(Math.ceil(curve.getLength()/1.45),4,3000);
-    const points=curve.getSpacedPoints(n);
+    const coarseCount=clamp(Math.ceil(curve.getLength()/1.45),4,3000);
+    const points=curve.getSpacedPoints(coarseCount);
+    // Sample the shape under the feet at decimeter spacing near touchdown.
+    // The ordinary flight path only needs one station per wingspan.
+    const fineStart=Math.max(0,coarseCount-4);
+    points.length=fineStart+1;
+    for(let i=fineStart*12+1;i<=coarseCount*12;i++)points.push(curve.getPointAt(i/(coarseCount*12)));
+    const n=points.length-1;
     const endZone=Math.max(3.4,entry.distanceTo(end)*.57);
     const floor=world.clearance||world.height;
     for(let i=1;i<n;i++){
       const p=points[i],toEnd=Math.hypot(p.x-end.x,p.z-end.z);
       const toStart=Math.hypot(p.x-s.x,p.z-s.z);
+      if(descendingBranch&&toEnd<5&&p.y>end.y){
+        p.y=lerp(end.y,p.y,.20+.80*smooth(toEnd,0,5));
+      }
       // The final clear branch corridor deliberately passes inside the coarse
       // tree crown used for ordinary flight collisions.
       const envelope=smooth(toEnd,endZone,endZone+5)*smooth(toStart,0,7);
       const safe=floor(p.x,p.z)+2.65;
       p.y=Math.max(p.y,lerp(p.y,safe,envelope),Math.min(end.y,world.height(p.x,p.z)+.55));
+      // The target mesh has a different outline from the survey underneath it.
+      // Leave space for the body across the final turn and for feet at contact.
+      if(toEnd<28){
+        const margin=contactHeight+.12*smooth(toEnd,0,2);
+        if(target.type==='rock')p.y=Math.max(p.y,end.y+.20*smooth(toEnd,0,.7)*(1-smooth(toEnd,2,5)));
+        for(const side of [-1,0,1]){
+          const reach=side*smooth(toEnd,.2,2.2);
+          const x=p.x+reach*dir.z,z=p.z-reach*dir.x;
+          p.y=Math.max(p.y,habitat.clearance(x,z)+margin,(habitat.surface?.(x,z)??-Infinity)+margin);
+        }
+      }
     }
     // Anticipate ridges and treetops with a flight-sized climb and descent.
     for(let i=n-1;i>0;i--){
       const p=points[i],q=points[i+1];p.y=Math.max(p.y,q.y-.51*Math.hypot(p.x-q.x,p.z-q.z));
     }
     for(let i=1;i<n;i++){
-      const p=points[i],q=points[i-1];p.y=Math.max(p.y,q.y-.77*Math.hypot(p.x-q.x,p.z-q.z));
+      const p=points[i],q=points[i-1];
+      // Descend early enough to round out above an enclosed limb, while the
+      // terrain and branch samples still enforce the necessary clearance.
+      const slope=descendingBranch ? .77+.63*(1-smooth(Math.hypot(p.x-end.x,p.z-end.z),4,25)) : .77;
+      p.y=Math.max(p.y,q.y-slope*Math.hypot(p.x-q.x,p.z-q.z));
     }
     const lengths=[0];
     for(let i=1;i<=n;i++)lengths.push(lengths[i-1]+points[i].distanceTo(points[i-1]));
@@ -109,11 +153,12 @@ window.makePerchFlight=function(T,world,habitat,route){
     if(!selected||stage!=='free')return;
     track=makeTrack(s,selected);along=0;stage='approach';s.contact=false;
     s.perchFold=s.perchGrip=s.perchFlare=0;
+    s.perchOnRock=selected.type==='rock';strokeForce=0;
   }
   function cancel(s){
     if(stage==='approach'||stage==='flare'){
       if(s.airspeed<9){push(s);return;}
-      stage='free';track=null;s.perchGrip=s.perchFlare=s.perchFold=0;s.path=clamp(s.path,-.35,.25);
+      stage='free';track=null;s.perchGrip=s.perchFlare=s.perchFold=0;s.perchOnRock=false;s.path=clamp(s.path,-.35,.25);
     }
     if(stage==='free'){select(null);selection=[];}
   }
@@ -140,7 +185,9 @@ window.makePerchFlight=function(T,world,habitat,route){
       s.verticalSpeed+=(clamp((p.y-s.y)/dt,-25,25)-s.verticalSpeed)*ease(8,dt);
       s.x=p.x;s.y=p.y;s.z=p.z;
     };
-    s.elapsed+=dt;s.phase=(s.phase+dt*13.5)%(Math.PI*2);s.stall=s.tuck=s.rollRate=0;s.contact=false;
+    s.elapsed+=dt;s.stall=s.tuck=s.rollRate=0;s.contact=false;
+    if(s.effort>.035)s.phase=(s.phase+dt*Math.PI*2*2.5)%(Math.PI*2);
+    s.strokeBeat=s.effort*Math.sin(s.phase);
     if(stage==='perched'){
       settleTime+=dt;
       if(settleTime>.3){
@@ -150,36 +197,71 @@ window.makePerchFlight=function(T,world,habitat,route){
       }
       baseYaw=s.yaw;
       pan((input.look-input.turn)*dt*1.52,input.climb*dt);
-      s.mode='Perched';s.airspeed=s.verticalSpeed=s.effort=0;
+      s.mode='Perched';s.airspeed=s.verticalSpeed=s.effort=s.turnTrim=s.brakeSpread=0;
       s.perchLook=clamp(lookYaw,-1.15,1.15);s.perchLookPitch=lookPitch;
       s.perchFold+=(1-s.perchFold)*ease(3.8,dt);s.pitch+=(0-s.pitch)*ease(3.5,dt);
     } else if(stage==='push'){
       pushTime+=dt;
       const u=Math.min(1,pushTime/track.pushDuration),t=.15*u+.85*u*u;
       const old=station.set(s.x,s.y,s.z);track.getPointAt(t,ahead);
-      s.airspeed=lerp(4,15.3,u);s.effort=.98;s.mode='Pushing off';s.perchGrip=1-smooth(u,0,.4);
+      s.airspeed=lerp(4,15.3,u);s.effort=.98;
+      s.wingExtension=lerp(.42,.97,smooth(u,0,.39));s.brakeSpread=s.turnTrim=0;s.mode='Pushing off';s.perchGrip=1-smooth(u,0,.4);
       s.perchFold=Math.max(0,s.perchFold-dt*4.8);s.perchFlare=s.perchLook=s.perchLookPitch=0;
       s.yaw+=angle(track.pushYaw-s.yaw)*ease(6.6,dt);
       s.path=Math.atan2(ahead.y-old.y,Math.hypot(ahead.x-old.x,ahead.z-old.z)+.00001);
       s.pitch+=(clamp(s.path+.08,.02,.65)-s.pitch)*ease(6,dt);update(ahead);
-      if(u===1){stage='free';s.mode='Powered flight';s.path=clamp(s.path,.06,.25);s.pitch=s.path+.06;select(null);selection=[];}
+      if(u===1){stage='free';s.mode='Powered flight';s.path=clamp(s.path,.06,.25);s.pitch=s.path+.06;s.perchOnRock=false;select(null);selection=[];}
     } else {
       const remaining=track.length-along;
-      const flare=1-smooth(remaining,1.2,10);
-      const targetSpeed=clamp(Math.sqrt(4.9*remaining),.48,19);
-      s.airspeed+=(targetSpeed-s.airspeed)*ease(remaining<9?3.8:1.2,dt);
-      along=Math.min(track.length,along+Math.max(.48,s.airspeed)*dt);
+      // The path supplies the perch aim point. Along-track momentum determines
+      // when we actually get there. Spreading the wings dissipates kinetic energy.
+      const v=Math.max(.2,s.airspeed);
+      track.sample(along,station);track.sample(along+Math.min(Math.max(.16,v*.075),remaining),ahead);
+      const grade=Math.atan2(ahead.y-station.y,Math.hypot(ahead.x-station.x,ahead.z-station.z)+.0001);
+      // Spend kinetic energy in proportion to the remaining braking distance.
+      // The resulting approach has a finite arrival time, even on an uphill limb.
+      const gripSpeed=1.65,deceleration=3.8;
+      const envelopeSpeed=Math.sqrt(gripSpeed*gripSpeed+2*deceleration*remaining);
+      const approachSpeed=Math.min(18.5,envelopeSpeed);
+      const timeToGo=2*remaining/(envelopeSpeed+gripSpeed);
+      const spreadCue=1-smooth(timeToGo,.26,1.30);
+      const pitchUp=1-smooth(timeToGo,.13,1.02);
+      const q=.075*v*v;
+      const gravity=-9.81*Math.sin(grade);
+      const trimDrag=q*.048;
+      const requested=clamp((approachSpeed-v)*3.6-(envelopeSpeed<18.5?deceleration:0),-12,4.9);
+      const dragDemand=clamp((gravity-trimDrag-requested)/(q*1.34),0,1);
+      const commandedSpread=Math.max(dragDemand,pitchUp);
+      s.brakeSpread+=(commandedSpread-(s.brakeSpread||0))*ease(7,dt);
+      // The handwing briefly sweeps back during pitch-up then spreads into the
+      // broad final flare. The feet come out before the remaining airspeed is lost.
+      const wristSweep=Math.sin(pitchUp*Math.PI)*.14;
+      s.wingExtension=(.93+.07*spreadCue)-wristSweep;
+      const drag=trimDrag+q*1.34*s.brakeSpread;
+      // Tilt the stroke backward to check a descent, forward to clear a rise.
+      // Preserve its sign as the force builds and reverses between strokes.
+      const demand=clamp(requested-gravity+drag,-14,10);
+      strokeForce+=(demand-strokeForce)*ease(9,dt);
+      s.effort+=(clamp(Math.abs(strokeForce)/10,0,1)-s.effort)*ease(7,dt);
+      const down=Math.max(0,Math.sin(s.phase));
+      const thrust=strokeForce*(.92+.32*down*down);
+      s.airspeed=Math.max(.2,v+(gravity-drag+thrust)*dt);
+      along=Math.min(track.length,along+(v+s.airspeed)*.5*dt);
       track.sample(along,station);track.sample(along+Math.max(.16,s.airspeed*.24),ahead);
       const dx=ahead.x-station.x,dz=ahead.z-station.z;
       const yaw=dx*dx+dz*dz>.000001?Math.atan2(-dx,-dz):selected.yaw;
       const turn=angle(yaw-s.yaw);
-      s.yaw+=turn*ease(4.6,dt);s.bank+=(clamp(turn*.9,-.57,.57)*(1-flare)-s.bank)*ease(4.1,dt);
+      s.turnTrim=clamp(-turn*1.4,-1,1)*(1-pitchUp);
+      s.yaw+=turn*ease(4.6,dt);s.bank+=(clamp(turn*.9,-.57,.57)*(1-pitchUp)-s.bank)*ease(4.1,dt);
       s.path=Math.atan2(ahead.y-station.y,Math.hypot(dx,dz)+.0001);
-      s.pitch+=(clamp(s.path,-.6,.5)*(1-flare)+.48*flare-s.pitch)*ease(5,dt);
-      s.effort=clamp((s.path+.03)*1.5,0,.86)*(1-flare);s.perchGrip=flare;s.perchFlare=flare;
-      stage=remaining<10?'flare':'approach';s.mode=stage==='flare'?'Landing flare':'Approaching perch';
+      const bodyPitch=lerp(clamp(s.path+.04,-.62,.56),1.06,pitchUp);
+      s.pitch+=(bodyPitch-s.pitch)*ease(8,dt);
+      s.perchGrip=1-smooth(timeToGo,.06,.86);s.perchFlare=pitchUp;
+      if(timeToGo<1.30)stage='flare';
+      s.mode=stage==='flare'?'Landing flare':'Approaching perch';
       update(station);
       if(along===track.length){
+        s.touchdownSpeed=s.airspeed;
         stage='perched';baseYaw=s.yaw;lookYaw=lookPitch=settleTime=0;track=null;
         openYaw=Math.atan2(selected.x-selected.exit.x,selected.z-selected.exit.z);
         s.y=selected.y+contactHeight;s.bank=s.path=s.verticalSpeed=s.airspeed=s.effort=0;

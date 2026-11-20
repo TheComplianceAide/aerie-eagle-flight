@@ -107,3 +107,5 @@ main[data-mode=flight] header button,main[data-mode=flight] footer a,main[data-m
   #discovery{top:max(62px,calc(env(safe-area-inset-top) + 52px));right:max(4.4%,env(safe-area-inset-right));left:auto;bottom:auto}
 }
 @media(pointer:coarse) and (max-width:365px){main[data-mode=flight] .brand span{display:none}}
+
+#airBrake{touch-action:none;user-select:none;-webkit-user-select:none}#airBrake:active{color:#172323;background:#edd7aa}
