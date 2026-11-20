@@ -115,6 +115,20 @@ window.addLabradorCabin = function addLabradorCabin(T, scene, world, site) {
       const across=(front-back)/2.8,up=Math.hypot(half,rise)/2.8;
       const pts=s>0?[b,a,d,c]:[a,b,c,d];
       face('roof',0xe5e2d8,pts,[[0,0],[across,0],[across,up],[0,up]]);
+      // Folded laps run from ridge to gutter. Both flanks catch grazing
+      // light while their profile remains visible against the roof edge.
+      for(let z=back+.22;z<front-.12;z+=.46){
+        const x=s*(half-.015),x0=s*.082,top=peak-rise*.082/half;
+        panel('seam',0xadaca0,[x0,top+.024,z-.030],[x,eave+.02,z-.030],[x,eave+.055,z-.004],[x0,top+.060,z-.004]);
+        panel('seam',0x858b88,[x0,top+.060,z-.004],[x,eave+.055,z-.004],[x,eave+.018,z+.027],[x0,top+.024,z+.027]);
+      }
+      // A separate unpainted underside shades the open porch. Exposed
+      // rafters follow its pitch from ridge to eave.
+      panel('wood',0xb1a38d,[0,peak-.074,front-.05],[0,peak-.074,1.29],[s*(half-.09),eave-.072,1.29],[s*(half-.09),eave-.072,front-.05]);
+      for(let z=1.39;z<front;z+=.48)for(const side of [-1,1]){
+        const k=z+side*.037;
+        panel('wood',0x938878,[0,peak-.069,k],[s*(half-.055),eave-.067,k],[s*(half-.055),eave-.16,k],[0,peak-.16,k]);
+      }
       box('siding',0xd4d2c9,s*half,eave-.065,(front+back)/2,.063,.135,front-back);
       box('hardware',0x5d605e,s*(half+.012),eave+.008,(front+back)/2,.075,.033,front-back+.025);
       for(const z of [front,back]) {
@@ -157,6 +171,9 @@ window.addLabradorCabin = function addLabradorCabin(T, scene, world, site) {
   frontWall.block('siding',offWhite,doorHole.u,2.09,.028,1.05,.092,.13);
   frontWall.rect('screen',0x343630,doorHole.u-.415,.025,doorHole.u+.415,2.034,-.019);
   frontWall.block('hardware',0x746e60,doorHole.u,.032,.055,.94,.065,.155);
+  frontWall.rect('paint',0x635f53,doorHole.u-.391,.10,doorHole.u+.391,.39,-.013);
+  frontWall.block('hardware',0x88887d,doorHole.u,1.19,.002,.82,.045,.029);
+  for(const y of [.38,1.79])frontWall.block('hardware',0x65665b,doorHole.u-.398,y,.004,.053,.116,.031);
   frontWall.block('hardware',0xaca493,doorHole.u+.34,.96,.032,.035,.16,.042);
   pipe('hardware',0xb7b5ab,frontWall.at(doorHole.u+.34,1.015,.051),frontWall.at(doorHole.u+.34,1.015,.109),.013);
   pipe('hardware',0xb7b5ab,frontWall.at(doorHole.u+.34,1.015,.109),frontWall.at(doorHole.u+.34,.931,.109),.014);
@@ -278,12 +295,16 @@ window.addLabradorCabin = function addLabradorCabin(T, scene, world, site) {
     log:{map:'lakeside-dock.webp'},roof:{map:'lakeside-metal.webp',roughness:.73,metalness:.16},
     stone:{map:'shore-stone.webp'},hardware:{roughness:.57,metalness:.36},paint:{roughness:.74},
     glass:{color:0x34413e,roughness:.165,metalness:.38},glassLight:{color:0xa6afa5,roughness:.29,metalness:.40},
-    screen:{roughness:.94},alloy:{roughness:.45,metalness:.48},
+    seam:{roughness:.48,metalness:.32},screen:{roughness:.94},alloy:{roughness:.45,metalness:.48},
   };
   for(const [kind,b] of groups) {
     const opts={...materials[kind]};
     if(opts.map) opts.map=texture(opts.map);
     const mat=new T.MeshStandardMaterial({vertexColors:true,roughness:.88,side:T.DoubleSide,...opts});
+    if(kind==='glass'||kind==='glassLight')scene.userData.buildingLight.glaze(mat,1.0);
+    if(['wood','roof','siding'].includes(kind)){mat.bumpMap=mat.map;mat.bumpScale=kind==='roof'?.037:.014;}
+    if(kind==='siding')scene.userData.buildingLight.finish(mat,'boards',1.49,true);
+    if(kind==='stone')scene.userData.buildingLight.finish(mat,'fieldstone',1.76);
     const geometry=new T.BufferGeometry();
     geometry.setAttribute('position',new T.Float32BufferAttribute(b.positions,3));
     geometry.setAttribute('uv',new T.Float32BufferAttribute(b.uvs,2));
@@ -325,7 +346,7 @@ window.addLabradorCabin = function addLabradorCabin(T, scene, world, site) {
   function clearance(x,z) {
     const [u,v]=local(x,z);
     for(const r of roofs) if(v>=r.back && v<=r.front && Math.abs(u)<=r.half)
-      return floor+r.eave+r.rise*(1-Math.abs(u)/r.half)+.03;
+      return floor+r.eave+r.rise*(1-Math.abs(u)/r.half)+.065;
     if(Math.abs(u)<=2.05 && v>=leanBack-.17 && v<=back+.03)
       return floor+leanLow+(leanTop-leanLow)*(v-leanBack+.17)/(back-leanBack+.2);
     for(const b of obstacles) if(Math.abs(u-b.x)<=b.w/2 && Math.abs(v-b.z)<=b.d/2) return floor+b.h;

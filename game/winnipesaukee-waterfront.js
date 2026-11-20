@@ -6,13 +6,27 @@ window.makeWinnipesaukeeWaterfront=function(T,scene,texture){
   const surveys=tiles.map(tile=>({...tile,grid:new Int16Array(decode(tile.heights).buffer)}));
   const rects=tiles.map(({x,z,half})=>[x-half,z-half,x+half,z+half]);
 
+  // A level railroad platform above the descending shoreline sits on a
+  // battered stone-and-gravel fill. Keep its shoulder tied to surveyed land.
+  const station=features.weirs.station,stationSite=station&&new T.Vector2(
+    station.reduce((v,p)=>v+p[0],0)/4,station.reduce((v,p)=>v+p[1],0)/4);
+  const stationAxis=station&&new T.Vector2(station[1][0]-station[0][0],station[1][1]-station[0][1]);
+  const stationHalf=station&&new T.Vector2(stationAxis.length()*.5,Math.hypot(station[3][0]-station[0][0],station[3][1]-station[0][1])*.5);
+  stationAxis?.normalize();let stationGrade;
   function elevation(sample,far,farHalf,x,z){
     const fallback=sample(far,farHalf,x,z);
     const tile=surveys.find(tile=>Math.max(Math.abs(x-tile.x),Math.abs(z-tile.z))<tile.half);
     if(!tile)return fallback;
     const dx=x-tile.x,dz=z-tile.z;
     const blend=smoothstep(Math.max(Math.abs(dx),Math.abs(dz)),tile.half-150,tile.half);
-    return lerp(sample(tile.grid,tile.half,dx,dz),fallback,blend);
+    const ground=lerp(sample(tile.grid,tile.half,dx,dz),fallback,blend);
+    if(!stationSite||Math.abs(x-stationSite.x)>35||Math.abs(z-stationSite.y)>35)return ground;
+    if(stationGrade===undefined)stationGrade=Math.max(...station.map(([u,v])=>sample(tile.grid,tile.half,u-tile.x,v-tile.z)))-.12;
+    const u=x-stationSite.x,v=z-stationSite.y;
+    const along=Math.abs(u*stationAxis.x+v*stationAxis.y)-stationHalf.x-1.4;
+    const across=Math.abs(v*stationAxis.x-u*stationAxis.y)-stationHalf.y-1.4;
+    const outside=Math.hypot(Math.max(0,along),Math.max(0,across));
+    return Math.max(ground,stationGrade-.55*outside);
   }
 
   function createTrees(plant,elevation,waterLevel){
@@ -47,6 +61,18 @@ window.makeWinnipesaukeeWaterfront=function(T,scene,texture){
 
   function applyTerrain(material){
     injectMaps(material,'ortho','photo=mix(photo,vec3(lum(photo))','terrain');
+    if(stationSite){
+      material.uniforms.trackSite={value:stationSite};material.uniforms.trackAxis={value:stationAxis};material.uniforms.trackHalf={value:stationHalf};
+      material.uniforms.trackBallast={value:texture('surry-riprap.webp',true)};
+      material.fragmentShader='uniform vec2 trackSite,trackAxis,trackHalf;uniform sampler2D trackBallast;\n'+material.fragmentShader.replace('float radial=',`
+        vec2 fromTrack=xz-trackSite;
+        vec2 trackFrame=abs(vec2(dot(fromTrack,trackAxis),dot(fromTrack,vec2(-trackAxis.y,trackAxis.x))))-trackHalf;
+        float edgeDist=length(max(trackFrame,vec2(0.)));
+        float shoulder=(1.-smoothstep(3.0,11.,edgeDist))*(1.-smoothstep(110.,380.,d));
+        vec3 ballast=texture2D(trackBallast,vec2(wp.x*.53+wp.z*.31,wp.y*.67+wp.z*.47)).rgb;
+        c=mix(c,ballast*vec3(.80,.79,.755),shoulder*.85);
+        float radial=`);
+    }
     material.fragmentShader=material.fragmentShader.replace(
       'float materialWeight=max(',
       'float shorelineView=max(waterfrontWeight0,waterfrontWeight1)*smoothstep(.76,.97,normal.y);\n        float materialWeight=max('
@@ -84,6 +110,17 @@ window.makeWinnipesaukeeWaterfront=function(T,scene,texture){
       navy:new T.MeshStandardMaterial({color:0x26384b,roughness:.81}),
       blue:new T.MeshStandardMaterial({color:0x4d78a9,roughness:.83}),
     };
+    materials.cream.map=texture('building-clapboard.webp',true);materials.cream.map.colorSpace=T.SRGBColorSpace;
+    materials.cream.bumpMap=materials.cream.map;materials.cream.bumpScale=.035;
+    const finish=scene.userData.buildingLight.finish;
+    finish(materials.cream,'boards',2.27);
+    // Granite rubble supports the boardwalk and dock house; bridges and the
+    // cut-stone memorial use their separate concrete / dressed materials.
+    materials.foundation=finish(new T.MeshStandardMaterial({color:0xddd7c8,roughness:.95}),'fieldstone',2.08);
+    materials.roof.bumpMap=shingles;materials.roof.bumpScale=.043;
+    scene.userData.buildingLight.glaze(materials.window,1);
+    const ballastMap=texture('surry-riprap.webp',true);ballastMap.colorSpace=T.SRGBColorSpace;
+    materials.ballast=new T.MeshStandardMaterial({map:ballastMap,color:0xa8a69d,roughness:.97,side:T.DoubleSide});
     const root=new T.Group();root.name='Weirs Beach and Alton Bay waterfronts';scene.add(root);
     const unit=new T.BoxGeometry(1,1,1),column=new T.CylinderGeometry(.5,.5,1,9);
     const shapes=new Map(),sections=new Map(),obstacles=[];
@@ -132,7 +169,7 @@ window.makeWinnipesaukeeWaterfront=function(T,scene,texture){
       const f=footprint(alton.bandstand),y=waterLevel+.91;
       const platform=footprint(alton.bandstandPlatform||alton.bandstand);
       platform.box('timber',0,y-.03,0,platform.length,.21,platform.width);
-      platform.box('stone',0,y-.55,0,platform.length-1.2,1.05,platform.width-1.2);
+      platform.box('foundation',0,y-.55,0,platform.length-1.2,1.05,platform.width-1.2);
       const a=f.length*.43,b=f.width*.43,rise=1.45;
       for(const u of [-a,a])for(const v of [-b,b]){
         beam('trim',f.at(u,y+.04,v),f.at(u,y+2.42,v),.185);
@@ -149,6 +186,12 @@ window.makeWinnipesaukeeWaterfront=function(T,scene,texture){
         for(let v=-b+.28;v<b;v+=.33)beam('rail',f.at(u,y+.12,v),f.at(u,y+.89,v),.055);
       }
       hip(f.at,f.length+.6,f.width+.6,y+2.50,rise);
+      // The bandstand overhang has a visible soffit and open radial rafters.
+      for(const u of [-a,a])for(const v of [-b,b]){
+        beam('trim',f.at(u,y+2.42,v),f.at(0,y+3.77,0),.14);
+        beam('rail',f.at(u,y+2.43,v),f.at(-u,y+2.43,v),.17);
+      }
+      for(const side of [-1,1])f.box('navy',0,y+.10,side*platform.width*.5,platform.length,.16,.09);
       beam('iron',f.at(0,y+3.93,0),f.at(0,y+5.05,0),.048,true);
       beam('orange',f.at(0,y+5.00,0),f.at(.74,y+4.84,.13),.20,true);
       addObstacle(f.x,f.z,4.5,y+4.15);
@@ -157,7 +200,15 @@ window.makeWinnipesaukeeWaterfront=function(T,scene,texture){
     const weirs=features.weirs;
     if(weirs.station){
       const f=footprint(weirs.station),y=Math.max(...weirs.station.map(q=>elevation(...q)))+.45;
-      f.box('stone',0,y-.48,0,f.length,1.14,f.width);
+      // The rail bed sits on a cross slope above the bay. Extend the masonry
+      // through the surveyed grade along both long sides and the gable ends.
+      let footing=y-1.1;
+      for(let i=0;i<=18;i++)for(const side of [-1,1]){
+        const along=f.at(f.length*(i/18-.5),0,side*f.width/2);
+        const end=f.at(side*f.length/2,0,f.width*(i/18-.5));
+        footing=Math.min(footing,elevation(along[0],along[2])-.85,elevation(end[0],end[2])-.85);
+      }
+      f.box('foundation',0,(y+.1+footing)*.5,0,f.length,y+.1-footing,f.width);
       f.box('cream',0,y+1.58,0,f.length,3.22,f.width);
       for(const v of [-f.width/2,f.width/2]){
         f.box('trim',0,y+3.19,v,f.length+.65,.19,.15);
@@ -168,9 +219,25 @@ window.makeWinnipesaukeeWaterfront=function(T,scene,texture){
           f.box('trim',u,y+1.80,v+Math.sign(v)*.121,1.08,.075,.06);
         }
       }
+      // Corner boards, bay sills and brackets break the long roof fascia.
+      for(const k of [-1,1]){
+        const edge=k*f.width*.5,sign=k;
+        for(const end of [-1,1])f.box('trim',end*(f.length*.5-.06),y+1.62,edge,f.length*.007,3.19,.156);
+        f.box('trim',0,y+.27,edge,f.length,.18,.18);
+        for(let u=-f.length*.42;u<f.length*.46;u+=3.36){
+          f.box('trim',u,y+1.04,edge+sign*.12,1.43,.10,.27);
+          beam('trim',f.at(u+.65,y+2.71,edge+sign*.04),f.at(u+.65,y+3.20,edge+sign*.41),.093);
+        }
+      }
       const l=f.length/2+.5,w=f.width/2+.45,top=y+3.29,ridge=top+1.65;
       section('roof',f.at,[[[-l,top,-w],[l,top,-w],[l,ridge,0],[-l,ridge,0]],[[l,top,w],[-l,top,w],[-l,ridge,0],[l,ridge,0]]]);
       for(const k of [-1,1])section('roof',f.at,[[[k*l,top,-w],[k*l,top,w],[k*l,ridge,0]]]);
+      for(const k of [-1,1]){
+        beam('trim',f.at(-l,top-.09,k*w),f.at(l,top-.09,k*w),.19);
+        beam('trim',f.at(k*l,top,-w),f.at(k*l,ridge,0),.16);
+        beam('trim',f.at(k*l,top,w),f.at(k*l,ridge,0),.16);
+      }
+      beam('iron',f.at(-l,ridge+.03,0),f.at(l,ridge+.03,0),.105);
       f.box('trim',-2,ridge+.51,0,2.8,1.20,2.65);
       for(const v of [-1.36,1.36])f.box('window',-2,ridge+.62,v,1.75,.84,.10);
       hip((a,b,c)=>f.at(a-2,b,c),3.15,3.15,ridge+1.16,.84);
@@ -192,7 +259,10 @@ window.makeWinnipesaukeeWaterfront=function(T,scene,texture){
       f.box('cream',0,base+2.0,0,f.length,4.12,f.width);
       f.box('stone',0,top+.05,0,f.length+.63,.25,f.width+.63);
       for(const k of [-1,1])for(let u=-f.length*.39;u<f.length*.44;u+=3.65){
-        f.box('window',u,top-1.37,k*(f.width/2+.03),1.31,1.17,.11);
+        f.box('trim',u,top-1.37,k*(f.width/2+.047),1.59,1.45,.18);
+        f.box('window',u,top-1.37,k*(f.width/2+.139),1.35,1.22,.065);
+        f.box('trim',u,top-1.38,k*(f.width/2+.190),.073,1.22,.055);
+        f.box('trim',u,top-2.05,k*(f.width/2+.13),1.66,.11,.25);
       }
     }
     for(const set of [weirs.boats,alton.boats])for(const [x,z,l,w,angle] of set||[]){
@@ -235,12 +305,29 @@ window.makeWinnipesaukeeWaterfront=function(T,scene,texture){
     for(const [a,b] of weirs.rail||[]){
       const dx=b[0]-a[0],dz=b[1]-a[1],d=Math.hypot(dx,dz);
       if(d<.2)continue;
-      const at=(u,v,h)=>{
-        const x=a[0]+dx*u-dz*v/d,z=a[1]+dz*u+dx*v/d;
-        return [x,Math.max(elevation(x,z)+.16,waterLevel+.29)+h,z];
-      };
-      for(const v of [-.72,.72])beam('iron',at(0,v,.13),at(1,v,.13),.098);
-      for(let i=.43;i<d;i+=.78)beam('post',at(i/d,-1.26,.062),at(i/d,1.26,.062),.215);
+      const xy=(u,v)=>[a[0]+dx*u-dz*v/d,a[1]+dz*u+dx*v/d];
+      function cross(u){
+        const l=xy(u,-.8),r=xy(u,.8),m=xy(u,0);
+        const level=Math.max(waterLevel+.20,elevation(...m)+.20,(elevation(...l)+elevation(...r))*.5+.20);
+        return v=>{const [x,z]=xy(u,v);return [x,level,z]};
+      }
+      const pieces=Math.ceil(d/2.8),identity=(x,y,z)=>[x,y,z];let prev=cross(0);
+      for(let j=1;j<=pieces;j++){
+        const next=cross(j/pieces);
+        section('ballast',identity,[[prev(-1.38),next(-1.38),next(1.38),prev(1.38)]]);
+        for(const sign of [-1,1]){
+          const head=prev(sign*.72),end=next(sign*.72);head[1]+=.14;end[1]+=.14;beam('iron',head,end,.098);
+          const lowA=prev(sign*2.05),lowB=next(sign*2.05);
+          lowA[1]=Math.min(lowA[1]-.18,elevation(lowA[0],lowA[2]))-.15;
+          lowB[1]=Math.min(lowB[1]-.18,elevation(lowB[0],lowB[2]))-.15;
+          section('ballast',identity,[[prev(sign*1.38),next(sign*1.38),lowB,lowA]]);
+        }
+        prev=next;
+      }
+      for(let i=.43;i<d;i+=.78){
+        const bed=cross(i/d),a=bed(-1.26),b=bed(1.26);a[1]+=.027;b[1]+=.027;
+        beam('post',a,b,.19);
+      }
     }
     for(const set of [weirs.bridges,alton.bridges])for(const [a,b] of set||[]){
       const dx=b[0]-a[0],dz=b[1]-a[1],d=Math.hypot(dx,dz),x=(a[0]+b[0])*.5,z=(a[1]+b[1])*.5;

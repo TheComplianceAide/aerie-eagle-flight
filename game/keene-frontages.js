@@ -4,8 +4,11 @@ window.makeKeeneFrontages=function(T,{layout,face,clearRoof}) {
   const photos={colonial:'colonial',exchange:'exchange',lane:'lane',kings:'kings',works:'works',marqueePhoto:'marquee',
     pour:'pour',chamber:'chamber',ashuelot:'ashuelot',chamberlain:'chamberlain',theatreSide:'colonial-side'};
   for(const [key,name] of Object.entries(photos))layout[key]={file:'keene-front-'+name+'.webp',roughness:.89,alphaTest:.34};
+  for(const name of ['colonial','exchange','chamberlain','chamber','ashuelot','pour'])layout[name].normal='building-'+name+'-relief.webp';
+  layout.marqueeLamp={roughness:.27,emissive:0xffbe6a};
   layout.shopLettering={file:'keene-front-lettering.webp',roughness:.67};
-  layout.shopDisplay={file:'keene-front-glazing.webp',roughness:.28};
+  layout.shopDisplay={file:'building-decor-shop.webp',roughness:.28};
+  layout.cafeDisplay={file:'building-comfy-cafe.webp',roughness:.28};
   layout.upperSash={file:'keene-front-sash.webp',roughness:.44};
   layout.paintedSiding={file:'keene-front-clapboard.webp',roughness:.78};
 
@@ -53,6 +56,18 @@ window.makeKeeneFrontages=function(T,{layout,face,clearRoof}) {
     gable:[0xffd974,0x334b6b],cityhall:[0xe0b09c,0x585140],lane:[0xd5a68e,0x414037],
     pour:[0xdba998,0x563831],chamberlain:[0xe0b19a,0x4a4b43],ashuelot:[0xdab39a,0x564139],chamber:[0xd4c6b9,0x514d46]
   };
+  // Recesses follow the openings in the rectified source photograph. Each
+  // group stores the window centers, width and the lower and upper UV limits.
+  const openings={
+    colonial:[[[.092,.228,.430,.569,.767,.903],.073,.674,.799],[[.091,.229,.431,.567,.769,.903],.071,.440,.557]],
+    exchange:[[[.131,.326,.505,.658,.856],.076,.613,.799],[[.131,.326,.505,.658,.856],.076,.365,.534]],
+    chamberlain:[[[.10,.19,.455,.58,.765,.887],.069,.65,.747],[[.10,.194,.455,.58,.768,.883],.07,.324,.473],[[.10,.193,.453,.58,.77,.887],.067,.068,.163]],
+    pour:[[[.15,.418,.671,.851],.091,.441,.61],[[.126,.414,.678,.85],.093,.028,.199]],
+    ashuelot:[[[.147,.313,.47,.626,.782,.926],.058,.68,.82],[[.158,.263,.765,.87],.080,.381,.514],[[.163,.261,.765,.873],.073,.046,.177]],
+    chamber:[[[.199,.477,.741],.13,.443,.595],[[.205,.482,.742],.12,.068,.195]],
+    works:[[[.096,.734,.906],.13,.131,.396],[[.31,.381],.05,.112,.367]]
+  };
+  for(const name of Object.keys(openings))layout[name+'Pane']={...layout[name],normal:undefined,roughness:.20,glazing:true};
   const tileUV=(index,cols,rows)=>{
     const u0=(index%cols+.003)/cols,u1=(index%cols+.997)/cols;
     const v1=1-(Math.floor(index/cols)+.005)/rows,v0=1-(Math.floor(index/cols)+.995)/rows;
@@ -67,7 +82,61 @@ window.makeKeeneFrontages=function(T,{layout,face,clearRoof}) {
     const width=Math.hypot(a[0]-b[0],a[1]-b[1]);
     const dx=(a[0]-b[0])/width,dz=(a[1]-b[1])/width,nx=-dz,nz=dx;
     const point=(u,y,d)=>[b[0]+dx*u+nx*d,base+y,b[1]+dz*u+nz*d];
-    const rect=(kind,tint,u0,u1,y0,y1,depth,uv)=>face(kind,tint,[point(u0,y0,depth),point(u1,y0,depth),point(u1,y1,depth),point(u0,y1,depth)],uv);
+    function rect(kind,tint,u0,u1,y0,y1,depth,uv){
+      const bays=openings[kind];
+      if(!bays){face(kind,tint,[point(u0,y0,depth),point(u1,y0,depth),point(u1,y1,depth),point(u0,y1,depth)],uv);return;}
+      const overlay=depth+.27,xy=(x,y,d)=>point(u0+(u1-u0)*x,y0+(y1-y0)*y,d);
+      function patch(mat,a,b,lo,hi,d){
+        face(mat,tint,[xy(a,lo,d),xy(b,lo,d),xy(b,hi,d),xy(a,hi,d)],[[a,lo],[b,lo],[b,hi],[a,hi]]);
+      }
+      const bands=[...bays].sort((a,b)=>a[2]-b[2]);let floor=0;
+      for(const [centers,w,lo,hi] of bands){
+        patch(kind,0,1,floor,lo,overlay);let edge=0;
+        for(const mid of centers){
+          const a=mid-w/2,b=mid+w/2;
+          patch(kind,edge,a,lo,hi,overlay);patch(kind+'Pane',a,b,lo,hi,depth+.024);
+          for(const x of [a,b]){
+            face('smooth',rgb(0x5a554d),[xy(x,lo,depth),xy(x,hi,depth),xy(x,hi,overlay),xy(x,lo,overlay)],
+              [[x,lo],[x,hi],[x+.003,hi],[x+.003,lo]]);
+          }
+          for(const y of [lo,hi])face(kind,tint,[xy(a,y,depth),xy(b,y,depth),xy(b,y,overlay),xy(a,y,overlay)],
+              [[a,y],[b,y],[b,y+.004],[a,y+.004]]);
+          edge=b;
+        }
+        patch(kind,edge,1,lo,hi,overlay);floor=hi;
+      }
+      patch(kind,0,1,floor,1,overlay);
+      // Carry the original photographic brick joints and carved faces across
+      // the projections, including their newly visible sides and undersides.
+      function course(a,b,lo,hi,projection){
+        const back=overlay+.002,front=back+projection;
+        patch(kind,a,b,lo,hi,front);
+        for(const y of [lo,hi])face(kind,tint,[xy(a,y,back),xy(b,y,back),xy(b,y,front),xy(a,y,front)],
+          [[a,y],[b,y],[b,y+.004],[a,y+.004]]);
+        for(const x of [a,b])face(kind,tint,[xy(x,lo,back),xy(x,hi,back),xy(x,hi,front),xy(x,lo,front)],
+          [[x,lo],[x,hi],[x+.003,hi],[x+.003,lo]]);
+      }
+      for(const [centers,w,lo] of bands)for(const mid of centers){
+        course(mid-w*.57,mid+w*.57,lo-.014,lo+.001,.155);
+      }
+      if(kind==='colonial'){
+        for(const [a,b] of [[.326,.347],[.647,.667]])course(a,b,.381,.878,.16);
+        course(.003,.997,.875,.903,.30);course(.003,.997,.902,.912,.40);
+        course(.335,.665,.934,.993,.13);
+      }else if(kind==='exchange'){
+        for(const [a,b] of [[.022,.043],[.223,.247],[.407,.427],[.566,.582],[.735,.750],[.964,.982]])course(a,b,.354,.853,.235);
+        course(.012,.988,.331,.352,.34);
+        // The two striped awnings have sloping fabric, closed returns and a
+        // hanging hem. The original two photographed stripe patterns supply their UVs.
+        for(const [a,b] of [[.005,.247],[.376,.626]]){
+          const root=overlay+.035,lip=overlay+1.65;
+          face(kind,white,[xy(a,.181,lip),xy(b,.181,lip),xy(b,.277,root),xy(a,.277,root)],[[a,.181],[b,.181],[b,.277],[a,.277]]);
+          face(kind,white,[xy(a,.161,lip),xy(b,.161,lip),xy(b,.181,lip),xy(a,.181,lip)],[[a,.161],[b,.161],[b,.181],[a,.181]]);
+          for(const x of [a,b])face(kind,white,[xy(x,.164,root),xy(x,.164,lip),xy(x,.277,root)],[[x,.19],[x+.012,.19],[x,.277]]);
+          obstruction(u0+a*(u1-u0),u0+b*(u1-u0),root,lip,y0+.277*(y1-y0));
+        }
+      }
+    }
     function box(kind,tint,l,r,lo,hi,back,front){
       const bl=point(l,lo,back),br=point(r,lo,back),tl=point(l,hi,back),tr=point(r,hi,back);
       const fl=point(l,lo,front),fr=point(r,lo,front),ft=point(l,hi,front),rt=point(r,hi,front);
@@ -206,6 +275,17 @@ window.makeKeeneFrontages=function(T,{layout,face,clearRoof}) {
           for(const [start,end] of [[rim[0],rim[1]],[rim[2],rim[3]]]){
             const [u1,d1]=start,[u2,d2]=end;
             face('marqueePhoto',white,[point(u1,y,d1),point(u2,y,d2),point(u2,crown,d2),point(u1,crown,d1)],full);
+            // Small incandescent lamps sit proud of the folded metal rim.
+            const distance=Math.hypot(u2-u1,d2-d1),count=Math.floor(distance/.19);
+            const outward=(u2-u1)/distance,side=-(d2-d1)/distance;
+            for(let j=0;j<count;j++){
+              const t=(j+.5)/count,cu=u1+(u2-u1)*t+side*.09,cd=d1+(d2-d1)*t+outward*.09;
+              const center=point(cu,y+.008,cd);
+              for(let k=0;k<6;k++){
+                const a=k*Math.PI/3,b=a+Math.PI/3;
+                face('marqueeLamp',white,[center,point(cu+Math.cos(a)*.039,y-.030,cd+Math.sin(a)*.039),point(cu+Math.cos(b)*.039,y-.030,cd+Math.sin(b)*.039)]);
+              }
+            }
             face('smooth',metal,[point(u1,y-.085,d1),point(u2,y-.085,d2),point(u2,y+.015,d2),point(u1,y+.015,d1)]);
           }
           rect('smooth',metal,m-.24,m+.24,y-.08,boardTop,depth);
@@ -264,6 +344,11 @@ window.makeKeeneFrontages=function(T,{layout,face,clearRoof}) {
       }
       const door=Math.min(1.32,span*.15),mark=m+span*.16;
       box('smooth',trim,l+.12,r-.12,.10,shopTop-.08,.05,.135);
+      const display=['coffee','burger','perch','kings','sweet','pour'].includes(style)?'cafeDisplay':'shopDisplay';
+      function windowUV(a,b,low,hi){
+        const u0=(a-l)/span,u1=(b-l)/span,v0=(low-.56)/2.23,v1=(hi-.56)/2.23;
+        return [[u0,v0],[u1,v0],[u1,v1],[u0,v1]];
+      }
       const displays=[[l+.28,mark-door*.58],[mark+door*.58,r-.27]];
       for(let k=0;k<displays.length;k++){
         const [start,stop]=displays[k];
@@ -271,13 +356,13 @@ window.makeKeeneFrontages=function(T,{layout,face,clearRoof}) {
         const panes=Math.max(1,Math.round((stop-start)/2.5));
         for(let j=0;j<panes;j++){
           const a=start+(stop-start)*j/panes+.035,b=start+(stop-start)*(j+1)/panes-.035;
-          rect('shopDisplay',glass,a,b,.56,2.79,.147,tileUV(((sign??6)+k*4+j)%16,4,4));
+          rect(display,glass,a,b,.56,2.79,.147,windowUV(a,b,.56,2.79));
           rect('smooth',cream,a,b,2.41,2.46,.171);
         }
         box('smooth',trim,start,stop,.32,.53,.10,.24);
       }
       box('smooth',bronze,mark-door*.5,mark+door*.5,.11,2.74,.06,.153);
-      rect('shopDisplay',glass,mark-door*.40,mark+door*.40,.48,2.55,.166,tileUV(((sign??1)+5)%16,4,4));
+      rect(display,glass,mark-door*.40,mark+door*.40,.48,2.55,.166,windowUV(mark-door*.40,mark+door*.40,.48,2.55));
       box('smooth',cream,mark+door*.28,mark+door*.32,.90,1.38,.16,.21);
       const band=Math.min(shopTop-.03,3.68);
       if(style==='pour'){

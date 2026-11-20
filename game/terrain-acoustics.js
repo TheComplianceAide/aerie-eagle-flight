@@ -49,13 +49,16 @@
   window.aerieCascadeSource=function(world,ear){
     const land=world.elevation||world.height;
     let chosen,score=-1;
-    const impacts=world.spraySources;
+    const impacts=world.waterfalls?.impacts||world.spraySources;
     const sources=impacts?.length?impacts:(world.landmarks||[]).filter(s=>/fall|cascade/i.test(s.name)&&!/beach|pass|lookout/i.test(s.name));
     for(const p of sources){
-      const y=land(p.x,p.z)+Math.min(11,3+.18*(p.drop||12));
+      const y=(p.y??land(p.x,p.z))+Math.min(11,3+.18*(p.drop||12));
       const d=Math.hypot(ear.x-p.x,ear.y-y,ear.z-p.z);
       const weight=(.65+Math.min(45,p.drop||15)*.036)/(1+(d/120)**2);
-      if(weight>score){score=weight;chosen={x:p.x,y,z:p.z,distance:d};}
+      if(weight>score){
+        const reach=Math.min(350,Math.max(60,31+14*(p.width??15)+1.15*(p.drop??50)));
+        score=weight;chosen={x:p.x,y,z:p.z,distance:d,reach};
+      }
     }
     return chosen;
   };

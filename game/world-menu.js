@@ -16,6 +16,8 @@
     milford: {name:['Milford','Sound'],region:'Fiordland, New Zealand',description:'Follow the rainforest walls and waterfall channels along Piopiotahi.',launches:{lake:'Mitre Peak overlook',ridge:'Bowen Falls approach'}}
   });
   for(const [id,w] of Object.entries(worlds)){
+    const game=window.aerieLandWildlife.regions[id];
+    if(game)w.launches.game=game.title;
     w.launches.lookout=window.PERCH_ROUTE_NAMES[id];
     w.launches.wildlife=id==='moosehead'?'Wildlife shallows · Salmon rise':'Wildlife shallows';
   }
@@ -29,14 +31,14 @@
   const asset=name=>window.aerieAssetURL?.(name)||name;
   const mapSource=document.getElementById('mapSource');
   document.getElementById('creditsLink').href=asset('credits.txt');
+  document.getElementById('wildlifeCredits').href=asset('wildlife-credits.txt');
+  document.getElementById('opticCredits').href=asset('atmospheric-optics-credits.txt');
   function previewName(id,start){
-    if(['wall','spur','reeds'].includes(start))return id+'-'+start+'-view.webp';
-    if(id==='dixville')return 'dixville-'+({dawn:'dawn',lake:'lake',hotel:'hotel',highway:'highway',ridge:'ridge',panorama:'panorama',lookout:'ridge',wildlife:'lake'}[start]||'lake')+'-view.jpg';
-    if(id==='labrador')return start==='cabin'?'labrador-cabin-view.jpg':start==='rainbow'?'labrador-rainbow-view.jpg':'labrador-lake-view.jpg';
-    if(id==='alaska' && start==='spray')return 'alaska-shore-view.jpg';
-    if(start==='wildlife')start='lake';
-    if(id==='crater'&&['lake','ridge'].includes(start))return 'crater-storm-'+start+'.webp';
+    if(['game','wildlife','wall','spur','reeds','spray'].includes(start))return id+'-'+start+'-view.webp';
     if(start==='lookout')return 'perch-'+id+'-view.jpg';
+    if(id==='dixville')return 'dixville-'+start+'-view.jpg';
+    if(id==='labrador')return start==='ridge'?'labrador-ridge-view.webp':'labrador-'+start+'-view.jpg';
+    if(id==='crater'&&['lake','ridge'].includes(start))return 'crater-storm-'+start+'.webp';
     if(id==='swiss')return {lake:'valley.jpg',falls:'falls-view.jpg',forest:'forest-view.jpg',shore:'swiss-shore-view.jpg'}[start];
     return id+'-'+start+'-view.jpg';
   }
@@ -63,6 +65,7 @@
     try { history.replaceState(null, '', '#'+params); } catch { location.hash = params.toString(); }
     app.dataset.departure = launch.value;
     const descriptions={
+      game:'Follow the animals at the forest or shoreline edge. Game Vision identifies nearby species as you fly.',
       wall:'Follow the broken ledges on your right. Bank left past the fallen sandstone blocks into the open canyon.',
       cabin:'Fly out of the shower toward the white cabin. Look for sunlight catching the wet roof and the puddles by the shore.',
       spur:'Glide around the spur with sound on. Listen for the high hiss of Nugget Falls as the cascade comes into view.',

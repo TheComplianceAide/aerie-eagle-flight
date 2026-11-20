@@ -12,7 +12,7 @@ window.makeMovingWeather = async function makeMovingWeather(THREE, scene, world)
     yosemite:      [4050, 5100, .54, .44, 2.6, .96],
     crater:        [3670, 5400, .50, .48, 2.6, .86],
     lofoten:       [1390, 4000, .46, .51, 3.4, .61],
-    milford:       [2410, 4200, .40, .48, 2.9, .77],
+    milford:       [2670, 11800, .51, .37, 2.9, .86],
     winnipesaukee: [1670, 4250, .49, .40, 2.1, .91],
     moosehead:     [1640, 3850, .45, .43, 2.0, .86],
     surry:         [1540, 3950, .51, .39, 2.2, .89]
@@ -50,6 +50,13 @@ window.makeMovingWeather = async function makeMovingWeather(THREE, scene, world)
     float belowCloud=cloudHeight-cloudWorld.y;
     vec2 onDeck=cloudWorld.xz+cloudSun.xz*(max(0.,belowCloud)/max(.15,cloudSun.y));
     float shade=cloudCover(cloudDensity(onDeck))*smoothstep(0.,140.,belowCloud);
+    ${world.region==='milford'?`// A deep maritime cloud casts a broad penumbra at the low sun angle.
+    // Integrate through its thickness instead of projecting its fine underside
+    // onto kilometres of steep terrain as a repeating row of dark stripes.
+    vec2 fjordCloudShear=cloudSun.xz*1110.,fjordCrossLight=vec2(-cloudSun.z,cloudSun.x)*340.;
+    float broad=(2.*cloudDensity(onDeck)+cloudDensity(onDeck+fjordCloudShear)+cloudDensity(onDeck-fjordCloudShear)
+                  +cloudDensity(onDeck+fjordCrossLight)+cloudDensity(onDeck-fjordCrossLight))/6.;
+    shade=smoothstep(.25,.78,broad)*smoothstep(0.,240.,belowCloud);`:''}
     float distanceFade=1.-.72*smoothstep(4200.,21000.,length(cloudWorld-cameraPosition));
     cloudShade=shade*cloudStrength*distanceFade;
   `;
@@ -70,6 +77,12 @@ window.makeMovingWeather = async function makeMovingWeather(THREE, scene, world)
         underside=mix(vec3(.23,.34,.49),vec3(.51,.39,.48),lowBand);
         lit=mix(vec3(.46,.55,.65),vec3(.93,.56,.46),lowBand*(.59+.41*silver));
         opacity*=.44;
+      `:''}
+      ${world.region==='surry'?`
+        // First light colours the thin cloud deck; the river-valley inversion
+        // is applied in front of it by the regional weather material.
+        underside=vec3(.43,.40,.56);lit=mix(vec3(.70,.55,.69),vec3(1.,.72,.56),silver);
+        opacity*=.22;
       `:''}
       vec3 cloud=mix(underside,lit,clamp(rim+.26*(1.-opacity),0.,1.));
       gl_FragColor.rgb=mix(gl_FragColor.rgb,${linearOutput ? "pow(cloud,vec3(2.2))" : "cloud"},.73*opacity);
@@ -113,7 +126,9 @@ window.makeMovingWeather = async function makeMovingWeather(THREE, scene, world)
           // Survey grids and skinned/instanced meshes already have densely
           // spaced vertices. Sampling there preserves scarce fragment samplers
           // for the photographic terrain and multilayer feather materials.
-          const shadeRGB='gl_FragColor.rgb*=vec3(1.)-vec3(1.,.85,.65)*cloudShade;';
+          const surveyedCliff=world.region==='milford'&&material.uniforms?.halfMap&&material.uniforms.terrainLight;
+          const direct=surveyedCliff?'(.10+.90*sunlit*max(.0,dot(normal,sun)))':'1.';
+          const shadeRGB='gl_FragColor.rgb*=vec3(1.)-vec3(1.,.85,.65)*cloudShade*'+direct+';';
           if(water){
             // Large lake quads need per-fragment projection across their span.
             const varying='varying vec3 cloudWorld;\n';
@@ -131,7 +146,7 @@ window.makeMovingWeather = async function makeMovingWeather(THREE, scene, world)
       material.needsUpdate=true;
     }
   });
-  const spray=world.spraySources && window.makeNuggetSpray(THREE,scene,world,texture);
+  const spray=world.spraySources && window.makeNuggetSpray?.(THREE,scene,world,texture);
   return function updateWeather(elapsed){
     uniforms.cloudTravel.value=elapsed*field.advection*upperWind;
     if(spray)spray.value=elapsed;

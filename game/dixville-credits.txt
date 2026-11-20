@@ -19,3 +19,14 @@ https://www.loc.gov/item/2011631982/
 Historic stone portal photograph: https://www.loc.gov/item/2011634077/
 The hotel exterior and Table Rock projection are modeled interpretations. The portal position on the lake approach is approximate.
 Autumn canopy and eastern dawn lighting are art-directed. The sky uses the existing CC0 Poly Haven sky panorama from the Winnipesaukee scenery; see atlas-credits.txt.
+
+The outer 32 km uses a 1,093 × 1,093 sample of 3DEP heights and directional relief derived from that survey. The 32 km and 7.8 km orthophotos are 4,096 pixels wide, and the 2.9 km central orthophoto is 3,072 pixels wide. Forest-floor color, ambient occlusion and normals use the CC0 Leaves Forest Ground material from Poly Haven.
+https://polyhaven.com/a/leaves_forest_ground
+https://polyhaven.com/license
+
+Table Rock, the gorge canopy and the local streambeds use USGS/FEMA Connecticut River Watershed lidar and USGS 3DEP. Baby Flume and Huntington Cascades use OpenStreetMap waterway centerlines and waterfall locations. Widths and flows are interpreted. The colored rock material adapts the CC0 Rock Face 03 photogrammetry scan by Dario Barresi and Rico Cilliers.
+https://www.fisheries.noaa.gov/inport/item/71770
+https://www.nhstateparks.org/find-parks-trails/dixville-notch-state-park
+https://www.openstreetmap.org/node/10169383124
+https://www.openstreetmap.org/node/10169383197
+https://polyhaven.com/a/rock_face_03

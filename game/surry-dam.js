@@ -48,6 +48,10 @@
     const weathered = material({color:0x53534c,metalness:.28,roughness:.68});
     const glass = material({color:0x384449,roughness:.28,metalness:.18});
     const white = material({color:0xc8c3b2,roughness:.71});
+    roofMat.bumpMap=roadTex;roofMat.bumpScale=.050;
+    granite.bumpMap=granite.map;granite.bumpScale=.055;
+    scene.userData.buildingLight.finish(roofMat,'slate',2.65);roofMat.color.setHex(0xa09f9b);
+    scene.userData.buildingLight.glaze(glass,1,'gatehouse');
 
     function strip(a0,a1,b0,b1,mat,heightAt,repeat) {
       const steps = Math.ceil((a1-a0)/3);
@@ -120,6 +124,20 @@
     }
     box(gate,granite,.66,1.78,.78,2.40,4.68,-1.15);
     box(gate,weathered,.73,.08,.87,2.40,5.57,-1.15);
+    for(const side of [-1,1]){
+      box(gate,weathered,.13,.20,6.8,side*4.05,3.85,0);
+      box(gate,weathered,.12,3.60,.12,side*3.89,1.83,-2.65);
+      for(const wx of [-2.53,2.52]){
+        box(gate,white,1.12,.13,.32,wx,1.81,3.12*side);
+        box(gate,granite,1.12,.21,.22,wx,3.05,3.13*side);
+        box(gate,white,.77,.046,.075,wx,2.44,3.24*side);
+      }
+      for(const q of [-1,1]){
+        const length=Math.hypot(4.05,1.82),trim=box(gate,white,length,.125,.13,side*2.02,4.79,q*3.42);
+        trim.rotation.z=-Math.atan2(1.82,4.05)*side;
+      }
+    }
+    box(gate,weathered,.24,.115,6.81,0,5.79,0);
     const spillway = survey.spillway||[[-1077,-2659],[-1083,-2741],[-1097,-2742]];
     const weirTop=167.7;
     for(let i=1;i<spillway.length;i++){
@@ -182,7 +200,7 @@
         const [s,t]=station(x,z);
         const bx=x-westBridge[0][0],bz=z-westBridge[0][1];
         if(bx*49-bz*53>=0&&bx*49-bz*53<=bridgeSpan**2&&Math.abs(bx*53+bz*49)<2.53*bridgeSpan)return 173.21;
-        if(Math.abs(x-gateX)<4.5&&Math.abs(z-gateZ)<3.6)return gateBase+5.72;
+        if(Math.abs(x-gateX)<4.5&&Math.abs(z-gateZ)<3.6)return gateBase+5.86;
         if(s>=0&&s<=length&&Math.abs(t)<4.6)return crestDeck(x,z)+(Math.abs(t)>3.3?.77:0);
         return -Infinity;
       }

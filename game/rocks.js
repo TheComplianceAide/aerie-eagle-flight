@@ -2,7 +2,7 @@
 // a fixed ring decides where a high-detail scan is worth drawing.
 window.addTalus = function addTalus(THREE, scene, world) {
   if (!window.talusScans?.length) return;
-  const arid=world.region==='canyon';
+  const arid=world.region==='canyon',sierra=world.region==='yosemite';
   const loader = new THREE.TextureLoader();
   function map(path, color = false) {
     const texture = loader.load(path);
@@ -29,6 +29,20 @@ window.addTalus = function addTalus(THREE, scene, world) {
         float openSun=texture2D(rockHorizon,vec2(rockXZ.x,-rockXZ.y)/6400.+.5).b;
         reflectedLight.directDiffuse*=mix(.15,1.,openSun);
         reflectedLight.indirectDiffuse*=mix(vec3(.70,.76,.82),vec3(1.),openSun);`);
+    };
+  }
+  if(sierra){
+    material.onBeforeCompile=shader=>{
+      shader.uniforms.graniteHorizon={value:world.sunMask};
+      shader.vertexShader='varying vec2 boulderUV;\n'+shader.vertexShader.replace('#include <project_vertex>',`
+        #include <project_vertex>
+        vec3 base=(instanceMatrix*vec4(transformed,1.)).xyz;
+        boulderUV=vec2(base.x,-base.z)/11000.+.5;`);
+      shader.fragmentShader='varying vec2 boulderUV;uniform sampler2D graniteHorizon;\n'+shader.fragmentShader.replace('#include <lights_fragment_end>',`
+        #include <lights_fragment_end>
+        float open=texture2D(graniteHorizon,boulderUV).r;
+        reflectedLight.directDiffuse*=open;
+        reflectedLight.indirectDiffuse*=mix(vec3(.64,.75,.88),vec3(1.),open);`);
     };
   }
   function unpack(encoded, Type) {
@@ -132,7 +146,32 @@ window.addTalus = function addTalus(THREE, scene, world) {
       }
     }
   }
-  if(!arid){
+  if(world.region==='dixville'){
+    // Blocks weather off the gorge walls, while small rounded stones collect
+    // along the wet bed. A few large boulders split the stream into threads.
+    for(const b of window.dixvilleBrooks)for(const track of [b.upstream,b.rail,b.downstream])for(let j=1;j<track.length;j++){
+      const a=track[j-1],end=track[j],dx=end[0]-a[0],dz=end[1]-a[1],span=Math.hypot(dx,dz);
+      const half=b.name==='Baby Flume'?1.4:2.05;
+      for(let i=0;i<Math.ceil(span*7);i++){
+        const t=random(),bank=(random()<.5?-1:1)*(half*.56+random()**1.6*6.5);
+        const size=.14+.84*random()**2+(random()<.075?1.05+1.8*random():0);
+        spawnRock(a[0]+dx*t-dz*bank/span,a[1]+dz*t+dx*bank/span,size,Math.abs(bank)<half+1);
+      }
+    }
+  }else if(sierra){
+    // Slope, upslope relief, NAIP exposed stone and mapped streams delimit
+    // rockfall fans. Place larger outlying blocks past the fine upper scree.
+    for(const [cx,cz,bearing,rise] of world.talusFans||[]){
+      const angle=bearing*Math.PI/180,dx=Math.cos(angle),dz=Math.sin(angle);
+      const reach=14+rise*.15,span=6+reach*.49;
+      for(let i=0;i<18;i++){
+        const along=random(),side=(2*random()-1)*span*(.29+.71*along);
+        const x=cx+dx*reach*along-dz*side,z=cz+dz*reach*along+dx*side;
+        const size=.56+(.88+5.4*along+rise*.009)*random()**1.55;
+        spawnRock(x,z,size,false);
+      }
+    }
+  }else if(!arid){
     for(let i=0;i<2150;i++){
       const onShore=i<470 && shore.length>2;
       let x,z;

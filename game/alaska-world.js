@@ -914,51 +914,10 @@ class Water extends Mesh {
     return y;
   }
   const clock={value:0};
-  // Surveyed valley bed and the visible whitewater in the satellite image locate Nugget Falls.
-  const points=[],flowUv=[],whitewater=[],idx=[];let meters=0,previous=null;
-  for(let seg=0;seg<flow.length-1;seg++){
-    const a=flow[seg],b=flow[seg+1],length=Math.hypot(b[0]-a[0],b[1]-a[1]),steps=Math.ceil(length/3.5);
-    const vx=(b[1]-a[1])/length,vz=(a[0]-b[0])/length;
-    for(let step=0;step<steps;step++){
-      const f=step/steps,x=a[0]+(b[0]-a[0])*f,z=a[1]+(b[1]-a[1])*f;
-      const steepness=clamp((elevation(a[0],a[1])-elevation(b[0],b[1]))/length,0,1);
-      const spread=(seg<6?5.4+steepness*9.:Math.max(2.2,6.5-.35*(seg-6)))*(1+.17*Math.sin(meters*.086)+.12*Math.sin(meters*.147));
-      if(previous)meters+=Math.hypot(x-previous.x,z-previous.z,elevation(x,z)-previous.y);previous={x,z,y:elevation(x,z)};
-      for(let side=0;side<5;side++){
-        const dx=x+(side-2)*spread*.5*vx,dz=z+(side-2)*spread*.5*vz;
-        const k=points.length/3;points.push(dx,height(dx,dz)+.85,dz);flowUv.push(side/4,meters);whitewater.push(steepness);
-        if(k>=5&&side>0)idx.push(k-6,k-5,k-1,k-5,k,k-1);
-      }
-    }
-  }
-  const fg=new THREE.BufferGeometry();fg.setAttribute('position',new THREE.Float32BufferAttribute(points,3));fg.setAttribute('uv',new THREE.Float32BufferAttribute(flowUv,2));fg.setIndex(idx);fg.setAttribute('aeration',new THREE.Float32BufferAttribute(whitewater,1));
-  const foam=new THREE.ShaderMaterial({uniforms:{clock,noise:{value:waters}},side:THREE.DoubleSide,transparent:true,depthWrite:false,
-    vertexShader:`attribute float aeration;varying vec2 f;varying float grade;
-      void main(){f=uv;grade=aeration;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
-    fragmentShader:`uniform float clock;uniform sampler2D noise;varying vec2 f;varying float grade;
-      void main(){
-        float v=f.y-clock*(3.8+7.*grade);
-        float n=.6*texture2D(noise,vec2(f.x*1.45,v*.026)).r+.4*texture2D(noise,vec2(f.x*.67,v*.057)).g;
-        float side=f.x+.06*sin(f.y*.065)+.04*sin(f.y*.137+clock*.43);
-        float edge=smoothstep(.005,.22,min(side,1.-side)+.14*(n-.5));
-        float churn=smoothstep(.04,.38,grade);
-        float strands=texture2D(noise,vec2(f.x*3.4,v*.010)).g;
-        float thread=.5+.5*sin(27.*f.x+3.6*strands+1.5*sin(.039*v));
-        float foam=smoothstep(.25,.82,.43*n+.27*strands+.30*thread+.09*churn);
-        vec3 color=mix(vec3(.34,.54,.56),vec3(.94,.96,.97),foam*(.57+.43*churn));
-        gl_FragColor=vec4(color,edge*(.17+.71*churn)*(.38+.62*foam));
-      }`});
-  scene.add(new THREE.Mesh(fg,foam));
-  const spraySources=[];
-  for(let i=1;i<flow.length;i++){
-    const [x,z]=flow[i],[px,pz]=flow[i-1];
-    const drop=elevation(px,pz)-elevation(x,z);
-    if(drop>3.5 || i===flow.length-2 || i===flow.length-1)spraySources.push({x,z,drop:Math.max(0,drop)});
-    if(drop>15){
-      const t=.58;
-      spraySources.push({x:px+(x-px)*t,z:pz+(z-pz)*t,drop:drop*.45});
-    }
-  }
+  // The measured Nugget Creek bed splits over rock shelves and empties into the lake.
+  const waterfalls=window.makeWaterfallSystem(THREE,scene,{clock,ground:elevation,level:lake.position.y,sun,texture:map,sky:skyMap});
+  waterfalls.chute('Nugget Falls',flow,15,{pool:true,poolLevel:lake.position.y});
+  waterfalls.couple(lake);
   const sprayPass={x:690,z:602,y:Math.max(96,clearance(690,602)+32),yaw:-2.14,glance:-8};
   const lakeLaunch={x:-269,z:-568,y:71,yaw:-.32},shoreLaunch={x:473,z:927,y:height(473,927)+8,yaw:.27},ridge={x:-860,z:-1890,y:elevation(-860,-1890)+100,yaw:-2.73};
   scene.traverse(mesh=>{
@@ -977,7 +936,7 @@ class Water extends Mesh {
     mesh.onBeforeRender=(renderer,scene,camera)=>{material.uniforms.linearOutput.value=!!camera.userData.lakeReflection;};
   });
   const sunMask=map('alaska-tree-light.webp');
-  return {region:"alaska",spraySources,forestLightSpan:14400,elevation,clearance,height,trees,sunMask,sunDirection:sun,skyTexture:skyMap,waterLevel:0,lakeLevel:0,lakePolygon:shore,altitudeOffset:18,spawn:lakeLaunch,
+  return {region:"alaska",waterfalls,forestLightSpan:14400,elevation,clearance,height,trees,sunMask,sunDirection:sun,skyTexture:skyMap,waterLevel:0,lakeLevel:0,lakePolygon:shore,altitudeOffset:18,spawn:lakeLaunch,
     launches:{lake:lakeLaunch,ridge,shore:shoreLaunch,spray:sprayPass,spur:{x:612,y:68.4704,z:977,yaw:-.08159},alpine:{x:-2900,z:-2010,y:elevation(-2900,-2010)+58,yaw:-.28}},bounds:{minX:-6890,maxX:6890,minZ:-6890,maxZ:6890},
     landmarks:[{name:'West alpine crest',x:-2900,z:-2010},{name:'Upper crevasse field',x:1500,z:-4130},{name:'Blue Ice Passage',x:-116,z:-1010},{name:'Nugget Falls beach',x:473,z:927},{name:'Medial moraine',x:632,z:-2450},{name:'Mendenhall Glacier',x:40,z:-1400},{name:'Nugget Falls',x:518,z:658},{name:'Mendenhall Lake',x:-700,z:680},{name:'West Glacier Ridge',x:-860,z:-1890}],
     update(dt,time,player){updateTerrainLOD(player);updateLedges(player);clock.value=time;lake.material.uniforms.time.value=time*.72;}

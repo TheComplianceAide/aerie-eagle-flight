@@ -471,7 +471,7 @@ class Water extends Mesh {
     yosemite:{sky:'alaska-evening.jpg',sun:[-.62,.46,.53],stone:[.64,.61,.57],treeH:30,top:2840,cover:.91,launch:[-4600,1780,2300,0,150],low:[-1700,1110,1560,-490,70]},
     crater:{sky:'alaska-evening.jpg',sun:[-.37,.53,-.71],water:1880.62,sea:0x123951,stone:[.43,.385,.337],treeH:21,top:2430,cover:.96,launch:[-3410,1770,-960,-230,315],low:[-2360,1720,600,1630,57]},
     lofoten:{sky:'atlas-qwantani_sunrise_puresky.webp',sun:[-.66,.35,.58],water:0,sea:0x225060,stone:[.37,.38,.37],treeH:6,top:330,cover:.6,launch:[600,2470,-450,-1890,320],low:[310,1680,-770,-1750,56]},
-    milford:{sky:'atlas-wasteland_clouds_puresky.webp',sun:[-.4,.43,.71],water:0,sea:0x1c4548,stone:[.34,.37,.36],treeH:17,top:1060,cover:1.15,launch:[2370,3200,-2000,-700,330],low:[2630,4340,560,1900,105]}
+    milford:{flightHalf:6370,sky:'atlas-wasteland_clouds_puresky.webp',sun:[-.4,.43,.71],water:0,sea:0x1c4548,stone:[.34,.37,.36],treeH:17,top:1060,cover:1.15,launch:[2370,3200,-2000,-700,330],low:[2630,4340,560,1900,105]}
   }[region]||window.ATLAS_PROFILES?.[region];
   const surry=region==='surry';
   const dixville=region==='dixville';
@@ -486,23 +486,48 @@ class Water extends Mesh {
     return (grid[k+n+1]*(a+b-1)+grid[k+n]*(1-a)+grid[k+1]*(1-b))*.25;
   }
   const [focusX,focusZ]=survey.innerCenter || [0,0];
+  const notchSurveys=dixville?[
+    ...(window.dixvilleNotchRock?[{x:0,z:300,half:360,grid:unpack(window.dixvilleNotchRock),step:2}]:[]),
+    ...window.dixvilleBrooks.map(b=>({x:b.x,z:b.z,half:b.half,grid:unpack(b.terrain),step:b.half/96}))
+  ]:[];
+  const brook=window.aerieRegionalFalls?.[region],localDEM=window.aerieFallsSurveys?.[region];
+  const brookGrid=localDEM?unpack(localDEM.terrain):null;
+  const insideBrook=(x,z)=>Math.max(Math.abs(x-localDEM.x),Math.abs(z-localDEM.z))<localDEM.half;
+  const fjordSurveys=(survey.fallsTerrain||[]).map(area=>({...area,grid:unpack(area.terrain)}));
+  const fjordRects=fjordSurveys.map(a=>[a.x-a.half,a.z-a.half,a.x+a.half,a.z+a.half]);
   const cityGrid=survey.cityTerrain?unpack(survey.cityTerrain):null;
   const [cityX,cityZ]=survey.cityCenter||[0,0];
   function farHeight(x,z){
     const base=sample(far,farH,x,z);
+    if(dixville)return base; // This outer survey already resolves the 3DEP ridges.
     const shore=settings.water===undefined?1:smoothstep(base-settings.water,2,25);
     return base+shore*window.rangeRelief(region,x,z);
   }
-  function elevation(x,z){
+  let ship=null;
+  function elevation(x,z,includeIslet=true){
+    const base=regionalElevation(x,z,includeIslet);
+    if(!brookGrid||!insideBrook(x,z))return base;
+    const dx=x-localDEM.x,dz=z-localDEM.z,h=localDEM.half;
+    return lerp(sample(brookGrid,h,dx,dz),base,smoothstep(Math.max(Math.abs(dx),Math.abs(dz)),h-18,h));
+  }
+  function regionalElevation(x,z,includeIslet){
     const r=Math.max(Math.abs(x),Math.abs(z));
-    if(r>=h)return waterfront?waterfront.elevation((g,span,xx,zz)=>g===far?farHeight(xx,zz):sample(g,span,xx,zz),far,farH,x,z):farHeight(x,z);
+    if(r>=h&&!fjordSurveys.some(a=>Math.abs(x-a.x)<a.half&&Math.abs(z-a.z)<a.half))return waterfront?waterfront.elevation((g,span,xx,zz)=>g===far?farHeight(xx,zz):sample(g,span,xx,zz),far,farH,x,z):farHeight(x,z);
     let val=sample(near,h,x,z);
     const focusDistance=Math.max(Math.abs(x-focusX),Math.abs(z-focusZ));
     if(tight&&focusDistance<1450)val=lerp(sample(tight,1450,x-focusX,z-focusZ),val,smoothstep(focusDistance,1395,1450));
     const cityDistance=Math.max(Math.abs(x-cityX),Math.abs(z-cityZ));
     if(cityGrid&&cityDistance<1450)val=lerp(sample(cityGrid,1450,x-cityX,z-cityZ),val,smoothstep(cityDistance,1395,1450));
     if(r>h-200)val=lerp(val,farHeight(x,z),smoothstep(r,h-200,h));
-    return region==='crater'?shoreDetail.calderaBed(x,z,val):val;
+    for(const area of notchSurveys){
+      const dx=x-area.x,dz=z-area.z,r=Math.max(Math.abs(dx),Math.abs(dz));
+      if(r<area.half)val=lerp(sample(area.grid,area.half,dx,dz),val,smoothstep(r,area.half-7,area.half));
+    }
+    for(const a of fjordSurveys){const dx=x-a.x,dz=z-a.z,r=Math.max(Math.abs(dx),Math.abs(dz));
+      if(r<a.half)val=lerp(sample(a.grid,a.half,dx,dz),val,smoothstep(r,a.half-27,a.half));}
+    if(region!=='crater')return val;
+    const bed=shoreDetail.calderaBed(x,z,val);
+    return includeIslet&&ship?Math.max(bed,ship.surface(x,z)):bed;
   }
   function growth(x,z){
     const i=Math.floor((x/h*.5+.5)*384),j=Math.floor((z/h*.5+.5)*384);
@@ -510,10 +535,10 @@ class Water extends Mesh {
   }
   const loader=new THREE.TextureLoader();
   function texture(file,repeat=false){const tex=loader.load(file);tex.anisotropy=12;if(repeat)tex.wrapS=tex.wrapT=THREE.RepeatWrapping;return tex;}
-  const lightAngles={moosehead:[-84,15.5],winnipesaukee:[-112,4.2],surry:[-52,19],yosemite:[-43,6.5],crater:[-70,8],lofoten:[-115,4.3],milford:[-71,8]};
+  const lightAngles={moosehead:[-84,15.5],winnipesaukee:[-112,4.2],surry:[-52,8.5],yosemite:[157,12.4],crater:[-70,8],lofoten:[-115,4.3],milford:[-71,8]};
   const [azimuth,altitude]=(settings.lightAngles||lightAngles[region]).map(THREE.MathUtils.degToRad);
   const sun=new THREE.Vector3(Math.cos(azimuth)*Math.cos(altitude),Math.sin(altitude),Math.sin(azimuth)*Math.cos(altitude));
-  const skyMap=texture(settings.skyMap||'atlas-'+region+'-sky.webp');
+  const skyMap=texture(surry?'keene-first-light.webp':settings.skyMap||'atlas-'+region+'-sky.webp');
   skyMap.colorSpace=THREE.SRGBColorSpace;skyMap.wrapS=THREE.RepeatWrapping;
   skyMap.minFilter=THREE.LinearFilter;skyMap.generateMipmaps=false;
   const fog=dixville?0xc5b7b6:region==='milford'?0xb2b9b9:0xb6bfc8;
@@ -531,7 +556,7 @@ class Water extends Mesh {
   const geology='jointed';
   const aerial=texture('atlas-'+region+'-photo.webp'),ranges=texture('atlas-'+region+'-ranges.webp'),stone=texture('atlas-'+geology+'-rock.webp',true),grain=texture('rock.jpg',true),sod=texture('soil-'+window.aerieSoil(region)+'.webp',true);
   const color=new THREE.Color(fog);
-  const terrainLight=texture('atlas-'+region+'-light.webp'),fracture=texture('atlas-'+geology+'-relief.webp',true);
+  const terrainLight=texture(surry?'keene-dawn-sun.webp':'atlas-'+region+'-light.webp'),fracture=texture('atlas-'+geology+'-relief.webp',true);
   const canopyMap=new THREE.DataTexture(cover,384,384,THREE.RedFormat);
   canopyMap.minFilter=canopyMap.magFilter=THREE.LinearFilter;canopyMap.needsUpdate=true;
   const localShoreMask=surry||dixville;
@@ -632,12 +657,49 @@ class Water extends Mesh {
         gl_FragColor=vec4(mix(c,aerialHaze,dep*(.72+.28*skyView)),1.);
         #include <colorspace_fragment>
       }`});
+  if(region==='milford'){
+    terrain.uniforms.fallsOrtho={value:texture('milford-falls-ortho.webp')};
+    terrain.fragmentShader='uniform sampler2D fallsOrtho;\n'+terrain.fragmentShader.replace('photo=mix(photo,vec3(lum(photo))',`// The 0.75 m LINZ image continues past the edge of the main atlas
+      // at Bowen. Remove the white moving water frozen in the source photo;
+      // the channel, spray and broken foam are independently animated geometry.
+      vec2 fjordCenter=xz.x>0.?vec2(3200.,5615.):vec2(-835.,-788.);
+      float fjordHalf=xz.x>0.?300.:220.;vec2 fjordUV=(xz-fjordCenter)/fjordHalf;
+      float localCoverage=1.-smoothstep(.87,1.,max(abs(fjordUV.x),abs(fjordUV.y)));
+      vec2 fjordPatch=vec2((.5+.5*fjordUV.x)*.5+(xz.x>0.?0.:.5),.5-.5*fjordUV.y);
+      vec3 surveyedRock=texture2D(fallsOrtho,fjordPatch).rgb;
+      vec2 lip=xz.x>0.?vec2(3311.,5580.):vec2(-810.,-843.);
+      vec2 mouth=xz.x>0.?vec2(3078.,5629.):vec2(-845.,-737.);
+      vec2 course=mouth-lip;float down=clamp(dot(xz-lip,course)/dot(course,course),0.,1.);
+      float toCourse=length(xz-lip-course*down);
+      float wetted=1.-smoothstep(17.,56.,toCourse);
+      float bright=smoothstep(.43,.78,min(min(surveyedRock.r,surveyedRock.g),surveyedRock.b));
+      float coldWater=smoothstep(.0,.12,surveyedRock.b-surveyedRock.r);
+      float photographedFoam=wetted*max(bright,.67*coldWater);
+      photo=mix(photo,surveyedRock,localCoverage);
+      photo=mix(photo,vec3(lum(photo))`).replace('float dep=1.-exp(-d',`if(localCoverage>.002){
+        float faceWet=1.-smoothstep(.49,.88,normal.y);
+        float pore=clamp((cliff-.17)*1.36+(fissure-.16)*.50,0.,1.);
+        vec3 gneiss=mix(vec3(.14,.19,.20),vec3(.43,.46,.45),pore);
+        float chlorophyll=smoothstep(.018,.107,surveyedRock.g-surveyedRock.r*.93)*
+                          smoothstep(.012,.12,surveyedRock.g-surveyedRock.b);
+        // Keep canopy structure on forested shoulders; reveal the scanned
+        // wet rock on vertical faces and in the scoured bed below the cataract.
+        float rockShare=max(photographedFoam,.95*faceWet*(1.-chlorophyll*.14));
+        vec3 bankFace=mix(surveyedRock,gneiss,rockShare);
+        float surfaceTexture=.89+.23*clamp(.44*grit+.64*cliff,0.,1.);
+        bankFace*=surfaceTexture*(1.-.20*wetted*faceWet);
+        vec3 ambient=vec3(.68,.79,.86)*(.79+.28*max(.0,dot(relieved,normalize(vec3(.3,.85,.18))))),daylight=vec3(.70,.58,.41)*(.25+.75*sunlit)*max(0.,dot(sun,normal));
+        c=mix(c,pow(max(bankFace,vec3(.005)),vec3(2.2))*(ambient+daylight),localCoverage);
+      }
+      float dep=1.-exp(-d`);
+  }
   if(region==='yosemite'){
     const granite=texture('atlas-yosemite-cathedral.webp');
     granite.wrapS=granite.wrapT=THREE.MirroredRepeatWrapping;
     terrain.uniforms.cathedralGranite={value:granite};
     terrain.uniforms.westFace={value:texture('atlas-yosemite-west-face.webp')};
-    terrain.fragmentShader='uniform sampler2D cathedralGranite,westFace;\n'+terrain.fragmentShader.replace(
+    terrain.uniforms.valleyCover={value:texture('yosemite-valley-cover.webp')};
+    terrain.fragmentShader='uniform sampler2D cathedralGranite,westFace,valleyCover;\n'+terrain.fragmentShader.replace(
       '/* exposed field geology */',`
         // Oblique field photographs restore the cliff-scale joints which a
         // downward-looking orthophoto cannot capture on a near-vertical wall.
@@ -647,7 +709,14 @@ class Water extends Mesh {
         float joints=mix(texture2D(cathedralGranite,slabZ).r,texture2D(cathedralGranite,slabX).r,axis);
         float cathedral=1.-smoothstep(800.,2150.,length(wp.xz-vec2(-875.,1953.)));
         vec3 graniteColor=vec3(.99,.987,.972)*(joints*.82+.095)*(.83+.55*cliff);
-        float exposed=face*(1.-veg)*smoothstep(1310.,1500.,wp.y);
+        vec3 unitCover=texture2D(valleyCover,photoUv).rgb;
+        float bare=1.-smoothstep(.30,.70,veg);
+        float exposed=face*bare*smoothstep(1193.,1315.,wp.y);
+        // The dark mineral seams sit between broad slabs, with pale, fresh
+        // broken edges resolving only as the bird approaches.
+        vec2 split=mix(slabZ,slabX,axis);
+        float flake=texture2D(cathedralGranite,split*3.51+vec2(.24,.17)).r;
+        graniteColor=vec3(.99,.972,.949)*(.18+.84*joints)*(.69+.48*flake+.22*cliff);
         lithology=mix(lithology,graniteColor,exposed*(.55+.37*cathedral));
         // Calibrated against the west-buttress skyline in the Tunnel View
         // photograph. The surface is sampled in world space as the eagle banks.
@@ -661,22 +730,82 @@ class Water extends Mesh {
         float inner=step(0.,min(projection.x,projection.y))*step(max(projection.x,projection.y),1.);
         float local=1.-smoothstep(1250.,1820.,length(wp.xz-vec2(-1100.,-120.)));
         float visible=smoothstep(.01,.26,dot(normal,normalize(-ray)))*local*inner*exposed;
-        lithology=mix(lithology,cliffImage.rgb*(.88+.42*cliff),cliffImage.a*visible);
+        lithology=mix(lithology,cliffImage.rgb*(1.01+.20*(cliff-.45)),cliffImage.a*visible);
       `);
+    terrain.fragmentShader=terrain.fragmentShader.replace('/* canopy transmission */',`
+      // Re-light the surveyed oblique photographs with the same western sun
+      // that casts the valley's shadows. Preserve crack contrast in shade.
+      float wallMask=exposed*(1.-smoothstep(4800.,16000.,d));
+      vec3 granite=graniteColor*(.86+.25*unitCover.b);
+      granite=mix(granite,cliffImage.rgb*(.94+.17*cliff),visible*cliffImage.a);
+      float convex=clamp(.86+.42*relief,.63,1.18);
+      float fill=.43+.23*skyView+.10*max(relieved.y,0.);
+      vec3 wallLight=vec3(.85,.98,1.17)*fill+vec3(1.73,1.11,.64)*sunlit*(.12+1.01*incidence);
+      c=mix(c,pow(max(granite,vec3(.018)),vec3(2.03))*wallLight*convex,wallMask);
+      // Sedges follow the floodplain, cottonwood/willow strips follow mapped
+      // watercourses and dry summer meadow grasses pick up grazing sunlight.
+      float floodplain=smoothstep(.89,.999,normal.y)*(1.-smoothstep(1260.,1325.,wp.y));
+      float grass=unitCover.r*floodplain;
+      vec3 dry=vec3(.57,.50,.29)*(.79+.40*lum(photo)+.19*(lum(turf)-.37));
+      dry=mix(dry,vec3(.29,.39,.22)*(.87+.30*lum(photo)),unitCover.g);
+      c=mix(c,pow(dry,vec3(2.18))*(ambient+direct),grass*.78);
+      /* canopy transmission */`);
   }
   if(dixville){
     terrain.uniforms.notchStone={value:texture('dixville-schist.webp',true)};
-    terrain.fragmentShader='uniform sampler2D notchStone;\n'+terrain.fragmentShader.replace('float green=smoothstep', `
+    terrain.uniforms.brookKnots={value:window.dixvilleBrooks.flatMap(b=>[...b.upstream.slice(0,-1),...b.rail,...b.downstream.slice(1)].map(([x,z])=>new THREE.Vector2(x,z)))};
+    terrain.fragmentShader='uniform vec2 brookKnots[46];\n'+terrain.fragmentShader;
+    terrain.uniforms.autumnFloor={value:texture('dixville-autumn-floor.webp',true)};
+    terrain.uniforms.floorRelief={value:texture('dixville-floor-relief.webp',true)};
+    terrain.uniforms.ridgeLight={value:texture('dixville-ridge-light.webp')};
+    terrain.fragmentShader='uniform sampler2D notchStone,autumnFloor,floorRelief,ridgeLight;\n'+terrain.fragmentShader.replace('float green=smoothstep', `
+      // At walking height, light falls across the curled leaves and into the
+      // gaps between them. Blend two scan orientations across irregular patches.
+      float leafCover=smoothstep(.13,.63,dense)*smoothstep(.59,.86,normal.y);
+      if(leafCover>.005 && d<175.){
+        vec2 uv=xz*.71, uvB=mat2(.8,-.6,.6,.8)*uv*.88+vec2(.34,.16);
+        float litterMix=smoothstep(-.38,.39,sin(xz.x*.31+xz.y*.18)+.61*cos(xz.y*.42-xz.x*.17));
+        vec4 litter=mix(texture2D(autumnFloor,uv),texture2D(autumnFloor,uvB),litterMix);
+        vec2 r1=texture2D(floorRelief,uv).rg*2.-1.,r2=texture2D(floorRelief,uvB).rg*2.-1.;
+        vec2 dn=mix(r1,mat2(.8,.6,-.6,.8)*r2,litterMix);
+        float highlights=clamp(1.+dot(dn,sun.xz)*.57,.60,1.44);
+        c=mix(c,litter.rgb*highlights*(.76+.29*litter.a),leafCover*(1.-smoothstep(45.,175.,d))*.97);
+      }
+      float mountainShade=texture2D(ridgeLight,vec2(xz.x,-xz.y)/farSpan+.5).r;
+      float backRange=smoothstep(halfMap*.78,halfMap*1.13,extent);
+      c*=mix(1.,clamp(.62+mountainShade*.83,.72,1.34),backRange*.94);
       float summit=1.-smoothstep(14.,66.,length(wp.xz-vec2(26.,338.)));
       vec2 edge=(wp.xz-vec2(85.,360.))/vec2(365.,162.);
       float flank=clamp(1.25-dot(edge,edge),0.,1.)*(1.-smoothstep(.62,.89,normal.y))*smoothstep(623.,718.,wp.y);
       float exposed=max(summit*smoothstep(692.,749.,wp.y),flank*.88);
-      vec3 scarp=mix(texture2D(notchStone,wp.zy*.128).rgb,texture2D(notchStone,wp.xy*.128).rgb,axis);
-      scarp=mix(scarp,texture2D(notchStone,wp.xz*.105).rgb,smoothstep(.50,.90,normal.y));
-      float block=wp.x*.32+wp.z*.22+wp.y*.034+.39*sin(wp.y*.13)+.25*sin(wp.z*.31);
-      float crack=1.-smoothstep(.016,.055,abs(fract(block)-.50));
-      scarp*=1.-crack*(.18+.18*texture2D(notchStone,wp.xz*.09).r);
-      c=mix(c,scarp*vec3(.96,1.01,1.09),exposed*.94);
+      // The two-metre photogrammetric scan carries actual fracture relief.
+      // Large folded blocks and small broken mica faces follow different scales.
+      vec2 alongFold=vec2(wp.x*.80+wp.z*.60,wp.y-.19*wp.x+.12*wp.z);
+      vec2 acrossFold=vec2(wp.z*.82-wp.x*.57,wp.y+.11*wp.z);
+      vec2 topFace=mat2(.86,-.51,.51,.86)*xz;
+      vec2 rockUV=mix(mix(acrossFold,alongFold,axis),topFace,smoothstep(.48,.87,normal.y));
+      vec4 rockFine=texture2D(notchStone,rockUV*.34+.06*warp);
+      vec4 rockLarge=texture2D(notchStone,rockUV*.068+.09*warp+.39);
+      float mineral=texture2D(notchStone,rockUV*.92).r;
+      vec3 scarp=mix(rockLarge.rgb,rockFine.rgb,.58)*(.87+.18*mineral+.12*rockFine.a);
+      c=mix(c,scarp*vec3(.99,1.02,1.06),exposed*.94);
+      if(d<310.&&(length(xz-brookKnots[11])<105.||length(xz-brookKnots[34])<105.)){
+        float brookD=100.,halfBed=1.4;
+        for(int j=0;j<45;j++){
+          if(j==22)continue;
+          vec2 a=brookKnots[j],edge=brookKnots[j+1]-a;
+          float distanceTo=length(xz-a-edge*clamp(dot(xz-a,edge)/max(.01,dot(edge,edge)),0.,1.));
+          if(distanceTo<brookD){brookD=distanceTo;halfBed=j<22?1.4:2.05;}
+        }
+        float damp=1.-smoothstep(halfBed-.4,halfBed+3.2,brookD);
+        vec3 gravel=texture2D(bankMaterial,mat2(.91,-.42,.42,.91)*xz*.68).rgb;
+        gravel=mix(gravel,texture2D(bankMaterial,xz*.27+.35).rgb,.26);
+        float ledge=1.-smoothstep(.55,.94,normal.y);
+        vec3 bank=mix(gravel,scarp,ledge*.86);
+        vec3 wetBank=bank*mix(vec3(.83,.83,.79),vec3(.43,.49,.51),damp);
+        float soil=1.-smoothstep(halfBed+3.,halfBed+9.+rockLarge.a*4.,brookD);
+        c=mix(c,wetBank,soil*(1.-smoothstep(215.,310.,d))*.96);
+      }
       float green=smoothstep`);
     // Fresh joints and dark seams interrupt the thin forest soil on the steep notch walls.
     terrain.fragmentShader=terrain.fragmentShader.replace('/* exposed field geology */', `
@@ -813,12 +942,32 @@ class Water extends Mesh {
       }
       origin.set(ox,oz);map.needsUpdate=true;
     }
+    // The land DEM reports the lake surface over most of the basin. At rim
+    // distances that false surface and the water share a depth-buffer value.
+    // Recover the submerged triangles from the georeferenced USGS sonar grid.
+    const soundings=region==='crater'?window.calderaBathymetry:null;
+    const depths=soundings?bytes(soundings.depth):null;
+    function sounding(x,z){
+      const {width,height,step}=soundings;
+      const u=(x-soundings.x)/step,v=(z-soundings.z)/step,i=Math.floor(u),j=Math.floor(v);
+      if(i<0||j<0||i>=width-1||j>=height-1)return 0;
+      const k=i+j*width,s=u-i,t=v-j,unit=600/(255*255);
+      return unit*lerp(lerp(depths[k]**2,depths[k+1]**2,s),
+        lerp(depths[k+width]**2,depths[k+width+1]**2,s),t);
+    }
     function calderaBed(x,z,y){
       // The caldera survey measures the lake surface, with quarter-metre
       // quantization at the shoreline. Low triangular cells can emerge above
       // the actual lake inside its polygon. Grade only this narrow shallow belt.
       const level=settings.water+.16;
-      if(y<level-.6||y>level+2.8)return y;
+      if(y>level+2.8)return y;
+      const depth=sounding(x,z);
+      if(depth>0){
+        const shoreBlend=1.-smoothstep(y-level,.15,2.8);
+        const bed=level-depth*shoreBlend;
+        if(bed<y)return bed;
+      }
+      if(y<level-.6)return y;
       const nearby=caldera.get(key(Math.floor(x/cell),Math.floor(z/cell)));
       if(!nearby)return y;
       let nearest=48*48;
@@ -834,19 +983,35 @@ class Water extends Mesh {
     return {uniforms,terrainEdges,update,calderaBed};
   }
   const shoreDetail=settings.water!==undefined?localShoreField():null;
+  if(region==='crater')ship=window.makePhantomShip(THREE,scene,texture,settings.water+.16);
 
-  function patch(left,top,width,depth,nx,nz){
+  const brookMeshes=[];
+  function patch(left,top,width,depth,nx,nz,localBed=false){
+    // Cut the existing terrain around the high-resolution inset. The same
+    // survey supplies the drawn rock, physical surface and waterfall rails.
+    if(localDEM&&!localBed){
+      const {x,z,half}=localDEM,right=left+width,bottom=top+depth;
+      const l=Math.max(left,x-half),t=Math.max(top,z-half),r=Math.min(right,x+half),b=Math.min(bottom,z+half);
+      if(l<r&&t<b){
+        for(const [ax,az,bx,bz] of [[left,top,right,t],[left,b,right,bottom],[left,t,l,b],[r,t,right,b]]){
+          if(ax<bx&&az<bz)patch(ax,az,bx-ax,bz-az,Math.ceil(nx*(bx-ax)/width),Math.ceil(nz*(bz-az)/depth));
+        }
+        return;
+      }
+    }
     const grid=new THREE.PlaneGeometry(width,depth,nx,nz);grid.rotateX(-Math.PI/2);
     const p=grid.attributes.position,n=grid.attributes.normal;
-    const step=Math.max(4,Math.min(22,width/nx*.7));
+    const step=localBed?1:Math.max(dixville?1.1:4,Math.min(22,width/nx*.7));
     for(let i=0;i<p.count;i++){
       const x=p.getX(i)+left+width/2,z=p.getZ(i)+top+depth/2;
-      p.setXYZ(i,x,elevation(x,z),z);
+      p.setXYZ(i,x,elevation(x,z,false),z);
       const dx=elevation(x-step,z)-elevation(x+step,z),dz=elevation(x,z-step)-elevation(x,z+step),inv=1/Math.hypot(dx,2*step,dz);
       n.setXYZ(i,dx*inv,2*step*inv,dz*inv);
     }
     shoreDetail?.terrainEdges(grid);
-    grid.computeBoundingSphere();scene.add(new THREE.Mesh(grid,terrain));
+    grid.computeBoundingSphere();
+    const mesh=new THREE.Mesh(grid,terrain);scene.add(mesh);
+    if(localBed)brookMeshes.push(mesh);
   }
   function subdivide(left,top,right,bottom,step){
     const w=right-left,d=bottom-top;
@@ -865,10 +1030,20 @@ class Water extends Mesh {
       for(const area of areas)subdivide(...area,step);
     }
   }
-  ring(h,farH,Math.max(32,farH/570),0,0,waterfront?.rects);
+  ring(h,farH,Math.max(32,farH/570),0,0,waterfront?.rects||fjordRects);
   if(waterfront)for(const area of waterfront.rects)subdivide(...area,4.5);
   const core=tight?1450:h;
-  if(cityGrid){
+  if(fjordRects.length){
+    // The Bowen cataract crosses the edge of the main 11 km land survey.
+    // Share one continuous mesh at the confluence of the radar and shoreline grids.
+    const cuts=axis=>[...new Set([-h,h,...fjordRects.flatMap(a=>[clamp(a[axis],-h,h),clamp(a[axis+2],-h,h)])])].sort((a,b)=>a-b);
+    const xs=cuts(0),zs=cuts(1);
+    for(let j=1;j<zs.length;j++)for(let i=1;i<xs.length;i++){
+      const x=(xs[i-1]+xs[i])*.5,z=(zs[j-1]+zs[j])*.5;
+      if(!fjordRects.some(a=>x>a[0]&&z>a[1]&&x<a[2]&&z<a[3]))subdivide(xs[i-1],zs[j-1],xs[i],zs[j],17.2);
+    }
+    fjordRects.forEach((r,i)=>subdivide(...r,fjordSurveys[i].step));
+  }else if(cityGrid){
     // Subdivide the two lidar areas independently within the continuous valley.
     const detailAreas=[[focusX,focusZ],[cityX,cityZ]];
     const cuts=axis=>[-h,...detailAreas.flatMap(center=>[center[axis]-core,center[axis]+core]),h].sort((a,b)=>a-b);
@@ -879,9 +1054,24 @@ class Water extends Mesh {
       const detailed=detailAreas.some(([x,z])=>Math.abs(left+width/2-x)<core&&Math.abs(top+depth/2-z)<core);
       subdivide(left,top,xs[i],zs[j],detailed?5:19);
     }
+  }else if(notchSurveys.length){
+    // Share edges with the larger DEM. The gorge and the narrow waterfall beds
+    // have enough survey points to hold their shape on the closest flybys.
+    const cuts=a=>[...new Set([-h,-core,core,h,...notchSurveys.flatMap(r=>[r[a]-r.half,r[a]+r.half])])].sort((a,b)=>a-b);
+    const east=cuts('x'),south=cuts('z');
+    for(let j=1;j<south.length;j++)for(let i=1;i<east.length;i++){
+      const x=(east[i-1]+east[i])*.5,z=(south[j-1]+south[j])*.5;
+      const area=notchSurveys.find(a=>Math.abs(x-a.x)<a.half&&Math.abs(z-a.z)<a.half);
+      const step=area?.step||(Math.max(Math.abs(x),Math.abs(z))<core?4:12);
+      subdivide(east[i-1],south[j-1],east[i],south[j],step);
+    }
   }else{
     if(tight)ring(core,h,h/320,focusX,focusZ);
     for(let j=0;j<8;j++)for(let i=0;i<8;i++)patch(focusX-core+i*core/4,focusZ-core+j*core/4,core/4,core/4,tight?91:80,tight?91:80);
+  }
+  if(localDEM){
+    const {x,z,half}=localDEM;
+    for(let j=-1;j<1;j++)for(let i=-1;i<1;i++)patch(x+i*half,z+j*half,half,half,half,half,true);
   }
   // Periodic cellular foam film. The two closest irregular bubble centres define
   // each membrane; bake it once so a low shore pass needs only filtered samples.
@@ -969,9 +1159,45 @@ class Water extends Mesh {
     water.rotation.x=-Math.PI/2;water.position.y=settings.water+.16;scene.add(water);
     if(survey.shore?.length)shoreFloor=window.joinAtlasShore?.(THREE,scene,{region,survey,elevation,level:water.position.y,terrain});
   }
+  const waterfallViews=new Map();
+  const waterfalls=(brook||['milford','yosemite','dixville'].includes(region))?window.makeWaterfallSystem(THREE,scene,{clock,ground:elevation,level:dixville||brook?undefined:water?.position.y,sun,texture,sky:skyMap}):null;
+  function chute(name,rail,width,options={}){
+    const route=waterfalls.chute(name,rail,width,options),nodes=route.nodes;
+    // Focus across the descending column and its splash basin. This anchor
+    // is also used by Explore and the authored viewpoints.
+    const top=nodes[0],foot=nodes.at(-1),height=(top.floor-foot.floor)*.29+foot.floor;
+    let near=foot;for(const p of nodes)if(Math.abs(p.y-height)<Math.abs(near.y-height))near=p;
+    const dx=foot.x-top.x,dz=foot.z-top.z,len=Math.hypot(dx,dz)||1;
+    waterfallViews.set(name,{x:near.x,z:near.z,y:near.y,dx:dx/len,dz:dz/len,reach:len,brook:!!options.brook});
+  }
+  if(region==='milford'){
+    chute('Stirling Falls',[[-810,-843],[-824,-816],[-831,-785],[-841,-755],[-844,-742],[-845,-737]],14);
+    chute('Bowen Falls',[[3313,5578],[3311,5580],[3287,5584],[3264,5590],[3241,5595],[3217,5600],[3206,5602]],21);
+    chute('Bowen River outfall',[[3206,5602],[3175,5608],[3137,5617],[3089,5627],[3082,5629]],11);
+    waterfallViews.get('Bowen Falls').approach=[2975,5530,3150,5620,48,13,4];
+  }
+  if(region==='yosemite'){
+    chute('Bridalveil Fall',[[-1903,1825],[-1917,1803],[-1969,1744],[-1981,1730]],14);
+    chute('Yosemite Falls',[[2565,-2609],[2563,-2590],[2516,-2495],[2518,-2472]],21);
+    chute('Middle Cascades',[[2518,-2472],[2509,-2454],[2506,-2398],[2511,-2359],[2515,-2330],[2510,-2294],[2509,-2269],[2513,-2236],[2517,-2211],[2527,-2188],[2530,-2173],[2535,-2157],[2536,-2118],[2529,-2097],[2516,-2059],[2516,-2035]],8);
+    chute('Lower Yosemite Fall',[[2516,-2035],[2515,-2008],[2514,-1995],[2513,-1978],[2512,-1962],[2512,-1954],[2515,-1936]],13);
+  }
+  if(dixville)for(const b of window.dixvilleBrooks){
+    const width=b.name==='Baby Flume'?2.8:4.1;
+    waterfalls.chute('Brook above '+b.name,b.upstream,width*.73,{pool:false});
+    chute(b.name,b.rail,width,{pool:true,poolLevel:b.height.at(-1)+.14});
+    waterfalls.chute('Brook below '+b.name,b.downstream,width*.86,{pool:false});
+  }
+  if(brook){
+    chute(brook.name,brook.rail,brook.width,{brook:true});
+    window.makeRegionalBrook(THREE,scene,{brook,elevation,clock,texture,sky:skyMap,sun,region});
+  }
+  if(!dixville&&!brook)waterfalls?.couple(water);
   let seed=134513;
   const rand=()=>{seed=(Math.imul(1664525,seed)+1013904223)>>>0;return seed/4294967296;};
   const trees=[],firTrees=[],broadTrees=[],cells=new Map(),cell=(x,z)=>(Math.floor(x/50)+500)*1024+Math.floor(z/50)+500;
+  if(['surry','moosehead','winnipesaukee','labrador','dixville'].includes(region))
+    scene.userData.buildingLight=window.makeBuildingLight(THREE,scene,region,skyMap);
   const dam=surry?window.addSurryDam(THREE,scene,{survey,elevation,ground:shoreFloor?.ground||elevation,terrain,texture,sun,sky:skyMap,clock,aerial,half:h}):null;
   const settlement=waterfront?{
     buildings:[...(survey.settlement?.buildings||[]),...waterfront.settlement.buildings],
@@ -994,18 +1220,33 @@ class Water extends Mesh {
     return (y<settings.water+margin&&inLake(x,z))||Number.isFinite(dam.riverHeight(x,z));
   }
   function plant(tree,isFir){
+    if(waterfalls?.inChute(tree.x,tree.z,tree.width))return;
     if(resort?.inClearing(tree.x,tree.z)||dam?.onDam(tree.x,tree.z)||cabin?.inClearing(tree.x,tree.z))return;
     if(Number.isFinite(roofHeight?.(tree.x,tree.z))||Number.isFinite(waterfrontHeight?.(tree.x,tree.z)))return;
     trees.push(tree);(isFir?firTrees:broadTrees).push(tree);
     const id=cell(tree.x,tree.z);if(!cells.has(id))cells.set(id,[]);cells.get(id).push(tree);
   }
+  if(localDEM){
+    const crowns=unpack(localDEM.crowns);
+    for(let i=0;i<crowns.length;i+=5){
+      const x=localDEM.x+crowns[i]*.5,z=localDEM.z+crowns[i+1]*.5;
+      plant({x,z,y:elevation(x,z),height:crowns[i+2]/8,width:crowns[i+3]/8,seed:(i*.618034)%1},!!crowns[i+4]);
+    }
+  }
+  for(const a of fjordSurveys){
+    const crowns=unpack(a.crowns);
+    for(let i=0;i<crowns.length;i+=4){const x=a.x+crowns[i]*.5,z=a.z+crowns[i+1]*.5;
+      plant({x,z,y:elevation(x,z),height:crowns[i+2]/8,width:crowns[i+3]/8,seed:(i*.618034)%1},false);}
+  }
+  for(const tree of ship?.trees||[])plant(tree,true);
   for(const tree of cabin?.campTrees||[])plant(tree,true);
   for(const tree of resort?.lawnTrees||[])plant(tree,true);
-  const crownPoints=region==='yosemite'?window.yosemiteCanopy:survey.crownPoints;
+  const crownPoints=region==='yosemite'?window.yosemiteCanopy:dixville?window.dixvilleCanopy:survey.crownPoints;
   if(crownPoints){
     const records=bytes(crownPoints),view=new DataView(records.buffer);
     for(let off=0;off<records.length;off+=8){
-      const x=focusX+view.getInt16(off,true),z=focusZ+view.getInt16(off+2,true);
+      // Yosemite's crown survey covers the entire range, in the main grid coordinates.
+      const x=(region==='yosemite'?0:focusX)+view.getInt16(off,true),z=(region==='yosemite'?0:focusZ)+view.getInt16(off+2,true);
       const species=records[off+6];
       plant({x,z,y:elevation(x,z),width:records[off+4]/8,height:records[off+5]/4,species,seed:records[off+7]/255},species===4);
     }
@@ -1018,7 +1259,8 @@ class Water extends Mesh {
   const treeSpacing=newEngland?clamp((settings.treeSpacing??18)*.68,10,20):(settings.treeSpacing??(region==='milford'?16:region==='lofoten'?24:21));
   for(let z=-h;z<h && (region!=='yosemite'||!crownPoints);z+=treeSpacing)for(let x=-h;x<h;x+=treeSpacing){
     const px=x+rand()*treeSpacing,pz=z+rand()*treeSpacing,y=elevation(px,pz);
-    if(survey.crownPoints&&Math.max(Math.abs(px-focusX),Math.abs(pz-focusZ))<1445)continue;
+    if(localDEM&&insideBrook(px,pz))continue;
+    if(crownPoints&&Math.max(Math.abs(px-focusX),Math.abs(pz-focusZ))<1445)continue;
     if(cityTrees&&Math.max(Math.abs(px-cityX),Math.abs(pz-cityZ))<600)continue;
     if(y>settings.top||wetGround(px,pz,y,newEngland?.8:4))continue;
     const biomass=growth(px,pz)*settings.cover;
@@ -1040,36 +1282,10 @@ class Water extends Mesh {
   }
   const sunMask=terrainLight;
   const updateWeather=region==='labrador'?window.addBerteWeather(THREE,scene,{sun,clock,sky,terrain,settings,survey}):
-    region==='crater'?window.addCraterWeather(THREE,scene,{sun,clock,sky,terrain,water}):null;
+    region==='crater'?window.addCraterWeather(THREE,scene,{sun,clock,sky,terrain,water}):
+    surry?window.addKeeneWeather(THREE,scene,{sun,clock,sky,terrain}):null;
   window.shadeAtlasForest(THREE,terrain,trees,sun,h);
   const updateHardwoods=broadTrees.length?window.addHardwoods(THREE,scene,broadTrees,{region,sun,sunMask,half:h,fogColor:color,clock}):null;
-  const spray=texture('waternormals.jpg',true);
-  function cascade(name,reach,width){
-    const mark=survey.landmarks.find(l=>l.name===name);if(!mark)return;
-    let choice,score=-Infinity;
-    for(let j=0;j<250;j++){
-      const angle=rand()*6.283,x=mark.x+rand()*200-100,z=mark.z+rand()*200-100;
-      const dx=Math.cos(angle),dz=Math.sin(angle),topY=elevation(x,z),bottom=elevation(x+dx*reach,z+dz*reach);
-      const s=topY-bottom;if(s>score){score=s;choice={x,z,dx,dz};}
-    }
-    if(score<24)return;
-    const {x,z,dx,dz}=choice,p=[],uv=[],idx=[],steps=65;
-    for(let j=0;j<=steps;j++){
-      const t=j/steps,wiggle=Math.sin(t*7.4)*width*.3,px=x+dx*reach*t-dz*wiggle,pz=z+dz*reach*t+dx*wiggle;
-      for(let i=0;i<2;i++){
-        const w=(i-.5)*width*(.55+.52*t),sx=px-dz*w,sz=pz+dx*w;
-        p.push(sx,elevation(sx,sz)+2.2,sz);uv.push(i,t);
-      }
-      if(j<steps){const k=j*2;idx.push(k,k+1,k+2,k+1,k+3,k+2);}
-    }
-    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(p,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));g.setIndex(idx);
-    const mat=new THREE.ShaderMaterial({uniforms:{clock,noise:{value:spray}},transparent:true,side:THREE.DoubleSide,depthWrite:false,
-      vertexShader:'varying vec2 f;void main(){f=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-      fragmentShader:`uniform float clock;uniform sampler2D noise;varying vec2 f;void main(){vec2 flow=vec2(f.x*.72,f.y*4.8-clock*.40);float n=texture2D(noise,flow).r;float edge=smoothstep(0.,.2,min(f.x,1.-f.x));gl_FragColor=vec4(mix(vec3(.59,.69,.70),vec3(.96,.99,1.),n),(.38+.52*n)*edge);}`});
-    scene.add(new THREE.Mesh(g,mat));
-  }
-  if(region==='yosemite'){cascade('Bridalveil Fall',265,12);cascade('Yosemite Falls',560,17);}
-  if(region==='milford'){cascade('Stirling Falls',144,9);cascade('Bowen Falls',180,11);}
   function inLoop(x,z,pts){
     if(!pts?.length)return true;
     let inside=false;
@@ -1098,6 +1314,11 @@ class Water extends Mesh {
   if(region==='moosehead')launches.reeds={x:-1108,y:316.1,z:-2298,yaw:-1.560,glance:-25,lookDown:9};
   for(const [key,tuple] of Object.entries(waterfront?.launches||settings.extraLaunches||{}))launches[key]=start(tuple);
   let landmarks=waterfront?[...survey.landmarks.filter(mark=>!waterfront.landmarks.some(local=>local.name===mark.name)),...waterfront.landmarks]:survey.landmarks;
+  if(brook)landmarks=[...landmarks,{name:brook.name}];
+  if(ship)landmarks=landmarks.map(mark=>mark.name===ship.mark.name?ship.mark:mark);
+  if(waterfallViews.size)landmarks=landmarks.map(mark=>{
+    const falls=waterfallViews.get(mark.name);return falls?{...mark,x:falls.x,z:falls.z,falls,discoveryRadius:285}:mark;
+  });
   if(cabin){
     const {cabin:porch,rainbow}=settings.extraLaunches;
     landmarks=landmarks.map(mark=>mark.x===survey.cabin.x&&mark.z===survey.cabin.z?{...mark,approach:porch}:mark);
@@ -1109,10 +1330,21 @@ class Water extends Mesh {
       Number.isFinite(roofHeight?.(x,z))||Number.isFinite(waterfrontHeight?.(x,z)))return -1;
     return growth(x,z);
   }
-  const world={region,height,elevation,clearance,spawn,launches,landmarks,groundCover,coverHalf:h,cityTerrainMaterial:surry?terrain:null,
-    bounds:{minX:-(settings.flightHalf||h)+90,maxX:(settings.flightHalf||h)-90,minZ:-(settings.flightHalf||h)+90,maxZ:(settings.flightHalf||h)-90},waterLevel:settings.water,lakeLevel:settings.water,
+  const world={region,waterfalls,height,elevation,clearance,spawn,launches,landmarks,groundCover,coverHalf:h,cityTerrainMaterial:surry?terrain:null,
+    bounds:{minX:-(settings.flightHalf||h)+90,maxX:(settings.flightHalf||h)-90+(region==='crater'?520:0),minZ:-(settings.flightHalf||h)+90,maxZ:(settings.flightHalf||h)-90},waterLevel:settings.water,lakeLevel:settings.water,
     skyTexture:skyMap,sunDirection:sun,sunMask,trees,firTrees,forestLightSpan:2*h,longForest:newEngland||region==='yosemite'||region==='labrador',useFirForest:firTrees.length>0,altitudeOffset:0,
     update(dt,t,player){clock.value=t;shoreDetail?.update(player);updateWeather?.(t,player,world.windField);rainTrace?.(t,player,world.windField);updateHardwoods?.(player);if(water)water.material.uniforms.time.value=t*.65;}};
+  if(region==='yosemite')world.talusFans=survey.talusFans;
   const rainTrace=window.makeRainTrace(THREE,scene,{world,terrain,water,cabin,survey,inLake,ground:(x,z)=>Math.max(shoreFloor?.ground(x,z)??elevation(x,z),shoreFloor?.(x,z)??-Infinity)});
+  if(localDEM){
+    // Reuse the lit regional rock and forest shader. Only the local photograph's
+    // coordinates change, so even the busiest waterfront stays in its texture budget.
+    const material=terrain.clone(),{x,z,half}=localDEM;
+    material.uniforms={...terrain.uniforms,aerial:{value:texture('falls-'+region+'-ortho.webp')}};
+    material.fragmentShader=terrain.fragmentShader.replace(/vec3 photo=mix\(texture2D\(aerial,photoUv\).*?;/,
+      'vec3 photo=texture2D(aerial,(vec2(xz.x,-xz.y)-vec2('+x+'.0,'+(-z)+'.0))/'+(half*2)+'.0+.5).rgb;');
+    window.shadeRegionalBrook(THREE,material,brookMeshes,brook);
+    for(const mesh of brookMeshes){mesh.material=material;mesh.name=brook.name+' · surveyed stream bed';}
+  }
   return world;
 };

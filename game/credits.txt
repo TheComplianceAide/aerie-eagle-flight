@@ -698,3 +698,51 @@ https://polyhaven.com/license
 The close Horseshoe Bend wall material uses Poly Haven’s Cliff Side scan by Dario Barresi, James Ray Cock and Jenelle van Heerden (CC0). Colour, measured displacement, occlusion and tangent normals are fitted to the mapped canyon walls. Loose sandstone reuses the credited boulder scans with a dry mineral palette.
 https://polyhaven.com/a/cliff_side
 https://polyhaven.com/license
+
+
+CRATER LAKE FLOOR AND ASHUELOT VALLEY DAWN
+Submerged caldera elevations use the 2000 USGS–National Park Service multibeam survey published by James V. Gardner and Peter Dartnell in USGS Digital Data Series 72. Depths referenced to the survey lake level of 1,882.6 m were averaged to a 32 m grid and reconciled with the game surface and mapped shoreline.
+https://pubs.usgs.gov/dds/dds-72/site/data.htm
+https://doi.org/10.3133/ds72
+
+The Keene sky combines the upper cloud field from Bryanston Park Sunrise, photographed by Dario Barresi, with the horizon from Qwantani Dusk 2 (Pure Sky), photographed by Greg Zaal and processed by Jarod Guest. Both are CC0 Poly Haven panoramas. Dawn terrain shadows are computed from the Surry USGS height grid. The modeled Ashuelot valley inversion follows the National Weather Service description of radiation fog in sheltered river valleys.
+https://polyhaven.com/a/bryanston_park_sunrise
+https://polyhaven.com/a/qwantani_dusk_2_puresky
+https://polyhaven.com/license
+https://www.weather.gov/safety/fog-radiation
+
+
+Phantom Ship is reconstructed from Oregon DOGAMI's August 2010 airborne lidar, NOAA Digital Coast collection m1428, tile 20100823_42122h1313. Rock samples are referenced to the local survey's water returns and fitted to the Aerie lake level. Canopy positions are inferred from first returns and USDA National Agriculture Imagery Program photography. The landmark pin and flyby use the reconstructed footprint. The National Park Service describes the andesite remnant and its mast-shaped spires.
+https://www.fisheries.noaa.gov/inport/item/49911
+https://noaa-nos-coastal-lidar-pds.s3.amazonaws.com/laz/geoid18/1428/index.html
+https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer
+https://www.nps.gov/places/phantom-ship-overlook.htm
+https://pubs.usgs.gov/sim/2832/photos/24-Phantom_Ship.html
+
+REGIONAL WILDLIFE
+Species, ranges and additional wildlife recordings are documented in wildlife-credits.txt in this distribution.
+
+DIXVILLE NOTCH
+Detailed terrain, local autumn ground materials and architecture sources are documented in dixville-credits.txt.
+
+Building surface scans: Stone Wall by Charlotte Baglioni and Dario Barresi, Roof Slates 02 and Red Slate Roof Tiles 01 by Rob Tuytel, and Weathered Plank Siding by Dimitrios Savva. Reflecting windows sample horizons captured in each game region. The representative shop and café interiors viewed through Keene's street-level glazing use Decor Shop and Comfy Café, photographed by Sergej Majboroda. These Poly Haven assets are CC0. Keene's historic façades retain the credited storefront photographs. The Balsams galleries and cornices follow the Carol M. Highsmith exterior referenced in dixville-credits.txt.
+https://polyhaven.com/a/stone_wall
+https://polyhaven.com/a/roof_slates_02
+https://polyhaven.com/a/red_slate_roof_tiles_01
+https://polyhaven.com/a/weathered_plank_siding
+https://polyhaven.com/a/decor_shop
+https://polyhaven.com/a/comfy_cafe
+https://polyhaven.com/license
+
+Yosemite's El Capitan and Cathedral Rocks sector uses a USGS 3DEP elevation grid with 3.98 m sample spacing and registered USDA NAIP aerial imagery at 0.94 m per texel. Cliff relief retains the USGS west-buttress and National Park Service Cathedral Rock photographs already credited above. Cliff-foot debris and meadow-edge broadleaf species distributions are modeled from terrain and vegetation, guided by the National Park Service's Merced River Plan. The western sun and surveyed shadow field align with the Qwantani Late Afternoon panorama photographed by Greg Zaal and processed by Jarod Guest (Poly Haven, CC0).
+https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer
+https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer
+https://www.nps.gov/yose/learn/nature/rockfall.htm
+https://www.nps.gov/yose/learn/management/upload/Volume-3B_MRP-FEIS_AppM-T_508.pdf
+https://polyhaven.com/a/qwantani_late_afternoon_puresky
+
+ATMOSPHERIC OPTICS
+The regional sky effects and their physical reference sources are described in atmospheric-optics-credits.txt.
+
+REGIONAL WATERFALL SURVEYS
+See regional-waterfalls-credits.txt for the mapped cascades, sources, terrain resolution and land-manager references.

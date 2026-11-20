@@ -28,6 +28,12 @@ python3 tools/build_offline.py
 
 Cloud shadows cross the spruce ridges, the cabin, and the lake while a sun shower catches the evening light. Choose **Rainbow over the narrows** for a view across the water or **Cabin flyby** to approach the white camp porch. The cabin is reconstructed from photographs. Its placement near the outfitter’s South Camp is approximate. [Outfitter’s lake guide and camp map](https://labrador-airsafari.com/en/lake)
 
+## Finding wildlife
+
+Every range has a named wildlife departure. In flight, press **V** or tap the **eye** to turn on Game Vision. The nearest species appear with their distance and bearing. An on-screen marker follows a visible animal. A close animal ahead of the eagle can trigger one of its recorded calls. Use the speaker button to control the sound.
+
+The [regional wildlife credits](game/wildlife-credits.txt) document species and licensed recordings. New regions can register their local species, encounter and habitat through [the wildlife catalog](game/game-ranges.js). The [atmospheric optics credits](game/atmospheric-optics-credits.txt) describe the light conditions modeled in the ranges.
+
 ## Flight controls
 
 **Mouse:** move toward the part of the screen where you want to fly. Left and right bank, up climbs, and down dives. Move the pointer back to the center ring to settle into a straight glide.
@@ -44,6 +50,7 @@ The following keyboard shortcuts are also available.
 | Spread wings and tail to slow down | Hold B or the on-screen Brake button |
 | Change between shoulder and chase views | C |
 | Explore landmarks | G |
+| Identify nearby wildlife with Game Vision | V |
 | Hide or show instruments | H |
 | Pause | Esc |
 
@@ -60,6 +67,10 @@ The Chamonix bird-mounted footage was the visual reference for the shoulder view
 Dark patches of rough water travel downwind. A circling bird on open wings marks a thermal. Bank into its circle to use the same rising air. These cues are visible from either camera.
 
 Cloud banks drift across all twelve ranges. Their shadows follow the ridges, forest and water, and narrow mist banks drift with the local wind. In Alaska, choose [Nugget Falls spray pass](https://aerie-valley-flight.randyb308826.chatgpt.site/#world=alaska&launch=spray) to fly alongside the cascade. Fine spray blows off the ledges while larger drops fall back into the chute.
+
+## Waterfall flights
+
+Take the **Nugget Falls spray pass** in Alaska to see the water separate into streams, blow sideways in gusts and send ripples across Mendenhall Lake. At **Bowen Falls** in Milford Sound, fly down beside the curtain to see its spray drift into the fjord. Use **Explore** for Plaikni Falls, Falls of Song, Beaver Brook Falls, Cold Stream Falls and Rostadforsen. Each follows the local streambed down to its receiving water. [Regional waterfall surveys](game/regional-waterfalls-credits.txt)
 
 ## Try the world physics
 

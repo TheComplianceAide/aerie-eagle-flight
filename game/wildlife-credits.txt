@@ -1,0 +1,105 @@
+AERIE · REGIONAL LAND WILDLIFE
+
+These are representative encounters placed on the game's terrain. The animal
+species are documented in the relevant regions. Exact animals, group sizes,
+sightings, movement, times and approach positions are artistic simulations.
+
+SPECIES AND HABITATS
+
+Moosehead Lake, Maine
+Maine Department of Agriculture, Conservation and Forestry, Moosehead Region
+Management Plan. The Little Moose Unit supports moose, white-tailed deer and
+snowshoe hare. Maine Department of Inland Fisheries and Wildlife describes
+moose proportions, antlers, neck bell and feeding at wet forest margins.
+The snowshoe hare wears its brown summer coat in the game.
+https://www.maine.gov/dacf/parks/get_involved/planning_and_acquisition/management_plans/docs/MooseheadMgmtPlan-FINAL%20DRAFT_4-7-16-part1.pdf
+https://www.maine.gov/ifw/fish-wildlife/wildlife/species-information/mammals/moose.html
+https://www.maine.gov/ifw/fish-wildlife/wildlife/species-information/mammals/cottontail-snowshoe-hare.html
+
+Lake Winnipesaukee, Surry Mountain Lake and Dixville Notch, New Hampshire
+New Hampshire Fish and Game documents white-tailed deer, moose and snowshoe
+hare in New Hampshire. Moose are featured at the northern Dixville site. Deer
+and snowshoe hare occupy forest margins in the two more southerly lake worlds.
+https://www.wildlife.nh.gov/sites/g/files/ehbemt746/files/inline-documents/sonh/nh-deer-assessment-2015.pdf
+https://www.wildlife.nh.gov/sites/g/files/ehbemt746/files/inline-documents/sonh/nh-snowshoe-hare-assessment-2015.pdf
+
+Lac Berté, Côte-Nord, Québec
+Québec's regional forest plan lists moose and snowshoe hare in the Côte-Nord.
+https://cdn-contenu.quebec.ca/cdn-contenu/forets/documents/planification/Cote-Nord/plans/DS_Territoire_PAFIT_R09_MRNF.pdf
+https://www.quebec.ca/agriculture-environnement-et-ressources-naturelles/faune/animaux-sauvages-quebec/fiches-especes-fauniques/orignal
+https://www.quebec.ca/agriculture-environnement-et-ressources-naturelles/faune/animaux-sauvages-quebec/fiches-especes-fauniques/lievre-amerique
+
+Mendenhall Glacier, Alaska
+Alaska Department of Fish and Game describes American black bears drawn to
+salmon at Mendenhall's Steep Creek. The game encounter follows a lake bank.
+https://www.adfg.alaska.gov/index.cfm?adfg=southeastviewing.juneaumendenhallglacier
+
+Horseshoe Bend, Arizona
+National Park Service, Glen Canyon National Recreation Area. Desert bighorn
+sheep use rocky benches in the canyons. Desert cottontails feed near cover.
+https://www.nps.gov/glca/learn/nature/mammals.htm
+Local desert cottontail observation near Page:
+https://www.inaturalist.org/observations/406861108
+
+Yosemite Valley, California
+National Park Service documents mule deer browsing in the valley meadows.
+https://www.nps.gov/yose/learn/nature/mammals.htm
+https://www.nps.gov/yose/planyourvisit/meadows.htm
+
+Crater Lake, Oregon
+National Park Service lists black-tailed deer, mule deer and American pikas.
+The Rim route uses a Columbian black-tailed deer group.
+https://www.nps.gov/crla/learn/nature/mammals.htm
+
+Oeschinensee, Switzerland
+Canton of Bern Hunting Inspectorate, ibex colony monitoring. The local park
+operator identifies sensitive alpine wildlife refuges around Oeschinensee.
+https://www.weu.be.ch/de/start/themen/jagd-fischerei/jagd-wildtiere/zahlen-fakten-jagd.html
+https://www.oeschinensee.ch/en/wandern/
+Local ibex observation in Kandersteg:
+https://www.inaturalist.org/observations/408850841
+
+Reinefjorden, Lofoten, Norway
+Lofotodden National Park documents Eurasian otter on Lofoten's coast.
+https://www.lofotoddennp.com/en/vegetation-and-wildlife/
+
+Milford Sound, New Zealand
+New Zealand Department of Conservation records introduced red deer throughout
+Fiordland. Existing fur seals and native birds use their separate habitats.
+https://www.doc.govt.nz/parks-and-recreation/things-to-do/hunting/where-to-hunt/fiordland/fiordland-hunting/what-to-hunt/
+
+MODELS AND MATERIALS
+
+Mammal bodies, face markings, distinct antlers and horns, limb articulation,
+movement and spatial placement are original game models. The shared close fur
+detail in wild-mammal-coat.webp is derived from Bicanski's photograph “fur,
+rabbit,” CC0 1.0. It was cropped, rotated, desaturated, high-pass filtered and
+resized. Anatomical markings and colour differ by species.
+https://pixnio.com/textures-and-patterns/fur/fur-of-rabbit
+https://creativecommons.org/publicdomain/zero/1.0/
+The Lofoten otter's wave-washed ledge is original relief with the game's
+existing photographed shore-stone material, attributed in credits.txt.
+
+FIELD RECORDINGS
+
+field-land-moose.mp3 · Linda Lötjönen (@lindalotjonen), July 2024. Cow moose
+making short calls in North Karelia, Finland. This is a same-species recording
+used for the female moose's voice in North American habitat. CC BY 4.0.
+https://www.inaturalist.org/observations/228107348
+https://static.inaturalist.org/sounds/1125768.m4a?1720472400
+
+field-land-white-tailed-deer.mp3 · Daughter Dad (@daughterdad), Grant County,
+Wisconsin. Alert doe and fawn in undergrowth, wheeze-snort. CC BY 4.0.
+https://www.inaturalist.org/observations/298329974
+https://static.inaturalist.org/sounds/1570186.m4a?1752635989
+
+field-land-red-deer.mp3 · @aga_l_, Rajcza, Poland. Red deer rut recording.
+Same-species stag voice used in Fiordland. CC BY 4.0.
+https://www.inaturalist.org/observations/398725178
+https://static.inaturalist.org/sounds/2152653.m4a?1788965403
+
+The three clips were shortened, band-limited, level-adjusted, faded and
+encoded in mono MP3 for spatial playback. They retain CC BY 4.0.
+https://creativecommons.org/licenses/by/4.0/
+Credits for all other bird, fish and amphibian materials are in credits.txt and
+field-audio-credits.txt.

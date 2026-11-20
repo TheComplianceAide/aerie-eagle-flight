@@ -93,5 +93,5 @@ window.addReadableWindWater=function(T,scene,world){
   // Each lake advances its wave clock at a regional rate. Air and its moving
   // surface footprint both use the absolute flight clock, including while perched.
   const update=world.update.bind(world);
-  world.update=(dt,t,player)=>{clock.value=t;update(dt,t,player);};
+  world.update=(dt,t,player)=>{clock.value=t;world.waterfalls?.update(field,t,player);update(dt,t,player);};
 };

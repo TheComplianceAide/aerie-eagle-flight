@@ -10,7 +10,6 @@ window.addCraterWeather=function addCraterWeather(T,scene,{sun,clock,sky,terrain
   photo.colorSpace=T.SRGBColorSpace;photo.wrapS=T.RepeatWrapping;
   const arcus=new T.TextureLoader().load('crater-arcus-front.webp');
   arcus.colorSpace=T.SRGBColorSpace;
-  const samples=matchMedia('(pointer: coarse)').matches?6:9;
   const uniforms={calderaTime:clock,calderaSun:{value:sun},calderaCloud:{value:cloud},calderaCells:{value:lobes},calderaPhoto:{value:photo},calderaArcus:{value:arcus}};
   const front=`
     uniform float calderaTime;
@@ -140,58 +139,39 @@ window.addCraterWeather=function addCraterWeather(T,scene,{sun,clock,sky,terrain
       vec3 warm=base*vec3(1.21,.817,.535)+vec3(.105,.027,.006);
       base=mix(base,warm,horizon*(.26+.68*pow(cosSun,3.)));
       base+=vec3(.22,.083,.009)*glow;
-      // Integrate through the bank instead of painting a front-facing
-      // sheet. Viewed across its leading edge, successive billows overlap.
-      float dy=ray.y;
-      if(abs(dy)<.003)dy=dy<0.?-.003:.003;
-      float baseHit=(2620.-cameraPosition.y)/dy,topHit=(6320.-cameraPosition.y)/dy;
-      float enter=max(0.,min(baseHit,topHit)),leave=min(23500.,max(baseHit,topHit));
-      // Restrict sample spacing to the part of the layer the ray can reach.
-      // This removes the parallel slices otherwise visible at grazing angles.
+      // A ray intersects the continuous, elongated section of each bank.
+      // Its optical distance goes to zero at the silhouette. There are no
+      // fixed raymarch layers to appear as vertical stripes near the sun.
       float crossing=dot(ray.xz,frontAxis);
-      if(abs(crossing)>.04){
-        float relative=stormDepth(cameraPosition.xz);
-        float lead=(-relative-1400.)/crossing,trail=(8000.-relative)/crossing;
-        if(max(lead,trail)<enter){lead+=18000./abs(crossing);trail+=18000./abs(crossing);}
-        enter=max(enter,min(lead,trail));leave=min(leave,max(lead,trail));
-      }
+      float depthAtEye=stormDepth(cameraPosition.xz);
       float clear=1.;vec3 light=vec3(0.);
-      if(leave>enter){
-        float lengthStep=(leave-enter)/${samples}.;
-        for(int i=0;i<${samples};i++){
-          float travel=enter+(float(i)+.44)*lengthStep;
-          vec3 p=cameraPosition+ray*travel;
-          float side=dot(p.xz,frontSide),depth=stormDepth(p.xz);
-          if(depth<-850.||depth>7700.)continue;
-          vec2 xy=vec2(side,depth),turb=vec2(.000118,-.000081)*(p.y-2850.);
-          float cell=texture2D(calderaCells,xy*.000245+turb+vec2(.271,.733)).r;
-          vec2 detailUv=mat2(.82,-.57,.57,.82)*xy*.00072+turb*2.21;
-          float grain=texture2D(calderaCloud,detailUv+vec2(.09,.35)).r;
-          float body=.72*cell+.28*grain;
-          float floorY=2900.+168.*sin(side*.00087)+107.*sin(side*.00213+.5)-365.*(body-.48)+95.*sin(depth*.00171+.5);
-          float crown=4350.+1190.*cell+430.*sin(side*.00056+.26)+255.*grain;
-          float tongue=915.*(cell-.5)+390.*(grain-.52)+133.*sin(side*.00247);
-          float rim=depth+tongue;
-          float thick=smoothstep(-290.,620.,rim)*(1.-smoothstep(5250.,7450.,depth));
-          float low=smoothstep(floorY-144.,floorY+225.,p.y);
-          float high=1.-smoothstep(crown-315.,crown+98.,p.y);
-          float farFade=1.-.84*smoothstep(6500.,22500.,travel);
-          float fill=thick*low*high*mix(.34,1.22,smoothstep(.21,.80,body))*farFade;
-          float amount=1.-exp(-lengthStep*.00093*fill);
-          float edgeLight=1.-smoothstep(80.,1050.,rim);
-          float topLight=smoothstep(crown-950.,crown,p.y);
-          float lit=clamp(.19+.35*grain+.35*edgeLight+.32*topLight-.22*cell,0.,1.);
-          vec3 shadow=vec3(.044,.052,.080);
-          vec3 amber=mix(vec3(.294,.249,.259),vec3(.716,.360,.165),.17+.75*pow(cosSun,2.4));
-          vec3 cloudLight=mix(shadow,amber,lit);
-          cloudLight+=vec3(.110,.052,.026)*edgeLight*body;
-          // Distant billows lose contrast in the same warm haze as the
-          // rim, keeping the distant end of the front from cutting the sun.
-          cloudLight=mix(cloudLight,base, .49*smoothstep(5100.,17200.,travel));
-          light+=clear*amount*cloudLight;
-          clear*=1.-amount;
-          if(clear<.023)break;
-        }
+      for(int i=-1;i<=1;i++){
+        float start=depthAtEye+float(i)*18000.;
+        vec2 scale=vec2(4530.,1190.);
+        vec2 dir=vec2(crossing,ray.y)/scale;
+        float speed=max(dot(dir,dir),1e-12);
+        vec2 origin=vec2(start-3020.,cameraPosition.y-4030.)/scale;
+        float closest=clamp(-dot(origin,dir)/speed,0.,26500.);
+        vec3 probe=cameraPosition+closest*ray;
+        float side=dot(probe.xz,frontSide);
+        float centreHeight=4030.+210.*sin(side*.00068)+127.*sin(side*.00173+.3);
+        float bend=edgeCurve(side)-edgeCurve(dot(cameraPosition.xz,frontSide));
+        origin=vec2(start-3020.-bend,cameraPosition.y-centreHeight)/scale;
+        float centre=-dot(origin,dir)/speed;
+        vec2 offset=origin+centre*dir;
+        float inside=1.-dot(offset,offset);
+        float reach=sqrt(max(0.,inside)/speed);
+        float enter=max(0.,centre-reach),leave=min(26500.,centre+reach);
+        float distanceIn=max(0.,leave-enter);
+        vec3 mid=cameraPosition+ray*.5*(enter+leave);
+        vec2 field=vec2(dot(mid.xz,frontSide),dot(mid.xz,frontAxis))*.00031;
+        float cumulus=texture2D(calderaCells,field).r;
+        float wisps=texture2D(calderaCloud,field*2.36+vec2(.13,.21)).r;
+        float load=(.42+.50*cumulus+.23*wisps)*(1.-smoothstep(14000.,26500.,max(0.,enter)));
+        float amount=(1.-exp(-distanceIn*.00052*load))*smoothstep(0.,.48,inside);
+        vec3 under=mix(vec3(.068,.074,.108),vec3(.31,.236,.210),.35*cumulus+.37*pow(cosSun,3.));
+        light+=clear*amount*under;
+        clear*=1.-amount;
       }
       // Resolve the turbulent cloud faces with a photographed storm sky.
       // The depth integral both reveals and extinguishes the photographic
@@ -209,7 +189,9 @@ window.addCraterWeather=function addCraterWeather(T,scene,{sun,clock,sky,terrain
       float sector=smoothstep(.08,.82,crossing+.24*clamp(stormDepth(cameraPosition.xz)/3500.,-.9,1.));
       float high=smoothstep(-.025,.160,ray.y);
       float reach=mix(.43,.96,high)*sector;
-      float amount=max(cloudDepth*.88,reach);
+      // The photographed front supplies the sky-visible boundary. Thin wisps
+      // toward the sunny side must fade over angle as well as optical depth.
+      float amount=max(cloudDepth*mix(.22,.84,sector),reach);
       vec3 resolved=mix(photographed,light/max(.001,cloudDepth),cloudDepth*.11);
       base=mix(base,resolved,amount);
       // The approaching arcus has a finite angular span. Project its
@@ -253,7 +235,10 @@ window.addCraterWeather=function addCraterWeather(T,scene,{sun,clock,sky,terrain
       float gap=apertures(clearSlot(worldPosition.xyz));
       float wet=dropCover(worldPosition.xyz);
       float grazing=pow(max(dot(reflect(-calderaSun,n),v),0.),19.);
-      float facets=clamp(.57+.34*sin(710.*n.x+174.*n.z)+.22*sin(315.*n.z),.12,1.);
+      // Average glints when several capillary facets share a screen pixel.
+      float a=710.*n.x+174.*n.z,b=315.*n.z;
+      float facets=clamp(.57+.34*sin(a)*(1.-smoothstep(.65,3.,fwidth(a)))+
+                             .22*sin(b)*(1.-smoothstep(.65,3.,fwidth(b))),.12,1.);
       // The moving footprint appears in reflected roof light and individual
       // rough facets facing the remaining low sun. Rain roughens its surface.
       radiance*=mix(vec3(1.055,1.007,.94),vec3(.430,.548,.736),weatherCover);

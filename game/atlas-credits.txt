@@ -27,6 +27,19 @@ https://www.linz.govt.nz/products-services/data/types-linz-data/aerial-imagery
 https://creativecommons.org/licenses/by/4.0/
 https://earth-search.aws.element84.com/v1/collections/sentinel-2-l2a/items/S2A_58GGR_20240220_0_L2A
 
+Bowen and Stirling Falls use reprojected LINZ image tiles CB08_10000_0104 and CA08_10000_0503. Local cataract terrain combines the Copernicus land surface, mapped shorelines and river courses. The Bowen lip and basin were shaped to the documented 162 m drop and the whitewater footprint in the aerial photograph. The lower slopes at Stirling are constrained to the fjord shore and the documented drop. Tree positions near the falls are inferred from crown texture. Milford's seabed incorporates the Global Multi-Resolution Topography (GMRT) synthesis, distributed by the Marine Geoscience Data System at the Lamont-Doherty Earth Observatory of Columbia University under CC BY 4.0. Background cells may use the synthesis's lower-resolution bathymetry.
+https://www.gmrt.org/services/gridserverinfo.php
+https://www.gmrt.org/about/terms_of_use.php
+https://doi.org/10.1029/2008GC002332
+https://www.doc.govt.nz/globalassets/documents/our-work/milford-opportunities-project/stage-2/mop-land-analysis-report-2021.pdf
+
+Mapped shorelines and river courses for Milford and Yosemite include © OpenStreetMap contributors under the Open Database License. The water geometry, foam and spray are simulated. Mapped courses include the Bowen River, Stirling's outlet, Bridalveil Creek and Yosemite Creek.
+https://www.openstreetmap.org/copyright
+https://www.openstreetmap.org/way/164714829
+https://www.openstreetmap.org/way/504903068
+https://www.openstreetmap.org/way/291349401
+https://www.openstreetmap.org/way/291680479
+
 Contains modified Copernicus Sentinel data, distributed via the AWS Open Data Program / Element 84 Earth Search.
 https://registry.opendata.aws/sentinel-2-l2a-cogs/
 Copernicus DEM GLO-30, Copernicus Space Component Data Access system. © DLR e.V. 2010–2014 and © Airbus Defence and Space GmbH 2014–2018, provided under COPERNICUS by the European Union and ESA, all rights reserved.

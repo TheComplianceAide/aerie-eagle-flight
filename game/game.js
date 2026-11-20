@@ -22,7 +22,8 @@
   window.addEventListener("worldchange",()=>{if(renderer||launchPending)location.reload();});
   const keys = new Set(), found = new Set();
   let renderer, scene, camera, world, eagle, player, gaze, cameraTarget;
-  let updateLight, updateWeather,perching,perchRoute,perchMarker,windSoarer;
+  let gameVision;
+  let updateLight,updateOptics, updateWeather,perching,perchRoute,perchMarker,windSoarer;
   let perchNotice="",perchNoticeUntil=0,nextPerchHUD=0;
   let dynamics, elapsed, distance, nextReadout, noticeUntil, accumulator;
   let landmarkLook=null,landmarkLookUntil=0;
@@ -445,6 +446,7 @@
     modal.hidden=true;paused=false;syncAudio();last=performance.now();previousFocus?.focus();
     if(started && dynamics?.state.contact)startFlight();
   }
+  el("visionToggle").onclick=()=>{if(started&&!paused)gameVision.toggle();};
   el("places").onclick=()=>showDialog("places");
   el("help").onclick=()=>showDialog("controls");el("pause").onclick=()=>showDialog("pause");el("back").onclick=closeDialog;
   el("end").onclick=()=>{started=false;app.dataset.mode="title";closeDialog();el("fly").focus();};
@@ -488,18 +490,24 @@
       if(factory)updateHabitat=addHabitat(THREE,scene,world,region);
       window.addFlightWater(THREE,scene,world);
       updateUnderstory=window.addUnderstory(THREE,scene,world);
-      if(region==="swiss"||region==="canyon") updateTalus=window.addTalus?.(THREE,scene,world);
+      gameVision=window.makeGameVision(THREE,world,el("visionToggle"),el("gameVision"));
+      if(region==="swiss"||region==="canyon"||region==="yosemite"||region==="dixville") updateTalus=window.addTalus?.(THREE,scene,world);
       if(region==="swiss" || region==="alaska" || world.useFirForest) updateForest=window.addForest?.(THREE,scene,world);
       updateMist=window.addValleyMist?.(THREE,scene,world);
       eagle=makeEagle(THREE);scene.add(eagle.object);
       el("viewport").replaceChildren(renderer.domElement);resize();
       loadPromise=Promise.all([assets,world.ready,eagle.ready]);
       await loadPromise;
+      if(region==='milford'){
+        const falls=world.landmarks.find(mark=>mark.name==='Bowen Falls'&&mark.falls);
+        if(falls)world.launches.ridge=window.aerieScenicFlight.approach(world,falls);
+      }
       window.addReadableWindWater(THREE,scene,world);
       windSoarer=window.makeWindSoarer(THREE,scene,world,world.windField);
       updateLight=window.makeFlightLight(THREE,renderer,scene,world,eagle);
       if(region==="surry")window.lightKeeneStreet(THREE,renderer,scene,world,eagle.object);
       updateWeather=await window.makeMovingWeather(THREE,scene,world);
+      updateOptics=window.addAtmosphericOptics(THREE,scene,world);
     } catch(error) {
       loadPromise=null;world=null;eagle=null;renderer.dispose();renderer=null;
       throw error;
@@ -522,6 +530,8 @@
     perching.reset(s,el("launchPoint").value==="lookout");
     nextPerchHUD=0;perchNotice="";perchNoticeUntil=0;
     resetCamera(s,launch.glance,launch.lookDown);
+    gameVision.setActive(launchPicker.value==="game");
+    fieldAudio?.resetEncounters();
     elapsed=0;distance=0;accumulator=0;nextReadout=0;noticeUntil=0;
     frameSeconds=0;frameCount=0;fastWindows=0;
     found.clear();app.classList.remove("clearView");resetInput();started=true;paused=false;app.dataset.mode="flight";
@@ -588,6 +598,7 @@
   const flightCodes=["KeyW","KeyA","KeyS","KeyD","KeyQ","KeyE","KeyB","ArrowLeft","ArrowRight","ArrowUp","ArrowDown","Space"];
   window.addEventListener("keydown",event=>{
     if(started&&!paused&&!event.repeat){
+      if(event.code==="KeyV"){event.preventDefault();gameVision.toggle();return;}
       if(event.code==="KeyP"){event.preventDefault();choosePerch();return;}
       if(event.code==="KeyF"||(event.code==="Space"&&perching.stage==="perched")){event.preventDefault();perchAction();return;}
       if(event.code==="Escape"&&["approach","flare"].includes(perching.stage)){event.preventDefault();perchAction();return;}
@@ -649,38 +660,14 @@
       label.textContent=place.name;
       const detail=document.createElement("small");
       detail.textContent=(found.has(place.name)?"Seen · ":"")+(range<1000?Math.round(range)+" m":(range/1000).toFixed(1)+" km");
+      const view=window.aerieScenicFlight.description(world,place);
+      if(view)button.title=view;
       button.append(label,detail);button.onclick=()=>flyToLandmark(place);
       list.appendChild(button);
     }
   }
-  function landmarkApproach(place) {
-    const floor=world.clearance||world.height;
-    const range=Math.min(120,(place.discoveryRadius??210)*.8);
-    const margin=clamp(range*.24,12,30);
-    const {minX,maxX,minZ,maxZ}=world.bounds;
-    if(place.approach){
-      const [x,z,tx,tz,agl,glance=0,lookDown=0]=place.approach;
-      if(x>=minX&&x<=maxX&&z>=minZ&&z<=maxZ&&Math.hypot(x-place.x,z-place.z)<(place.discoveryRadius??210)){
-        return {x,y:floor(x,z)+agl,z,yaw:Math.atan2(x-tx,z-tz),glance,lookDown};
-      }
-    }
-    const targetHeight=floor(place.x,place.z);
-    let best;
-    // Find a clear approach aimed at the landmark, even on a cliff or in trees.
-    for(let i=0;i<12;i++){
-      const yaw=i*Math.PI/6, dx=Math.sin(yaw), dz=Math.cos(yaw);
-      const x=place.x+dx*range, z=place.z+dz*range;
-      if(x<minX||x>maxX||z<minZ||z>maxZ)continue;
-      let y=targetHeight+margin*.45;
-      for(let offset=0;offset<=range;offset+=6){
-        y=Math.max(y,floor(x-dx*offset,z-dz*offset)+margin*(1-.55*offset/range));
-      }
-      if(!best||y<best.y)best={x,y,z,yaw};
-    }
-    return best;
-  }
   function flyToLandmark(place) {
-    const launch=landmarkApproach(place);
+    const launch=window.aerieScenicFlight.approach(world,place);
     if(!launch){
       el("summary").textContent="No clear approach to "+place.name+". Choose another landmark or resume flight.";
       return;
@@ -691,12 +678,14 @@
     landmarkLookUntil=elapsed+3.5;
     subject=previousSubject=null;nextSighting=landmarkLookUntil+1;
     windSoarer.reset(dynamics.state,world.windField.ensureLaunchCore(launch),launch.glance);
+    fieldAudio?.resetEncounters();
     perching.reset(dynamics.state,false);nextPerchHUD=0;perchNotice="";
     resetCamera(dynamics.state,launch.glance,launch.lookDown);
     resetInput();
     accumulator=0;nextReadout=0;
     noticeUntil=elapsed+4;
-    el("discovery").textContent="Near · "+place.name;
+    found.add(place.name);
+    el("discovery").textContent="Exploring · "+place.name;
     closeDialog();
     advance(0);
   }
@@ -717,7 +706,7 @@
     el("discovery").textContent=closest.name+" · "+direction+" · "+(range<1000?Math.round(range)+" m":(range/1000).toFixed(1)+" km");
   }
   function resetCamera(s,arrivalDegrees=0,lookDown=0){
-    arrivalLookDown=clamp(lookDown,0,32)*Math.PI/180;
+    arrivalLookDown=clamp(lookDown,0,50)*Math.PI/180;
     cameraPerched=null;cameraBlend=1;
     glance=arrivalGlance=arrivalDegrees*Math.PI/180;
     glanceTime=0;
@@ -765,18 +754,22 @@
     cameraBank+=(s.bank*.13-cameraBank)*easing(3,dt);
     cameraFov+=(76+clamp((s.airspeed-15)*.12,0,5)-cameraFov)*easing(1.4,dt);
     camera.fov=cameraFov;camera.updateProjectionMatrix();
-    const headingX=Math.sin(cameraYaw),headingZ=Math.cos(cameraYaw);
+    // Orbit the boom around the bird for a landmark reveal. Keeping boom and
+    // lens on the same bearing leaves the bird in frame during the glance.
+    glanceTime+=dt;
+    const reveal=clamp((3.6-glanceTime)/1.8,0,1);
+    const headingX=Math.sin(cameraYaw+arrivalGlance*reveal),headingZ=Math.cos(cameraYaw+arrivalGlance*reveal);
     // Match the bird's projected width across portrait and landscape views.
     // A high boom shows the mantle and wing coverts, while its independent
     // near-horizontal optical axis keeps the ridgelines and sky in frame.
     const framing=clamp(1.65/camera.aspect,.80,3.3);
     const wingRoom=Math.min(1,Math.abs(Math.sin(s.bank))+.35*s.effort);
-    const range=2.42*framing*(1+.18*wingRoom),up=1.18*framing;
+    const range=2.42*framing*(1+.18*wingRoom),up=1.18*framing+range*Math.tan(arrivalLookDown*reveal*.76);
     const back=range*Math.cos(cameraPath)+up*Math.sin(cameraPath);
     cameraTarget.set(s.x+headingX*back,s.y+up*Math.cos(cameraPath)-range*Math.sin(cameraPath),s.z+headingZ*back);
     cameraTarget.y=Math.max(cameraTarget.y,world.height(cameraTarget.x,cameraTarget.z)+.72);
     camera.position.copy(cameraTarget);
-    const look=30, lensPitch=cameraPath-.034-.105*wingRoom;
+    const look=30, lensPitch=cameraPath-.034-.105*wingRoom-arrivalLookDown*reveal*.76;
     gaze.set(camera.position.x-headingX*look,camera.position.y+Math.tan(lensPitch)*look,camera.position.z-headingZ*look);
     camera.up.set(-headingZ*Math.sin(cameraBank),Math.cos(cameraBank),headingX*Math.sin(cameraBank));
     camera.lookAt(gaze);
@@ -870,7 +863,7 @@
     windSoarer.update(dt,s);
     if(fieldAudio&&soundOn)fieldAudio.update(s,world,dt,camera,perching.stage);
     updateWeather(elapsed);
-    world.update(dt,elapsed,player);updateLight?.(player,elapsed);updateMist?.(player,elapsed);renderer.render(scene,camera);updatePerchHUD(s);
+    world.update(dt,elapsed,player);updateLight?.(player,elapsed);updateMist?.(player,elapsed);updateOptics?.(player,elapsed);renderer.render(scene,camera);updatePerchHUD(s);gameVision.update(player,camera,elapsed);
     if(s.contact){showDialog("contact");return;}
     if(elapsed>=nextReadout){
       nextReadout=elapsed+.17;

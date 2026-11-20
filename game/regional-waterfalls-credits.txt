@@ -1,0 +1,52 @@
+Aerie · regional waterfall surveys and sources
+
+At each of the five sites below, a local terrain inset supplies the rendered rock face, surface used for flight clearance, and height along the flowing channel. The centerline follows drainage in the elevation survey, checked against mapped streams or named places. The brink and landing pool follow the local profile. Channel width, discharge, airborne spray, water sound, wetting, pebbles and trees are visual or acoustic reconstructions. The scene does not portray measured water flow for a specific day.
+
+UNITED STATES
+The four American waterfall sites use USGS 3D Elevation Program bare-earth elevations resampled at 1 m and USDA National Agriculture Imagery Program orthophotography. The game quantizes elevations to 0.25 m. Positions in the local tree stands are estimated from canopy color, relief and texture in the orthophotography. National Hydrography Dataset flowlines and the Geographic Names Information System were checked against the site footprints. U.S. federal map and image sources are public domain.
+https://www.usgs.gov/3d-elevation-program
+https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer
+https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer
+https://hydro.nationalmap.gov/arcgis/rest/services/nhd/MapServer/6
+https://carto.nationalmap.gov/arcgis/rest/services/geonames/MapServer/7
+
+Crater Lake National Park, Oregon · Plaikni Falls
+Sand Creek descends over a glacial bluff below Anderson Spring, outside the caldera. The National Park Service identifies and maps the falls and creek. The simulated water remains in Sand Creek. The longer descent in the game includes steep stream both above and below the main drop. Vidae Falls is south of the mapped flight boundary.
+https://www.nps.gov/crla/planyourvisit/hiking.htm
+https://irma.nps.gov/DataStore/FileSource/Get/2299081?filename=2022+CRLA+Rehabiltiate+Plaikni+Falls+Trail+Landscape+Annual+Report.pdf
+https://pubs.usgs.gov/sir/2017/5022/j1/sir2017-5022J1.pdf
+
+Lake Winnipesaukee region, New Hampshire · Falls of Song
+Shannon Brook crosses a rock lip in the Castle in the Clouds Conservation Area north of the lake. The Lakes Region Conservation Trust describes the approximately 40 ft plunge on the Brook Walk. The survey resolves the shallow run-in, near-vertical step and rock-walled receiving channel.
+https://lrct.org/property/castle-in-the-clouds
+
+Surry and Keene, New Hampshire · Beaver Brook Falls
+Keene identifies this waterfall on the Washington Street trail. The flowing bed follows Beaver Brook at its steep descent in the wooded ravine. Surry Mountain Dam's separate concrete emergency spillway remains dry at the normal reservoir level shown. The US Army Corps of Engineers documents its exceptional use in the 1987 flood. The Ashuelot River scene depicts ordinary moving water below the dam outlet.
+https://keenenh.gov/parks-trails-recreation/trails/
+https://www.nae.usace.army.mil/Missions/Civil-Works/Flood-Risk-Management/New-Hampshire/Surry/
+
+Moosehead Lake region, Maine · Cold Stream Falls
+USGS maps Cold Stream Falls in Johnson Mountain Township in the southwestern part of the game's Maine flight area. Maine's River Study identifies this waterfall. The local profile places the rock step and its receiving pool downstream of the gazetteer label. This is a tributary landscape separate from the surface of Moosehead Lake.
+https://www.maine.gov/dep/gis/datamaps/lawb_maine_river_survey/pdf/MRS_AppendixB_GeologicHydrologic.pdf
+https://www.maine.gov/dacf/parks/get_involved/planning_and_acquisition/management_plans/docs/cold-stream-mfl-app.pdf
+
+NORWAY
+Reinefjorden, Lofoten · Rostadforsen
+Norway's national place register assigns Rostadforsen to a waterfall near 67.97775° N, 13.04086° E. The national terrain model resolves the sloping rock, its prominent shelf at about 31 m above sea level and the lower channel reaching the tidal shore. The modeled named descent is a reach of the longer stream. Kartverket's separate nearby named feature Forsan was also identified in the official register.
+The 1 m National Height Model is © Kartverket, licensed CC BY 4.0. The game resamples, quantizes and blends the elevations, and combines relief shading with the previously credited Copernicus Sentinel-2 imagery. Small planted birches are approximations in sheltered terrain. The close stream-bank boulders and surface flow are rendered.
+https://api.kartverket.no/stedsnavn/v1/sted?stedsnummer=414062
+https://www.kartverket.no/api-og-data/terrengdata
+https://wcs.geonorge.no/skwms1/wcs.hoyde-dtm-nhm-25833
+https://creativecommons.org/licenses/by/4.0/
+https://earth-search.aws.element84.com/v1/collections/sentinel-2-l2a/items/S2A_33WVR_20230627_0_L2A
+
+REVIEW OF THE REMAINING RANGES
+Horseshoe Bend, Arizona. The National Park Service identifies this reach of the Colorado River as smooth water. The game depicts the current along the full river bend.
+https://www.nps.gov/grca/planyourvisit/one-day-river-trip.htm
+https://www.nps.gov/glca/planyourvisit/horseshoe-bend.htm
+
+Lac Berté, Québec. The modeled 9.6 km south-basin square contains camp shoreline, channels, islands and rainfall runoff. The provincial reserve document and the outfitter's basin map support this geography. The mapped channels, lake and rain-fed shallows are the surveyed water features represented here.
+https://archives.bape.gouv.qc.ca/sections/mandats/8reserves_cote-nord/documents/PR1_4.4_lac_bert%C3%A9.pdf
+https://labrador-airsafari.com/images/lacs/carte-berte.pdf
+
+The other five worlds already contained authored falls at Mendenhall Lake, Oeschinensee, Yosemite Valley, Milford Sound / Piopiotahi and Dixville Notch. See the respective regional credits for their elevation and imagery sources.

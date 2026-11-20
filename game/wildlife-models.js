@@ -135,10 +135,10 @@ window.makeWildlifeModels=function(T,scene){
       wakes.setMatrixAt(wakes.count++,transform.matrix);
     }
     const {mesh,pose}=batchFor(a.skin),i=mesh.count;
-    if(i>=pose.count)return;
+    if(i>=pose.count)return false;
     transform.position.set(a.x,a.y,a.z);transform.rotation.set(a.bank||0,-a.heading,a.pitch||0,'YXZ');
     transform.scale.setScalar(a.length);transform.updateMatrix();mesh.setMatrixAt(i,transform.matrix);
-    pose.setXYZW(i,a.phase,a.effort,a.mode,a.level||0);mesh.count++;
+    pose.setXYZW(i,a.phase,a.effort,a.mode,a.level||0);mesh.count++;return true;
   }
   return {begin(t){wakes.count=0;wakes.material.uniforms.clock.value=t;for(const {mesh} of batches.values())mesh.count=0;},draw,
     end(){wakes.instanceMatrix.needsUpdate=true;for(const {mesh,pose} of batches.values()){mesh.visible=mesh.count>0;mesh.instanceMatrix.needsUpdate=true;pose.needsUpdate=true;}}};

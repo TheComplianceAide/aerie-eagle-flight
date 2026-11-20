@@ -42,11 +42,11 @@
     },
     milford: {
       name: 'Stirling Falls face traverse', sight: 'Stirling Falls',
-      // The procedural cascade follows the measured slope below the landmark.
-      sightPoint: [-2020,-1714,'Stirling Falls curtain'],
+      // The flight crosses the downstream side of the mapped Stirling pool.
+      sightPoint: [-843,-744,'Stirling Falls curtain'],
       label: 'Traverse the waterfall face, then flare into the forest on its western flank.',
-      path: [[-1805,-1575,29],[-1905,-1617,26],[-1993,-1649,24],[-2069,-1661,24],[-2162,-1680,30]],
-      perch: ['branch',-2223,-1716,'Stirling Falls forest limb'],
+      path: [[-906,-376,43],[-870,-516,33],[-842,-628,23],[-851,-674,19],[-912,-700,17],[-1029,-707,18]],
+      perch: ['branch',-1092,-757,'Stirling Falls forest limb'],
     },
     moosehead: {
       name: 'Kineo Cove shoreward glide', sight: 'Kineo Cove',
@@ -57,7 +57,7 @@
     dixville: {
       name: 'Table Rock ledge approach', sight: 'Table Rock',
       label: 'Trace the ridge to the narrow ledge, with Route 26 and Lake Gloriette below.',
-      path: [[242,468,27],[155,421,22],[99,393,18],[60,366,14]],
+      path: [[242,468,42],[155,421,22],[99,393,18],[60,366,14]],
       perch: ['ledge',26,338,'Table Rock overlook'],
     },
     labrador: {

@@ -4,7 +4,7 @@ window.makeKeeneCity = function makeKeeneCity(T, scene, {height}) {
   const groups = new Map(), roofs = new Map(), loader = new T.TextureLoader();
   const layout = {
     brick: {file:'keene-brick.webp', normal:'keene-brick-normal.webp', roughness:.9},
-    siding: {file:'lakeside-siding.webp', roughness:.91},
+    siding: {file:'building-clapboard.webp', roughness:.91},
     shingle: {file:'lakeside-roof.webp', roughness:.92},
     roofing: {file:'lakeside-metal.webp', roughness:.87},
     roofPhoto: {file:'atlas-surry-city-detail.webp', roughness:.91},
@@ -18,6 +18,7 @@ window.makeKeeneCity = function makeKeeneCity(T, scene, {height}) {
     glass: {roughness:.24},
     marquee: {roughness:.5}
   };
+  const detail=window.makeBuildingFittings(T,scene);
   const cellSize = 54;
   const color = value => new T.Color(value);
   const clearRoof = (ring, top) => {
@@ -236,6 +237,31 @@ window.makeKeeneCity = function makeKeeneCity(T, scene, {height}) {
     if(kind==='house'){
       peak=top+2.25+feel*1.24;
       roofGable(ring,top,peak,roofTint);
+      if(ring.length===4){
+        // Woodsheds and small garages usually do not have a brick flue.
+        const footprint=Math.abs(lot),eave=top-base;
+        const flue=footprint>72&&feel>.23,roofPeak=peak;
+        if(flue&&inside(ring,x,z))clearRoof(rectangle(x,z,1,0,.53,.51),roofPeak+1.12);
+        detail(x,z,(box,sash)=>{
+          if(flue){
+            box(x,roofPeak-.04,z,1,0,.84,1.98,.89,0x936751);
+            box(x,roofPeak+.96,z,1,0,1.01,.16,1.01,0xb8afa1);
+            box(x,roofPeak+1.08,z,1,0,.39,.15,.41,0x745d4d);
+          }
+          for(let i=0;i<ring.length;i++){
+            const a=ring[i],b=ring[(i+1)%ring.length],w=Math.hypot(b[0]-a[0],b[1]-a[1]);if(w<2)continue;
+            const dx=(b[0]-a[0])/w,dz=(b[1]-a[1])/w;
+            const dir=(a[0]-x)*(-dz)+(a[1]-z)*dx>0?1:-1;
+            box((a[0]+b[0])*.5,top-.08,(a[1]+b[1])*.5,dx,dz,w+.20,.20,.26,0xd6d2c2);
+            if(central)continue;
+            const count=Math.max(1,Math.floor(w/3.8));
+            for(let j=0;j<count;j++){
+              const t=(j+.5)/count;
+              sash(a[0]+(b[0]-a[0])*t-dir*dz*.073,base+Math.min(eave*.52,2.25),a[1]+(b[1]-a[1])*t+dir*dx*.073,dir*dx,dir*dz,1.32,1.49,0xd6d1bd,0x4b5353);
+            }
+          }
+        });
+      }
     }else {
       if(Math.max(Math.abs(x-1930),Math.abs(z-4400))<1360){
         const closePhoto=ring.every(([x,z])=>x>1642&&x<2278&&z>4212&&z<4928);
@@ -260,9 +286,45 @@ window.makeKeeneCity = function makeKeeneCity(T, scene, {height}) {
             const level=top+.63+feel*.51, tint=color(0x9a9a92);
             for(let j=0;j<4;j++)wall('masonry',tint,equipment[j],equipment[(j+1)%4],top,level,3);
             horizontal('roofing',tint,equipment,level,2);
+            const [cx,cz]=centerOf(equipment),radius=.45+feel*.13;
+            const curb=circle(cx,cz,radius,16),throat=circle(cx,cz,radius*.85,16);
+            frustum('smooth',color(0xb6b2a7),curb,curb,level+.018,level+.12);
+            horizontal('smooth',color(0x343c3b),throat,level+.125);
+            for(let blade=0;blade<5;blade++){
+              const t=blade*Math.PI*2/5,bladePt=(r,a)=>[cx+r*Math.cos(a),level+.13,cz+r*Math.sin(a)];
+              face('smooth',color(0x78817e),[bladePt(.08,t),bladePt(radius*.73,t+.33),bladePt(radius*.72,t+.76),bladePt(.08,t+.45)]);
+            }
+            const latch=rectangle(cx+(i%2?.9:-.9),cz,1,0,.23,.42);
+            horizontal('smooth',color(0xb2aaa0),latch,level+.035);
+            // Dark recessed louvers are visible in the vertical side of the unit.
+            for(let side=0;side<2;side++){
+              const a=equipment[side*2],b=equipment[(side*2+1)%4];
+              const a1=[a[0]*.83+b[0]*.17,a[1]*.83+b[1]*.17+(side?-.015:.015)],b1=[b[0]*.84+a[0]*.16,b[1]*.84+a[1]*.16+(side?-.015:.015)];
+              for(let row=0;row<4;row++)wall('smooth',black,a1,b1,top+.16+row*.115,top+.216+row*.115);
+            }
             clearRoof(equipment,level);
           }
         }
+      }
+    }
+    // Back-wall flues punctuate the older brick blocks above the shop cornices.
+    if(central&&facade&&Math.abs(lot)>85&&feel>.19){
+      const ordered=ring.slice().sort((a,b)=>Math.abs(b[0]-avenueX(b[1]))-Math.abs(a[0]-avenueX(a[1])));
+      const p=ordered[0],cx=x*.30+p[0]*.70,cz=z*.30+p[1]*.70;
+      const foot=rectangle(cx,cz,1,0,.71,.50);
+      if(foot.every(([u,v])=>inside(ring,u,v))){
+        const shoulder=top+1.55+feel*.52;
+        const brick=color(0xe5c2ac),coping=color(0xb6ada0);
+        for(let i=0;i<4;i++)wall('brick',brick,foot[i],foot[(i+1)%4],top,shoulder,1.48);
+        const lip=rectangle(cx,cz,1,0,.83,.63);
+        for(let i=0;i<4;i++)wall('masonry',coping,lip[i],lip[(i+1)%4],shoulder-.08,shoulder+.13,1);
+        horizontal('smooth',coping,lip,shoulder+.13);
+        for(const offset of [-.36,.36]){
+          const pot=circle(cx+offset,cz,.22,8),bore=circle(cx+offset,cz,.16,8);
+          frustum('smooth',color(0x955e48),pot,pot,shoulder+.13,shoulder+.48);
+          horizontal('smooth',black,bore,shoulder+.481);
+        }
+        clearRoof(lip,shoulder+.49);
       }
     }
     clearRoof(ring,peak);
@@ -326,7 +388,14 @@ window.makeKeeneCity = function makeKeeneCity(T, scene, {height}) {
   }
   for(const [name,{file,normal,roughness,alphaTest=0}] of Object.entries(layout)){
     materials[name]=new T.MeshStandardMaterial({map:file?tex(file):name==='marquee'?signTexture():null,
-      normalMap:normal?tex(normal,true):null,normalScale:new T.Vector2(.42,.42),roughness,alphaTest,alphaToCoverage:alphaTest>0,metalness:layout[name].metalness||0,vertexColors:true,side:T.DoubleSide});
+      normalMap:normal?tex(normal,true):null,normalScale:new T.Vector2(.42,.42),roughness,alphaTest,alphaToCoverage:alphaTest>0,metalness:layout[name].metalness||0,emissive:layout[name].emissive||0,vertexColors:true,side:T.DoubleSide});
+  }
+  for(const [name,mat] of Object.entries(materials)){
+    if(name==='siding'||name==='paintedSiding')scene.userData.buildingLight.finish(mat,'boards',2.3);
+    if(name==='shingle')scene.userData.buildingLight.finish(mat,'slate',3);
+    if(name==='shopDisplay'||name==='cafeDisplay')scene.userData.buildingLight.glaze(mat,1.05,name==='shopDisplay'?'shop':'cafe');
+    else if(layout[name].glazing||['glass','upperSash'].includes(name))scene.userData.buildingLight.glaze(mat,.80);
+    if(name==='roofing'){mat.bumpMap=mat.map;mat.bumpScale=name==='roofing'?.045:.026;}
   }
   for(const {kind,pos,uv,rgb} of groups.values()){
     const geo=new T.BufferGeometry();

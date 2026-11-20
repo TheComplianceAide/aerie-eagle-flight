@@ -607,139 +607,20 @@ class Water extends Mesh {
   scene.add(lake);
 
   const clock={value:0};
-  const waterMaterial = new THREE.ShaderMaterial({
-    uniforms:{t:{value:0},map:{value:texture('waternormals.jpg',true)}},side:THREE.DoubleSide,transparent:true,depthWrite:false,
-    vertexShader:`varying vec2 tex;varying vec3 wp;void main(){tex=uv;wp=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
-    fragmentShader:`uniform float t;uniform sampler2D map;varying vec2 tex;varying vec3 wp;
-      void main(){float along=tex.y;float flow=along-t*12.;
-        float x=tex.x+.054*sin(along*.16)+.054*sin(along*.047);
-        float edge=smoothstep(.00,.22,min(x,1.-x));
-        float a=texture2D(map,vec2(x*1.2,flow*.004)).r;
-        float b=texture2D(map,vec2(x*2.1+.42,flow*.017+.66)).g;
-        float streaks=texture2D(map,vec2(x*.51,flow*.008)).r;
-        float air=smoothstep(.16,.85,a*.52+b*.31+streaks*.38);
-        float eddy=texture2D(map,vec2(along*.0015,x*.10+.24)).r;
-        float pocket=smoothstep(.22,.80,eddy*.63+a*.37);
-        float br=(.18+.63*pocket)*(.50+.50*smoothstep(.25,.8,streaks));
-        float dist=distance(wp,cameraPosition);
-        float fade=exp(-dist*.00013);
-        vec3 color=mix(vec3(.29,.47,.54),vec3(.93,.94,.88),.12+.85*air*pocket);
-        gl_FragColor=vec4(color,edge*br*(.22+.73*air)*fade);
-      }`
-  });
-  // Source paths follow the photographed Fründen meltwater channels on the south and eastern walls.
+  const waterfalls=window.makeWaterfallSystem(THREE,scene,{clock,ground:elevation,level:lake.position.y,sun,texture,sky:skyMap});
+  // Meltwater courses surveyed on the south and east walls of Oeschinensee.
   const rivers=[
     [[369,1730],[379,1560],[399,1395],[425,1220],[435,1115],[458,1008],[466,953],[478,883],[479,834],[492,776],[498,739]],
     [[720,1680],[720,1540],[690,1430],[662,1320],[613,1210],[568,1128],[531,1044],[504,1020],[480,1009],[458,1008]],
     [[1890,824],[1780,786],[1670,772],[1560,786],[1440,746],[1320,680],[1230,630],[1150,600],[1090,580],[1040,570],[1010,560],[988,550],[975,550],[964,550]]
   ];
-  const plumes=[];
-  function cascade(path,width){
-    const spline=new THREE.SplineCurve(path.map(([x,z])=>new THREE.Vector2(x,z)));
-    const segments=Math.ceil(spline.getLength()/2.7),cols=8;
-    const v=[],tex=[],ids=[];
-    for(let j=0;j<=segments;j++) {
-      const d=j/segments,p=spline.getPointAt(d),direction=spline.getTangentAt(d);
-      const w=width*(.75+.33*Math.sin(d*13.6)+.27*Math.sin(d*22.5+.5)+.13*Math.cos(d*49.2));
-      for(let i=0;i<=cols;i++) {
-        const side=(i/cols-.5)*w;
-        const x=p.x+direction.y*side,z=p.y-direction.x*side;
-        v.push(x,Math.max(.35,elevation(x,z)+1.25),z);tex.push(i/cols,d*segments*2.7);
-        if(i<cols&&j<segments){const a=j*(cols+1)+i,b=a+cols+1;ids.push(a,b,a+1,a+1,b,b+1);}
-      }
-      if(j%12===0 && d>.3) {
-        const other=spline.getPointAt(Math.max(0,d-12/segments));
-        if(elevation(other.x,other.y)-elevation(p.x,p.y)>25)plumes.push([p.x,p.y,Math.max(.5,elevation(p.x,p.y))]);
-      }
-    }
-    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(v,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(tex,2));g.setIndex(ids);
-    scene.add(new THREE.Mesh(g,waterMaterial));
-  }
-  rivers.forEach((r,i)=>cascade(r,[14,8,15][i]));
-  // The east headwall drops almost 200 m in 30 horizontal metres. Water leaves
-  // the lip with stream velocity, accelerates under gravity, and breaks into spray.
-  function eastwallPlunge() {
-    const sheetMaterial=new THREE.ShaderMaterial({
-      uniforms:{t:clock,sunDir:{value:sun}},side:THREE.DoubleSide,transparent:true,depthWrite:false,
-      vertexShader:`uniform float t;varying vec2 stream;varying vec3 where;
-        void main(){stream=uv;vec3 p=position;
-          float turbulence=smoothstep(.12,.89,uv.y);
-          p.z+=turbulence*(1.3*sin(uv.y*18.-t*1.6+uv.x*4.)+.59*sin(uv.y*39.-t*3.1+uv.x*9.));
-          p.x+=turbulence*.61*cos(uv.y*24.-t*2.1+uv.x*5.);
-          where=p;gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);}`,
-      fragmentShader:`uniform float t;varying vec2 stream;varying vec3 where;
-        float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
-        float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
-          return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+1.),f.x),f.y);}
-        void main(){
-          float u=stream.x,v=stream.y;
-          float clock=v*6.2-t;
-          float wandering=.016*sin(v*11.-t*.8)+.028*sin(v*21.+u*4.-t*1.6);
-          float x=u+wandering*v;
-          float density=noise(vec2(x*15.+.4*noise(vec2(x*3.,clock)),clock*1.9));
-          float ropes=noise(vec2(x*73.+2.*density,clock*3.4));
-          float fine=noise(vec2(x*177.,clock*8.));
-          float edge=smoothstep(-.04,.14,min(x,1.-x)-.09*(density-.5));
-          float broken=smoothstep(.08+.15*v,.72,density*.68+ropes*.32);
-          float water=edge*(.22+.71*broken)*mix(.95,.76,v);
-          float white=clamp(.12+.62*broken+.23*ropes+.16*fine,0.,1.);
-          vec3 rgb=mix(vec3(.39,.55,.62),vec3(.91,.91,.85),white);
-          gl_FragColor=vec4(rgb,water);}`
-    });
-    const pos=[],uv=[],idx=[];
-    const bands=[{center:0,width:18,velocity:7.55},{center:-6.8,width:5.7,velocity:8.3},{center:6.9,width:4.2,velocity:6.8}];
-    for(const band of bands){
-      const start=pos.length/3,rows=74,cols=12;
-      for(let j=0;j<=rows;j++){
-        const f=j/rows;
-        for(let i=0;i<=cols;i++){
-          const u=i/cols,across=band.center+(u-.5)*band.width;
-          const z0=550+across,x0=964+.4*Math.sin(across*.37);
-          const top=elevation(x0,z0)+1.65;
-          const tEnd=Math.sqrt(2*(top-9)/9.81), seconds=f*tEnd;
-          const x=x0-seconds*band.velocity-.10*seconds*seconds;
-          const z=z0+f*f*across*.35+2.7*f*f;
-          pos.push(x,Math.max(elevation(x,z)+.55,top-4.905*seconds*seconds),z);
-          uv.push(u,f);
-          if(i<cols&&j<rows){const a=start+j*(cols+1)+i,b=a+cols+1;idx.push(a,b,a+1,a+1,b,b+1);}
-        }
-      }
-    }
-    const g=new THREE.BufferGeometry();
-    g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
-    g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));g.setIndex(idx);
-    scene.add(new THREE.Mesh(g,sheetMaterial));
-    // An angular fan of foamy water disperses into the receiving pool.
-    cascade([[915,553],[908,554],[903,553],[895,551],[884,554],[873,556]],14);
-    for(let i=0;i<25;i++){
-      const x=913+Math.sin(i*2.399)*7,z=552+Math.cos(i*2.399)*10;
-      plumes.push([x,z,Math.max(.5,elevation(x,z))]);
-    }
-  }
-  eastwallPlunge();
-
-  const spray=[],drifts=[];
-  let rng=41731;const rand=()=>((rng=(Math.imul(rng,1664525)+1013904223)>>>0)/4294967296);
-  for(const [x,z,y] of plumes)for(let j=0;j<8;j++){
-    spray.push(x+(rand()-.5)*7,y+1.5,z+(rand()-.5)*7);drifts.push(rand(),rand(),rand());
-  }
-  const mistGeometry=new THREE.BufferGeometry();
-  mistGeometry.setAttribute('position',new THREE.Float32BufferAttribute(spray,3));
-  mistGeometry.setAttribute('drift',new THREE.Float32BufferAttribute(drifts,3));
-  const mist=new THREE.Points(mistGeometry,new THREE.ShaderMaterial({uniforms:{clock},transparent:true,depthWrite:false,
-    vertexShader:`attribute vec3 drift;uniform float clock;varying float life,phase;
-      void main(){phase=drift.z;life=fract(clock*(.10+.07*drift.x)+drift.y);vec3 p=position;
-        p+=vec3(2.+drift.x*9.,4.+drift.y*12.,4.+drift.z*6.)*life;
-        vec4 mv=modelViewMatrix*vec4(p,1.);gl_Position=projectionMatrix*mv;
-        gl_PointSize=clamp((3700.+life*5400.)/max(1.,-mv.z),1.,84.);}`,
-    fragmentShader:`varying float life,phase;void main(){
-      vec2 q=gl_PointCoord-.5;float r=length(q)*2.;
-      float swirl=sin(q.x*16.+4.*sin(q.y*10.+phase*15.))+cos(phase*20.+q.y*13.);
-      float density=1.-smoothstep(.0,1.,r+.075*swirl);
-      gl_FragColor=vec4(mix(vec3(.63,.76,.82),vec3(.91,.90,.85),density),
-                        .145*density*sin(life*3.14159));}`
-  }));
-  scene.add(mist);
+  waterfalls.chute('Fründen Falls',rivers[0],14,{pool:true});
+  waterfalls.chute('Fründen tributary',rivers[1],8,{pool:false});
+  waterfalls.chute('Eastwall headwaters',rivers[2],12,{pool:false});
+  waterfalls.chute('Eastwall Cascade',[[964,550],[954,550],[944,552],[935,553],[924,555],[914,554],[900,553],[886,554],[873,556]],14);
+  waterfalls.couple(lake);
+  // Regional canopy sequence is independent of spray density.
+  let rng=2480920427;const rand=()=>((rng=(Math.imul(rng,1664525)+1013904223)>>>0)/4294967296);
   // Orthophotos and sky plates are authored in display colour. The mirror
   // buffer stores linear radiance, matching the physically lit rocks and trees.
   scene.traverse(mesh=>{
@@ -792,10 +673,10 @@ class Water extends Mesh {
     forest:{x:-1280,y:clearance(-1280,420)+43,z:420,yaw:-1.61}
   };
   return {
-    height,elevation,clearance,spawn,launches,trees,skyTexture:skyMap,sunMask:visibility,sunDirection:sun,waterLevel:0,lakeLevel:0,lakePolygon:shore,altitudeOffset:survey.heightOffset,
+    waterfalls,height,elevation,clearance,spawn,launches,trees,skyTexture:skyMap,sunMask:visibility,sunDirection:sun,waterLevel:0,lakeLevel:0,lakePolygon:shore,altitudeOffset:survey.heightOffset,
     bounds:{minX:-3700,maxX:3700,minZ:-3700,maxZ:3700},
     landmarks:[{name:'Western gravel beach',x:-647,z:466},{name:'Lakeshore meadow',x:-688,z:497,discoveryRadius:42},{name:'Oeschinensee',x:30,z:260},{name:'Fründen Falls',x:472,z:922},
       {name:'Eastwall Cascade',x:936,z:550},{name:'Fründenschnuer',x:978,z:264},{name:'Blüemlisalp Ridge',x:3135,z:-380}],
-    update(dt,time){clock.value=time;waterMaterial.uniforms.t.value=time;lake.material.uniforms.time.value=time*.52;}
+    update(dt,time){clock.value=time;lake.material.uniforms.time.value=time*.52;}
   };
 };

@@ -7,14 +7,14 @@
     swiss:{beds:{lake:'lapping-glacial',canopy:'leaves-alpine',cascade:'falls-spray'},birds:['chough','dunnock','ch-accentor','ch-wagtail','ch-raven','ch-mallard'],animals:['alpine-marmot']},
     canyon:{beds:{river:'stream-rock'},birds:['canyon-wren','poorwill','az-raven','az-peregrine','az-rock-wren','az-merganser'],animals:['canyon-treefrog']},
     yosemite:{beds:{canopy:'leaves-montane',river:'stream-forest',cascade:'falls-spray'},birds:['nutcracker','thrush','jay','yo-chickadee','yo-dipper','yo-acorn'],animals:['douglas-squirrel']},
-    crater:{beds:{lake:'lapping-caldera',canopy:'leaves-montane'},birds:['nutcracker','jay','cl-bluebird','cl-junco','cl-robin','cl-raven'],animals:['american-pika']},
-    lofoten:{beds:{inlet:'inlet'},birds:['kittiwake','oystercatcher','meadow-pipit','no-eider','no-gull','no-tern'],animals:['norwegian-sheep']},
+    crater:{beds:{lake:'lapping-caldera',canopy:'leaves-montane',cascade:'stream-rock'},birds:['nutcracker','jay','cl-bluebird','cl-junco','cl-robin','cl-raven'],animals:['american-pika']},
+    lofoten:{beds:{inlet:'inlet',cascade:'stream-rock'},birds:['kittiwake','oystercatcher','meadow-pipit','no-eider','no-gull','no-tern'],animals:['norwegian-sheep']},
     milford:{beds:{lake:'lapping-fjord',cascade:'falls-spray'},birds:['bellbird','kea','nz-shelduck','nz-fantail','nz-tomtit','nz-tui'],animals:['nz-fur-seal']},
-    dixville:{beds:{lake:'lapping-boreal',canopy:'leaves-hardwood'},birds:['me-chickadee','me-kinglet','thrush','nh-kingfisher','nh-mallard','nh-vireo','ak-raven'],animals:['juneau-red-squirrel']},
+    dixville:{beds:{lake:'lapping-boreal',canopy:'leaves-hardwood',cascade:'stream-rock'},birds:['me-chickadee','me-kinglet','thrush','nh-kingfisher','nh-mallard','nh-vireo','ak-raven'],animals:['juneau-red-squirrel']},
     labrador:{beds:{lake:'lapping-boreal',canopy:'leaves-boreal'},birds:['loon-moosehead','ne-goose','ak-raven','thrush','cl-junco'],animals:['juneau-red-squirrel']},
-    winnipesaukee:{beds:{lake:'lapping-islands',canopy:'leaves-hardwood'},birds:['loon-winnipesaukee','nh-vireo','ne-goose','nh-mallard','me-black-duck','nh-heron','nh-kingfisher'],animals:['nh-bullfrog']},
-    surry:{beds:{lake:'lapping-reservoir',canopy:'leaves-hardwood',river:'stream-forest'},birds:['nh-kingfisher','nh-vireo','ne-goose','nh-mallard','nh-heron','nh-wood-duck'],animals:['nh-spring-peeper']},
-    moosehead:{beds:{lake:'lapping-boreal',canopy:'leaves-boreal'},birds:['loon-moosehead','me-kinglet','ne-goose','me-black-duck','nh-mallard','nh-kingfisher','me-chickadee'],animals:['maine-green-frog']}
+    winnipesaukee:{beds:{lake:'lapping-islands',canopy:'leaves-hardwood',cascade:'stream-rock'},birds:['loon-winnipesaukee','nh-vireo','ne-goose','nh-mallard','me-black-duck','nh-heron','nh-kingfisher'],animals:['nh-bullfrog']},
+    surry:{beds:{lake:'lapping-reservoir',canopy:'leaves-hardwood',river:'stream-forest',cascade:'stream-rock'},birds:['nh-kingfisher','nh-vireo','ne-goose','nh-mallard','nh-heron','nh-wood-duck'],animals:['nh-spring-peeper']},
+    moosehead:{beds:{lake:'lapping-boreal',canopy:'leaves-boreal',cascade:'stream-rock'},birds:['loon-moosehead','me-kinglet','ne-goose','me-black-duck','nh-mallard','nh-kingfisher','me-chickadee'],animals:['maine-green-frog']}
   };
   // Sound source, useful audible range in metres, and source gain.
   const birds={
@@ -128,6 +128,7 @@
   });
   const phrases={
     departure:['eagle-yellowstone','eagle-peale-long'],
+    encounter:['eagle-peale-long','eagle-lake-series','eagle-yellowstone'],
     perched:['eagle-chirp','eagle-peale-short'],
     shoreline:['eagle-lake-double','eagle-lake-series'],
     climbing:['eagle-young-rise','eagle-young-contact'],
@@ -224,6 +225,9 @@
   window.aerieFauna={scenes,species,birds,sizes,sourceSite,nearestShore};
   window.makeFieldAudio=function makeFieldAudio(context,region){
     const profile=scenes[region];
+    const calls={moose:[134,.81],'white-tailed-deer':[97,.75],'red-deer':[185,.84]};
+    const localMammals=(window.aerieLandWildlife?.regions[region]?.animals||[]).filter(id=>calls[id]);
+    let mammalDue=0;
     if(!profile)throw new Error('Missing wildlife profile for '+region);
     const master=context.createGain();
     master.gain.value=0;
@@ -237,6 +241,12 @@
     let eagleDue=0, birdDue=0, animalDue=0, birdIndex=0, animalIndex=0, wildlifeUntil=0;
     const nextPhrase=new Map();
     let previousStage=null,pending=null,quietUntil=0,loonTake=0;
+    let lastEncounter=-Infinity,nextWildlifeScan=0;
+    let recognized=new WeakMap();
+    function resetEncounters(){
+      recognized=new WeakMap();lastEncounter=-Infinity;nextWildlifeScan=0;
+      if(pending==='encounter')pending=null;
+    }
     function load(id){
       if(buffers.has(id))return Promise.resolve(buffers.get(id));
       if(loading.has(id))return loading.get(id);
@@ -294,6 +304,8 @@
       for(const [role,id] of Object.entries(profile.beds))load(id).then(buffer=>startBed(role,buffer,token));
       if(profile.birds.includes('loon-moosehead'))load('maine-loon-reply');
       for(const id of [...profile.birds,...profile.animals,...playerCalls])load(id);
+      for(const id of localMammals)load('land-'+id);
+      mammalDue=now+(started?2.3:.63);
       previousStage=null;pending=null;quietUntil=now;
       eagleDue=now+(started?random(14,24):random(3.9,5.4));
       birdDue=now+random(1.0,2.5);animalDue=now+random(7.5,11);wildlifeUntil=now;
@@ -436,7 +448,7 @@
           const dx=falls.x-ears.x,dz=falls.z-ears.z;
           cover=window.aerieSoundPath(world,ears,falls);
           const pulse=window.aerieChutePulse(falls.x,falls.z,s.elapsed||0);
-          g=(.59+.14*pulse)*attenuation(falls.distance,340)*(1-.40*cover);
+          g=(.59+.14*pulse)*attenuation(falls.distance,falls.reach)*(1-.40*cover);
           pan=clamp((dx*(-forward.z)+dz*forward.x)/Math.max(1,Math.hypot(dx,dz)),-1,1)*(.88-.26*cover);
         }
         c.pan.pan.setTargetAtTime(pan,now,.45);
@@ -451,20 +463,55 @@
         else if(pending==='perched'&&stage!=='perched')pending=null;
         previousStage=stage;
       }
-      if(now>=eagleDue&&now>=quietUntil&&now>=wildlifeUntil){
+      // An animal crossing the eagle's field of view is an event in its own
+      // right. The periodic cruising voice can otherwise be silent for 48s.
+      if(stage==='free'&&now>=nextWildlifeScan&&now>=lastEncounter+16&&now>=quietUntil){
+        nextWildlifeScan=now+.4;
+        const fx=-Math.sin(s.yaw),fz=-Math.cos(s.yaw);
+        const wildlife=world.wildlife?.nearby(s,88)||[];
+        const sighted=wildlife.find(a=>{
+          if(!a.actor||now<(recognized.get(a.actor)??-Infinity)+60)return false;
+          const dx=a.x-s.x,dz=a.z-s.z,along=dx*fx+dz*fz,flat=Math.hypot(dx,dz);
+          const length=a.actor.length||a.actor.height||.35;
+          if(a.distance>Math.min(88,20+length*58)||(flat>5&&along<flat*.10))return false;
+          if(a.kind==='Fish'&&Number.isFinite(a.actor.level)&&a.actor.level-a.y>.45)return false;
+          for(let j=1;j<8;j++){
+            const u=j/8;
+            if(world.height(s.x+dx*u,s.z+dz*u)>s.y+(a.y-s.y)*u+.6)return false;
+          }
+          return true;
+        });
+        if(sighted){recognized.set(sighted.actor,now);lastEncounter=now;pending='encounter';eagleDue=now;}
+      }
+      if(now>=eagleDue&&now>=quietUntil&&(now>=wildlifeUntil||pending==='encounter')){
         const nearWater=waterGap<62&&(shore<115||Number.isFinite(world.waterLevel)&&here<waterY+.12);
         const occasion=pending||(stage==='perched'?'perched':nearWater?'shoreline':
           s.effort>.5||s.verticalSpeed>2.6?'climbing':'soaring');
         const choices=phrases[occasion];
         let index=nextPhrase.get(occasion)??Math.floor(Math.random()*choices.length);
         // A slow or missing download should never silence the other available phrase.
-        if(!buffers.has(choices[index])&&buffers.has(choices[(index+1)%choices.length]))index=(index+1)%choices.length;
+        if(!buffers.has(choices[index])){const available=choices.findIndex(id=>buffers.has(id));if(available>=0)index=available;}
         const id=choices[index];
-        if(voice(id,occasion==='perched'?.59:.70,-.10,15500)){
+        if(voice(id,occasion==='encounter'?.95:occasion==='perched'?.59:.70,-.10,15500)){
+          wildlifeUntil=Math.max(wildlifeUntil,now+buffers.get(id).duration+.3);
           nextPhrase.set(occasion,(index+1)%choices.length);pending=null;
           quietUntil=now+buffers.get(id).duration+2.8;
           eagleDue=now+random(stage==='perched'?19:27,stage==='perched'?36:48);
         }else eagleDue=now+.5;
+      }
+      // wildlifeUntil already covers the complete eagle phrase. Give a nearby
+      // mammal its turn before an ambient bird starts during the eagle's rest.
+      if(localMammals.length&&now>=mammalDue&&now>=wildlifeUntil){
+        mammalDue=now+1.3;
+        for(const id of localMammals){
+          const [reach,gain]=calls[id],actor=world.wildlife?.land?.caller(id,s,reach);
+          if(!actor)continue;
+          const anchor={x:actor.x,y:actor.y,z:actor.z,actor,reach,gain};
+          if(voice('land-'+id,gain,0,11500,anchor)){
+            wildlifeUntil=now+buffers.get('land-'+id).duration+.5;
+            mammalDue=now+random(34,63);break;
+          }
+        }
       }
       if(now>=wildlifeUntil&&now>=animalDue){
         const call=callWildlife(profile.animals,animalIndex,s,world,lastShore,waterY,agl);
@@ -477,6 +524,6 @@
         if(call){birdIndex=call.index;wildlifeUntil=now+call.duration+.6;}
       }
     }
-    return {setEnabled,update,output:master};
+    return {setEnabled,update,resetEncounters,output:master};
   };
 })();

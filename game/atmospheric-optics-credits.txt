@@ -1,0 +1,39 @@
+AERIE · ATMOSPHERIC OPTICS
+
+These events are original artistic simulations of naturally occurring optical
+phenomena. They are placed in each world's selected weather and time of day.
+They do not recreate a dated meteorological observation in any of the parks.
+
+Alaska, Oeschinensee, Lofoten and Winnipesaukee
+High cirrus can contain hexagonal plates and crystals. Rays refracted through
+them can make a solar halo with a roughly 22° inner radius, or bright
+parhelia near the Sun's elevation with a red sunward edge and a whitish tail.
+Reflections off horizontal plates can produce a pillar over a low Sun.
+U.S. National Weather Service:
+https://www.weather.gov/arx/why_halos_sundogs_pillars
+Hong Kong Observatory, parhelion geometry:
+https://www.weather.gov.hk/en/education/earth-science/optical-phenomena/00353-indepth-anatomy-of-the-atmospheric-optical-phenomenon-sun-dog.html
+
+Dixville, Moosehead, Surry, Yosemite, Milford and Horseshoe Bend
+Mountains and broken clouds interrupt direct sunlight. Areas lit through
+gaps scatter light toward an observer in haze, dust or droplets. Parallel
+rays appear to converge near the solar or antisolar point. Four finite
+ellipsoids approximate illuminated air; their optical path ends at the visible
+terrain, canopy or water surface.
+World Meteorological Organization, International Cloud Atlas:
+https://cloudatlas.wmo.int/en/crepuscular-rays.html
+UK Met Office, optical effects:
+https://weather.metoffice.gov.uk/learn-about/weather/optical-effects
+
+Lac Berté
+Light refracted and reflected by droplets makes the original rainbows.
+Fine, relatively uniform droplets can give muted interference fringes just
+inside the primary. Only part of the existing game shower supports them.
+World Meteorological Organization, International Cloud Atlas:
+https://cloudatlas.wmo.int/en/rainbow.html
+
+Crater Lake
+Intracloud lightning illuminates a region inside a storm cloud. The simulation
+lets the cloud itself diffuse and obscure the light.
+NOAA National Severe Storms Laboratory:
+https://www.nssl.noaa.gov/education/svrwx101/lightning/types/

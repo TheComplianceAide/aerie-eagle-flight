@@ -3,6 +3,7 @@
 window.addRegionalWildlife=function(T,scene,w){
   const region=w.region,{birds,sizes,species,scenes}=window.aerieFauna,profile=scenes[region];
   const ground=w.elevation||w.height,h=w.habitat,models=window.makeWildlifeModels(T,scene);
+  const land=window.makeLandWildlife(T,scene,w);
   const feedingFish={dixville:'brook-trout',moosehead:'atlantic-salmon',labrador:'brook-trout'}[region];
   const stations={alaska:[-424,-476],swiss:[-613,437],canyon:[-322,-32],yosemite:[-728,1256],
     crater:[-3209,1679],lofoten:[923,2104],milford:[2371,3244],
@@ -316,7 +317,36 @@ window.addRegionalWildlife=function(T,scene,w){
   }
   // Only animals drawn in the preceding frame can attract a passing eagle.
   // A rising fish is visible at the disturbance; the deeper school is concealed.
-  const visibleSubjects=[];
+  const visibleSubjects=[],rendered=[];
+  const names={
+    goose:'Canada goose',mallard:'Mallard',raven:'Common raven',dipper:'American dipper',accentor:'Alpine accentor',
+    wagtail:'White wagtail',peregrine:'Peregrine falcon','rock-wren':'Rock wren',merganser:'Common merganser',
+    'mountain-chickadee':'Mountain chickadee','acorn-woodpecker':'Acorn woodpecker',bluebird:'Mountain bluebird',junco:'Dark-eyed junco',
+    robin:'American robin',eider:'Common eider','common-gull':'Common gull',tern:'Arctic tern',tui:'Tūī',tomtit:'Tomtit',
+    fantail:'New Zealand fantail',shelduck:'Paradise shelduck','black-duck':'American black duck',chickadee:'Black-capped chickadee',
+    heron:'Great blue heron','wood-duck':'Wood duck',jay:'Steller’s jay',thrush:'Hermit thrush',nutcracker:'Clark’s nutcracker',
+    chough:'Alpine chough',dunnock:'Dunnock','canyon-wren':'Canyon wren',poorwill:'Common poorwill',kittiwake:'Black-legged kittiwake',
+    oystercatcher:'Eurasian oystercatcher',pipit:'Meadow pipit',bellbird:'New Zealand bellbird',kea:'Kea',loon:'Common loon',
+    vireo:'Red-eyed vireo',kingfisher:'Belted kingfisher',kinglet:'Golden-crowned kinglet','juneau-red-squirrel':'American red squirrel',
+    'douglas-squirrel':'Douglas squirrel','alpine-marmot':'Alpine marmot','american-pika':'American pika','norwegian-sheep':'Domestic sheep',
+    'nz-fur-seal':'New Zealand fur seal','nh-bullfrog':'American bullfrog','maine-green-frog':'Green frog','nh-spring-peeper':'Spring peeper',
+    'canyon-treefrog':'Canyon treefrog',sockeye:'Sockeye salmon','dolly-varden':'Dolly Varden','lake-trout':'Lake trout',
+    rainbow:'Rainbow trout','brown-trout':'Brown trout',carp:'Common carp',kokanee:'Kokanee salmon',spotty:'Spotty wrasse',
+    'blue-cod':'New Zealand blue cod',saithe:'Saithe','atlantic-cod':'Atlantic cod',smallmouth:'Smallmouth bass',
+    'atlantic-salmon':'Landlocked Atlantic salmon','yellow-perch':'Yellow perch','brook-trout':'Brook trout'
+  };
+  function nearby(p,maxDistance=400){
+    const candidates=[];
+    for(const a of rendered){
+      const distance=Math.hypot(a.x-p.x,a.y-p.y,a.z-p.z);
+      if(distance>maxDistance)continue;
+      const skin=a.skin?.replace(/-hen$/,''),name=a.name||names[skin];
+      if(!name)continue;
+      const kind=a.kind||(birds[a.id]?'Bird':a.id?(/frog|peeper/.test(skin)?'Amphibian':'Mammal'):'Fish');
+      candidates.push({id:a.id||skin,name,kind,x:a.x,y:a.y,z:a.z,distance,behavior:a.behavior||'swimming',actor:a});
+    }
+    return candidates.sort((a,b)=>a.distance-b.distance);
+  }
   function sighting(s,last){
     const heading=s.yaw+(s.yawSlip||0),forwardX=-Math.sin(heading),forwardZ=-Math.cos(heading);
     let best=null,bestScore=0;
@@ -350,7 +380,8 @@ window.addRegionalWildlife=function(T,scene,w){
       if(!sites.has(key)&&Math.hypot(player.x-resident.x,player.z-resident.z)>195&&player.y-h.surface(player.x,player.z)<230)
         makeSite(key,ix*310,iz*310,false);
     }
-    visibleSubjects.length=0;
+    visibleSubjects.length=0;rendered.length=0;
+    if(land)for(const a of land.update(player,t)){rendered.push(a);visibleSubjects.push(a);}
     models.begin(t);
     for(const site of sites.values()){
       if(Math.hypot(player.x-site.x,player.z-site.z)>570)continue;
@@ -376,13 +407,14 @@ window.addRegionalWildlife=function(T,scene,w){
       }
       for(const f of site.flocks)for(const a of f.group)
         if(Math.hypot(player.x-a.x,player.y-a.y,player.z-a.z)<Math.max(85,360*a.length)&&a.behavior!=='diving'){
-          models.draw(a);visibleSubjects.push(a);
+          if(models.draw(a)){rendered.push(a);visibleSubjects.push(a);}
         }
       for(const school of site.schools){
         if(Math.hypot(player.x-school.home.x,player.y-school.home.y,player.z-school.home.z)>90)continue;
         fish.update(school,player,t,dt);
         for(const a of school.members){
-          models.draw(a);
+          if(!models.draw(a))continue;
+          rendered.push(a);
           if(t-a.lastSwirl<.75&&a.level-a.y<.42*a.length)visibleSubjects.push(a);
         }
       }
@@ -390,5 +422,5 @@ window.addRegionalWildlife=function(T,scene,w){
     ripples.update(player,t);
     models.end();
   }
-  w.wildlife={nearest,sighting,inSight:a=>visibleSubjects.includes(a),waterAt,sites,prepare,fish:fish.roster};return update;
+  w.wildlife={nearest,nearby,land,sighting,inSight:a=>visibleSubjects.includes(a),waterAt,sites,prepare,fish:fish.roster};return update;
 };
