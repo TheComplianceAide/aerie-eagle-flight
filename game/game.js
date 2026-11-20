@@ -666,18 +666,41 @@
       list.appendChild(button);
     }
   }
+  function clearStreetArrival(launch) {
+    // A crosswind can carry a low street approach into a tree or an awning.
+    // Fly the existing physics ahead in the current wind before placing the eagle.
+    const neutral={turn:0,climb:0,brake:0,flap:false};
+    const initialY=launch.y;
+    for(const rise of [0,3,6,9,13,18,24,32,42]){
+      launch.y=initialY+rise;
+      const preview=makeFlight(launch,world);
+      preview.state.elapsed=elapsed;
+      let clear=true;
+      for(let i=0;i<1440;i++){
+        preview.step(1/120,neutral);
+        const s=preview.state;
+        if(s.contact||s.y-world.flightClearance(s.x,s.z)<2){
+          clear=false;
+          break;
+        }
+      }
+      if(clear)return;
+    }
+  }
   function flyToLandmark(place) {
     const launch=window.aerieScenicFlight.approach(world,place);
     if(!launch){
       el("summary").textContent="No clear approach to "+place.name+". Choose another landmark or resume flight.";
       return;
     }
+    const arrivalCore=world.windField.ensureLaunchCore(launch);
+    if(world.region==='surry'&&place.approach&&place.approach[4]<=20)clearStreetArrival(launch);
     dynamics=makeFlight(launch,world);
     Object.assign(dynamics.state,{elapsed,distance});
     landmarkLook={x:place.x,y:(world.clearance||world.height)(place.x,place.z),z:place.z};
     landmarkLookUntil=elapsed+3.5;
     subject=previousSubject=null;nextSighting=landmarkLookUntil+1;
-    windSoarer.reset(dynamics.state,world.windField.ensureLaunchCore(launch),launch.glance);
+    windSoarer.reset(dynamics.state,arrivalCore,launch.glance);
     fieldAudio?.resetEncounters();
     perching.reset(dynamics.state,false);nextPerchHUD=0;perchNotice="";
     resetCamera(dynamics.state,launch.glance,launch.lookDown);
