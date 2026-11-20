@@ -14,9 +14,10 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
   const fine=survey('fine',513,-1600,-800,3.125);
   function surveyedElevation(x,z) {
     const radius=Math.max(Math.abs(x),Math.abs(z));
-    if(radius>=3200)return outer(x,z);
+    const horizon=()=>outer(x,z)+window.rangeRelief("canyon",x,z);
+    if(radius>=3200)return horizon();
     let h=basin(x,z);
-    if(radius>3060)return lerp(h,outer(x,z),smoothstep(radius,3060,3200));
+    if(radius>3060)return lerp(h,horizon(),smoothstep(radius,3060,3200));
     const inset=Math.min(x+1600,-x,800-Math.abs(z));
     return inset>0 ? lerp(h,fine(x,z),smoothstep(inset,0,32)) : h;
   }
@@ -211,6 +212,11 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
         vec3 b=texture2D(ripple,(here-dir*clock*1.75+vec2(clock*.09,0.))*.075).rgb-.5;
         float smallWave=1.-smoothstep(.85,4.5,max(fwidth(here.x),fwidth(here.y)));
         vec3 wn=normalize(vec3((a.r+b.r*.36*smallWave)*.25,1.,(a.g+b.g*.36*smallWave)*.25));
+        vec2 across=vec2(-dir.y,dir.x);
+        float seam=sin(dot(here,dir)*.87-clock*1.47+sin(dot(here,across)*1.56));
+        float eddy=sin(dot(here,across)*2.29+dot(here,dir)*.32-clock*1.81);
+        vec2 riffle=(dir*seam*.095+across*eddy*.035)*smallWave;
+        wn=normalize(wn+vec3(riffle.x,0.,riffle.y));
         vec3 refl=reflect(-eye,wn);refl.y=max(.015,refl.y);
         float fres=.026+.974*pow(1.-max(0.,dot(wn,eye)),4.3);
         vec3 reflected=canyonReflection(wp+vec3(0.,1.85,0.),refl);
@@ -240,10 +246,12 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
         }
         float glint=pow(max(dot(wn,normalize(sun+eye)),0.),155.);
         river+=vec3(.67,.48,.25)*glint*sunVisibility;
+        float foam=smoothstep(.62,.96,seam*eddy)*exp(-abs(signedBank+3.)*.19)*smallWave;
+        river=mix(river,vec3(.70,.71,.59),foam*.29);
         color=mix(color,river,wet);
       }
       vec3 haze=mix(vec3(.67,.625,.64),vec3(.85,.70,.60),pow(max(dot(-eye,sun),0.),3.));
-      float dusty=.000045+.000070*exp(-max(0.,wp.y+cameraPosition.y-50.)/380.);
+      float dusty=.000030+.000041*exp(-max(0.,wp.y+cameraPosition.y-50.)/380.);
       color=mix(color,haze,1.-exp(-dist*dusty));gl_FragColor=vec4(color,1.);
     }`;
   function material(file){
@@ -265,7 +273,7 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
   const horizon=material('canyon-horizon.webp');
   for(let j=0;j<8;j++)for(let i=0;i<8;i++){
     if((i===3||i===4)&&(j===3||j===4))continue;
-    patch(-12800+i*3200,-12800+j*3200,3200,48,horizon,-12800,-12800,25600);
+    patch(-12800+i*3200,-12800+j*3200,3200,136,horizon,-12800,-12800,25600);
   }
   for(let j=0;j<4;j++)for(let i=0;i<4;i++){
     const mat=material('canyon-a'+(j*4+i)+'.webp');

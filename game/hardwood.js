@@ -69,7 +69,7 @@ window.addHardwoods=function addHardwoods(T,scene,trees,options){
       keyLight=texture2D(forestLight,vec2(root.x,-root.z)/span+.5).r;
       orientation=dot(right,sun);
       float dist=distance(center,cameraPosition);
-      fade=smoothstep(45.,90.,dist);
+      fade=smoothstep(85.,175.,dist);
       atmosphere=1.-exp(-dist*.000045);
       gl_Position=projectionMatrix*viewMatrix*vec4(p,1.);
     }`,fragmentShader:`
@@ -162,7 +162,7 @@ window.addHardwoods=function addHardwoods(T,scene,trees,options){
       illum=(.55+.28*max(dot(normalWorld,sun),0.)+.21*max(0.,p.y)+.23*transmission)*mix(.64,1.,light);
       coord=uv;species=kind;
       float dist=length(cameraPosition-root-vec3(0.,.5*length(instanceMatrix[1].xyz),0.));
-      fade=smoothstep(45.,90.,dist);atmosphere=0.;
+      fade=smoothstep(85.,175.,dist);atmosphere=0.;
       gl_Position=projectionMatrix*viewMatrix*vec4(world,1.);
     }`,fragmentShader:`uniform sampler2D leaves;uniform vec3 haze;
       varying vec2 coord;varying float species,illum,fade,atmosphere;
@@ -178,10 +178,10 @@ window.addHardwoods=function addHardwoods(T,scene,trees,options){
   return player=>{
     if(!player||last.distanceToSquared(player)<36)return;
     last.copy(player);let count=0;const i=Math.floor(player.x/72),j=Math.floor(player.z/72);
-    for(let x=i-2;x<=i+2;x++)for(let z=j-2;z<=j+2;z++){
+    for(let x=i-3;x<=i+3;x++)for(let z=j-3;z<=j+3;z++){
       const batch=cells.get(x+':'+z);if(!batch)continue;
       for(const t of batch){
-        if(Math.hypot(player.x-t.x,player.y-t.y-t.height*.5,player.z-t.z)>100||count>=stems.instanceMatrix.count)continue;
+        if(Math.hypot(player.x-t.x,player.y-t.y-t.height*.5,player.z-t.z)>185||count>=stems.instanceMatrix.count)continue;
         frame.position.set(t.x,t.y-.12,t.z);frame.rotation.y=t.seed*6.283;
         frame.scale.set(t.width,t.height,t.width);frame.updateMatrix();stems.setMatrixAt(count,frame.matrix);
         speciesAttr.setX(count++,t.species);

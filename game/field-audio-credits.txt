@@ -1,6 +1,6 @@
 AERIE FIELD RECORDINGS
 
-The eagle's voice is drawn from three recordings of bald eagles. The environmental mixes combine recordings from the depicted region with field recordings of the same habitat or species elsewhere. Recording locations and rights are listed below. The individual MP3 excerpts have been trimmed, resampled, level-adjusted and faded. Ambient excerpts have crossfaded loop seams.
+The eagle's voice is drawn from ten phrases from six bald-eagle field recordings. The environmental mixes combine recordings from the depicted region with field recordings of the same habitat or species elsewhere. Recording locations and rights are listed below. The individual audio excerpts have been trimmed, resampled, level-adjusted and faded. Ambient excerpts have crossfaded loop seams.
 
 EAGLE
 
@@ -14,6 +14,20 @@ https://creativecommons.org/publicdomain/zero/1.0/
 
 field-eagle-yellowstone.mp3 — “Bald Eagle.” U.S. National Park Service, Yellowstone National Park.
 https://www.nps.gov/subjects/sound/sounds-bald-eagle.htm
+
+Seven additional player phrases from three Yellowstone Sound Library field recordings, recorded by Jennifer Jerrett for NPS & MSU Acoustic Atlas.
+https://www.nps.gov/yell/learn/photosmultimedia/sounds-goldeneagle.htm
+NPS describes its Sound Library as public domain. MSU lists the recordings under CC BY-NC 4.0 (https://creativecommons.org/licenses/by-nc/4.0/). Excerpts trimmed, background reduced, levels matched and fades added. Flight triggers are a game design choice.
+Bald Eagle and American Coots, Yellowstone Lake — https://acousticatlas.org/item.php?id=2482
+  field-eagle-lake-double.m4a — 1.12 to 2.93 seconds.
+  field-eagle-lake-series.m4a — 3.13 to 5.31 seconds.
+Bald Eagle, Peale Island — https://acousticatlas.org/item.php?id=2481
+  field-eagle-peale-short.m4a — 24.54 to 27.77 seconds.
+  field-eagle-peale-long.m4a — 4.02 to 7.80 seconds.
+  field-eagle-peale-answer.m4a — 47.67 to 50.34 seconds.
+Juvenile Bald Eagle — https://acousticatlas.org/item.php?id=2184
+  field-eagle-young-rise.m4a — 36.05 to 41.85 seconds.
+  field-eagle-young-contact.m4a — 82.05 to 85.96 seconds.
 
 WATER AND FOREST
 

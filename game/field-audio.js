@@ -14,7 +14,15 @@
     surry:    {beds:['lake','canopy','river'], birds:['nh-vireo','thrush']},
     moosehead: {beds:['lake','canopy'], birds:['loon-moosehead','me-kinglet']}
   };
-  const playerCalls=['eagle-yellowstone','eagle-chirp','eagle-alaska'];
+  const phrases={
+    departure:['eagle-yellowstone','eagle-peale-long'],
+    perched:['eagle-chirp','eagle-peale-short'],
+    shoreline:['eagle-lake-double','eagle-lake-series'],
+    climbing:['eagle-young-rise','eagle-young-contact'],
+    soaring:['eagle-alaska','eagle-peale-answer']
+  };
+  const playerCalls=Object.values(phrases).flat();
+  const aacCalls=new Set(['apapane','meadow-pipit','dunnock',...playerCalls.filter(id=>!['eagle-yellowstone','eagle-chirp','eagle-alaska'].includes(id))]);
   const random=(a,b)=>a+(b-a)*Math.random();
   const clamp=(x,lo,hi)=>Math.max(lo,Math.min(hi,x));
   const attenuation=(meters,reach)=>1/(1+(meters/reach)**2);
@@ -67,11 +75,13 @@
     const forward=new THREE.Vector3(),up=new THREE.Vector3();
     const buffers=new Map(), loading=new Map(), loops=new Map(), shots=new Set();
     let enabled=false, generation=0, tick=0, started=false;
-    let eagleDue=0, birdDue=0, eagleIndex=region==='alaska'?2:0, birdIndex=0;
+    let eagleDue=0, birdDue=0, birdIndex=0;
+    const nextPhrase=new Map();
+    let previousStage=null,pending=null,quietUntil=0;
     function load(id){
       if(buffers.has(id))return Promise.resolve(buffers.get(id));
       if(loading.has(id))return loading.get(id);
-      const format=['apapane','meadow-pipit','dunnock'].includes(id)?'.m4a':'.mp3';
+      const format=aacCalls.has(id)?'.m4a':'.mp3';
       const name='field-'+id+format;
       const task=fetch(window.aerieAssetURL?.(name)||name)
         .then(response=>{if(!response.ok)throw Error('Missing audio '+name);return response.arrayBuffer();})
@@ -124,6 +134,7 @@
       const token=generation;
       for(const id of profile.beds)load(id).then(buffer=>startBed(id,buffer,token));
       for(const id of [...profile.birds,...playerCalls])load(id);
+      previousStage=null;pending=null;quietUntil=now;
       eagleDue=now+(started?random(14,24):random(3.9,5.4));
       birdDue=now+random(1.6,3.1);
       started=true;tick=0;
@@ -156,7 +167,7 @@
       return {x:tree.x,y:tree.y+tree.height*(id==='thrush'||id==='dunnock'?.14:.68),z:tree.z};
     }
     let lastShore=null,shoreX=Infinity,shoreZ=Infinity;
-    function update(s,world,dt,camera){
+    function update(s,world,dt,camera,stage='free'){
       if(!enabled||!s||!world)return;
       if(camera){
         const listener=context.listener,eye=camera.position;
@@ -229,11 +240,28 @@
         c.gain.gain.setTargetAtTime(g,now,.55);
         c.filter.frequency.setTargetAtTime(2200+12000*clamp(g*1.7,0,1),now,.65);
       }
-      if(now>=eagleDue){
-        if(voice(playerCalls[eagleIndex],.70,-.10,15500)){
-          eagleIndex=(eagleIndex+1)%playerCalls.length;
-          eagleDue=now+random(33,58);
-        }else eagleDue=now+.6;
+      if(stage!==previousStage){
+        if(stage==='push'||stage==='perched'){
+          pending=stage==='push'?'departure':'perched';
+          eagleDue=Math.max(quietUntil,now+(stage==='push'?.08:.8));
+        }else if(previousStage===null&&stage==='free'&&!nextPhrase.size)pending='departure';
+        else if(pending==='perched'&&stage!=='perched')pending=null;
+        previousStage=stage;
+      }
+      if(now>=eagleDue&&now>=quietUntil){
+        const nearWater=waterGap<62&&(shore<115||Number.isFinite(world.waterLevel)&&here<waterY+.12);
+        const occasion=pending||(stage==='perched'?'perched':nearWater?'shoreline':
+          s.effort>.5||s.verticalSpeed>2.6?'climbing':'soaring');
+        const choices=phrases[occasion];
+        let index=nextPhrase.get(occasion)??Math.floor(Math.random()*choices.length);
+        // A slow or missing download should never silence the other available phrase.
+        if(!buffers.has(choices[index])&&buffers.has(choices[(index+1)%choices.length]))index=(index+1)%choices.length;
+        const id=choices[index];
+        if(voice(id,occasion==='perched'?.59:.70,-.10,15500)){
+          nextPhrase.set(occasion,(index+1)%choices.length);pending=null;
+          quietUntil=now+buffers.get(id).duration+2.8;
+          eagleDue=now+random(stage==='perched'?19:27,stage==='perched'?36:48);
+        }else eagleDue=now+.5;
       }
       if(now>=birdDue){
         birdDue=now+1.25;

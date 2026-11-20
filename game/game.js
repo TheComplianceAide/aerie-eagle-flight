@@ -241,7 +241,7 @@
     renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:"high-performance"});
     renderer.setPixelRatio(Math.min(devicePixelRatio,pixelRatioLimit));renderer.outputColorSpace=THREE.SRGBColorSpace;
     renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.03;
-    scene=new THREE.Scene();camera=new THREE.PerspectiveCamera(76,1,.035,["winnipesaukee","moosehead","surry"].includes(region)?65000:23500);
+    scene=new THREE.Scene();camera=new THREE.PerspectiveCamera(76,1,.035,["winnipesaukee","moosehead","surry"].includes(region)?83000:49000);
     player=new THREE.Vector3();gaze=new THREE.Vector3();cameraTarget=new THREE.Vector3();
     const manager=THREE.DefaultLoadingManager;
     const priorLoad=manager.onLoad,priorProgress=manager.onProgress,priorError=manager.onError;
@@ -269,6 +269,7 @@
       perching=window.makePerchFlight(THREE,world,perchHabitat,perchRoute);
       perchMarker=new THREE.Vector3();
       if(factory)updateHabitat=addHabitat(THREE,scene,world,region);
+      window.addFlightWater(THREE,scene,world);
       updateUnderstory=window.addUnderstory(THREE,scene,world);
       if(region==="swiss") updateTalus=window.addTalus?.(THREE,scene,world);
       if(region==="swiss" || region==="alaska" || world.useFirForest) updateForest=window.addForest?.(THREE,scene,world);
@@ -567,7 +568,7 @@
     else positionChase(s,dt);
     updateTalus?.(player,elapsed);updateForest?.(player,elapsed);updateHabitat?.(player,elapsed);
     updateUnderstory(player,elapsed);
-    if(fieldAudio&&soundOn)fieldAudio.update(s,world,dt,camera);
+    if(fieldAudio&&soundOn)fieldAudio.update(s,world,dt,camera,perching.stage);
     world.update(dt,elapsed,player);updateLight?.(player,elapsed);updateMist?.(player,elapsed);renderer.render(scene,camera);updatePerchHUD(s);
     if(s.contact){showDialog("contact");return;}
     if(elapsed>=nextReadout){
@@ -596,7 +597,7 @@
       const fps=frameCount/frameSeconds, current=renderer.getPixelRatio();
       fastWindows=fps>54?fastWindows+1:0;
       let next=current;
-      if(fps<28)next=Math.max(.85,current-.16);
+      if(fps<28)next=Math.max(Math.min(devicePixelRatio,pixelRatioLimit,1.5),current-.12);
       else if(fastWindows>=4){next=Math.min(devicePixelRatio,pixelRatioLimit,current+.12);fastWindows=0;}
       if(Math.abs(next-current)>.01)renderer.setPixelRatio(next);
       frameSeconds=0;frameCount=0;

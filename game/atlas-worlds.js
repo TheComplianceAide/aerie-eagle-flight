@@ -392,15 +392,20 @@ class Water extends Mesh {
   const [focusX,focusZ]=survey.innerCenter || [0,0];
   const cityGrid=survey.cityTerrain?unpack(survey.cityTerrain):null;
   const [cityX,cityZ]=survey.cityCenter||[0,0];
+  function farHeight(x,z){
+    const base=sample(far,farH,x,z);
+    const shore=settings.water===undefined?1:smoothstep(base-settings.water,2,25);
+    return base+shore*window.rangeRelief(region,x,z);
+  }
   function elevation(x,z){
     const r=Math.max(Math.abs(x),Math.abs(z));
-    if(r>=h)return waterfront?waterfront.elevation(sample,far,farH,x,z):sample(far,farH,x,z);
+    if(r>=h)return waterfront?waterfront.elevation((g,span,xx,zz)=>g===far?farHeight(xx,zz):sample(g,span,xx,zz),far,farH,x,z):farHeight(x,z);
     let val=sample(near,h,x,z);
     const focusDistance=Math.max(Math.abs(x-focusX),Math.abs(z-focusZ));
     if(tight&&focusDistance<1450)val=lerp(sample(tight,1450,x-focusX,z-focusZ),val,smoothstep(focusDistance,1395,1450));
     const cityDistance=Math.max(Math.abs(x-cityX),Math.abs(z-cityZ));
     if(cityGrid&&cityDistance<1450)val=lerp(sample(cityGrid,1450,x-cityX,z-cityZ),val,smoothstep(cityDistance,1395,1450));
-    if(r>h-200)val=lerp(val,sample(far,farH,x,z),smoothstep(r,h-200,h));
+    if(r>h-200)val=lerp(val,farHeight(x,z),smoothstep(r,h-200,h));
     return val;
   }
   function growth(x,z){
@@ -408,7 +413,7 @@ class Water extends Mesh {
     return i>=0&&i<384&&j>=0&&j<384?cover[j*384+i]/255:0;
   }
   const loader=new THREE.TextureLoader();
-  function texture(file,repeat=false){const tex=loader.load(file);tex.anisotropy=6;if(repeat)tex.wrapS=tex.wrapT=THREE.RepeatWrapping;return tex;}
+  function texture(file,repeat=false){const tex=loader.load(file);tex.anisotropy=12;if(repeat)tex.wrapS=tex.wrapT=THREE.RepeatWrapping;return tex;}
   const lightAngles={moosehead:[-84,15.5],winnipesaukee:[-112,4.2],surry:[-52,19],napali:[-36,15],yosemite:[-43,6.5],bryce:[-48,14.5],crater:[-70,8],lofoten:[-115,4.3],milford:[-71,8]};
   const [azimuth,altitude]=lightAngles[region].map(THREE.MathUtils.degToRad);
   const sun=new THREE.Vector3(Math.cos(azimuth)*Math.cos(altitude),Math.sin(altitude),Math.sin(azimuth)*Math.cos(altitude));
@@ -535,7 +540,7 @@ class Water extends Mesh {
         ambient*=mix(vec3(1.),vec3(.74,.87,1.02),desert*(1.-.63*skyView));
         c=pow(max(c,vec3(0.)),vec3(2.2))*(ambient+direct)*(1.+(.32+.42*desert)*relief);
         /* canopy transmission */
-        float dep=1.-exp(-d*(.000057-.000018*temperate));
+        float dep=1.-exp(-d*(.000032-.000007*temperate));
         vec3 aerialHaze=haze*mix(vec3(.79,.86,1.0),vec3(1.12,1.01,.88),.5+.5*dot(normalize(wp-cameraPosition),sun));
         gl_FragColor=vec4(mix(c,aerialHaze,dep*(.72+.28*skyView)),1.);
         #include <colorspace_fragment>
@@ -667,7 +672,7 @@ class Water extends Mesh {
       for(const area of areas)subdivide(...area,step);
     }
   }
-  ring(h,farH,110,0,0,waterfront?.rects);
+  ring(h,farH,Math.max(32,farH/570),0,0,waterfront?.rects);
   if(waterfront)for(const area of waterfront.rects)subdivide(...area,4.5);
   const core=tight?1450:h;
   if(cityGrid){

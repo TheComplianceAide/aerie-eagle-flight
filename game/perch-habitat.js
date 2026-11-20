@@ -80,6 +80,7 @@ window.makePerchHabitat=function makePerchHabitat(T,scene,world,region){
   let flowPixels,flowTexture,flowWidth=768,flowHeight=768;
   if(region==='canyon')scene.traverse(obj=>{flowTexture=flowTexture||obj.material?.uniforms?.flow?.value;});
   function wet(x,z,y){
+    if(world.channelWater&&Number.isFinite(world.channelWater(x,z)))return true;
     if(flowTexture){
       if(!flowPixels&&flowTexture.image?.width){
         if(flowTexture.image.data){

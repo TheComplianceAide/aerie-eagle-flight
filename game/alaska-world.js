@@ -387,7 +387,8 @@ class Water extends Mesh {
   }
   function elevation(x,z){
     const d=Math.max(Math.abs(x),Math.abs(z));
-    if(d>=4800)return sample(far,601,18000,x,z)+reliefHeight(x,z);
+    const outer=()=>sample(far,601,18000,x,z)+window.rangeRelief('alaska',x,z)*THREE.MathUtils.smoothstep(d,6900,7700);
+    if(d>=4800)return outer()+reliefHeight(x,z);
     const local=sample(near,961,4800,x,z)+iceRelief(x,z)+crestHeight(x,z);
     return reliefHeight(x,z)+(d>4650?THREE.MathUtils.lerp(local,sample(far,601,18000,x,z),(d-4650)/150):local);
   }
@@ -522,7 +523,7 @@ class Water extends Mesh {
       vec4 measured=texture2D(alpineRelief,clamp(ridgeUV,0.,1.));
       vec3 relief=measured.rgb;
       float exposed=clamp((measured.a-.24)/.76,0.,1.)*(1.-max(snowfield,sheet))*surveyed;
-      if(exposed>.02 && d<5900.){
+      if(exposed>.02 && d<9500.){
         // A nadir image contains almost no samples on a vertical surface. Map
         // the photographed glacially polished walls along the valley side and
         // follow the local strata dip; the survey determines exposure to view.
@@ -546,9 +547,17 @@ class Water extends Mesh {
         float parent=dot(base,vec3(.25,.57,.18));
         schist*=clamp(.82+.45*parent,.80,1.13);
         float rockFace=exposed*(.74+.23*cliffWeight)*(1.-.72*alpineFloor)
-                      *(1.-.58*smoothstep(1200.,5900.,d));
+                      *(1.-.32*smoothstep(2300.,9500.,d));
         base=mix(base,schist,rockFace);
       }
+      // Signed local slope and curvature from the 3 m ArcticDEM. Lighting
+      // follows the measured rock fins and ice cuts across the entire approach.
+      vec2 stride=vec2(.0014,0.);
+      float surround=.25*(texture2D(alpineRelief,ridgeUV+stride).g+texture2D(alpineRelief,ridgeUV-stride).g
+        +texture2D(alpineRelief,ridgeUV+stride.yx).g+texture2D(alpineRelief,ridgeUV-stride.yx).g);
+      float facetDetail=(measured.g-surround)*2.;
+      float rockExposure=max(exposed,.52*(1.-forest)*smoothstep(.14,.42,1.-nn.y));
+      base*=exp2(facetDetail*surveyed*(.21+1.25*rockExposure+.70*sheet));
       float viewSky=mix(1.,relief.b,surveyed);
       float beam=mix(clamp(.45+1.6*light,0.,1.),relief.r,surveyed);
       float facet=mix(light,relief.g*2.-1.,surveyed*(1.-.83*forest));
@@ -577,7 +586,7 @@ class Water extends Mesh {
       base+=vec3(.125,.124,.108)*beam*sheen*(.38*rocky+sheet);
       float nearAir=exp(-max(0.,cameraPosition.y+p.y)/1250.);
       float againstSun=pow(max(0.,dot(-V,sun)),3.);
-      float haze=1.-exp(-d*(.000042+.000115*nearAir)*(1.+.45*againstSun));
+      float haze=1.-exp(-d*(.000025+.000054*nearAir)*(1.+.45*againstSun));
       base=mix(base,mix(vec3(.57,.67,.79),vec3(.90,.77,.68),againstSun),haze);
       gl_FragColor=vec4(base,1.);}`});
   const terrainLods=[],indexLods=new Map();
@@ -602,12 +611,15 @@ class Water extends Mesh {
   }
   let prevLodX=Infinity,prevLodY=Infinity,prevLodZ=Infinity;
   function updateTerrainLOD(player){
-    if(!player||Math.abs(player.x-prevLodX)+Math.abs(player.y-prevLodY)+Math.abs(player.z-prevLodZ)<70)return;
+    if(!player||Math.abs(player.x-prevLodX)+Math.abs(player.y-prevLodY)+Math.abs(player.z-prevLodZ)<45)return;
     prevLodX=player.x;prevLodY=player.y;prevLodZ=player.z;
     for(const t of terrainLods){
       const dx=Math.max(t.x0-player.x,0,player.x-t.x1),dz=Math.max(t.z0-player.z,0,player.z-t.z1);
       const range=Math.hypot(dx,dz);
-      const pitch=range<1000?1:range<2600?2:t.nx>=120?4:2;
+      // Keep cliff and ice silhouettes resolved across the valley. Flat terraces
+      // can spend the same pixel error budget on fewer vertices.
+      const sharp=t.relief>240;
+      const pitch=(t.x1-t.x0>4000||range<(sharp?2650:1450))?1:range<(sharp?6400:3300)?2:t.nx>=120?4:2;
       if(t.pitch!==pitch){t.mesh.geometry.setIndex(gridIndex(t.nx,t.nz,pitch));t.pitch=pitch;}
     }
   }
@@ -621,7 +633,8 @@ class Water extends Mesh {
 
     }
     const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(vertices,3));g.setAttribute('normal',new THREE.BufferAttribute(normal,3));g.setIndex(gridIndex(nx,nz,1));g.computeBoundingSphere();const mesh=new THREE.Mesh(g,material);scene.add(mesh);
-    terrainLods.push({mesh,nx,nz,x0,z0,x1,z1,pitch:1});
+    g.computeBoundingBox();
+    terrainLods.push({mesh,nx,nz,x0,z0,x1,z1,pitch:1,relief:g.boundingBox.max.y-g.boundingBox.min.y});
   }
   // A one-texel apron on each 3.6 km photographic tile preserves filtered continuity between survey panels.
   // Smaller mesh patches allow the renderer to cull unseen ridges. Five metre cells resolve the upper ice.
@@ -640,7 +653,7 @@ class Water extends Mesh {
   }
   const edges=[-18000,-7200,7200,18000];
   for(let j=0;j<3;j++)for(let i=0;i<3;i++)if(i!==1||j!==1)
-    patch(edges[i],edges[j],edges[i+1],edges[j+1],Math.ceil((edges[i+1]-edges[i])/60),Math.ceil((edges[j+1]-edges[j])/60));
+    patch(edges[i],edges[j],edges[i+1],edges[j+1],Math.ceil((edges[i+1]-edges[i])/30),Math.ceil((edges[j+1]-edges[j])/30));
   const shore=survey.shore.map(([x,z])=>({x,z}));const outline=new THREE.Shape(survey.waterEdge.map(([x,z])=>new THREE.Vector2(x,-z)));
   const waters=map('waternormals.jpg',true);
   const lake=new Water(new THREE.ShapeGeometry(outline),{textureWidth:960,textureHeight:640,waterNormals:waters,sunDirection:sun,sunColor:0xffe9cd, waterColor:0x396c70,distortionScale:1.82,fog:true});

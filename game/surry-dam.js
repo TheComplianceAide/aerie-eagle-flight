@@ -211,10 +211,10 @@
     geometry.computeVertexNormals();
     const material=new THREE.ShaderMaterial({
       side:THREE.DoubleSide,
-      uniforms:{clock,normalMap:{value:texture('waternormals.jpg',true)},sun:{value:sun}},
+      uniforms:{clock,normalMap:{value:texture('waternormals.jpg',true)},bed:{value:texture('shore-pebbles.webp',true)},sun:{value:sun}},
       vertexShader:`varying vec3 wp;varying vec2 flow;void main(){
         wp=position;flow=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
-      fragmentShader:`varying vec3 wp;varying vec2 flow;uniform float clock;uniform sampler2D normalMap;uniform vec3 sun;
+      fragmentShader:`varying vec3 wp;varying vec2 flow;uniform float clock;uniform sampler2D normalMap,bed;uniform vec3 sun;
         void main(){
           vec3 V=normalize(cameraPosition-wp);
           vec3 n1=texture2D(normalMap,vec2(wp.x,wp.z)*.12+vec2(.014,-.009)*clock).xyz-.5;
@@ -225,6 +225,11 @@
           float glint=pow(max(0.,dot(N,normalize(V+sun))),110.)*.40;
           float rings=.5+.5*sin(flow.y*.73-clock*1.7+n1.x*8.);
           vec3 c=mix(vec3(.065,.117,.083),vec3(.109,.157,.102),edge*(.38+.25*rings));
+          vec3 ray=refract(-V,N,.7502);
+          vec3 gravel=pow(texture2D(bed,(wp.xz+ray.xz*(.3+.65*(1.-edge)))*.57).rgb,vec3(2.2));
+          c=mix(c,gravel*vec3(.57,.72,.59),edge*(1.-f)*.83);
+          float froth=smoothstep(.65,.94,sin(flow.y*1.41-clock*2.19+n2.x*4.)*sin(flow.x*42.+n1.x*5.));
+          c+=vec3(.11,.12,.095)*froth*edge;
           c=mix(c,vec3(.30,.42,.50),f*.77)+glint*vec3(1.,.82,.54);
           float haze=1.-exp(-distance(wp,cameraPosition)*.000032);
           gl_FragColor=vec4(mix(c,vec3(.39,.45,.50),haze),1.);

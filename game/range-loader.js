@@ -1,6 +1,6 @@
 // A destination's elevation surveys and textures are opened when the player takes flight.
 (() => {
-  const base = ['eagle.js','flight-light.js','field-audio.js','perch-flight.js','perch-habitat.js','plant-models.js','understory.js'];
+  const base = ['eagle.js','flight-light.js','field-audio.js','perch-flight.js','perch-habitat.js','plant-models.js','understory.js','range-relief.js','water-surface.js'];
   const trees = ['fir-data.js','forest.js'];
   const scripts = {
     alaska: ['alaska-survey.js','alaska-world.js','talus-data.js','habitat.js',...trees],
@@ -30,7 +30,9 @@
       winnipesaukee:['winnipesaukee-waterfront-data.js','winnipesaukee-waterfront.js'],
       surry:['surry-dam.js','keene-city-data.js','keene-frontages.js','keene-streetscape.js','keene-city.js','keene-light.js']
     }[region]||[];
-    await Promise.all([...base,...files,...mist,...surveyDetail].map(open));
+    const streams=['yosemite','bryce'].includes(region)?['river-'+region+'.js']:[];
+    await Promise.all([...streams,...base,...files,...mist,...surveyDetail].map(open));
+    await window.prepareRangeRelief(region);
     if(region==='bryce')await window.prepareBryceTerrain();
   };
 })();

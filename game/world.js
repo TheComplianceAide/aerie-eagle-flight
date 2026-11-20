@@ -379,7 +379,8 @@ class Water extends Mesh {
   }
   function elevation(x,z) {
     const border = Math.max(Math.abs(x),Math.abs(z));
-    if (border>=4000) return sample(region,513,16000,x,z);
+    const regional=()=>sample(region,513,16000,x,z)+window.rangeRelief("swiss",x,z);
+    if (border>=4000) return regional();
     const local = sample(heights,1001,4000,x,z);
     if (eastWall && x>500 && x<1500 && z>0 && z<1000) {
       const y=sample(eastWall,501,500,x-1000,z-500);
@@ -389,7 +390,7 @@ class Water extends Mesh {
     }
     if (border<3900) return local;
     const blend = smooth(3900,4000,border);
-    return local*(1-blend)+sample(region,513,16000,x,z)*blend;
+    return local*(1-blend)+regional()*blend;
   }
   const shore = survey.shore.map(([x,z]) => ({x,z}));
   function insideLake(x,z) {
@@ -469,7 +470,7 @@ class Water extends Mesh {
       float aerosol=abs(delta)<.01 ? exp(-.5*(fromY+toY)) :
         (exp(-fromY)-exp(-toY))/delta;
       float extinction=cameraDist*(.000034+.00016*aerosol)*(1.+.47*warmth);
-      return mix(color,haze,1.-exp(-extinction));
+      return mix(color,haze,1.-exp(-extinction*.71));
     }
     void main(){
       vec3 rgb=texture2D(photo,tileUv).rgb;
@@ -583,7 +584,7 @@ class Water extends Mesh {
   const farMaterial=terrainMaterial(texture('high-alps.jpg'));
   for(let j=0;j<8;j++)for(let i=0;i<8;i++){
     if(i>=3&&i<=4&&j>=3&&j<=4)continue;
-    patch(-16000+i*4000,-16000+j*4000,4000,64,farMaterial,true);
+    patch(-16000+i*4000,-16000+j*4000,4000,140,farMaterial,true);
   }
   for(let j=0;j<4;j++)for(let i=0;i<4;i++){
     // 8 metre flight-basin vertices; distant survey panels retain coarser relief for stable frame times.
