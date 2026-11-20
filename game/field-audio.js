@@ -322,7 +322,7 @@
         // Delay, Doppler, ISO air absorption, terrain shading and the world's
         // simulated reverberation are applied by the spatial engine.
         const s=scape.engine.play(buffer,{x:anchor.x,y:anchor.y,z:anchor.z},{gain:gain*1.1,ref:clamp(anchor.reach*.18,12,95),
-          reach:anchor.reach*1.3,wet:.42,rate:random(.982,1.015)});
+          reach:anchor.reach*1.3,wet:.42,echo:anchor.reach>=220,rate:random(.982,1.015)});
         if(s&&anchor.actor)s.onUpdate=()=>{s.x=anchor.actor.x;s.y=anchor.actor.y;s.z=anchor.actor.z;};
         return !!s;
       }
