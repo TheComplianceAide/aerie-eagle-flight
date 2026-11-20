@@ -439,7 +439,7 @@
       const gust=world.windField?.sample(s.x,s.y,s.z,s.elapsed||0,gustSample)?.gust??window.aerieWind(s.x,s.z,s.elapsed||0);
       const speed=clamp((s.airspeed||0)/32,0,1.3);
       scapeExtras={exposure,gust,canopy,shore:lastShore};
-      air.gain.setTargetAtTime((.045+.12*speed+.63*exposure)*(.70+.37*gust)*(1-.46*canopy),now,.55);
+      air.gain.setTargetAtTime((.045+.12*speed+.63*exposure)*(.70+.37*gust)*(1-.46*canopy)*(window.aerieWindTrim??1),now,.55);
       shelf.frequency.setTargetAtTime(550+1320*speed+2850*exposure+530*gust,now,.55);
       for(const shot of shots){
         if(!shot.anchor)continue;
