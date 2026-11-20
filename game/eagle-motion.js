@@ -140,8 +140,11 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
   const ahead = new THREE.Vector3(), headRollQ = new THREE.Quaternion(), FORWARD = new THREE.Vector3(0, 0, -1);
   let headRoll = 0;
   // Idle scanning on the perch: quick head saccades (about 0.1 s) between
-  // fixations of one to three seconds, mostly over the ground and water,
-  // whenever the player is not steering the gaze.
+  // fixations, mostly over the ground and water, whenever the player is not
+  // steering the gaze. Perched hawks change head position about 21 times a
+  // minute (O'Rourke et al. 2010, PLoS ONE 5:e12169) and eagles pause longer;
+  // the pauses follow a log-normal distribution (Ochs et al. 2017, Auk 134).
+  // Here the median pause is 3 s, about 16 head movements a minute.
   const scan = {yaw: 0, pitch: 0, fromY: 0, fromP: 0, toY: 0, toP: 0, t: -1, dur: .12, next: rand(1, 3), gain: 0, quiet: 0, lastY: 0, lastP: 0};
   const UP = new THREE.Vector3(0, 1, 0), SIDE = new THREE.Vector3(1, 0, 0), scanQ = new THREE.Quaternion();
   function updateScan(time, step, perched, air, busy) {
@@ -158,7 +161,7 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
       scan.toP = r < .7 ? rand(-.45, -.05) : r < .85 ? rand(-.05, .05) : rand(.1, .3);
       const span = Math.hypot(scan.toY - scan.fromY, scan.toP - scan.fromP);
       scan.dur = .08 + .07 * span; scan.t = 0;
-      scan.next = time + scan.dur + (Math.random() < .2 ? rand(.25, .5) : rand(.7, 3.2)) * (1 + 2 * drowsy);
+      scan.next = time + scan.dur + clamp(3 * Math.exp(.6 * gauss()), .35, 12) * (1 + 2 * drowsy);
     }
     if (scan.t >= 0) {
       scan.t += step;
