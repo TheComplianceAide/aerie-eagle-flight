@@ -22,7 +22,7 @@
   window.addEventListener("worldchange",()=>{if(renderer||launchPending)location.reload();});
   const keys = new Set(), found = new Set();
   let renderer, scene, camera, world, eagle, player, gaze, cameraTarget;
-  let updateLight,perching,perchRoute,perchMarker;
+  let updateLight,perching,perchRoute,perchMarker,windSoarer;
   let perchNotice="",perchNoticeUntil=0,nextPerchHUD=0;
   let dynamics, elapsed, distance, nextReadout, noticeUntil, accumulator;
   let updateTalus, updateForest, updateHabitat, updateUnderstory, updateMist;
@@ -45,28 +45,33 @@
       airspeed: 17.5, path: -.062, alpha: .047, pitch: 0, phase: 0, effort: 0,
       loadFactor: 1, stall: 0, tuck: 0, climb: 0, verticalSpeed: -1,
       wingExtension: .94, brakeSpread: 0, turnTrim: 0, strokeBeat: 0,
-      ridge: 0, thermal: 0, lift: 0, distance: 0, elapsed: 0, mode: "Gliding", contact: false
+      ridge: 0, thermal: 0, gust: 0, lift: 0, distance: 0, elapsed: 0, mode: "Gliding", contact: false
     };
     const floor = terrain.flightClearance || terrain.clearance || terrain.height;
     const bounds = terrain.bounds || {minX:-3900,maxX:3900,minZ:-3900,maxZ:3900};
-    const centers = (terrain.landmarks || []).map((p,i) => ({
+    const centers = (terrain.windField ? [] : terrain.landmarks || []).map((p,i) => ({
       x:p.x + Math.cos(i*1.93)*90, z:p.z + Math.sin(i*1.93)*90
     }));
     let nextAirSample=0, hazard=-1, recovery=false, wingCycle=false, returnBank=null;
     let poweredClimb=false, strokeLift=0;
     const smooth = (a,b,x) => {const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t);};
-    const windX = 2.4, windZ = -1.25;
+    const air={windX:2.4,windZ:-1.25,gust:0,gustLift:0};
     function sampleAirAndTerrain() {
-      const ground = terrain.height(s.x,s.z), clearance = Math.max(0,s.y-ground);
-      const slopeX = (terrain.height(s.x+24,s.z)-terrain.height(s.x-24,s.z))/48;
-      const slopeZ = (terrain.height(s.x,s.z+24)-terrain.height(s.x,s.z-24))/48;
-      s.ridge = clamp((slopeX*windX+slopeZ*windZ)*1.45,-1.1,3.5)*Math.exp(-clearance/175);
-      s.thermal = 0;
-      for(const column of centers) {
-        const radius = 76+clamp(clearance*.11,0,95);
-        const dx=s.x-column.x-windX*clearance*.07, dz=s.z-column.z-windZ*clearance*.07;
-        const core=Math.exp(-(dx*dx+dz*dz)/(radius*radius));
-        s.thermal=Math.max(s.thermal,3.3*core*smooth(5,70,clearance)*(1-smooth(700,1550,clearance)));
+      if(terrain.windField){
+        terrain.windField.sample(s.x,s.y,s.z,s.elapsed,air);
+        s.ridge=air.ridge;s.thermal=air.thermal;s.gust=air.gust;
+      }else{
+        const ground = terrain.height(s.x,s.z), clearance = Math.max(0,s.y-ground);
+        const slopeX = (terrain.height(s.x+24,s.z)-terrain.height(s.x-24,s.z))/48;
+        const slopeZ = (terrain.height(s.x,s.z+24)-terrain.height(s.x,s.z-24))/48;
+        s.ridge = clamp((slopeX*air.windX+slopeZ*air.windZ)*1.45,-1.1,3.5)*Math.exp(-clearance/175);
+        s.thermal = 0;
+        for(const column of centers) {
+          const radius = 76+clamp(clearance*.11,0,95);
+          const dx=s.x-column.x-air.windX*clearance*.07, dz=s.z-column.z-air.windZ*clearance*.07;
+          const core=Math.exp(-(dx*dx+dz*dz)/(radius*radius));
+          s.thermal=Math.max(s.thermal,3.3*core*smooth(5,70,clearance)*(1-smooth(700,1550,clearance)));
+        }
       }
       // Sample along the anticipated turning arc. The flare can bleed speed and
       // fail if the player dives into a wall too late; it never moves the bird up a slope.
@@ -75,8 +80,8 @@
       for(const seconds of [.45,1.35,2.8,4.2]) {
         const heading=s.yaw+turnRate*seconds*.5;
         const ahead=s.airspeed*Math.cos(s.path)*seconds;
-        const px=s.x-Math.sin(heading)*ahead+windX*seconds;
-        const pz=s.z-Math.cos(heading)*ahead+windZ*seconds;
+        const px=s.x-Math.sin(heading)*ahead+air.windX*seconds;
+        const pz=s.z-Math.cos(heading)*ahead+air.windZ*seconds;
         const angle=Math.atan2(floor(px,pz)+2.2-s.y,Math.max(1,ahead));
         hazard=Math.max(hazard,angle);
       }
@@ -98,7 +103,7 @@
       s.climb=input.climb;
       const brake=clamp(Number(input.brake)||0,0,1);
       const braking=brake>.5;
-      s.lift+=(s.ridge+s.thermal-s.lift)*easing(1.8,dt);
+      s.lift+=(s.ridge+s.thermal+air.gustLift-s.lift)*easing(1.8,dt);
       const commandedBank=returnBank===null ? -input.turn*.94 : returnBank;
       // Differential wing loading rolls the body first. As the commanded
       // bank is reached the opposite wing catches the roll; lift turns the track.
@@ -186,7 +191,7 @@
       const bodyAngle=s.path+s.alpha*.68+.018+.225*s.brakeSpread;
       s.pitch+=(bodyAngle-s.pitch)*easing(7,dt);
       const planar=s.airspeed*Math.cos(s.path);
-      const vx=-Math.sin(s.yaw)*planar+windX, vz=-Math.cos(s.yaw)*planar+windZ;
+      const vx=-Math.sin(s.yaw)*planar+air.windX, vz=-Math.cos(s.yaw)*planar+air.windZ;
       s.verticalSpeed=Math.sin(s.path)*s.airspeed+s.lift;
       const x=s.x+vx*dt,z=s.z+vz*dt,y=s.y+s.verticalSpeed*dt;
       if(y<=floor(x,z)+.25){s.contact=true;s.mode="Touchdown";return;}
@@ -305,6 +310,7 @@
       perchRoute=window.makePerchRoute(THREE,world,region);
       world.launches.lookout=perchRoute.approach;
       world.flightClearance=(x,z)=>Math.max((world.clearance||world.height)(x,z),perchHabitat.clearance(x,z));
+      world.windField=window.makeWindField(world,region);
       perching=window.makePerchFlight(THREE,world,perchHabitat,perchRoute);
       perchMarker=new THREE.Vector3();
       if(factory)updateHabitat=addHabitat(THREE,scene,world,region);
@@ -317,6 +323,8 @@
       el("viewport").replaceChildren(renderer.domElement);resize();
       loadPromise=Promise.all([assets,world.ready,eagle.ready]);
       await loadPromise;
+      window.addReadableWindWater(THREE,scene,world);
+      windSoarer=window.makeWindSoarer(THREE,scene,world,world.windField);
       updateLight=window.makeFlightLight(THREE,renderer,scene,world,eagle);
       if(region==="surry")window.lightKeeneStreet(THREE,renderer,scene,world,eagle.object);
     } catch(error) {
@@ -336,6 +344,7 @@
     const launch=world.launches?.[el("launchPoint")?.value] || world.spawn;
     dynamics=makeFlight(launch,world);
     const s=dynamics.state;
+    windSoarer.reset(s,world.windField.ensureLaunchCore(launch),launch.glance);
     perching.reset(s,el("launchPoint").value==="lookout");
     nextPerchHUD=0;perchNotice="";perchNoticeUntil=0;
     resetCamera(s,launch.glance);
@@ -501,6 +510,7 @@
     }
     dynamics=makeFlight(launch,world);
     Object.assign(dynamics.state,{elapsed,distance});
+    windSoarer.reset(dynamics.state,world.windField.ensureLaunchCore(launch),launch.glance);
     perching.reset(dynamics.state,false);nextPerchHUD=0;perchNotice="";
     resetCamera(dynamics.state,launch.glance);
     resetInput();
@@ -631,6 +641,7 @@
     else positionChase(s,dt);
     updateTalus?.(player,elapsed);updateForest?.(player,elapsed);updateHabitat?.(player,elapsed);
     updateUnderstory(player,elapsed);
+    windSoarer.update(dt,s);
     if(fieldAudio&&soundOn)fieldAudio.update(s,world,dt,camera,perching.stage);
     world.update(dt,elapsed,player);updateLight?.(player,elapsed);updateMist?.(player,elapsed);renderer.render(scene,camera);updatePerchHUD(s);
     if(s.contact){showDialog("contact");return;}

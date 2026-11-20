@@ -47,6 +47,8 @@ Hold Up or W at low airspeed to start a powered climb. A dive tucks the wings. P
 
 Powered strokes vary with airspeed. Their low-speed cadence draws on a field study of six wild bald eagles, which averaged 2.53 wingbeats per second. The wrist flex and feet-first flare draw on high-speed recordings of a steppe eagle. [Bald eagle field measurements, p. 27](https://raptorresearchfoundation.org/wp-content/uploads/2023/02/conference_program_2017.pdf#page=29) · [Steppe eagle perching study](https://www.biology.ox.ac.uk/publication/209686/pubmed)
 
+Dark patches of rough water travel downwind. A circling bird on open wings marks a thermal. Bank into its circle to use the same rising air. These cues are visible from either camera.
+
 ## Scenery and credits
 
 The playable worlds include Oeschinen Lake, Mendenhall Glacier, Horseshoe Bend, Yosemite Valley, Bryce Canyon, Crater Lake, the Nā Pali Coast, Lofoten, Milford Sound, Lake Winnipesaukee, Moosehead Lake, and Surry Mountain Dam with Keene.
