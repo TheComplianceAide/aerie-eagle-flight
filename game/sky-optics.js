@@ -20,7 +20,7 @@ window.addAtmosphericOptics=function addAtmosphericOptics(T,scene,w){
     // range, range between gaps, major axis, across-sun width, vertical half
     // thickness, optical depth per metre, height above surface, RGB airlight
     canyon:[660,220,1250,133,71,.00135,83,[.91,.654,.443]],
-    moosehead:[1050,380,2050,164,96,.00152,98,[1.,.844,.638]],
+    moosehead:[1050,380,2250,248,138,.00033,116,[1.,.844,.638]],
     dixville:[1420,400,1620,142,88,.00061,86,[1.,.749,.492]],
     surry:[1740,510,2180,260,56,.00048,45,[.818,.800,.715]],
     milford:[1780,490,1680,212,116,.00148,112,[.95,.862,.718]],

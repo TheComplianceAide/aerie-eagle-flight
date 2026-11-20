@@ -1,5 +1,48 @@
 // Near trees use volume-fitted boughs and trunks. Distant crowns select an
 // azimuth and elevation capture of the same tree as the eagle circles it.
+// The survey selects nearby trees in spatial order. Small consecutive groups
+// let the main and reflection cameras independently cull entire branch meshes.
+// Each group shares the surveyed transforms, colors and native branch geometry.
+window.partitionSurveyCrowns=function(T,scene,source,label){
+  const size=32,pool=[],matrix=new T.Matrix4(),sphere=new T.Sphere();
+  const geometry=source.geometry;
+  if(!geometry.boundingSphere)geometry.computeBoundingSphere();
+  source.visible=false;
+  function slice(attribute,start,end){
+    const n=attribute.itemSize;
+    return new T.InstancedBufferAttribute(attribute.array.subarray(start*n,end*n),n,attribute.normalized)
+      .setUsage(T.DynamicDrawUsage);
+  }
+  function page(start){
+    const end=Math.min(start+size,source.instanceMatrix.count);
+    const g=new T.BufferGeometry();g.setIndex(geometry.index);
+    const live=[];
+    for(const [name,attribute] of Object.entries(geometry.attributes)){
+      const attr=attribute.isInstancedBufferAttribute?slice(attribute,start,end):attribute;
+      g.setAttribute(name,attr);if(attr!==attribute)live.push(attr);
+    }
+    const mesh=new T.InstancedMesh(g,source.material,end-start);
+    mesh.instanceMatrix=slice(source.instanceMatrix,start,end);live.push(mesh.instanceMatrix);
+    if(source.instanceColor){mesh.instanceColor=slice(source.instanceColor,start,end);live.push(mesh.instanceColor);}
+    mesh.boundingSphere=new T.Sphere();mesh.name=label;scene.add(mesh);
+    const result={mesh,live};pool.push(result);return result;
+  }
+  return ()=>{
+    let used=0;
+    for(let start=0;start<source.count;start+=size){
+      const {mesh,live}=pool[used++]||page(start);
+      mesh.count=Math.min(size,source.count-start);mesh.visible=true;mesh.boundingSphere.makeEmpty();
+      for(let i=0;i<mesh.count;i++){
+        source.getMatrixAt(start+i,matrix);
+        sphere.copy(geometry.boundingSphere).applyMatrix4(matrix);
+        sphere.radius=sphere.radius*1.25+1; // Allow swept needle tips and leaf motion.
+        mesh.boundingSphere.union(sphere);
+      }
+      for(const attr of live)attr.needsUpdate=true;
+    }
+    for(let k=used;k<pool.length;k++)pool[k].mesh.visible=false;
+  };
+};
 window.addForest = function addForest(THREE, scene, world) {
   const forest = world.firTrees || world.trees;
   if (!forest || !forest.length || !window.firAsset) return;
@@ -23,6 +66,8 @@ window.addForest = function addForest(THREE, scene, world) {
   // A small movement at the ends of the boughs; the trunk remains anchored.
   const time = {value: 0};
   const observer = {value:new THREE.Vector3()};
+  const lakeCrowns=world.region==='moosehead'?window.mooseheadCrowns(THREE,scene,time):null;
+  const lakeFar=lakeCrowns?.material(true);
   nearMaterial.userData.canopyRoot="instanceMatrix[3].xyz";
   nearMaterial.onBeforeCompile = shader => {
     Object.assign(shader.uniforms,wind.uniforms,squall?.uniforms);
@@ -62,6 +107,7 @@ window.addForest = function addForest(THREE, scene, world) {
     const root = {x:tree.x,y:tree.y,z:tree.z,h,sx,sy,variantIndex,
       radius:variant.width*sx*.5,rotation:random(index+51)*Math.PI*2,
       color:.83+.25*random(index+97)};
+    if(lakeCrowns)root.sourceTree=tree;
     cells.get(k).push(root);
   });
   const farVertex = `
@@ -156,16 +202,18 @@ window.addForest = function addForest(THREE, scene, world) {
         float spin = dimensions.z;`)
     });
     standMaterial.userData.canopyRoot="rootPosition";
-    return {near,rectangle,standMaterial};
+    const pages=world.region==='moosehead'?window.partitionSurveyCrowns(THREE,scene,near,'Nearby surveyed spruce'):null;
+    return {near,rectangle,standMaterial,pages};
   });
   // Keep ridgeline crowns resident in spatial batches. As the viewer approaches
   // the same tree, its surveyed root and silhouette are retained through the
   // switch to fully modelled branches. Only nearby promotions change on the CPU.
   let promoted=[];
+  const rangeCulls=[];
   {
     const groups=new Map();
     for(const bucket of cells.values())for(const t of bucket){
-      const key=t.variantIndex+":"+Math.floor(t.x/1600)+":"+Math.floor(t.z/1600);
+      const key=(lakeCrowns?0:t.variantIndex)+":"+Math.floor(t.x/1600)+":"+Math.floor(t.z/1600);
       if(!groups.has(key))groups.set(key,[]);
       groups.get(key).push(t);
     }
@@ -176,13 +224,17 @@ window.addForest = function addForest(THREE, scene, world) {
       g.setAttribute("position",record.rectangle.attributes.position);
       g.setAttribute("uv",record.rectangle.attributes.uv);
       const roots=new Float32Array(3*stand.length),sizes=new Float32Array(4*stand.length);
+      const surveyForms=lakeCrowns?new Float32Array(4*stand.length):null;
       const limits=new Float32Array(stand.length),hidden=new THREE.InstancedBufferAttribute(new Float32Array(stand.length),1);
       const bounds=new THREE.Box3();
       const point=new THREE.Vector3();
+      let maxReach=0;
       stand.forEach((t,k)=>{
         roots.set([t.x,t.y-.2,t.z],3*k);sizes.set([t.sx,t.sy,t.rotation,t.color],4*k);
+        if(surveyForms){surveyForms.set(lakeCrowns.traits(t.sourceTree,true),4*k);t.sourceTree=null;}
         const maxDistance=Math.min(11200,Math.max(2900,t.h*(mobile?240:360)))*(.83+.34*random(t.x*.73+t.z*.21));
         limits[k]=maxDistance*maxDistance;
+        if(maxDistance>maxReach)maxReach=maxDistance;
         t.hidden=hidden;t.slot=k;
         bounds.expandByPoint(point.set(t.x,t.y,t.z));
       });
@@ -191,10 +243,15 @@ window.addForest = function addForest(THREE, scene, world) {
       g.instanceCount=stand.length;
       g.setAttribute("rootPosition",new THREE.InstancedBufferAttribute(roots,3));
       g.setAttribute("dimensions",new THREE.InstancedBufferAttribute(sizes,4));
+      if(surveyForms)g.setAttribute('crownForm',new THREE.InstancedBufferAttribute(surveyForms,4));
       g.setAttribute("reachSquared",new THREE.InstancedBufferAttribute(limits,1));
       g.setAttribute("promoted",hidden.setUsage(THREE.DynamicDrawUsage));
-      const canopy=new THREE.Mesh(g,record.standMaterial);
+      const canopy=new THREE.Mesh(g,lakeFar||record.standMaterial);
       canopy.name="Surveyed spruce stand";scene.add(canopy);
+      if(world.region==='moosehead'){
+        const sphere=g.boundingSphere;
+        rangeCulls.push({mesh:canopy,center:sphere.center,maxSq:(sphere.radius+maxReach+64)**2});
+      }
     }
   }
   const transform=new THREE.Object3D(), color=new THREE.Color();
@@ -203,6 +260,7 @@ window.addForest = function addForest(THREE, scene, world) {
     time.value=elapsed;observer.value.copy(player);
     if(player.distanceToSquared(previous)<100)return;
     previous.copy(player);
+    for(const stand of rangeCulls)stand.mesh.visible=stand.center.distanceToSquared(player)<=stand.maxSq;
     for(const b of records)b.near.count=0;
     const i0=Math.floor(player.x/cellSize),j0=Math.floor(player.z/cellSize);
     const maxCells=Math.ceil((mobile?400:690)/cellSize);
@@ -219,7 +277,7 @@ window.addForest = function addForest(THREE, scene, world) {
             const dx=player.x-t.x,dz=player.z-t.z,dy=player.y-t.y-t.h*.55;
             const d2=dx*dx+dz*dz+dy*dy;
             const b=records[t.variantIndex];
-            const nearRange=Math.min(mobile?360:620,Math.max(145,t.h*(mobile?17:26)));
+            const nearRange=lakeCrowns?Math.min(145,Math.max(70,t.h*6.2)):Math.min(mobile?360:620,Math.max(145,t.h*(mobile?17:26)));
             if(d2<nearRange*nearRange && b.near.count<b.near.instanceMatrix.count){
               promoted.push(t);t.nextNear=true;
               if(!t.hidden.getX(t.slot)){t.hidden.setX(t.slot,1);t.hidden.needsUpdate=true;}
@@ -240,6 +298,7 @@ window.addForest = function addForest(THREE, scene, world) {
     for(const b of records){
       b.near.instanceMatrix.needsUpdate=true;
       if(b.near.instanceColor)b.near.instanceColor.needsUpdate=true;
+      b.pages?.();
     }
   }
   update(new THREE.Vector3(world.spawn.x,world.spawn.y,world.spawn.z),0);

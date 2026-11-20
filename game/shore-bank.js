@@ -1,6 +1,6 @@
 // Connect the mapped lake outline to the land triangles. Narrow beaches and
 // small islands frequently fall between vertices in a regional height survey.
-window.joinAtlasShore=function(T,scene,{survey,elevation,level,terrain}){
+window.joinAtlasShore=function(T,scene,{region,survey,elevation,level,terrain}){
   const tileBins=new Map(),chunks=new Map(),faces=new Map();
   const key=(x,z)=>x+z*16384;
   function indexBox(bins,size,x0,z0,x1,z1,item){
@@ -75,10 +75,36 @@ window.joinAtlasShore=function(T,scene,{survey,elevation,level,terrain}){
     }
     span(prev,first);
   }
+  const drawTiles=new Map();
+  function addShelf(g){
+    const mesh=new T.Mesh(g,terrain);mesh.name='Lakeshore gravel shelf';scene.add(mesh);
+  }
   for(const c of chunks.values()){
     const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(c.p,3));g.setIndex(c.idx);g.computeVertexNormals();g.computeBoundingSphere();
     c.p=g.attributes.position.array;c.idx=g.index.array;
-    const mesh=new T.Mesh(g,terrain);mesh.name='Lakeshore gravel shelf';scene.add(mesh);
+    if(region!=='moosehead'){addShelf(g);continue;}
+    // Moosehead has hundreds of little survey strips. Bake normals before
+    // combining them, preserving every original seam and collision triangle.
+    const center=g.boundingSphere.center,id=key(Math.floor(center.x/2400),Math.floor(center.z/2400));
+    if(!drawTiles.has(id))drawTiles.set(id,[]);
+    drawTiles.get(id).push(g);
+  }
+  for(const pieces of drawTiles.values()){
+    if(pieces.length===1){addShelf(pieces[0]);continue;}
+    const vertices=pieces.reduce((n,g)=>n+g.attributes.position.count,0);
+    const positions=new Float32Array(vertices*3),normals=new Float32Array(vertices*3);
+    const indexCount=pieces.reduce((n,g)=>n+g.index.count,0);
+    const indices=vertices>65535?new Uint32Array(indexCount):new Uint16Array(indexCount);
+    let vertex=0,index=0;
+    for(const g of pieces){
+      positions.set(g.attributes.position.array,vertex*3);normals.set(g.attributes.normal.array,vertex*3);
+      for(const value of g.index.array)indices[index++]=value+vertex;
+      vertex+=g.attributes.position.count;
+      g.dispose();
+    }
+    const g=new T.BufferGeometry();
+    g.setAttribute('position',new T.BufferAttribute(positions,3));g.setAttribute('normal',new T.BufferAttribute(normals,3));
+    g.setIndex(new T.BufferAttribute(indices,1));g.computeBoundingSphere();addShelf(g);
   }
   const floor=(x,z)=>{
     const near=faces.get(key(Math.floor(x/48),Math.floor(z/48)));let y=-Infinity;

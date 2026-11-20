@@ -1,0 +1,29 @@
+<!doctype html>
+<meta charset="utf-8"><title>Moosehead native model capture</title>
+<style>*{margin:0}</style>
+<script src="game/three.min.js"></script><script src="game/wind-field.js"></script><script src="game/moosehead-crowns.js"></script><script src="game/canopy-stream.js"></script>
+<body><script>
+aerieAssetURL=p=>'game/'+p;
+const query=new URLSearchParams(location.search),region=query.get('region')||'alaska',species=query.get('species')||'Sitka spruce';
+const T=THREE,scene=new T.Scene,r=new T.WebGLRenderer({antialias:true,preserveDrawingBuffer:true,alpha:true}),captureSize=192;
+r.setSize(captureSize,captureSize);document.body.appendChild(r.domElement);r.setClearColor(0x000000,0);
+window.aerieCanopyProfile=()=>({species:()=>({name:species,tint:[.94,.99,.92],shape:[1,.94,.71,.38,.035],family:'needle',aspect:1.06}),fillCell:()=>[]});
+window.mooseheadSourceCell=(_name,variation)=>variation>>>28;
+const tr=Array.from({length:16},(_,i)=>{let x=i*243,z=50;while(true){const seed=(Math.imul(Math.round(x*4),73856093)^Math.imul(Math.round(z*4),19349663))>>>0,v=Math.imul(seed^(seed>>>16),0x45d9f3b)>>>0;if((v>>>28)===i&&v%13!==0)return {x,z,y:0,height:20,width:12};z++;}});
+const stream=makeCanopyStream(T,r,scene,{region,trees:tr,elevation:()=>0});
+const eye=new T.Vector3();let step=0;
+const ortho=new T.OrthographicCamera(-18,18,18,-18,.1,180);window.view=(which,ang,over)=>{
+ scene.traverse(object=>{
+   if(object.material?.defines?.MAINE_NEEDLES){
+     delete object.material.defines.MAINE_NEEDLES;
+     object.material.needsUpdate=true;
+   }
+ });
+ const t=tr[which];eye.set(t.x,10,t.z+7);for(let i=0;i<14;i++)stream.update(eye,(++step)*.13);
+ const current=stream.stats();const c=(current.regionalForms[query.get('sheet')]||[]).findIndex(n=>n>0);
+ ortho.up.set(0,over>1.56?0:1,over>1.56?-1:0);
+ ortho.position.set(t.x+Math.sin(ang)*60*Math.cos(over),10+60*Math.sin(over),t.z+Math.cos(ang)*60*Math.cos(over));
+ ortho.lookAt(t.x,10,t.z);ortho.updateMatrixWorld();r.render(scene,ortho);
+ return {c,bytes:r.domElement.toDataURL('image/png').split(',')[1]};};
+window.stream=stream;
+</script>

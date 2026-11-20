@@ -1,0 +1,196 @@
+// Real 3DEP ridge geometry outside the detailed Moosehead Lake survey.
+// Surface queries and both game cameras use the same irregular triangles.
+(() => {
+  let loading;
+  window.prepareMooseheadUplands=()=>{
+    if(!loading)loading=load().catch(error=>{loading=null;throw error;});
+    return loading;
+  };
+
+  async function load(){
+    async function asset(name){
+      const response=await fetch(window.aerieAssetURL?.(name)||name);
+      if(!response.ok)throw new Error('Cannot open the Moosehead survey '+name);
+      return response.arrayBuffer();
+    }
+    const [buffer,forest]=await Promise.all([asset('moosehead-uplands.bin'),asset('moosehead-woodland.bin')]);
+    const reader=new DataView(buffer),forestView=new DataView(forest);
+    if(forestView.getUint32(0,false)!==0x4d574331)throw new Error('Unrecognized Moosehead woodland map');
+    const forestSize=forestView.getUint32(4,true),rootCount=forestView.getUint32(8,true);
+    const percent=new Uint8Array(forest,12,forestSize*forestSize);
+    const rootStart=12+percent.length;
+    if(rootStart+8*rootCount!==forest.byteLength)throw new Error('Incomplete woodland map');
+    if(reader.getUint32(0,false)!==0x4d555431)throw new Error('Unrecognized Moosehead terrain');
+    const count=reader.getUint16(4,true),tileCount=reader.getUint16(6,true);
+    const axes=new Int32Array(buffer,8,count+1),tiles=new Map();
+    let offset=8+4*(count+1);
+    for(let t=0;t<tileCount;t++){
+      const i=reader.getUint8(offset),j=reader.getUint8(offset+1);
+      const n=reader.getUint16(offset+2,true),faces=reader.getUint32(offset+4,true);
+      offset+=8;
+      const points=new Uint16Array(buffer,offset,n*5);
+      offset+=n*10;
+      const indices=new Uint16Array(buffer,offset,3*faces);
+      offset+=faces*6;
+      tiles.set(j*count+i,{i,j,n,points,indices});
+    }
+    if(offset!==buffer.byteLength)throw new Error('Incomplete Moosehead terrain');
+    function axis(v){
+      let i=0;
+      while(i<count-1&&v>=axes[i+1])i++;
+      return i;
+    }
+    function sample(x,z){
+      let i=axis(x),j=axis(z);
+      // On the negative edge axis() ordinarily selects the empty central
+      // patch. Query the adjoining real boundary vertices from either side.
+      if(Math.abs(x)<=6900&&Math.abs(z)<=6900){
+        if(Math.max(Math.abs(x),Math.abs(z))<6899.99)return null;
+        if(Math.abs(x)>=Math.abs(z))i=axis(x<0?-6900.01:6900.01);
+        else j=axis(z<0?-6900.01:6900.01);
+      }
+      const tile=tiles.get(j*count+i);
+      if(!tile)return null;
+      const {indices,points}=tile;
+      const u=Math.max(0,Math.min(65535,65535*(x-axes[i])/(axes[i+1]-axes[i])));
+      const v=Math.max(0,Math.min(65535,65535*(z-axes[j])/(axes[j+1]-axes[j])));
+      const bin=value=>Math.min(15,Math.floor(value/4096));
+      if(!tile.bins){
+        tile.bins=Array.from({length:256},()=>[]);
+        for(let f=0;f<indices.length;f+=3){
+          const a=5*indices[f],b=5*indices[f+1],c=5*indices[f+2];
+          const left=bin(Math.min(points[a],points[b],points[c])),right=bin(Math.max(points[a],points[b],points[c]));
+          const top=bin(Math.min(points[a+1],points[b+1],points[c+1])),bottom=bin(Math.max(points[a+1],points[b+1],points[c+1]));
+          for(let row=top;row<=bottom;row++)for(let col=left;col<=right;col++)tile.bins[row*16+col].push(f);
+        }
+      }
+      for(const f of tile.bins[bin(v)*16+bin(u)]){
+        const a=5*indices[f],b=5*indices[f+1],c=5*indices[f+2];
+        const x1=points[b]-points[a],x2=points[c]-points[a],z1=points[b+1]-points[a+1],z2=points[c+1]-points[a+1];
+        const dx=u-points[a],dz=v-points[a+1],area=x1*z2-x2*z1;
+        const w1=(dx*z2-dz*x2)/area,w2=(x1*dz-z1*dx)/area,w0=1-w1-w2;
+        if(Math.min(w0,w1,w2)>=-1e-6)return .1*(w0*points[a+2]+w1*points[b+2]+w2*points[c+2]);
+      }
+      return null;
+    }
+    function add(T,scene,ranges,horizon,sun,haze,bays,ground){
+      const material=new T.ShaderMaterial({
+        uniforms:{ranges:{value:ranges},horizon:{value:horizon},bays:{value:bays},ground:{value:ground},sun:{value:sun},haze:{value:haze}},
+        vertexShader:`attribute float skyVisibility;
+          varying vec3 wp,surfaceNormal;varying float sunlit;
+          void main(){wp=position;surfaceNormal=normal;sunlit=skyVisibility;
+            gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+        fragmentShader:`uniform sampler2D ranges,horizon,bays,ground;uniform vec3 sun,haze;
+          varying vec3 wp,surfaceNormal;varying float sunlit;
+          void main(){
+            vec2 p=vec2(wp.x,-wp.z);
+            float r=max(abs(p.x),abs(p.y)),d=distance(wp,cameraPosition);
+            vec3 ortho=mix(texture2D(ranges,p/62000.+.5).rgb,texture2D(horizon,p/164000.+.5).rgb,smoothstep(28000.,30950.,r));
+            // These two eastern bay approaches have their own georeferenced
+            // NAIP flight strips. Keep the lower resolution survey at their edges.
+            vec2 spencer=wp.xz-vec2(11425.,199.),lily=wp.xz-vec2(15205.,9651.);
+            bool inSpencer=dot(spencer,spencer)<dot(lily,lily);
+            vec2 bay=inSpencer?spencer:lily;
+            float edge=max(abs(bay.x),abs(bay.y));
+            if(edge<1900.){
+              vec2 uv=clamp(vec2(bay.x,-bay.y)/3800.+.5,0.002,.998);
+              uv.x=(uv.x+(inSpencer?0.:1.))*.5;
+              ortho=mix(ortho,texture2D(bays,uv).rgb,1.-smoothstep(1500.,1900.,edge));
+            }
+            vec3 n=normalize(surfaceNormal);
+            if(d<800.&&wp.y>311.8){
+              // Wooded banks transition into real duff and washed gravel at
+              // eagle height. A photograph of treetops is useful further away.
+              vec2 coord=wp.xz*.225;
+              vec2 mossUV=.5*(vec2(1.,1.)+.014+.972*(1.-abs(2.*fract(coord*.5)-1.)));
+              vec2 gravelUV=.5*(vec2(0.,1.)+.014+.972*(1.-abs(2.*fract(mat2(.84,.54,-.54,.84)*coord*.83)-1.)));
+              float wet=1.-smoothstep(312.5,316.8,wp.y);
+              vec3 scan=mix(texture2D(ground,mossUV).rgb,texture2D(ground,gravelUV).rgb,wet);
+              float blend=(1.-smoothstep(210.,800.,d))*smoothstep(.44,.84,n.y);
+              ortho=mix(ortho,scan*(.73+.58*clamp(dot(ortho,vec3(.21,.64,.15)),.05,.75)),blend*.85);
+            }
+            float incidence=max(0.,dot(n,sun)),side=dot(n.xz,normalize(sun.xz));
+            vec3 light=vec3(.47,.57,.70)*(.81+.19*n.y)+vec3(1.23,.99,.71)*(.12+1.20*incidence)*sunlit;
+            vec3 earth=pow(ortho,vec3(2.2))*light*(.97+.18*side);
+            float air=1.-exp(-d*.000016);
+            vec3 scatter=haze*mix(vec3(.67,.78,.96),vec3(1.08,.98,.87),.5+.5*dot(normalize(wp-cameraPosition),sun));
+            gl_FragColor=vec4(mix(earth,scatter,air),1.);
+            #include <colorspace_fragment>
+          }`
+      });
+      const groups=new Map();
+      for(const t of tiles.values()){
+        const key=Math.floor(t.i/2)+','+Math.floor(t.j/2);
+        if(!groups.has(key))groups.set(key,[]);
+        groups.get(key).push(t);
+      }
+      for(const group of groups.values()){
+        const n=group.reduce((s,t)=>s+t.n,0),indices=group.reduce((s,t)=>s+t.indices.length,0);
+        const pos=new Float32Array(n*3),norm=new Float32Array(n*3),light=new Uint8Array(n);
+        const index=n>65535?new Uint32Array(indices):new Uint16Array(indices);
+        let k=0,start=0;
+        for(const {i,j,n,points,indices} of group){
+          for(let v=0;v<n;v++){
+            const f=v*5,w=(k+v)*3,packed=points[f+3];
+            pos[w]=axes[i]+(axes[i+1]-axes[i])*points[f]/65535;
+            pos[w+1]=points[f+2]*.1;
+            pos[w+2]=axes[j]+(axes[j+1]-axes[j])*points[f+1]/65535;
+            norm[w]=((packed&255)-128)/127;norm[w+2]=((packed>>8)-128)/127;
+            norm[w+1]=Math.sqrt(Math.max(0,1-norm[w]*norm[w]-norm[w+2]*norm[w+2]));
+            light[k+v]=points[f+4];
+          }
+          for(let f=0;f<indices.length;f++)index[start+f]=k+indices[f];
+          k+=n;start+=indices.length;
+        }
+        const g=new T.BufferGeometry();
+        g.setIndex(new T.BufferAttribute(index,1));
+        g.setAttribute('position',new T.BufferAttribute(pos,3));g.setAttribute('normal',new T.BufferAttribute(norm,3));
+        g.setAttribute('skyVisibility',new T.BufferAttribute(light,1,true));g.computeBoundingSphere();
+        const mesh=new T.Mesh(g,material);mesh.name='Maine uplands · USGS terrain';scene.add(mesh);
+      }
+    }
+    function cover(x,z){
+      const u=Math.floor((x/64000+.5)*forestSize),v=Math.floor((z/64000+.5)*forestSize);
+      return u>=0&&v>=0&&u<forestSize&&v<forestSize?percent[v*forestSize+u]*.01:0;
+    }
+    function woods(T,scene,world,clock){
+      const canopy=window.mooseheadCrowns(T,scene,clock),tiles=new Map();
+      const {treeGrid}=world;
+      if(!canopy)return ()=>{};
+      for(let k=0;k<rootCount;k++){
+        const at=rootStart+k*8,x=forestView.getInt16(at,true),z=forestView.getInt16(at+2,true),y=sample(x,z);
+        if(y===null||y<world.waterLevel+.5)continue;
+        const tree={x,y,z,height:forestView.getUint8(at+4)/8,width:forestView.getUint8(at+5)/8,conifer:!!forestView.getUint8(at+6),seed:forestView.getUint8(at+7)/255};
+        const cell=treeGrid.cell(x,z);
+        if(!treeGrid.cells.has(cell))treeGrid.cells.set(cell,[]);
+        treeGrid.cells.get(cell).push(tree);
+        const area=Math.floor(x/3600)+64*Math.floor(z/3600);
+        if(!tiles.has(area))tiles.set(area,[]);
+        tiles.get(area).push(tree);
+      }
+      const quad=new T.PlaneGeometry(1,1),material=canopy.material(false),bounds=new T.Box3(),point=new T.Vector3(),stands=[];
+      // Maintain each root through the crossover to fully branched regional 3D.
+      for(const rows of tiles.values()){
+        const g=new T.InstancedBufferGeometry();
+        g.setIndex(quad.index);g.setAttribute('position',quad.attributes.position);g.setAttribute('uv',quad.attributes.uv);
+        const roots=new Float32Array(rows.length*3),forms=new Float32Array(rows.length*4);
+        bounds.makeEmpty();
+        for(const [i,t] of rows.entries()){
+          roots.set([t.x,t.y-.06,t.z],i*3);forms.set(canopy.traits(t,t.conifer),i*4);
+          bounds.expandByPoint(point.set(t.x,t.y,t.z));
+        }
+        g.setAttribute('rootPosition',new T.InstancedBufferAttribute(roots,3));
+        g.setAttribute('crownForm',new T.InstancedBufferAttribute(forms,4));
+        g.boundingSphere=bounds.expandByScalar(30).getBoundingSphere(new T.Sphere());g.instanceCount=rows.length;
+        const mesh=new T.Mesh(g,material);mesh.name='Mapped Maine ridge and shoreline woodland';scene.add(mesh);stands.push(mesh);
+      }
+      const last=new T.Vector3(Infinity,Infinity,Infinity);
+      return eye=>{
+        if(eye.distanceToSquared(last)<1600)return;
+        last.copy(eye);
+        for(const m of stands){const b=m.geometry.boundingSphere;m.visible=b.center.distanceToSquared(eye)<(b.radius+18000)**2;}
+      };
+    }
+    window.mooseheadUplands={sample,add,cover,woods};
+  }
+})();

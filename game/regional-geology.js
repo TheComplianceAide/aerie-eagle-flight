@@ -100,14 +100,20 @@
     const entries=[],used=new Set(),floor=world.geologyGround||world.habitat?.surface||world.elevation||world.height;
     const surface=(x,z)=>world.kineoRockSurface?.(x,z)??floor(x,z);
     const elevation=world.elevation||world.height,level=world.waterLevel;
-    const small=sheet.kind==='pebbles'||sheet.kind==='beach';
+    const small=sheet.kind==='pebbles'||sheet.kind==='beach',kineo=world.region==='moosehead';
     let anchors=regions.filter(a=>preferred(sheet,a));
     if(!anchors.length)anchors=regions.filter(a=>a.habitat==='shore');
+    // Rhyolite talus belongs to the mountain, not to every forested slope and
+    // sheltered inlet in the lake basin. Water-worn deposits may occur farther afield.
+    if(kineo&&!small)anchors=anchors.filter(a=>a.x>110&&a.z>-1540&&a.z<221);
     for(const anchor of anchors){
       const rand=randomFrom(sheet.id+' '+anchor.name);
       const shore=anchor.habitat==='shore',stream=anchor.habitat==='stream',armor=anchor.habitat==='armor',edges=shore||stream?localShores(world,anchor):[];
       const total=edges.reduce((sum,line)=>sum+line.length,0);
       const count=anchor.field?(small?11:5+Math.floor(rand()*7)):small?144:anchor.habitat==='talus'?69:48;
+      const deck=Array.from({length:16},(_,i)=>i);
+      function shuffle(){for(let n=15;n>0;n--){const j=Math.floor(rand()*(n+1));[deck[n],deck[j]]=[deck[j],deck[n]];}}
+      if(kineo)shuffle();
       let accepted=0;
       for(let i=0;i<count*24&&accepted<count;i++){
         let x,z,bankDistance=Infinity;
@@ -139,36 +145,44 @@
         if(Math.max(slope,broad)>(anchor.habitat==='outcrop'?1.24:armor?1.03:shore?.67:.81))continue;
         if(shore&&Number.isFinite(level)&&(y-level>(total?18:32)||y<level-.13))continue;
         if(!shore&&!armor&&land===1&&slope<.17&&rand()<.88)continue;
-        const cell=(accepted+Math.floor(count/3)*regions.indexOf(anchor))%16,specimen=sheet.specimens[cell];
+        const cell=kineo?deck[accepted%16]:(accepted+Math.floor(count/3)*regions.indexOf(anchor))%16,specimen=sheet.specimens[cell];
         let length=specimen.length*(.69+.77*rand());
         if(armor)length=Math.min(1.34,length*.76);
         if(shore&&!small)length*=.83;
+        if(kineo){
+          // The high wall sheds joint blocks; outer beds carry low imbricated
+          // plates and a finer lag. A right-skewed size distribution retains
+          // stray large stones without a steady procession of shoulder boulders.
+          length*=small?.51+1.35*rand()**1.65:shore?.47+.92*rand()**1.45:.66+1.02*rand()**1.66;
+        }
         const gap=small?.31:Math.max(.76,length*.68);
         const key=Math.round(x/gap)+':'+Math.round(z/gap)+':'+Math.round(gap*2);
         if(used.has(key))continue;
         used.add(key);
-        const yaw=rand()*Math.PI*2,scaleY=.94+.12*rand();
+        const yaw=rand()*Math.PI*2,scaleY=kineo?(shore?.70:.82)+rand()*.40:.94+.12*rand();
+        const scaleZ=kineo?.78+.44*rand():1;
         const up=new T.Vector3(-dx*(armor?.70:.52),1,-dz*(armor?.70:.52)).normalize();
         const rotation=new T.Quaternion().setFromUnitVectors(new T.Vector3(0,1,0),up);
         rotation.multiply(new T.Quaternion().setFromAxisAngle(new T.Vector3(0,1,0),yaw));
-        const width=length*specimen.extent[0],height=length*scaleY*specimen.extent[1],depth=length*specimen.extent[2];
+        const width=length*specimen.extent[0],height=length*scaleY*specimen.extent[1],depth=length*scaleZ*specimen.extent[2];
         const wetStage=shore&&Number.isFinite(level)?level+(world.region==='alaska'?.18:.16):
           stream&&bankDistance<2.4?drawn+.12*(1-bankDistance/2.4):-Infinity;
         // Bury the base into bedrock and talus. Cobbles rest above the mineral
         // surface with their lowest face embedded a few millimetres.
-        y-=height*(small?.09:.18);
-        const matrix=new T.Matrix4().compose(new T.Vector3(x,y,z),rotation,new T.Vector3(length,length*scaleY,length));
+        y-=height*(kineo?(small?.12:.16)+rand()*(shore?.25:.17):small?.09:.18);
+        const matrix=new T.Matrix4().compose(new T.Vector3(x,y,z),rotation,new T.Vector3(length,length*scaleY,length*scaleZ));
         entries.push({sheet:sheet.id,cell,x,y,z,width,height,depth,yaw,matrix,length,wetStage,anchor:anchor.name});
-        accepted++;
+        accepted++;if(kineo&&accepted%16===0)shuffle();
       }
     }
     return entries;
   }
-  function merge(T,members,models,lod){
+  function merge(T,members,models,lod,screenLod=false){
     let vertices=0,count=0;
     for(const e of members){const m=models[e.cell][lod];vertices+=m.nv;count+=m.index.length;}
     const pos=new Float32Array(vertices*3),norm=new Float32Array(vertices*3),uv=new Float32Array(vertices*2),cell=new Uint8Array(vertices);
     const wetness=new Uint8Array(vertices),index=vertices<=65535?new Uint16Array(count):new Uint32Array(count);
+    const size=screenLod?new Float32Array(vertices):null;
     let base=0,offset=0;const p=new T.Vector3(),n=new T.Vector3(),nm=new T.Matrix3();
     for(const e of members){
       const m=models[e.cell][lod],v=m.v;nm.getNormalMatrix(e.matrix);
@@ -182,6 +196,7 @@
         n.set(v[k+3]/32767,v[k+4]/32767,v[k+5]/32767).applyNormalMatrix(nm);n.toArray(norm,d);
         uv[t]=v[k+6]/32767;uv[t+1]=v[k+7]/32767;cell[base+i]=e.cell;
       }
+      if(size)size.fill(e.length,base,base+m.nv);
       for(const j of m.index)index[offset++]=j+base;
       base+=m.nv;
     }
@@ -189,10 +204,12 @@
     g.setAttribute('position',new T.BufferAttribute(pos,3));g.setAttribute('normal',new T.BufferAttribute(norm,3));
     g.setAttribute('uv',new T.BufferAttribute(uv,2));g.setAttribute('aerieCell',new T.BufferAttribute(cell,1));g.setIndex(new T.BufferAttribute(index,1));
     g.setAttribute('stoneWetness',new T.BufferAttribute(wetness,1,true));
+    if(size)g.setAttribute('stoneSize',new T.BufferAttribute(size,1));
     g.computeBoundingSphere();return g;
   }
   window.makeRegionalGeology=(T,scene,world)=>{
     const layers=new T.Group();layers.name='Regional mineral exposures';scene.add(layers);
+    const permanent=world.region==='moosehead',perchTiles=new Map();
     const materials=[],maps=[],batches=[],entries=[],bin=new Map(),survey=[];
     const compact=matchMedia('(pointer: coarse)').matches;let disposed=false,lastT=-Infinity,lastX=Infinity,lastZ=Infinity;
     function dispose(){
@@ -207,6 +224,14 @@
       lastT=time;lastX=player.x;lastZ=player.z;
       for(const b of batches){
         const dist=Math.hypot(player.x-b.center.x,player.y-b.center.y,player.z-b.center.z)-b.radius;
+        if(permanent){
+          // Cull only after every specimen in the tile is fully dissolved.
+          // Never switch the whole deposit during an approach.
+          b.meshes[0].visible=dist<=b.largest*38+18;
+          b.meshes[1].visible=dist<=b.largest*1050+24&&dist+2*b.radius>=b.smallest*14-18;
+          b.lod=b.meshes[0].visible?0:b.meshes[1].visible?1:-1;
+          continue;
+        }
         const near=b.small?(compact?11:19):(compact?49:78),far=b.small?(compact?31:51):(compact?230:365);
         const next=dist<(b.lod===0?near*1.20:near)?0:dist<(b.lod===1?far*1.16:far)?1:-1;
         if(next<0&&dist>far*1.7&&time-b.lastVisible>24){
@@ -258,6 +283,21 @@
       }
       return top;
     }
+    function perchNear(x,z,reach){
+      let best=null,bestDist=reach*reach;
+      for(let j=Math.floor((z-reach)/64);j<=Math.floor((z+reach)/64);j++)for(let i=Math.floor((x-reach)/64);i<=Math.floor((x+reach)/64);i++){
+        for(const e of perchTiles.get(i+j*32768)||[]){
+          const dist=(x-e.x)**2+(z-e.z)**2;if(dist>bestDist)continue;
+          // Test the actual triangles under both talons, including split tops.
+          if(e.landing===undefined){
+            const y=clearance(e.x,e.z),heels=[[.18,0],[-.18,0],[0,.12],[0,-.12]].map(([a,b])=>clearance(e.x+a,e.z+b));
+            e.landing=Number.isFinite(y)&&y>e.y+.24&&heels.every(h=>Math.abs(h-y)<.13)?{x:e.x,y,z:e.z,radius:Math.min(e.width,e.depth)*.5,sheet:e.sheet,cell:e.cell}:null;
+          }
+          if(e.landing){best=e.landing;bestDist=dist;}
+        }
+      }
+      return best;
+    }
     async function start(){
       const manifest=await (await response(world.region+'.json')).json();
       if(disposed)return;
@@ -283,12 +323,34 @@
             .replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor = mix(roughnessFactor,.36,mineralWetness);');
         };
         materials.push(material);
+        const lodMaterials=[material];
+        if(permanent){
+          const wet=material.onBeforeCompile;
+          for(let lod=0;lod<2;lod++){
+            const draw=lod===0?material:material.clone();
+            if(lod){materials.push(draw);lodMaterials.push(draw);}
+            draw.customProgramCacheKey=()=>'moosehead-stone-transition-'+lod;
+            draw.onBeforeCompile=shader=>{
+              wet(shader);
+              shader.vertexShader='attribute float stoneSize; varying float stoneDistance;\n'+shader.vertexShader.replace('#include <project_vertex>',
+                '#include <project_vertex>\nstoneDistance=length(mvPosition.xyz)/stoneSize;');
+              shader.fragmentShader='varying float stoneDistance;\n'+shader.fragmentShader.replace('#include <alphatest_fragment>',`#include <alphatest_fragment>
+                float pixel=fract(52.9829189*fract(dot(floor(gl_FragCoord.xy),vec2(.06711056,.00583715))));
+                float fine=1.-smoothstep(14.,38.,stoneDistance);
+                ${lod?'if(pixel<fine||1.-pixel< smoothstep(600.,1050.,stoneDistance))discard;':'if(pixel>=fine)discard;'}`);
+            };
+          }
+        }
         const models=readModels(T,bytes),members=seed(T,world,api.regions,sheet,profile),groups=new Map();
-        const small=sheet.kind==='pebbles'||sheet.kind==='beach';const span=small?16:60;
+        const small=sheet.kind==='pebbles'||sheet.kind==='beach';const span=permanent?(small?55:115):small?16:60;
         for(const e of members){
           entries.push(e);
           const tile=Math.floor(e.x/span)+':'+Math.floor(e.z/span);
           if(!groups.has(tile))groups.set(tile,[]);groups.get(tile).push(e);
+          if(permanent&&Math.min(e.width,e.depth)>.95&&e.height>.54){
+            const tile=Math.floor(e.x/64)+Math.floor(e.z/64)*32768;
+            if(!perchTiles.has(tile))perchTiles.set(tile,[]);perchTiles.get(tile).push(e);
+          }
           if(e.height<.14)continue;
           const radius=e.radius=.59*Math.hypot(e.width,e.height,e.depth);e.contactModel=models[e.cell][0];
           for(let j=Math.floor((e.z-radius)/16);j<=Math.floor((e.z+radius)/16);j++)for(let i=Math.floor((e.x-radius)/16);i<=Math.floor((e.x+radius)/16);i++){
@@ -300,12 +362,22 @@
           for(const e of group)center.add(new T.Vector3(e.x,e.y,e.z));
           center.multiplyScalar(1/group.length);
           let radius=1;for(const e of group)radius=Math.max(radius,Math.hypot(e.x-center.x,e.y-center.y,e.z-center.z)+e.length);
-          batches.push({center,radius,small,sheet:sheet.id,entries:group,models,material,meshes:[],lod:-1,lastVisible:0});
+          const batch={center,radius,small,sheet:sheet.id,entries:group,models,material,meshes:[],lod:-1,lastVisible:0};
+          if(permanent){
+            batch.smallest=Math.min(...group.map(e=>e.length));batch.largest=Math.max(...group.map(e=>e.length));
+            for(let lod=0;lod<2;lod++){
+              const mesh=new T.Mesh(merge(T,group,models,lod,true),lodMaterials[lod]);
+              mesh.name=sheet.id+(lod?' middle relief':' near relief');
+              mesh.userData.aerieRegional={sheet:sheet.id,lod:lod?'mid':'near',cellAttribute:'aerieCell',cellComponent:0};
+              mesh.visible=false;layers.add(mesh);batch.meshes.push(mesh);
+            }
+          }
+          batches.push(batch);
         }
       }));
       if(!disposed)update(world.spawn,0);
     }
-    const api={regions:[],update,dispose,clearance,placements:()=>entries.map(({sheet,cell,x,y,z,width,height,depth,yaw,length,anchor,matrix})=>({sheet,cell,x,y,z,width,height,depth,yaw,length,anchor,matrix})),models:()=>survey.flatMap(m=>m.names),
+    const api={regions:[],update,dispose,clearance,perchNear,placements:()=>entries.map(({sheet,cell,x,y,z,width,height,depth,yaw,length,anchor,matrix})=>({sheet,cell,x,y,z,width,height,depth,yaw,length,anchor,matrix})),models:()=>survey.flatMap(m=>m.names),
       get counts(){return {placements:entries.length,specimens:new Set(entries.map(e=>e.sheet+'/'+e.cell)).size,surveyModels:survey.reduce((s,m)=>s+m.names.length,0),visibleBatches:batches.filter(b=>b.lod>=0).length};}};
     world.regionalGeology=api;api.ready=start();return api;
   };

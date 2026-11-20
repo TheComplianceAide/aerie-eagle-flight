@@ -34,7 +34,14 @@ window.makeMovingWeather = async function makeMovingWeather(THREE, scene, world)
   const deckCoordinates = photographedDeck ? `
     uniform vec3 cloudAnchor;
     vec3 deckDirection(vec2 p) {
-      return normalize(vec3(p.x-cloudAnchor.x,cloudHeight-cloudAnchor.y,p.y-cloudAnchor.z));
+      // A finite panorama cannot cover tens of kilometres of flat sky. Keep
+      // short-range parallax at launch and progressively follow the observer
+      // across remote bays. Terrain, the water mirror and sky use one origin.
+      vec2 travel=cameraPosition.xz-cloudAnchor.xz;
+      float extent=length(travel);
+      float offset=mix(min(extent,1800.),480.,smoothstep(1800.,7200.,extent));
+      vec2 origin=cameraPosition.xz-travel*(offset/max(.001,extent));
+      return normalize(vec3(p.x-origin.x,cloudHeight-cloudAnchor.y,p.y-origin.y));
     }
     vec2 deckUV(vec3 ray) {
       return vec2(.5+atan(ray.z,ray.x)*.15915494,.5+asin(clamp(ray.y,-1.,1.))*.31830989);

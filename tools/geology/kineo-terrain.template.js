@@ -131,14 +131,38 @@
       return Number.isFinite(top)?top:undefined;
     };
     const names=models.map(m=>m.name);
-    return {names,update(p){for(const m of models){const far=m.name.includes('east-cliff')?Infinity:m.name.includes('margin')?1750:m.name.includes('pocket')?395:120;
-      const d=Math.hypot(p.x-m.position.x,p.y-m.position.y,p.z-m.position.z),survey=m.userData.aerieRegional;
-      m.visible=d<far;
-      const near=m.name.includes('east-cliff')?480:m.name.includes('margin')?145:m.name.includes('pocket')?70:32;
-      const full=d<(survey.lod==='near'?near*1.14:near);
-      const index=full?m.userData.nearIndex:m.userData.farIndex;
-      if(index!==m.geometry.index)m.geometry.setIndex(index);
-      survey.lod=full?'near':'far';}},dispose(){
+    const levels=models.map(m=>{
+      const span=m.name.includes('east-cliff')?480:m.name.includes('margin')?145:m.name.includes('pocket')?70:32;
+      const lower=span*.74,upper=span*1.36;
+      const lowGeometry=new T.BufferGeometry();
+      for(const [key,attr] of Object.entries(m.geometry.attributes))lowGeometry.setAttribute(key,attr);
+      lowGeometry.setIndex(m.userData.farIndex);lowGeometry.boundingSphere=m.geometry.boundingSphere;
+      const lowMaterial=m.material.clone();
+      if(m.material.isShaderMaterial)lowMaterial.uniforms=m.material.uniforms;
+      const low=new T.Mesh(lowGeometry,lowMaterial);
+      low.position.copy(m.position);low.quaternion.copy(m.quaternion);low.name=m.name+' distant';
+      low.userData.aerieRegional={model:m.name,lod:'far'};group.add(low);
+      for(const [lod,mat] of [m.material,lowMaterial].entries()){
+        mat.customProgramCacheKey=()=>'kineo-survey-'+m.name+'-'+lod;
+        mat.onBeforeCompile=shader=>{
+          shader.uniforms.kineoOrigin={value:m.position};
+          shader.fragmentShader='uniform vec3 kineoOrigin;\n'+shader.fragmentShader.replace(/void\s+main\s*\(\s*\)\s*\{/, `void main(){
+            float threshold=1.-smoothstep(${lower.toFixed(2)},${upper.toFixed(2)},distance(cameraPosition,kineoOrigin));
+            float mask=fract(52.9829189*fract(dot(floor(gl_FragCoord.xy),vec2(.06711056,.00583715))));
+            ${lod?'if(mask<threshold)discard;':'if(mask>=threshold)discard;'}`);
+        };
+      }
+      return {m,low,lower,upper};
+    });
+    return {names,update(p){
+      for(const {m,low,lower,upper} of levels){
+        const d=Math.hypot(p.x-m.position.x,p.y-m.position.y,p.z-m.position.z);
+        // The coarse cliff and wave-washed rack remain physically present to the horizon.
+        // Real camera distance interpolates the two index sets inside this padded band.
+        m.visible=d<upper+42;low.visible=d>lower-42;
+      }
+    },dispose(){
+      for(const {low} of levels){low.geometry.dispose();low.material.dispose();}
       for(const m of models){m.geometry.dispose();const mat=m.userData.originalSurveyMaterial||m.material;if(mat!==m.material)m.material.dispose();for(const tx of new Set([mat.map,mat.normalMap,mat.roughnessMap]))tx.dispose();mat.dispose();}
       for(const m of shells)m.geometry.dispose();
     }};

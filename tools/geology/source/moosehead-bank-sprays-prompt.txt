@@ -1,0 +1,25 @@
+Create a single production game texture atlas of sixteen separately photographed real-looking NATIVE MAINE lakeshore foliage sprays on genuine transparent RGBA. Square 4 by 4 atlas of equal 1:1 cells; leave 9 percent clear gutter around each specimen in every cell. Each cell shows ONE cut branch segment only, branching from its attachment at the BOTTOM CENTER and opening upward and diagonally out. View perpendicular to each branch so the leaves and side twigs have readable separated silhouettes. Texture leaves with natural small imperfections and wood, ground-truth forest photography, soft diffuse skylight/cross polarization, medium dark natural green, no hard shadows, no rim glow. Keep naturally occurring see-through gaps. The game attaches these branches individually to wind-bent 3D stems; no whole trees, ground, scenery, lettering, numbers, borders, grid lines, captions or equipment.
+
+Row 1 from left:
+1. Northern white cedar wind-pruned waterside branch tip, several flattened uneven scale-leaf fans, curved russet stem, gaps between the dark green sprays, waxy matte edges; from lake level see through to the silver of the water.
+2. Old cedar shadow bough, its woody elbow leans out from an ice-scoured stone shore with a dead twig and dense drooping cedar fans clustered more heavily to the left.
+3. Sun-exposed cedar tip on a low island point, yellow-olive fresh edges against deeper green mature scales, a frost-broken leader carrying two bent laterals.
+4. A split young cedar spray bent by wind across a rocky water gap, four different-sized flattened fans with slender rusty brown stalks and visible holes between them.
+
+Row 2:
+5. Speckled alder low waterside fork, crinkled oval leaves with deeply toothed edges, rust-speckled woody twigs distributed around an exposed section of stem; this overhangs rippled water.
+6. Speckled alder sucker, thin dark jointed branch with sparser translucent tip leaves and two old small woody conelets, wiry silhouette from across an inlet.
+7. Thick bowed alder side stem from an established thicket, three uneven leaf sprays, rubbed reddish bark and one torn leaf on the outer arc by canoe height.
+8. Narrow ascending alder branch behind a sheltered cove, crowded lower leaf cluster and an exposed tapered tip carrying three small alternating fresh leaves.
+
+Row 3:
+9. Balsam fir side bough projecting horizontally from deep shade, flattened dark needles on brown twigs, clear gaps between the little perpendicular side shoots, new lighter tips.
+10. Red spruce bough broken at the end, short angular needles surrounding the stem, two asymmetric hanging outer secondary clusters, little gold new growth against deep bottle green.
+11. Balsam fir lower bough curving down before its tip turns back up, interrupted needle cover and a visibly bare base that will emerge from a tangle of branches by the lake.
+12. Young red spruce spray with an exaggerated natural fork caused by a broken bud, short stiff needles, one thin nearly dead side shoot, small contrasting pale buds.
+
+Row 4:
+13. Paper birch branch, wiry dark brown twigs bearing irregularly spaced thin triangular serrated leaves, two paler leaf undersides turned, long air gaps and a softly crooked outer silhouette.
+14. Mountain maple branch leaning outward over black spruce shade, broad prominently veined three-lobed leaves spread in several separate pairs, mossy olive with a slight cool underside.
+15. Sweet gale branch from a wet open bank, narrow oval grey-green resinous leaves on reddish stems, dense tip but airy at base, a few shallow ragged teeth near tips.
+16. Red-osier dogwood branch from a sunny gap, clearly opposite dull-green leaves with arcuate veins, dark reddish twigs branching at varied angles, dark berry pedicels with no brightly colored decorative berries.

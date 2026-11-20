@@ -80,10 +80,10 @@
   function show(start) {
     const w = worlds[picker.value];
     app.dataset.world = picker.value;
-    const mapCredits={dixville:'Dixville Notch · scenery credits',labrador:'Lac Berté · scenery credits',moosehead:'Map © OpenStreetMap contributors',winnipesaukee:'USGS · USDA · OpenStreetMap · Microsoft',surry:'USGS · USDA · City of Keene · OpenStreetMap'};
+    const mapCredits={dixville:'Dixville Notch · scenery credits',labrador:'Lac Berté · scenery credits',moosehead:'Moosehead Lake · terrain and imagery credits',winnipesaukee:'USGS · USDA · OpenStreetMap · Microsoft',surry:'USGS · USDA · City of Keene · OpenStreetMap'};
     mapSource.hidden=!mapCredits[picker.value];
     mapSource.textContent=mapCredits[picker.value]||'';
-    mapSource.href=asset(picker.value==='dixville'?'dixville-credits.txt':picker.value==='labrador'?'labrador-credits.txt':picker.value==='winnipesaukee'?'atlas-credits.txt':'credits.txt');
+    mapSource.href=asset(picker.value==='dixville'?'dixville-credits.txt':picker.value==='labrador'?'labrador-credits.txt':picker.value==='winnipesaukee'?'atlas-credits.txt':picker.value==='moosehead'?'geology-data/kineo-credits.txt':'credits.txt');
     document.querySelector('h1').innerHTML = w.name[0]+'<br><em>'+w.name[1]+'</em>';
     document.querySelector('.intro .eyebrow').innerHTML = '<i></i>'+w.region.toUpperCase();
     document.querySelector('.intro p').textContent = w.description;

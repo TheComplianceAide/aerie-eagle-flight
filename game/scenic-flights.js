@@ -129,7 +129,10 @@
   function islandPass(w,p){
     if(!lakeMargins[w.region]?.includes(p.name)||!w.shorelines?.length)return;
     let edge,nearest=Infinity;
-    for(const ring of w.shorelines)for(let i=0;i<ring.length;i++){
+    // Launch at the wooded mainland of these named bays. The point labels
+    // sit in open water and their closest tiny shoal has no useful flight line.
+    const margins=w.region==='moosehead'?w.shorelines.slice(0,1):w.shorelines;
+    for(const ring of margins)for(let i=0;i<ring.length;i++){
       const a=ring[i],b=ring[(i+1)%ring.length],dx=b.x-a.x,dz=b.z-a.z;
       const t=clamp(((p.x-a.x)*dx+(p.z-a.z)*dz)/(dx*dx+dz*dz||1),0,1);
       const x=a.x+dx*t,z=a.z+dz*t,d=Math.hypot(p.x-x,p.z-z);

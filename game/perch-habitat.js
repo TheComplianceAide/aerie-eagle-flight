@@ -147,8 +147,29 @@ window.makePerchHabitat=function makePerchHabitat(T,scene,world,region){
       return finish({id,type:'branch',label:'Exposed tree limb',x:px,y:top,z:pz,seed,length,tree,root:{x,y,z}},dx,dz,slope);
     });
   }
+  const moosehead=region==='moosehead'&&!!world.regionalGeology?.perchNear;
+  function lakeshorePerch(x,z,hint){
+    const stone=world.regionalGeology.perchNear(x,z,27);
+    let y=stone?.y,radial=stone?.radius||.7,label='Kineo rock perch';
+    if(stone){x=stone.x;z=stone.z;}
+    else{
+      // At an inlet the talons may rest on the physical bank. The lake should
+      // never sprout a six-metre plinth merely because a perch is nearby.
+      y=surface(x,z);
+      if(!Number.isFinite(y)||wet(x,z,ground(x,z))||floor(x,z)>y+.11)return null;
+      if(y<world.waterLevel+.30||y>world.waterLevel+2.6)return null;
+      for(const [dx,dz] of [[.30,0],[-.30,0],[0,.22],[0,-.22]])if(Math.abs(surface(x+dx,z+dz)-y)>.075)return null;
+      label='Lakeshore landing';
+    }
+    const seed=noise(Math.round(x*5),Math.round(z*5),59);
+    return orient(seed,hint,(dx,dz)=>{
+      const slope=corridor(x,y,z,dx,dz);if(slope===null)return null;
+      return finish({id:'substrate:'+x.toFixed(3)+','+z.toFixed(3),type:'rock',label,x,y,z,seed,radius:radial,root:{x,y,z},existingSurface:true},dx,dz,slope);
+    });
+  }
   function rockSite(x,z,hint,route=false){
     if(!boundsOK(x,z,5))return null;
+    if(moosehead&&!route)return lakeshorePerch(x,z,hint);
     // Roof heights are in clearance. Exclude the paved downtown core as well.
     if(region==='surry'&&x>1785&&x<2200&&z>4240&&z<4860)return null;
     const surveyed=ground(x,z),y=surface(x,z);
@@ -421,7 +442,7 @@ window.makePerchHabitat=function makePerchHabitat(T,scene,world,region){
     if(Math.hypot(s.x-lastX,s.z-lastZ)>15){
       lastX=s.x;lastZ=s.z;near=gather(s);
       const list=selected?[selected,...near.filter(p=>p.id!==selected.id)]:near;
-      place(list.slice(0,capacity));
+      place((moosehead?list.filter(p=>!p.existingSurface):list).slice(0,capacity));
     }
     if(selected){
       const d=Math.hypot(selected.x-s.x,selected.y-s.y,selected.z-s.z);
@@ -454,8 +475,10 @@ window.makePerchHabitat=function makePerchHabitat(T,scene,world,region){
     }
     const w=size?.width||size?.x||window.innerWidth||1200,h=size?.height||size?.y||window.innerHeight||800;
     let closest=13,found=null;
-    for(const mesh of visible){
-      const p=mesh.userData.site;projected.set(p.x,p.y+.08,p.z).project(camera);
+    const sites=visible.map(m=>m.userData.site);
+    if(moosehead)sites.push(...near.filter(p=>p.existingSurface));
+    for(const p of sites){
+      projected.set(p.x,p.y+.08,p.z).project(camera);
       if(projected.z< -1||projected.z>1)continue;
       const pixels=Math.hypot((projected.x-ndc.x)*w*.5,(projected.y-ndc.y)*h*.5);
       if(pixels<closest&&unobstructed(p)){closest=pixels;found=p;}

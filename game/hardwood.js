@@ -37,6 +37,8 @@ window.addHardwoods=function addHardwoods(T,scene,trees,options){
   }
   const wind=window.getCanopyWind(T,scene);
   const maritime=region==='milford';
+  const lakeCrowns=region==='moosehead'?window.mooseheadCrowns(T,scene,clock):null;
+  const lakeFar=lakeCrowns?.material(false);
   const leaf=texture(maritime?'island-branches.webp':'hardwood-branches.webp');
   const uniforms={...wind.uniforms,
     profile:{value:texture(maritime?'island-profile.webp':'hardwood-profiles.webp')},canopy:{value:texture(maritime?'island-crown.webp':'hardwood-crowns.webp')},
@@ -87,7 +89,7 @@ window.addHardwoods=function addHardwoods(T,scene,trees,options){
       keyLight=texture2D(forestLight,vec2(root.x,-root.z)/span+.5).r;
       orientation=dot(right,sun);
       float dist=distance(center,cameraPosition);
-      fade=smoothstep(85.,175.,dist);
+      fade=smoothstep(${lakeCrowns?'78.,109.':'85.,175.'},dist);
       atmosphere=1.-exp(-dist*.000045);
       gl_Position=projectionMatrix*viewMatrix*vec4(p,1.);
     }`,fragmentShader:`
@@ -119,20 +121,26 @@ window.addHardwoods=function addHardwoods(T,scene,trees,options){
       const mix=local+(t.seed-.5)*.74;
       t.species=mix<.24?3:mix<.48?1:mix<.80?0:2;
     }
-    insert(stands,850,t);insert(cells,72,t);
+    insert(stands,lakeCrowns?1400:850,t);insert(cells,72,t);
   }
   for(const batch of stands.values()){
     const g=new T.InstancedBufferGeometry();g.setIndex(quad.index);
     g.setAttribute('position',quad.attributes.position);g.setAttribute('uv',quad.attributes.uv);
     const roots=new Float32Array(batch.length*3),form=new Float32Array(batch.length*4),bounds=new T.Box3();
+    const surveyForms=lakeCrowns?new Float32Array(4*batch.length):null;
     batch.forEach((t,i)=>{
       roots.set([t.x,t.y,t.z],3*i);form.set([t.width,t.height,t.seed,t.species],4*i);
+      if(surveyForms)surveyForms.set(lakeCrowns.traits(t,false),4*i);
       bounds.expandByPoint(point.set(t.x,t.y,t.z));
     });
     g.setAttribute('root',new T.InstancedBufferAttribute(roots,3));
     g.setAttribute('form',new T.InstancedBufferAttribute(form,4));g.instanceCount=batch.length;
+    if(surveyForms){
+      g.setAttribute('rootPosition',g.getAttribute('root'));
+      g.setAttribute('crownForm',new T.InstancedBufferAttribute(surveyForms,4));
+    }
     g.boundingSphere=bounds.expandByScalar(32).getBoundingSphere(new T.Sphere());
-    const mesh=new T.Mesh(g,mat);mesh.name='Hardwood canopy';scene.add(mesh);
+    const mesh=new T.Mesh(g,lakeFar||mat);mesh.name='Hardwood canopy';scene.add(mesh);
   }
   // Each close tree has actual forked wood and inclined, overlapping sprays
   // carried on distinct limbs. Branches hold their bearings when circled.
@@ -192,7 +200,7 @@ window.addHardwoods=function addHardwoods(T,scene,trees,options){
       illum*=1.+front.x*tip*(.16+.13*flick);
       coord=uv;species=kind;
       float dist=length(cameraPosition-root-vec3(0.,.5*length(instanceMatrix[1].xyz),0.));
-      fade=smoothstep(85.,175.,dist);atmosphere=0.;
+      fade=smoothstep(${lakeCrowns?'78.,109.':'85.,175.'},dist);atmosphere=0.;
       gl_Position=projectionMatrix*viewMatrix*vec4(world,1.);
     }`,fragmentShader:`uniform sampler2D leaves;uniform vec3 haze;
       varying vec2 coord;varying float species,illum,fade,atmosphere;
@@ -207,6 +215,7 @@ window.addHardwoods=function addHardwoods(T,scene,trees,options){
   closeMat.userData.canopyRoot="instanceMatrix[3].xyz";
   const boughs=new T.InstancedMesh(twigGeometry,closeMat,stems.instanceMatrix.count);
   boughs.instanceMatrix=stems.instanceMatrix;boughs.count=0;boughs.frustumCulled=false;scene.add(boughs);
+  const pages=region==='moosehead'?[stems,boughs].map(mesh=>window.partitionSurveyCrowns(T,scene,mesh,'Nearby surveyed hardwood')):[];
   const last=new T.Vector3(Infinity,Infinity,Infinity),frame=new T.Object3D();
   return player=>{
     if(!player||last.distanceToSquared(player)<36)return;
@@ -214,12 +223,13 @@ window.addHardwoods=function addHardwoods(T,scene,trees,options){
     for(let x=i-3;x<=i+3;x++)for(let z=j-3;z<=j+3;z++){
       const batch=cells.get(x+':'+z);if(!batch)continue;
       for(const t of batch){
-        if(Math.hypot(player.x-t.x,player.y-t.y-t.height*.5,player.z-t.z)>185||count>=stems.instanceMatrix.count)continue;
+        if(Math.hypot(player.x-t.x,player.y-t.y-t.height*.5,player.z-t.z)>(lakeCrowns?115:185)||count>=stems.instanceMatrix.count)continue;
         frame.position.set(t.x,t.y-.12,t.z);frame.rotation.y=t.seed*6.283;
         frame.scale.set(t.width,t.height,t.width);frame.updateMatrix();stems.setMatrixAt(count,frame.matrix);
         speciesAttr.setX(count++,t.species);
       }
     }
     stems.count=boughs.count=count;speciesAttr.needsUpdate=true;stems.instanceMatrix.needsUpdate=true;
+    for(const update of pages)update();
   };
 };

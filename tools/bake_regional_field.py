@@ -176,13 +176,16 @@ def sampled_mesh(tile, kind, cell, high, rect, special):
 
 def cook(s, art):
     key = s["id"]
+    timber=s["kind"]=="wood" or key=="labrador-camp"
+    surface=s["kind"] in ("ground","water","sign")
+    revision=8 if surface else 9 if timber else REVISION
     source = art/"generated"/(key+".png")
     if not source.exists():return
     manifest = DEST/(key+".json")
     sha = hashlib.sha256(source.read_bytes()).hexdigest()
     if manifest.exists():
         prior=json.loads(manifest.read_text())
-        if prior.get("sha")==sha and prior.get("revision")==REVISION:return prior
+        if prior.get("sha")==sha and prior.get("revision")==revision:return prior
     im=separate_sheet(Image.open(source))
     names=json.loads((art/"written"/(key+".json")).read_text())
     atlas=Image.new("RGBA",(1024,1024))
@@ -191,13 +194,23 @@ def cook(s, art):
     special="lily" if key=="winnipesaukee-lily" else ""
     for i in range(16):
         tile=isolate(im,i)
-        thumb=tile.copy();thumb.thumbnail((244,244),Image.Resampling.LANCZOS)
+        painted=tile
+        if surface:
+            from field_surfaces import surface_marks,shape_tile
+            painted,backing,alpha=surface_marks(tile,s["kind"],i)
+            tile=shape_tile(painted,backing,alpha)
+        thumb=painted.copy();thumb.thumbnail((244,244),Image.Resampling.LANCZOS)
         x=i%4*256+(256-thumb.width)//2;y=i//4*256+(256-thumb.height)//2
         atlas.paste(thumb,(x,y))
         rect=(x/1024,y/1024,thumb.width/1024,thumb.height/1024)
         triangles=[]
         for high in (True,False):
-            packed,count=sampled_mesh(tile,s["kind"],i,high,rect,special)
+            if timber:
+                from field_timber import deadwood, joinery
+                generator=deadwood if s["kind"]=="wood" else joinery
+                packed,count=generator(tile,i,high,rect)
+            else:
+                packed,count=sampled_mesh(tile,s["kind"],i,high,rect,special)
             body.extend(packed);triangles.append(count)
         forms.append({"name":names[i]["name"],"triangles":triangles})
     # Transparent atlas texels retain nearest edge colors through mipmaps.
@@ -209,8 +222,17 @@ def cook(s, art):
     os.replace(atlas_tmp,DEST/(key+".webp"))
     bin_tmp=DEST/(key+".tmp.bin");bin_tmp.write_bytes(body);os.replace(bin_tmp,DEST/(key+".bin"))
     record={k:s[k] for k in ("id","kind","habitat","region")}
-    record.update(sha=sha,revision=REVISION,span=SPAN[s["kind"]],specimens=forms)
+    record.update(sha=sha,revision=revision,span=SPAN[s["kind"]],specimens=forms)
     if special:record["special"]=special
+    if s["kind"]=="ground":record["span"]=.90 if "outwash" in key or "scree" in key else .78
+    if s["kind"]=="sign":record["span"]=.64
+    if s["kind"]=="water":record["span"]=4.5
+    if s["kind"]=="wood":
+        from field_timber import BRANCH_SPANS
+        source_size={"alaska":1.55,"swiss":1.05,"canyon":1.,"moosehead":1.20,"winnipesaukee":1.45,
+                     "surry":1.25,"dixville":1.34,"labrador":1.1,"yosemite":1.62,"crater":1.5,
+                     "lofoten":.87,"milford":1.62}[s["region"]]
+        record["specimenSpans"]=[round(n*source_size,3) for n in BRANCH_SPANS]
     if key=="milford-treefern":record["span"]=4.7
     tmp=manifest.with_suffix(".tmp.json");tmp.write_text(json.dumps(record,separators=(",",":")));os.replace(tmp,manifest)
     return record

@@ -15,7 +15,7 @@
         tag.onload=resolve;
         tag.onerror=()=>reject(new Error('Unable to open '+name));
         const url=window.aerieAssetURL?.(name)||name;
-        tag.src=url===name&&location.protocol!=='file:'?url+'?v=0.17.0':url;
+        tag.src=url===name&&location.protocol!=='file:'?url+'?v=0.17.1':url;
         document.head.appendChild(tag);
       });
       loaded.set(name,request.catch(error=>{loaded.delete(name);throw error;}));
@@ -33,7 +33,7 @@
       milford:['waterfall-system.js'],
       lofoten:['regional-waterfalls.js','falls-terrain-lofoten.js','waterfall-system.js'],
       yosemite:['waterfall-system.js','atlas-yosemite-crowns.js','talus-data.js','rocks.js'],
-      moosehead:['kineo-terrain.js','regional-waterfalls.js','falls-terrain-moosehead.js','waterfall-system.js','architecture.js'],
+      moosehead:['moosehead-crowns.js','moosehead-shore-survey.js','moosehead-bank-growth.js','moosehead-uplands.js','kineo-terrain.js','regional-waterfalls.js','falls-terrain-moosehead.js','waterfall-system.js','architecture.js'],
       winnipesaukee:['regional-waterfalls.js','falls-terrain-winnipesaukee.js','waterfall-system.js','architecture.js','winnipesaukee-waterfront-data.js','winnipesaukee-waterfront.js'],
       surry:['regional-waterfalls.js','falls-terrain-surry.js','waterfall-system.js','architecture.js','keene-weather.js','surry-dam.js','keene-city-data.js','keene-frontages.js','keene-streetscape.js','keene-city.js','keene-light.js']
     }[region]||[];
@@ -44,6 +44,6 @@
       range=range.filter(n=>n!=='regional-field-scenery.js'&&n!=='regional-geology.js').map(n=>saved.has(n)?'prior-regions/'+n:n);
     }
     await Promise.all(range.map(open));
-    await window.prepareRangeRelief(region);
+    await Promise.all([window.prepareRangeRelief(region),region==='moosehead'?window.prepareMooseheadUplands():null]);
   };
 })();
