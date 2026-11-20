@@ -352,6 +352,13 @@ window.makeEagle = function makeEagle(THREE) {
     mesh.name='Individual crown, neck, mantle and wing feathers';
     mesh.frustumCulled=false;rig.add(mesh);mesh.bind(skeleton,new THREE.Matrix4());
   }
+  const legSkin=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.76});
+  legSkin.onBeforeCompile=shader=>{
+    shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>',`
+      #ifdef USE_MAP
+      if(vMapUv.y>=0.)diffuseColor.rgb*=texture2D(map,vMapUv).rgb;
+      #endif`);
+  };
   const sidePortrait=new THREE.TextureLoader().load('eagle-profile.webp');
   sidePortrait.colorSpace=THREE.SRGBColorSpace;sidePortrait.anisotropy=10;
   function buildShell(photo) {
@@ -447,6 +454,7 @@ window.makeEagle = function makeEagle(THREE) {
       return texture;
     }
     const mantle=tractTexture('eagle-mantle.webp'), nape=tractTexture('eagle-nape.webp');
+    legSkin.map=mantle;legSkin.needsUpdate=true;
     function dorsalShading(shader){
       Object.assign(shader.uniforms,{mantleMap:{value:mantle},napeMap:{value:nape}});
       shader.vertexShader=shader.vertexShader.replace('#include <common>',
@@ -636,6 +644,7 @@ window.makeEagle = function makeEagle(THREE) {
   // Hind talon opposes the three forward toes. Rings follow each toe's curve
   // to carry the gold scales into a pointed, recurved horn tip.
   const scute=new THREE.MeshStandardMaterial({color:0xb89343,roughness:.69});
+  const scuteShape=new THREE.SphereGeometry(1,8,5).scale(.0072,.0046,.0034);
   function taperedCurve(parent,name,sections,material){
     const points=sections.map(p=>new THREE.Vector3(...p.slice(0,3)));
     const vertices=[],indices=[],sides=9;
@@ -658,6 +667,74 @@ window.makeEagle = function makeEagle(THREE) {
     const mesh=new THREE.Mesh(geo,material);mesh.name=name;mesh.castShadow=true;parent.add(mesh);
     return mesh;
   }
+  function scaledLeg(ankle,sign){
+    const positions=[],uv=[],colors=[],index=[],sides=28;
+    const ochre=new THREE.Color(0xdfab4f);
+    // The tibiotarsal plumage narrows into the bare, straight tarsometatarsus.
+    // The irregular last feather row shares its seam with the yellow skin.
+    const cuff=[[.067,-.012,.013,.016],[.041,-.004,.035,.037],[.012,.004,.040,.041],
+      [-.016,.010,.036,.037],[-.038,.011,.030,.033],[-.054,.007,.023,.026],[-.060,.006,.0132,.0142]];
+    function ring(y,z,rx,rz,fringe,v,shade){
+      const base=positions.length/3;
+      for(let j=0;j<=sides;j++){
+        const u=j/sides,a=u*2*Math.PI,side=Math.cos(a),rear=Math.sin(a);
+        const tip=.0037*Math.cos(a*7+sign*.7+.4*Math.sin(a*3))+.0024*Math.sin(a*4+sign*.6)-.0055*rear;
+        const front=smooth(-.3,.95,-rear),plate=v<0?front:0;
+        const width=1+fringe*.07*Math.cos(a*7+sign*.7);
+        const relief=v<0?(shade-.89)*.0035*plate:0;
+        positions.push(sign*.005+(rx+relief)*side*width,y+tip*fringe+.0015*plate*Math.cos(2*a+y*60),z+(rz+relief)*rear*width);
+        uv.push(u*2.7+sign*.19,v);
+        if(v>=0)colors.push(.67,.62,.59);
+        else{
+          const tone=.96+(shade-.89)*front,distal=smooth(.059,.129,-y);
+          colors.push(THREE.MathUtils.lerp(ochre.r,gold.color.r,distal)*tone,THREE.MathUtils.lerp(ochre.g,gold.color.g,distal)*tone,THREE.MathUtils.lerp(ochre.b,gold.color.b,distal)*tone);
+        }
+        if(base&&j){const k=base+j,q=k-sides-1;index.push(q-1,q,k-1,k-1,q,k);}
+      }
+    }
+    for(let i=0;i<cuff.length;i++)ring(...cuff[i],smooth(2,5,i),1.46-i*.224,1);
+    const hem=cuff.at(-1);
+    ring(...hem,1,-1,1);
+    // Shallow transverse scutes break up the front of the taper without a second draw.
+    for(let i=0;i<=11;i++){
+      const t=i/11,y=-.070-.059*t,z=.003-.040*t;
+      const r=.0118+.0013*t;
+      ring(y+.0013,z,r+.0006,r,0,-1,.99);
+      ring(y,z,r,r-.0004,0,-1,.79);
+    }
+    const g=new THREE.BufferGeometry();
+    g.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+    g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));g.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));g.setIndex(index);g.computeVertexNormals();
+    const mesh=new THREE.Mesh(g,legSkin);mesh.name='Scaled tarsus';mesh.castShadow=true;ankle.add(mesh);
+    mesh.position.sub(ankle.position);
+    const rest=positions.slice(0,cuff.length*(sides+1)*3),root=new THREE.Vector3(sign*.005,cuff[0][0],cuff[0][1]);
+    const along=new THREE.Vector3(),around=new THREE.Vector3(),point=new THREE.Vector3();
+    const hip=new THREE.Vector3(sign*.039,.020,-.012),delta=new THREE.Vector3(),last=new THREE.Vector3(Infinity,0,0),inverse=new THREE.Quaternion();
+    return function attachThigh(chest,leg){
+      // The hip follows the thorax. The lower joint and all toes stay with their planted foot.
+      delta.copy(hip).applyQuaternion(chest.quaternion).add(chest.position)
+        .sub(leg.position).applyQuaternion(inverse.copy(leg.quaternion).invert())
+        .sub(ankle.position).applyQuaternion(inverse.copy(ankle.quaternion).invert()).add(ankle.position).sub(root);
+      if(delta.distanceToSquared(last)<.00015**2)return;
+      last.copy(delta);
+      const p=g.attributes.position;
+      for(let i=0;i<cuff.length;i++){
+        const influence=1-smooth(0,cuff.length-1,i);
+        for(let j=0;j<=sides;j++){
+          const k=i*(sides+1)+j;p.setXYZ(k,rest[k*3]+influence*delta.x,rest[k*3+1]+influence*delta.y,rest[k*3+2]+influence*delta.z);
+        }
+      }
+      // Only the cuff deforms. The scutes and toe end retain their original normals.
+      const normal=g.attributes.normal;
+      for(let i=0;i<cuff.length;i++)for(let j=0;j<=sides;j++){
+        const row=i*(sides+1),a=Math.max(0,i-1)*(sides+1)+j,b=Math.min(cuff.length,i+1)*(sides+1)+j;
+        around.fromBufferAttribute(p,row+(j+1)%sides).sub(point.fromBufferAttribute(p,row+(j+sides-1)%sides));
+        along.fromBufferAttribute(p,b).sub(point.fromBufferAttribute(p,a));
+        around.cross(along).normalize();normal.setXYZ(row+j,around.x,around.y,around.z);
+      }
+      p.needsUpdate=normal.needsUpdate=true;g.computeBoundingSphere();
+    };
+  }
   const perchFeet=[-1,1].map(sign=>{
     const leg=new THREE.Group();rig.add(leg);leg.name='Reaching leg '+sign;
     leg.position.set(sign*.065,-.038,.09);leg.visible=false;
@@ -665,8 +742,7 @@ window.makeEagle = function makeEagle(THREE) {
     // The tarsus stays rigid and the opposing toes keep their grip.
     const ankle=new THREE.Group();leg.add(ankle);ankle.name='Planted ankle '+sign;
     ankle.position.set(sign*.007,-.129,-.037);
-    const tarsus=taperedCurve(ankle,'Scaled tarsus',[[0,.013,0,.014],[sign*.004,-.035,.014,.012],[sign*.005,-.079,-.005,.011],[sign*.007,-.129,-.037,.012]],gold);
-    tarsus.position.sub(ankle.position);
+    const attachThigh=scaledLeg(ankle,sign);
     const toes=[],sole=[];
     for(let j=0;j<4;j++){
       const rear=j===3,heading=rear?Math.PI+sign*.12:(j-1)*.48+sign*.04;
@@ -679,13 +755,12 @@ window.makeEagle = function makeEagle(THREE) {
         sole.push(new THREE.Vector3(0,height,-reach*len).applyQuaternion(toe.quaternion).add(toe.position).add(leg.position));
       }
       taperedCurve(toe,'Toe pad',[[0,.002,0,.009],[0,-.003,-len*.30,.008],[0,-.001,-len*.55,.0072],[0,-.004,-len*.78,.0068],[0,-.004,-len*.86,.0058]],gold);
-      for(const r of [.32,.53,.74]){
-        const scale=new THREE.Mesh(new THREE.SphereGeometry(1,8,5),scute);
-        scale.position.set(0,.002,-len*r);scale.scale.set(.0072,.0046,.0034);toe.add(scale);
-      }
+      const scales=new THREE.InstancedMesh(scuteShape,scute,3);
+      for(let k=0;k<3;k++)scales.setMatrixAt(k,new THREE.Matrix4().makeTranslation(0,.002,-len*(.32+k*.21)));
+      scales.computeBoundingSphere();toe.add(scales);
       taperedCurve(toe,'Hooked claw',[[0,-.004,-len*.80,.0055],[0,-.005,-len*.97,.0053],[0,-.011,-len*1.09,.0044],[0,-.020,-len*1.13,.0031],[0,-.027,-len*1.06,.0016],[0,-.033,-len*.94,.00035]],claw);
     }
-    return {leg,ankle,toes,sign,hip:leg.position.clone(),sole,stance:null,bearing:0,oldHeight:0,height:0};
+    return {leg,ankle,toes,sign,attachThigh,hip:leg.position.clone(),sole,stance:null,bearing:0,oldHeight:0,height:0};
   });
   function seatOnBranch(foot,stance,bearing,s){
     if(!stance?.supportAt)return 0;
@@ -909,6 +984,7 @@ window.makeEagle = function makeEagle(THREE) {
       leg.rotation.set(blend(-1.78,0,smooth(.025,.96,grip)),0,sign*.10*Math.sin(grip*Math.PI));
       leg.quaternion.premultiply(stepRotation);
       ankle.rotation.x=.48*compression+.31*inSwing;
+      if(leg.visible)foot.attachThigh(chest,leg);
       for(const toe of toes)toe.rotation.x=blend(-.33,0,closing)+.19*(1-grip)-.27*inSwing;
     }
     for(const wing of wings){
