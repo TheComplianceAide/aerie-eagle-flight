@@ -10,6 +10,12 @@ css=(dist/'style.css').read_text()
 assert not re.search(r'url\([^)]*\.(?:webp|jpg|png)\)',css), 'Menu photos must use the same asset resolver as the scene.'
 html=html.replace('<link rel="stylesheet" href="style.css">','<style>'+css+'</style>')
 attached=set(re.findall(r'<script src="([^"]+)"></script>',html))
+# The title and favicon load before the asset resolver in a standalone file.
+title_images = {'field-engraving.webp': 'image/webp', 'aerie-icon-64.png': 'image/png'}
+for name, mime in title_images.items():
+    data = base64.b64encode((dist/name).read_bytes()).decode('ascii')
+    html = html.replace(f'"{name}"', f'"data:{mime};base64,{data}"')
+attached.update(title_images)
 def safe(text):return re.sub('</script',r'<\\/script',text,flags=re.I)
 def embed(m):
     name=m[1];source=(dist/name).read_text()
