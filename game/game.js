@@ -25,6 +25,8 @@
   let updateLight, updateWeather,perching,perchRoute,perchMarker,windSoarer;
   let perchNotice="",perchNoticeUntil=0,nextPerchHUD=0;
   let dynamics, elapsed, distance, nextReadout, noticeUntil, accumulator;
+  let landmarkLook=null,landmarkLookUntil=0;
+  let cameraPerched=null,cameraBlend=1,previousOffset,previousRotation,transitionOffset,transitionRotation;
   let updateTalus, updateForest, updateHabitat, updateUnderstory, updateMist;
   let frameSeconds=0, frameCount=0, fastWindows=0;
   let glance=0, arrivalGlance=0, arrivalLookDown=0, glanceTime=0;
@@ -45,6 +47,7 @@
       airspeed: 17.5, path: -.062, alpha: .047, pitch: 0, phase: 0, effort: 0,
       loadFactor: 1, stall: 0, tuck: 0, climb: 0, verticalSpeed: -1,
       wingExtension: .94, brakeSpread: 0, turnTrim: 0, strokeBeat: 0,
+      wingLoadLeft: 0, wingLoadRight: 0, wingGustTuck: 0,
       ridge: 0, thermal: 0, gust: 0, lift: 0, distance: 0, elapsed: 0, mode: "Gliding", contact: false
     };
     const floor = terrain.flightClearance || terrain.clearance || terrain.height;
@@ -56,9 +59,81 @@
     let poweredClimb=false, strokeLift=0;
     const smooth = (a,b,x) => {const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t);};
     const air={windX:2.4,windZ:-1.25,gust:0,gustLift:0};
+    const leftAir={}, rightAir={};
+    let lastWingSample=-Infinity, lastCenterSample=-Infinity, trimWindX=0, trimWindY=0, trimWindZ=0;
+    let leftPressure=0, rightPressure=0, peakLoad=0, tuckDepth=0, tuckStarted=-Infinity;
+
+    function senseWings(dt) {
+      const field=terrain.windField;
+      const spread=1-(s.perchFold||0);
+      if(field && spread>.04 && s.elapsed-lastWingSample>=1/40-1e-7){
+        const sampleDt=s.elapsed-lastWingSample;
+        lastWingSample=s.elapsed;
+        const sinYaw=Math.sin(s.yaw),cosYaw=Math.cos(s.yaw);
+        const sinBank=Math.sin(s.bank),cosBank=Math.cos(s.bank);
+        const sinPitch=Math.sin(s.pitch),cosPitch=Math.cos(s.pitch);
+        // Sample each lifting hand in world coordinates. The model is 2.2 m
+        // across; a bank changes both the separation on the ground and height.
+        const radius=.84*s.wingExtension*spread;
+        const dx=radius*(cosYaw*cosBank+sinYaw*sinPitch*sinBank);
+        const dy=radius*cosPitch*sinBank;
+        const dz=radius*(-sinYaw*cosBank+cosYaw*sinPitch*sinBank);
+        // The scripted approach updates the wings without running the flight
+        // controller. Keep the local ground plane current on that path too.
+        if(s.elapsed-lastCenterSample>.16){
+          field.sample(s.x,s.y,s.z,s.elapsed,air);
+          lastCenterSample=s.elapsed;
+        }
+        field.sample(s.x-dx,s.y-dy,s.z-dz,s.elapsed,leftAir,air);
+        field.sample(s.x+dx,s.y+dy,s.z+dz,s.elapsed,rightAir,air);
+        const leftUp=leftAir.ridge+leftAir.thermal+leftAir.gustLift+(leftAir.eddyLift||0);
+        const rightUp=rightAir.ridge+rightAir.thermal+rightAir.gustLift+(rightAir.eddyLift||0);
+        // The wings trim to a sustained moving air mass. Rapid changes and
+        // spanwise shear produce a local lift increment (in units of weight).
+        const acclimate=sampleDt>.25?1:easing(1.7,sampleDt);
+        trimWindX+=((leftAir.windX+rightAir.windX)*.5-trimWindX)*acclimate;
+        trimWindY+=((leftUp+rightUp)*.5-trimWindY)*acclimate;
+        trimWindZ+=((leftAir.windZ+rightAir.windZ)*.5-trimWindZ)*acclimate;
+        const nx=-cosYaw*sinBank+sinYaw*sinPitch*cosBank;
+        const ny=cosPitch*cosBank,nz=sinYaw*sinBank+cosYaw*sinPitch*cosBank;
+        const area=.28+.72*s.wingExtension;
+        const liftSlope=4.75*halfDensityAreaOverMass*area*Math.max(3,s.airspeed)/gravity;
+        const pressure=(flow,up)=>{
+          const wx=flow.windX-trimWindX, wy=up-trimWindY, wz=flow.windZ-trimWindZ;
+          const normalFlow=wx*nx+wy*ny+wz*nz;
+          const headwind=(wx*sinYaw+wz*cosYaw)*cosPitch-wy*sinPitch;
+          return spread*clamp(liftSlope*normalFlow+2*headwind/Math.max(3,s.airspeed),-1,1);
+        };
+        leftPressure=pressure(leftAir,leftUp);
+        rightPressure=pressure(rightAir,rightUp);
+      }else if(!field || spread<=.04){
+        lastWingSample=-Infinity;
+        leftPressure=rightPressure=0;
+        peakLoad=0;
+      }
+      // Compliance responds before corrective trim. Sustained, uniform wind
+      // produces no oscillation; each side has to encounter a change in flow.
+      const compliance=easing(25,dt);
+      s.wingLoadLeft+=(leftPressure-s.wingLoadLeft)*compliance;
+      s.wingLoadRight+=(rightPressure-s.wingLoadRight)*compliance;
+      const common=.5*(s.wingLoadLeft+s.wingLoadRight);
+      peakLoad=Math.max(common,peakLoad*Math.exp(-1.8*dt));
+      // In steppe eagle footage a rapid unloading after a positive gust can
+      // briefly drop both wings below horizontal, without an upward beat.
+      const unloaded=peakLoad-common;
+      if(s.elapsed-tuckStarted>1.5 && peakLoad>.16 && common<-.13 && unloaded>.44 &&
+         s.effort<.18 && s.tuck<.25 && s.brakeSpread<.24 && spread>.9 && (s.perchFlare||0)<.1){
+        tuckStarted=s.elapsed;
+        tuckDepth=clamp(.20+.65*(unloaded-.44),.20,.78);
+        peakLoad=0;
+      }
+      const age=s.elapsed-tuckStarted;
+      s.wingGustTuck=age<.40?tuckDepth*smooth(0,.10,age)*(1-smooth(.10,.40,age))*spread:0;
+    }
     function sampleAirAndTerrain() {
       if(terrain.windField){
         terrain.windField.sample(s.x,s.y,s.z,s.elapsed,air);
+        lastCenterSample=s.elapsed;
         s.ridge=air.ridge;s.thermal=air.thermal;s.gust=air.gust;
       }else{
         const ground = terrain.height(s.x,s.z), clearance = Math.max(0,s.y-ground);
@@ -100,6 +175,7 @@
       if(s.contact)return;
       s.elapsed += dt;
       if(s.elapsed>=nextAirSample){sampleAirAndTerrain();nextAirSample=s.elapsed+.14;}
+      senseWings(dt);
       s.climb=input.climb;
       const brake=clamp(Number(input.brake)||0,0,1);
       const braking=brake>.5;
@@ -111,7 +187,8 @@
       const trimCommand=clamp(-1.8*rollError+.29*s.rollRate,-1,1);
       s.turnTrim+=(trimCommand-s.turnTrim)*easing(10,dt);
       const rollAuthority=clamp((s.airspeed/16)**1.5,.34,1.7)*s.wingExtension;
-      s.rollRate+=(-8.1*s.turnTrim*rollAuthority-(2.8+rollAuthority)*s.rollRate)*dt;
+      const gustRoll=4.5*(s.wingLoadRight-s.wingLoadLeft)*s.wingExtension;
+      s.rollRate+=(gustRoll-8.1*s.turnTrim*rollAuthority-(2.8+rollAuthority)*s.rollRate)*dt;
       s.bank=clamp(s.bank+s.rollRate*dt,-1.21,1.21);
 
       const trimPath = -.074 + clamp((s.airspeed-16.4)*.02,-.19,.20);
@@ -142,22 +219,39 @@
       const fanTravel=brakeCommand>s.brakeSpread?lerpRate(2.9,1.45):3.8;
       s.brakeSpread+=clamp(brakeCommand-s.brakeSpread,-fanTravel*dt,fanTravel*dt);
       const wantsStroke=beatRequest || poweredClimb || (flaring && s.airspeed<12);
-      if(wantsStroke)wingCycle=true;
+      // The bird leaves a level-wing glide by raising its hands before the
+      // first power stroke. Even a tap completes the stroke and returns the
+      // arms to level. A running takeoff can hand its current phase through.
+      const levelOnRecovery=Math.PI*1.5;
+      if(wantsStroke && !wingCycle){
+        if(s.effort<.12)s.phase=levelOnRecovery;
+        wingCycle=true;
+      }
       if(wingCycle) {
         const hz=2.17+.43*(1-smooth(10,23,s.airspeed));
-        s.phase+=Math.PI*2*hz*dt;
-        if(s.phase>=Math.PI*2){s.phase%=Math.PI*2;if(!wantsStroke)wingCycle=false;}
+        const nextPhase=s.phase+Math.PI*2*hz*dt;
+        if(!wantsStroke && s.phase<levelOnRecovery && nextPhase>=levelOnRecovery){
+          s.phase=levelOnRecovery;
+          wingCycle=false;
+        }else s.phase=nextPhase%(Math.PI*2);
       }
-      s.effort+=(Number(wingCycle)-s.effort)*easing(wingCycle?7:4.8,dt);
+      // Shallow propulsive beats suffice at speed. Use deeper strokes when
+      // forward speed is scarce, when climbing, and when supporting a bank.
+      const amplitude=clamp(.68+.32*(1-smooth(12,23,s.airspeed))+
+        .09*Math.max(0,s.climb)+.07*Math.abs(s.bank),.68,1);
+      s.effort+=((wingCycle?amplitude:0)-s.effort)*easing(wingCycle?8.3:5.9,dt);
       s.strokeBeat=s.effort*Math.sin(s.phase);
       const downstroke=Math.max(0,Math.sin(s.phase));
       const stroke=s.effort*downstroke*downstroke;
       strokeLift+=(stroke-strokeLift)*easing(23,dt);
-      const diveDemand=clamp(-s.climb,0,1)*(1-s.effort)*(flaring?0:1)*(1-brake);
+      // Keep lifting area while pitching over from a slow glide. Sweep the
+      // hand progressively as gravity builds airspeed and dynamic pressure.
+      const diveSweep=.16+.84*smooth(10.5,22,s.airspeed);
+      const diveDemand=clamp(-s.climb,0,1)*diveSweep*(1-s.effort)*(flaring?0:1)*(1-brake);
       s.tuck+=(diveDemand-s.tuck)*easing(diveDemand>s.tuck?2.0:4.8,dt);
       const efficientSpan=.96-.065*smooth(15,27,s.airspeed);
       const recoveryFlex=.085*s.effort*Math.max(0,-Math.sin(s.phase));
-      const targetSpan=efficientSpan*(1-s.brakeSpread)+s.brakeSpread-.47*s.tuck-recoveryFlex;
+      const targetSpan=efficientSpan*(1-s.brakeSpread)+s.brakeSpread-.47*s.tuck-recoveryFlex-.12*s.wingGustTuck;
       const spanRate=targetSpan>s.wingExtension?lerpRate(1.6,.58):1.65;
       s.wingExtension+=clamp(targetSpan-s.wingExtension,-spanRate*dt,spanRate*dt);
       const velocityPressure=halfDensityAreaOverMass*s.airspeed*s.airspeed;
@@ -179,7 +273,8 @@
       const induced=.054*area/(s.wingExtension*s.wingExtension)*liftCoefficient*liftCoefficient;
       const profile=.018+.32*separation+.021*s.effort+.165*s.brakeSpread;
       const drag=q*(profile+induced)+velocityPressure*.007+.045;
-      const lift=q*liftCoefficient+strokeLift*6.7;
+      const gustLift=gravity*.18*(s.wingLoadLeft+s.wingLoadRight);
+      const lift=q*liftCoefficient+strokeLift*6.7+gustLift;
       const thrust=strokeLift*9.3;
       // Tangential gravity exchanges kinetic and potential energy. Aerodynamic
       // lift turns the velocity vector; only thrust and moving air add energy.
@@ -207,7 +302,7 @@
       else if(s.path>.1)s.mode="Pull-up";
       else s.mode="Gliding";
     }
-    return {state:s,step};
+    return {state:s,step,senseWings};
   }
   function audioIcon() {
     const label = soundOn ? "Mute sound" : "Turn sound on";
@@ -287,6 +382,8 @@
     renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.03;
     scene=new THREE.Scene();camera=new THREE.PerspectiveCamera(76,1,.035,["winnipesaukee","moosehead","surry"].includes(region)?83000:49000);
     player=new THREE.Vector3();gaze=new THREE.Vector3();cameraTarget=new THREE.Vector3();
+    previousOffset=new THREE.Vector3();transitionOffset=new THREE.Vector3();
+    previousRotation=new THREE.Quaternion();transitionRotation=new THREE.Quaternion();
     const manager=THREE.DefaultLoadingManager;
     const priorLoad=manager.onLoad,priorProgress=manager.onProgress,priorError=manager.onError;
     let done, fail, failedAsset=false;
@@ -343,6 +440,7 @@
   window.addEventListener("resize",resize);
   function startFlight(){
     const launch=world.launches?.[el("launchPoint")?.value] || world.spawn;
+    landmarkLook=null;
     dynamics=makeFlight(launch,world);
     const s=dynamics.state;
     windSoarer.reset(s,world.windField.ensureLaunchCore(launch),launch.glance);
@@ -375,7 +473,7 @@
   function perchAction(){
     if(!started||paused||!perching)return;
     const s=dynamics.state,stage=perching.stage;
-    if(stage==="perched"){perching.push(s);resetInput();resetCamera(s);}
+    if(stage==="perched"){perching.push(s);resetInput();glance=arrivalGlance=0;}
     else if(stage==="free"){if(!perching.selected)choosePerch();if(perching.selected)perching.land(s);pointer.clear();}
     else if(stage==="approach"||stage==="flare"){perching.cancel(s);resetCamera(s);}
     nextPerchHUD=0;
@@ -511,6 +609,8 @@
     }
     dynamics=makeFlight(launch,world);
     Object.assign(dynamics.state,{elapsed,distance});
+    landmarkLook={x:place.x,y:(world.clearance||world.height)(place.x,place.z),z:place.z};
+    landmarkLookUntil=elapsed+3.5;
     windSoarer.reset(dynamics.state,world.windField.ensureLaunchCore(launch),launch.glance);
     perching.reset(dynamics.state,false);nextPerchHUD=0;perchNotice="";
     resetCamera(dynamics.state,launch.glance,launch.lookDown);
@@ -539,6 +639,7 @@
   }
   function resetCamera(s,arrivalDegrees=0,lookDown=0){
     arrivalLookDown=clamp(lookDown,0,32)*Math.PI/180;
+    cameraPerched=null;cameraBlend=1;
     glance=arrivalGlance=arrivalDegrees*Math.PI/180;
     glanceTime=0;
     const mounted=cameraMode==="shoulder";
@@ -627,21 +728,43 @@
     const tick=1/120;
     perching.tickHabitat(dynamics.state);
     while(accumulator>=tick){
-      if(!perching.advance(dynamics.state,tick,input))dynamics.step(tick,input);
+      if(perching.advance(dynamics.state,tick,input))dynamics.senseWings(tick);
+      else dynamics.step(tick,input);
       accumulator-=tick;
     }
     const s=dynamics.state;
     elapsed=s.elapsed;distance=s.distance;
     player.set(s.x,s.y,s.z);
     eagle.object.position.copy(player);eagle.object.rotation.set(s.pitch,s.yaw,s.bank,"YXZ");
+    s.gazeLanding=perching.stage==="approach"||perching.stage==="flare";
+    s.gazeTurn=input.turn;
+    s.gazeLook=input.look;
+    s.gazeTarget=perching.stage==="push"||perching.stage==="perched"?null:perching.selected;
+    s.gazeLandmark=elapsed<landmarkLookUntil?landmarkLook:null;
     eagle.update(dt,elapsed,s.effort>.05,s.pitch,s.bank,s);
     if(audio&&soundOn){
       const stroke=Math.max(0,Math.sin(s.phase-.24));
       wingRush.gain.setTargetAtTime(s.effort*stroke**1.6*2.4,audio.currentTime,.035);
     }
-    if(perching.stage==="perched")positionPerched(s,dt);
+    const resting=perching.stage==="perched";
+    if(cameraPerched!==null&&cameraPerched!==resting){
+      transitionOffset.copy(previousOffset);transitionRotation.copy(previousRotation);
+      cameraBlend=0;
+    }
+    cameraPerched=resting;
+    if(resting)positionPerched(s,dt);
     else if(cameraMode==="shoulder")positionShoulder(s,dt);
     else positionChase(s,dt);
+    // Keep the previous framing relative to the moving bird while the sightline
+    // settles between flying and standing. Absolute interpolation drags behind a launch.
+    if(cameraBlend<1){
+      cameraBlend=Math.min(1,cameraBlend+dt/(resting?.38:.30));
+      const blend=cameraBlend*cameraBlend*(3-2*cameraBlend);
+      cameraTarget.copy(transitionOffset).add(player);
+      camera.position.lerp(cameraTarget,1-blend);
+      camera.quaternion.slerp(transitionRotation,1-blend);
+    }
+    previousOffset.copy(camera.position).sub(player);previousRotation.copy(camera.quaternion);
     updateTalus?.(player,elapsed);updateForest?.(player,elapsed);updateHabitat?.(player,elapsed);
     updateUnderstory(player,elapsed);
     windSoarer.update(dt,s);

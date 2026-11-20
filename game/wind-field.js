@@ -153,12 +153,19 @@
       const across=-x*direction.z+z*direction.x;
       return gustAt(along,across,phase);
     }
-    function sample(x,y,z,t,out={}) {
+    function sample(x,y,z,t,out={},groundPlane) {
       const localX=x-origin.x, localZ=z-origin.z;
       const along=localX*direction.x+localZ*direction.z-t*advection;
       const across=-localX*direction.z+localZ*direction.x;
       const strength = gustAt(along,across,phase);
-      const agl = Math.max(0,y-ground(x,z));
+      // A slope measured across 48 m is effectively common to an eagle's
+      // 2 m span. Reuse this plane for the lifting hands; the air itself is
+      // still evaluated independently at their exact positions and heights.
+      const slopeX=groundPlane ? groundPlane.slopeX : (ground(x+24,z)-ground(x-24,z))/48;
+      const slopeZ=groundPlane ? groundPlane.slopeZ : (ground(x,z+24)-ground(x,z-24))/48;
+      const groundY=groundPlane ? groundPlane.groundY+(x-groundPlane.x)*slopeX+(z-groundPlane.z)*slopeZ : ground(x,z);
+      out.x=x;out.z=z;out.groundY=groundY;out.slopeX=slopeX;out.slopeZ=slopeZ;
+      const agl = Math.max(0,y-groundY);
       const boundaryLayer = .3+.7*Math.exp(-agl/280);
       const windSpeed = 2.65+3.45*strength*boundaryLayer;
       out.windX = direction.x*windSpeed;
@@ -166,8 +173,6 @@
       out.gust = strength;
       // Brief upwash at the advancing front, followed by a settling wake.
       out.gustLift = .85*(gustAt(along-12,across,phase)-gustAt(along+12,across,phase))*boundaryLayer;
-      const slopeX = (ground(x+24,z)-ground(x-24,z))/48;
-      const slopeZ = (ground(x,z+24)-ground(x,z-24))/48;
       out.ridge = clamp((slopeX*out.windX+slopeZ*out.windZ)*1.45,-1.1,3.5)*Math.exp(-agl/175);
       out.thermal = 0;
       const aboveSurface = smooth(4,48,agl);
@@ -181,6 +186,15 @@
         const strength = 3.3*Math.exp(-r2)*smooth(5,65,height)*(1-smooth(700,1550,height))*aboveSurface;
         out.thermal = Math.max(out.thermal,strength);
       }
+      // Outer-scale gusts carry smaller, oblique eddies. Each wing crosses
+      // the same spatial air pattern at its own position. Sheltered, smooth
+      // air has no source of mixing; there is no time-driven wing jitter.
+      const mixing=clamp(1.25*strength*boundaryLayer+.32*Math.abs(out.ridge)+.16*out.thermal,0,1.4);
+      const twist=1.6*Math.sin(.046*along+.027*across+.018*y+phase);
+      const large=Math.sin(.113*along+.170*across+.064*y+twist);
+      const medium=Math.sin(.289*along-.413*across-.131*y+.85*twist+phase);
+      const fine=Math.sin(.561*along+.830*across+.213*y-.48*twist-phase);
+      out.eddyLift=mixing*(1.05*large+.74*medium+.38*fine);
       return out;
     }
     return {centers, get launchCenter(){return launchCenter;}, ensureLaunchCore, core, gust,

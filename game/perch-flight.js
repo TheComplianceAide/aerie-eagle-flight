@@ -20,7 +20,7 @@ window.makePerchFlight=function(T,world,habitat,route){
     stage='free';refresh=0;selection=[];track=null;usingRoute=onRoute;
     if(onRoute&&!routeTarget)routeTarget=habitat.resolveRoute(route.perch);
     select(onRoute?routeTarget:null);
-    s.perchOnRock=false;
+    s.perchOnRock=false;s.perchCompression=0;
     s.perchGrip=s.perchFold=s.perchFlare=s.perchLook=s.perchLookPitch=0;
   }
   function choose(s){
@@ -165,6 +165,7 @@ window.makePerchFlight=function(T,world,habitat,route){
   function pan(dx,dy){if(stage==='perched'){lookYaw=angle(lookYaw+dx);lookPitch=clamp(lookPitch+dy,-.97,1.04);}}
   function push(s){
     if(!selected||!['perched','flare','approach'].includes(stage))return;
+    const fromRest=stage==='perched';
     stage='push';pushTime=0;lookYaw=lookPitch=0;
     const end=xyz(selected.exit),begin=xyz(s);
     const dir=new T.Vector3(end.x-selected.x,0,end.z-selected.z);
@@ -176,7 +177,14 @@ window.makePerchFlight=function(T,world,habitat,route){
     // from a low lateral limb can't clip the crown when the wings reopen.
     const lift=begin.clone().addScaledVector(dir,2.5);lift.y+=1.8;
     track=new T.CatmullRomCurve3([begin,lift,away],false,'centripetal');
-    track.pushYaw=Math.atan2(-dir.x,-dir.z);track.pushDuration=clamp(begin.distanceTo(away)/9,1.2,3.7);
+    track.pushYaw=Math.atan2(-dir.x,-dir.z);
+    track.fromRest=fromRest;
+    track.entrySpeed=fromRest?3.4:Math.max(3.4,s.airspeed);
+    track.releaseSpeed=15.3;
+    track.pushDuration=2*track.getLength()/(track.entrySpeed+track.releaseSpeed);
+    track.startFold=s.perchFold||0;
+    track.startGrip=s.perchGrip||0;
+    if(fromRest)s.phase=0;
   }
   function advance(s,dt,input){
     if(stage==='free')return false;
@@ -199,14 +207,41 @@ window.makePerchFlight=function(T,world,habitat,route){
       pan((input.look-input.turn)*dt*1.52,input.climb*dt);
       s.mode='Perched';s.airspeed=s.verticalSpeed=s.effort=s.turnTrim=s.brakeSpread=0;
       s.perchLook=clamp(lookYaw,-1.15,1.15);s.perchLookPitch=lookPitch;
-      s.perchFold+=(1-s.perchFold)*ease(3.8,dt);s.pitch+=(0-s.pitch)*ease(3.5,dt);
+      // Absorb contact on the legs, briefly keep the wings deployed for
+      // balance, then gather them while the body settles over the feet.
+      const absorb=smooth(settleTime,0,.10)*(1-smooth(settleTime,.10,.36));
+      s.perchCompression=absorb;
+      s.perchFlare=1-smooth(settleTime,0,.32);
+      s.wingExtension+=(1-s.wingExtension)*ease(5,dt);
+      s.perchFold+=(1-s.perchFold)*ease(3.8,dt)*smooth(settleTime,.07,.24);
+      s.pitch+=(0-s.pitch)*ease(3.5,dt);
     } else if(stage==='push'){
       pushTime+=dt;
-      const u=Math.min(1,pushTime/track.pushDuration),t=.15*u+.85*u*u;
+      // The leg impulse begins on the support. Keep the toes anchored while
+      // the body crouches and extends; bring the hands up for the first stroke.
+      const preload=track.fromRest?.24:0;
+      if(pushTime<=preload){
+        s.mode='Pushing off';s.perchGrip=1;s.perchFlare=0;
+        s.perchCompression=smooth(pushTime,0,.13)*(1-smooth(pushTime,.13,preload));
+        s.perchFold=track.startFold*(1-.72*smooth(pushTime,.055,preload));
+        s.airspeed=s.verticalSpeed=s.effort=s.strokeBeat=0;
+        s.pitch+=(.23-s.pitch)*ease(8,dt);
+        return true;
+      }
+      const flightTime=pushTime-preload;
+      const u=Math.min(1,flightTime/track.pushDuration);
+      // Integrate the exit speed in arc length so the rendered distance and
+      // displayed speed agree from toe-off to the handover to free flight.
+      const t=(2*track.entrySpeed*u+(track.releaseSpeed-track.entrySpeed)*u*u)/
+        (track.entrySpeed+track.releaseSpeed);
       const old=station.set(s.x,s.y,s.z);track.getPointAt(t,ahead);
-      s.airspeed=lerp(4,15.3,u);s.effort=.98;
-      s.wingExtension=lerp(.42,.97,smooth(u,0,.39));s.brakeSpread=s.turnTrim=0;s.mode='Pushing off';s.perchGrip=1-smooth(u,0,.4);
-      s.perchFold=Math.max(0,s.perchFold-dt*4.8);s.perchFlare=s.perchLook=s.perchLookPitch=0;
+      s.airspeed=lerp(track.entrySpeed,track.releaseSpeed,u);
+      s.effort+=(.98-s.effort)*ease(18,dt);
+      s.wingExtension=lerp(.62,.97,smooth(flightTime,0,.28));
+      s.brakeSpread=s.turnTrim=0;s.mode='Pushing off';
+      s.perchGrip=track.startGrip*(1-smooth(flightTime,0,.16));
+      s.perchFold=(track.fromRest?.28:1)*track.startFold*(1-smooth(flightTime,0,.18));
+      s.perchCompression=s.perchFlare=s.perchLook=s.perchLookPitch=0;
       s.yaw+=angle(track.pushYaw-s.yaw)*ease(6.6,dt);
       s.path=Math.atan2(ahead.y-old.y,Math.hypot(ahead.x-old.x,ahead.z-old.z)+.00001);
       s.pitch+=(clamp(s.path+.08,.02,.65)-s.pitch)*ease(6,dt);update(ahead);
@@ -265,7 +300,7 @@ window.makePerchFlight=function(T,world,habitat,route){
         stage='perched';baseYaw=s.yaw;lookYaw=lookPitch=settleTime=0;track=null;
         openYaw=Math.atan2(selected.x-selected.exit.x,selected.z-selected.exit.z);
         s.y=selected.y+contactHeight;s.bank=s.path=s.verticalSpeed=s.airspeed=s.effort=0;
-        s.perchGrip=1;s.perchFlare=0;s.mode='Perched';
+        s.perchGrip=1;s.perchFlare=1;s.perchCompression=0;s.mode='Perched';
       }
     }
     return true;

@@ -47,7 +47,7 @@ window.makeEagle = function makeEagle(THREE) {
     const fan = Array.from({length: 6}, (_, i) =>
       bone('Primary fan ' + sign + '/' + i, wrist, sign * .714, .014, zAt(.29 + i * .033)));
     const alula=bone('Alula '+sign,wrist,sign*.634,.032,zAt(.214));
-    return {sign, shoulder, elbow, wrist, fan, alula};
+    return {sign, shoulder, elbow, wrist, fan, alula, wristLoad:0, tipLoad:0};
   });
   // Body radii and wing sections are expressed in physical metres. The head,
   // breast, mantle and tail overlap in plan but have different volumes.
@@ -188,7 +188,8 @@ window.makeEagle = function makeEagle(THREE) {
   }
   // The coverts and hackles have their own shafts and vanes. They share the
   // shell's skeleton, so their roots stay planted throughout a turn or stroke.
-  const featherTime = {value:0}, featherWind = {value:1}, ruffDrag = {value:0}, separatedFlow={value:0};
+  const featherTime={value:0}, featherWind={value:1}, separatedFlow={value:0};
+  const featherLoads={value:new THREE.Vector2()}, napeTwist={value:new THREE.Vector2()};
   function addContourFeathers(skeleton) {
     const positions=[], normals=[], uv=[], indices=[], skinIndices=[], skinWeights=[], aero=[], colors=[];
     let seed=682197;
@@ -302,21 +303,30 @@ window.makeEagle = function makeEagle(THREE) {
     const material=new THREE.MeshStandardMaterial({map:atlas,alphaTest:.36,alphaToCoverage:true,
       vertexColors:true,side:THREE.DoubleSide,roughness:.69,bumpMap:atlas,bumpScale:.00021});
     material.onBeforeCompile=shader=>{
-      Object.assign(shader.uniforms,{featherTime,featherWind,ruffDrag,separatedFlow});
+      Object.assign(shader.uniforms,{featherTime,featherWind,separatedFlow,featherLoads,napeTwist});
       shader.vertexShader=shader.vertexShader.replace('#include <common>',
-        '#include <common>\nattribute vec4 aero; uniform float featherTime,featherWind,ruffDrag,separatedFlow;')
+        '#include <common>\nattribute vec4 aero; uniform float featherTime,featherWind,separatedFlow; uniform vec2 featherLoads,napeTwist;')
+        .replace('#include <beginnormal_vertex>',`#include <beginnormal_vertex>
+        // Bend the normal as well as the vane: its reflection changes as the tip peels.
+        float sideLoad=mix(featherLoads.x,featherLoads.y,step(0.,position.x));
+        float outerCovert=smoothstep(.12,.28,abs(position.x))*smoothstep(-.15,.07,position.z);
+        float reverseFlow=clamp(separatedFlow+.53*max(0.,sideLoad),0.,1.);
+        objectNormal.z-=outerCovert*aero.x*reverseFlow*.19;`)
         .replace('#include <begin_vertex>',`#include <begin_vertex>
         float wave=sin(featherTime*6.8-position.z*30.+position.x*15.+aero.y*.43);
         float flutter=sin(featherTime*12.3+aero.y+position.x*28.);
         float gust=sin(featherTime*2.85-position.z*61.+position.x*17.);
-        float bend=aero.x*aero.z*(.43+.33*wave+.18*flutter+.21*gust)*featherWind;
-        // Reversed flow lifts exposed covert tips on the wing surface only.
-        float coverts=smoothstep(.12,.25,abs(position.x))*smoothstep(-.16,.08,position.z);
-        float lifting=coverts*separatedFlow*aero.x*(.008+.004*sin(featherTime*18.+aero.y));
-        transformed+=normal*(bend+lifting);
+        float agitation=featherWind*(.25+.60*abs(sideLoad)*outerCovert);
+        float bend=aero.x*aero.z*(.45+.33*wave+.18*flutter+.21*gust)*agitation;
+        float lifting=outerCovert*reverseFlow*aero.x*(.008+.004*sin(featherTime*18.+aero.y));
+        float neckSide=clamp(position.x/.045,-1.,1.);
+        float outside=max(0.,neckSide*napeTwist.x);
+        float hackle=aero.x*aero.w;
+        transformed+=normal*(bend+lifting+hackle*(outside*.0016+abs(napeTwist.y)*.0012));
         transformed.z-=lifting*.31;
-        transformed.x+=aero.x*(aero.z*wave*.32*featherWind+aero.w*ruffDrag*.0065);
-        transformed.z+=aero.x*aero.w*abs(ruffDrag)*.0025;`);
+        transformed.x+=aero.x*aero.z*wave*.32*agitation+hackle*napeTwist.y*.0053;
+        transformed.z+=hackle*(abs(napeTwist.y)*.0026-outside*.0020);
+`);
       // Thin vanes transmit some skylight when viewed along their lower face.
       // This keeps the ivory fringe legible in grazing-angle shoulder views.
       shader.fragmentShader=shader.fragmentShader.replace('#include <lights_fragment_end>',
@@ -623,7 +633,12 @@ window.makeEagle = function makeEagle(THREE) {
   const perchFeet=[-1,1].map(sign=>{
     const leg=new THREE.Group();rig.add(leg);leg.name='Reaching leg '+sign;
     leg.position.set(sign*.065,-.038,.09);leg.visible=false;
-    taperedCurve(leg,'Scaled tarsus',[[0,.013,0,.014],[sign*.004,-.035,.014,.012],[sign*.005,-.079,-.005,.011],[sign*.007,-.129,-.037,.012]],gold);
+    // Let the hock tip backward about a planted foot as the legs take weight.
+    // The tarsus stays rigid and the opposing toes keep their grip.
+    const ankle=new THREE.Group();leg.add(ankle);ankle.name='Planted ankle '+sign;
+    ankle.position.set(sign*.007,-.129,-.037);
+    const tarsus=taperedCurve(ankle,'Scaled tarsus',[[0,.013,0,.014],[sign*.004,-.035,.014,.012],[sign*.005,-.079,-.005,.011],[sign*.007,-.129,-.037,.012]],gold);
+    tarsus.position.sub(ankle.position);
     const toes=[];
     for(let j=0;j<4;j++){
       const rear=j===3,heading=rear?Math.PI+sign*.12:(j-1)*.48+sign*.04;
@@ -638,54 +653,97 @@ window.makeEagle = function makeEagle(THREE) {
       }
       taperedCurve(toe,'Hooked claw',[[0,-.004,-len*.80,.0055],[0,-.005,-len*.97,.0053],[0,-.011,-len*1.09,.0044],[0,-.020,-len*1.13,.0031],[0,-.027,-len*1.06,.0016],[0,-.033,-len*.94,.00035]],claw);
     }
-    return {leg,toes,sign,hip:leg.position.clone()};
+    return {leg,ankle,toes,sign,hip:leg.position.clone()};
   });
-  const tiltAngles=new THREE.Euler(),bodyTilt=new THREE.Quaternion(),levelFeet=new THREE.Quaternion();
+  const tiltAngles=new THREE.Euler(),bodyTilt=new THREE.Quaternion(),levelFeet=new THREE.Quaternion(),bodyUp=new THREE.Vector3();
   const blend=(flight,landing,amount)=>flight+(landing-flight)*amount;
   let phase = 0, effort = 0, tuck = 0, lastBank = 0, turnDemand = 0;
   let armSweep=0,handSweep=0,tailBrake=0,wingBrake=0,handBrake=0;
   let previousHeading,perchPivot=0;
-  // Saccades alternate with fixations. A second look on the same side
-  // sometimes follows the first before attention returns down the flight path.
-  let lookYaw=0, lookPitch=0, nextLook=.65, scanSide=-1, scanStage=0, gazeTime=0;
-  function updateGaze(time, step, pitch, bank, focus, fold, perchYaw, perchPitch){
-    if(time<gazeTime || time===0){
-      lookYaw=lookPitch=0;nextLook=.65;scanStage=0;scanSide=-1;
-      neck.rotation.set(0,0,0,"YXZ");
+  const wrap = angle => Math.atan2(Math.sin(angle),Math.cos(angle));
+  const lastPosition=new THREE.Vector3(),gazeOrigin=new THREE.Vector3();
+  const localHead=new THREE.Quaternion(),worldHead=new THREE.Quaternion(),headAngles=new THREE.Euler(0,0,0,'YXZ');
+  let gazeTime=-1,trackYaw=0,lockedYaw=0,lockedPitch=0,allowedShift=0,scanAt=3,scanEnds=0,scanNumber=0,lastAim=null;
+
+  function updateGaze(time,step,pitch,bank,focus,fold,s,reset){
+    const heading=s.yaw??0, x=s.x??0, y=s.y??0, z=s.z??0;
+    const dx=x-lastPosition.x,dz=z-lastPosition.z,planar=Math.hypot(dx,dz);
+    const path=s.path??pitch;
+    if(reset){
+      trackYaw=lockedYaw=heading;lockedPitch=.66*path;
+      allowedShift=time;scanAt=time+2.8;scanEnds=0;scanNumber=0;lastAim=null;
+    }else if(planar>.002){
+      // Flight direction includes crosswind drift. Filter frame-to-frame motion
+      // so head and body can briefly disagree without a twitch at yaw wraparound.
+      trackYaw+=wrap(Math.atan2(-dx,-dz)-trackYaw)*(1-Math.exp(-7*step));
     }
-    gazeTime=time;
-    if(time>=nextLook){
-      const r=Math.random();
-      if(scanStage===0){
-        lookYaw=scanSide*(.67+.35*r);
-        lookPitch=-.07-.19*Math.random();
-        scanStage=Math.random()<.58?1:2;
-      }else if(scanStage===1){
-        lookYaw=scanSide*(.27+.13*r);
-        lookPitch=-.18-.15*Math.random();
-        scanStage=2;
-      }else{
-        lookYaw=(r-.5)*.20;
-        lookPitch=(Math.random()-.52)*.11;
-        scanSide=-scanSide;scanStage=0;
+    lastPosition.set(x,y,z);gazeTime=time;
+    localHead.setFromEuler(headAngles.set(pitch,heading,bank,'YXZ'));
+    gazeOrigin.copy(neck.position).applyQuaternion(chest.quaternion).add(chest.position).applyQuaternion(localHead).add(lastPosition);
+    const turn=clamp(s.gazeTurn??0,-1,1);
+    const looking=clamp(s.gazeLook??0,-1,1);
+    let tracking=false;
+    for(let i=0;i<2&&!looking&&!tracking&&fold<.98;i++){
+      const aim=i===0?s.gazeTarget:s.gazeLandmark;
+      if(!aim||!Number.isFinite(aim.x)||!Number.isFinite(aim.y)||!Number.isFinite(aim.z))continue;
+      const offsetX=aim.x-gazeOrigin.x,offsetZ=aim.z-gazeOrigin.z,distance=Math.hypot(offsetX,offsetZ);
+      const bearing=Math.atan2(-offsetX,-offsetZ);
+      const offset=wrap(bearing-heading),elevation=Math.atan2(aim.y-gazeOrigin.y,distance);
+      const landing=i===0&&s.gazeLanding,hold=lastAim===aim;
+      const range=landing?Infinity:i===0?130:1800,arc=landing?1.38:i===0?.84:1.12;
+      tracking=distance>.24&&distance<range*(hold?1.14:1)&&Math.abs(offset)<arc+(hold?.075:0)
+        &&(landing||(Math.abs(elevation-path)<.68&&turn*offset<.28));
+      if(tracking){
+        lockedYaw=bearing;lockedPitch=elevation;lastAim=aim;
+        scanEnds=0;scanAt=time+2.4;
       }
-      nextLook=time+.65+Math.random()*.92;
     }
-    const turn=smooth(.07,.84,Math.abs(bank));
-    const forwardFocus=1-.82*focus;
-    const flightYaw=lookYaw*forwardFocus*(1-.64*turn)+(.58-.15*focus)*bank+.066*turnDemand;
-    const flightNod=lookPitch*forwardFocus-(.32-.19*focus)*pitch-chest.rotation.x;
-    const yaw=blend(flightYaw,clamp(perchYaw,-1.42,1.42)+.16*lookYaw,fold);
-    const nod=blend(flightNod,clamp(perchPitch,-.60,.60)-chest.rotation.x+.13*lookPitch,fold);
-    const settle=1-Math.exp(-10*step);
-    neck.rotation.order="YXZ";
-    neck.rotation.y+=(clamp(yaw,-1.10-.41*fold,1.10+.41*fold)-neck.rotation.y)*settle;
-    neck.rotation.x+=(clamp(nod,-.43-.50*fold,.40+.12*fold)-neck.rotation.x)*settle;
-    neck.rotation.z+=(-(.53+.14*focus)*bank+.045*lookYaw*forwardFocus-neck.rotation.z)*settle;
+    if(!tracking){
+      const turnAngle=clamp(.63*bank-.30*turn,-.89,.89);
+      lastAim=null;
+      const commuting=Math.abs(turnAngle)<.15&&focus<.25&&fold<.2&&Math.abs(path)<.25&&!looking;
+      if(commuting&&time>=scanAt){
+        ++scanNumber;scanEnds=time+.53+.09*Math.sin(scanNumber*1.9);
+        scanAt=time+3.3+.49*Math.sin(scanNumber*2.4);
+      }
+      if(!commuting){scanEnds=0;scanAt=time+2.3;}
+      const inspecting=time<scanEnds;
+      const scan=inspecting?(scanNumber%2?1:-1)*(.39+.10*Math.sin(scanNumber*1.73)):0;
+      const desiredYaw=trackYaw+turnAngle+scan+looking*.98;
+      const desiredPitch=clamp(.74*path-.022-.12*Number(inspecting),-.88,.52);
+      const yawError=wrap(desiredYaw-lockedYaw),pitchError=desiredPitch-lockedPitch;
+      // Between short head saccades the gaze holds still in world space
+      // while the torso goes on turning. Larger turns take multiple shifts.
+      // Continuous visual pursuit of a chosen perch uses its line of sight above.
+      if(time>=allowedShift && (Math.abs(yawError)>.17||Math.abs(pitchError)>.096)){
+        lockedYaw+=clamp(yawError,-.46,.46);
+        lockedPitch+=clamp(pitchError,-.24,.24);
+        allowedShift=time+.12;
+      }
+    }
+    // Convert the desired nearly level world head into the moving thorax's
+    // frame. This stabilizes a fixation even while bank and pitch change together.
+    localHead.multiply(chest.quaternion).invert();
+    worldHead.setFromEuler(headAngles.set(lockedPitch,lockedYaw,bank*.17,'YXZ'));
+    headAngles.setFromQuaternion(localHead.multiply(worldHead),'YXZ');
+    const yaw=blend(clamp(headAngles.y,-1.33,1.33),clamp(s.perchLook??0,-1.42,1.42),fold);
+    const nod=blend(clamp(headAngles.x,s.gazeLanding?-1.19:-.72,.62),clamp((s.perchLookPitch??0)-chest.rotation.x,-.93,.52),fold);
+    const roll=blend(clamp(headAngles.z,-.98,.98),0,fold);
+    const settle=reset?1:1-Math.exp(-26*step),maxMotion=reset?Math.PI:6.9*step;
+    neck.rotation.order='YXZ';
+    neck.rotation.y+=clamp((yaw-neck.rotation.y)*settle,-maxMotion,maxMotion);
+    neck.rotation.x+=clamp((nod-neck.rotation.x)*settle,-maxMotion,maxMotion);
+    neck.rotation.z+=clamp((roll-neck.rotation.z)*settle,-maxMotion,maxMotion);
   }
   function update(dt, time, flapping, pitch = 0, bank = 0, air = {}) {
     const step = clamp(dt, 0, .1);
     const approach = rate => 1 - Math.exp(-rate * step);
+    const reset=gazeTime<0||time<gazeTime||lastPosition.distanceToSquared(gazeOrigin.set(air.x??0,air.y??0,air.z??0))>
+      Math.max(9,(air.airspeed??18)*step*3+4)**2;
+    if(reset){
+      lastBank=bank;previousHeading=air.yaw??0;turnDemand=0;napeTwist.value.set(0,0);
+      for(const wing of wings)wing.wristLoad=wing.tipLoad=0;
+    }
     phase = Number.isFinite(air.phase) ? air.phase : (phase + step * 11.4) % (2 * Math.PI);
     const requestedEffort = Number.isFinite(air.effort) ? air.effort : (flapping ? 1 : 0);
     effort += (requestedEffort - effort) * approach(9);
@@ -742,35 +800,49 @@ window.makeEagle = function makeEagle(THREE) {
       bodyTilt.setFromEuler(tiltAngles.set(pitch,0,bank,'YXZ')).invert();
       levelFeet.identity().slerp(bodyTilt,footPlant);
     }else levelFeet.identity();
+    const compression=clamp(air.perchCompression??0,0,1)*footPlant;
+    chest.position.x=0;
+    chest.position.addScaledVector(bodyUp.set(0,1,0).applyQuaternion(levelFeet),-.038*compression);
+    chest.rotation.x-=.15*compression;
     const closing=Math.max(smooth(.48,.96,fold),smooth(.90,1,grip));
-    for(const {leg,toes,sign,hip} of perchFeet){
+    for(const {leg,ankle,toes,sign,hip} of perchFeet){
       leg.visible=grip>.012;
       leg.position.copy(hip).applyQuaternion(levelFeet);
       leg.rotation.set(blend(-1.78,0,smooth(.025,.96,grip)),0,sign*.10*Math.sin(grip*Math.PI));
       leg.quaternion.premultiply(levelFeet);
+      ankle.rotation.x=.48*compression;
       for(const toe of toes)toe.rotation.x=blend(-.33,0,closing)+.19*(1-grip);
     }
-    for (const {sign, shoulder, elbow, wrist, fan, alula} of wings) {
+    for(const wing of wings){
+      const {sign,shoulder,elbow,wrist,fan,alula}=wing;
+      // Pressure raises the arm first. The outer hand and primary shafts
+      // follow it with successively longer time constants and twist to unload.
+      const sideLoad=clamp((sign<0?air.wingLoadLeft:air.wingLoadRight)??0,-1,1)*(1-folded);
+      wing.wristLoad+=(sideLoad-wing.wristLoad)*approach(19);
+      wing.tipLoad+=(wing.wristLoad-wing.tipLoad)*approach(12);
+      const wristLoad=wing.wristLoad,tipLoad=wing.tipLoad;
+      featherLoads.value.setComponent(sign<0?0:1,tipLoad);
+      const gustTuck=clamp(air.wingGustTuck??0,0,1)*(1-folded);
       const innerBank=clamp(-sign*bank,0,1);
       const roll=sign*rollTrim; // positive on the wing whose lift must fall
-      const trim=.006*Math.sin(time*1.73+sign*.82)+.004*Math.sin(time*.81-sign);
+      const trim=.0014*Math.sin(time*1.73+sign*.82);
       const unloaded=Math.max(0,roll);
-      const armLift=.047+trim+.053*load-.095*roll+.28*wingBrake;
+      const armLift=.047+trim+.053*load-.095*roll+.28*wingBrake+.245*sideLoad-.30*gustTuck;
       const humerusSweep=(.70+.18*tuck)*armSweep+.135*roll+.035*innerBank-.14*wingBrake-.19*flareFlex;
       shoulder.rotation.order=elbow.rotation.order=wrist.rotation.order='YZX';
       shoulder.rotation.z=sign*(armLift+effort*(.66*liftStroke-.067));
       shoulder.rotation.y=-sign*(humerusSweep+effort*(.12*recovery-.085*drive));
       shoulder.rotation.x=.23*wingBrake-.071*roll+effort*.10*drive;
-      elbow.rotation.z=sign*(-.055+.14*tuck+.12*load+.17*wingBrake+effort*.16*Math.cos(phase-.51));
+      elbow.rotation.z=sign*(-.055+.14*tuck+.12*load+.17*wingBrake+.105*wristLoad-.10*gustTuck+effort*.16*Math.cos(phase-.51));
       elbow.rotation.y=sign*((.22+.20*tuck)*armSweep-.16*innerBank-.13*unloaded+
         effort*(.23*recovery-.075*Math.max(0,drive)));
       // The outer hand feathers twist and lag. On recovery the wrist turns
       // back toward the tail, reducing area exposed during the upstroke.
-      wrist.rotation.z=sign*(.025-.26*tuck+.105*load-.22*wingBrake+
+      wrist.rotation.z=sign*(.025-.26*tuck+.105*load-.22*wingBrake+.155*tipLoad+
         effort*(.23*Math.cos(phase-.97)-.22*recovery));
       wrist.rotation.y=-sign*((1.02+.15*tuck)*handSweep+.18*unloaded+.04*innerBank+.52*flareFlex+
         effort*(.74*recovery-.045*Math.max(0,drive)));
-      wrist.rotation.x=.10*wingBrake-.05*load-.064*roll-effort*(.27*recovery-.035*drive);
+      wrist.rotation.x=.10*wingBrake-.05*load-.064*roll-.145*tipLoad-effort*(.27*recovery-.035*drive);
       alula.rotation.z=sign*(.48*separation)*(1-folded);
       alula.rotation.y=sign*(.43*separation)*(1-folded);
       const f=smooth(sign>0?.065:0,sign>0?.97:.91,fold);
@@ -778,6 +850,9 @@ window.makeEagle = function makeEagle(THREE) {
       shoulder.rotation.z=blend(shoulder.rotation.z,armPose.z,f);
       shoulder.rotation.y=blend(shoulder.rotation.y,armPose.y,f);
       shoulder.rotation.x=blend(shoulder.rotation.x,armPose.x,f);
+      // A low ledge leaves no room to drop the primaries during the fold.
+      // Carry them above the surface until they lie along the flanks.
+      if(air.perchOnRock)shoulder.rotation.z+=sign*.22*footPlant*Math.sin(f*Math.PI);
       elbow.rotation.y=blend(elbow.rotation.y,forearmPose.y,f);
       elbow.rotation.z=blend(elbow.rotation.z,forearmPose.z,f);
       wrist.rotation.y=blend(wrist.rotation.y,wristPose.y,f);
@@ -786,10 +861,11 @@ window.makeEagle = function makeEagle(THREE) {
       for (let i = 0; i < fan.length; i++) {
         const s = i / (fan.length - 1),fanPose=closedRotation.get(fan[i]);
         const fingerDelay=1.14+.35*s;
-        const spread=(.53*wingBrake+.16*stall+.19*effort*recovery-.29*tuck);
-        const fingerTwist=(.16+.09*(1-s))*wingBrake-.19*effort*recovery;
+        const sweptLoad=Math.max(0.,tipLoad);
+        const spread=.53*wingBrake+.16*stall+.19*effort*recovery-.29*tuck+.14*sweptLoad;
+        const fingerTwist=(.16+.09*(1-s))*wingBrake-.19*effort*recovery-.10*tipLoad;
         fan[i].rotation.z=blend(sign*((.039-.077*s)*(1+.72*load)+
-          (.5-s)*.24*wingBrake+.081*effort*Math.cos(phase-fingerDelay)),fanPose.z,f);
+          (.5-s)*.24*wingBrake+(.05+.06*s)*tipLoad+.081*effort*Math.cos(phase-fingerDelay)),fanPose.z,f);
         fan[i].rotation.y=blend(sign*(.5-s)*spread,fanPose.y,f);
         fan[i].rotation.x=blend(fingerTwist*(1-.58*s),fanPose.x,f);
       }
@@ -805,17 +881,18 @@ window.makeEagle = function makeEagle(THREE) {
     rudder.rotation.x=blend(rudder.rotation.x-.30*tailBrake,-.19,folded);
     // Long rectrices clear a ledge as the eagle loads its legs. From a tree
     // limb they can hang further below its feet as the breast rises.
-    const tailDownLimit=air.perchOnRock ? .14+.14*folded : .56+.10*folded-.42*perchPivot;
+    const tailDownLimit=air.perchOnRock ? .14+.14*folded-.11*compression : .56+.10*folded-.42*perchPivot;
     const tailDown=pitch+chest.rotation.x+rudder.rotation.x;
     rudder.rotation.x-=footPlant*Math.max(0,tailDown-tailDownLimit);
     rudder.rotation.z=blend(.22*bank-.12*rollTrim,0,folded);
     const priorYaw=neck.rotation.y;
-    updateGaze(time,step,pitch,bank,fixation,folded,air.perchLook||0,air.perchLookPitch||0);
+    updateGaze(time,step,pitch,bank,fixation,folded,air,reset);
     featherTime.value=time;
     const airflow=clamp((air.airspeed || 17.5)/17.5,.4,2.3);
     featherWind.value+=(blend(airflow+.65*effort,.185,folded)*(.87+.13*Math.sin(time*1.37))-featherWind.value)*approach(5);
-    const neckVelocity=step>.0001?(neck.rotation.y-priorYaw)/step:0;
-    ruffDrag.value+=(clamp(neckVelocity*.68,-1,1)-ruffDrag.value)*approach(8);
+    const neckVelocity=step>.0001&&!reset?(neck.rotation.y-priorYaw)/step:0;
+    napeTwist.value.x=neck.rotation.y;
+    napeTwist.value.y+=(clamp(neckVelocity*.60,-1,1)-napeTwist.value.y)*approach(12);
   }
   return {object, update};
 };
