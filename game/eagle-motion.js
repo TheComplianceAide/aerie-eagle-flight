@@ -128,17 +128,32 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
   const windSample = {}, wind = new THREE.Vector3(), windMean = new THREE.Vector3(), windLocal = new THREE.Vector3();
 
   // ---- state --------------------------------------------------------------------------
-  let lowL = 0, lowR = 0, lowN = 1, fastL = 0, fastR = 0, fastN = 1, turbulence = 0, lastVS = null, rouseT = -1, rouseAt = rand(30, 70);
+  let lowL = 0, lowR = 0, lowN = 1, fastL = 0, fastR = 0, fastN = 1, turbulence = 0, rouseT = -1, rouseAt = rand(30, 70);
+  // Perched behaviour: peering (head bobs that give motion parallax) and a
+  // tail wag after a rouse.
+  let peerT = -1, peerAt = rand(8, 20), peerAxis = 0, wagT = -1, perchedFor = 0;
   let prevHeadQ = new THREE.Quaternion(), haveHead = false;
   const up = new THREE.Vector3(), right = new THREE.Vector3(), back = new THREE.Vector3(), down = new THREE.Vector3(), force = new THREE.Vector3();
   const headWorld = new THREE.Quaternion(), tmpQ = new THREE.Quaternion();
   const stats = {springs: allSprings.length, oscillators: 8, blinks: 0, turbulence: 0, peakBend: 0, saturated: 0};
 
+  // Channels eagle.js does not set every frame. They are restored to their
+  // rest values before this layer adds to them, so offsets never accumulate.
+  const neckRest = neckBase.position.clone(), chestRestY = chest.rotation.y, chestRestZ = chest.rotation.z;
+  const alulaRestX = wings.map(w => w.alula.rotation.x);
+  function restoreUnanimated() {
+    neckBase.position.copy(neckRest);
+    chest.rotation.y = chestRestY; chest.rotation.z = chestRestZ;
+    wings.forEach((w, i) => { w.alula.rotation.x = alulaRestX[i]; });
+  }
+  // Debug multipliers for isolating each layer in tests.
+  const tune = {tail: 1, primaries: 1, body: 1, posture: 1};
   function update(dt, time, air, pose) {
+    restoreUnanimated();
     const step = clamp(dt, 0, .05);
     if (step <= 0) return;
     const folded = pose.folded, perched = folded > .9, freeFlight = 1 - folded;
-    if (pose.reset) { allSprings.forEach(s => s.reset()); haveHead = false; lowL = lowR = fastL = fastR = 0; lowN = fastN = 1; turbulence = 0; lastVS = null; }
+    if (pose.reset) { allSprings.forEach(s => s.reset()); haveHead = false; lowL = lowR = fastL = fastR = 0; lowN = fastN = 1; turbulence = 0; }
     const V = air.indicatedAirspeed ?? air.airspeed ?? 17;
     const q = clamp((V / 17.5) ** 2, 0, 5);                         // dynamic pressure vs cruise
     const n = air.loadFactor ?? 1;
@@ -151,8 +166,8 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
     const rough = 1.2 * (Math.abs(fastL - lowL) + Math.abs(fastR - lowR)) + .8 * Math.abs(fastN - lowN);
     turbulence += (clamp(rough + .3 * Math.abs(air.gust ?? 0), 0, 1.5) - turbulence) * (1 - Math.exp(-3 * step));
     const slip = clamp(air.yawSlip ?? 0, -.5, .5);
-    const vs = air.verticalSpeed ?? 0, accelZ = lastVS === null ? 0 : clamp((vs - lastVS) / step, -30, 30);
-    lastVS = vs;
+    // A gust's load spike, as opposed to the load of the player's own pull-up.
+    const gustLoad = clamp(fastN - lowN, -1.5, 1.5);
     // Stall buffet: separated flow shakes wings and tail irregularly.
     const buffet = clamp(pose.stall ?? 0, 0, 1) * freeFlight;
     const rough2 = turbulence + 1.4 * buffet;
@@ -176,19 +191,22 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
     // ---- body response to vertical gusts, head held in space ----------------------
     neck.getWorldQuaternion(headWorld);
     const jitter = stepNoise(bodyNoise, step);
-    const h = drive(heave, -.0011 * accelZ * freeFlight, step, jitter.x * rough2 * 3.2 * freeFlight);
-    const pitchJ = drive(pitchOsc, .003 * accelZ * freeFlight, step, jitter.y * rough2 * 2.4 * freeFlight);
+    // An updraught lifts the body against the bird's own inertia, then it settles.
+    const h = drive(heave, .009 * gustLoad * freeFlight, step, jitter.x * rough2 * 3.2 * freeFlight);
+    const pitchJ = drive(pitchOsc, -.025 * gustLoad * freeFlight, step, jitter.y * rough2 * 2.4 * freeFlight);
     const rollJ = drive(rollOsc, .55 * (loadL - loadR) * .08 * freeFlight + .012 * windLocal.x * windGust, step,
       jitter.z * (rough2 * 2.8 * freeFlight + windGust * .9));
-    chest.position.y += clamp(h, -.03, .03);
-    chest.rotation.x += clamp(pitchJ, -.08, .08);
-    chest.rotation.z += clamp(rollJ, -.09, .09);
+    chest.position.y += clamp(h, -.018, .018) * tune.body;
+    chest.rotation.x += clamp(pitchJ, -.08, .08) * tune.body;
+    chest.rotation.z += clamp(rollJ, -.09, .09) * tune.body;
     // Breathing when perched (about 20 per minute) and an occasional rouse.
+    perchedFor = perched ? perchedFor + step : 0;
     if (perched) {
       chest.position.y += .0016 * Math.sin(time * 2 * Math.PI * .33);
       if (time > rouseAt && rouseT < 0) { rouseT = 0; rouseAt = time + rand(35, 80); }
-    }
-    let fluff = clamp((1 - n) * .8, 0, 1) * freeFlight;              // negative G floats the plumage
+      if (time > peerAt && peerT < 0 && perchedFor > 2) { peerT = 0; peerAt = time + rand(10, 28); peerAxis = Math.random() < .65 ? 0 : 1; }
+    } else { peerT = wagT = -1; }
+    let fluff = clamp((1 - n) * .45, 0, .5) * freeFlight;            // negative G floats the plumage
     // A tailwind at the perch lifts the back and nape feathers.
     fluff = Math.max(fluff, clamp(-windLocal.z / 7, 0, 1) * folded * (.5 + .5 * windGust));
     if (rouseT >= 0) {
@@ -197,14 +215,30 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
       chest.rotation.z += .09 * env * Math.sin(rouseT * 2 * Math.PI * 9);
       chest.rotation.y += .05 * env * Math.sin(rouseT * 2 * Math.PI * 9 + 1.2);
       fluff = Math.max(fluff, env);
-      if (k >= 1) rouseT = -1;
+      if (k >= 1) { rouseT = -1; wagT = 0; }
+    }
+    // Tail wag that settles the rectrices after the shake (about 7 Hz).
+    if (wagT >= 0) {
+      wagT += step;
+      const k = clamp(wagT / .45, 0, 1);
+      rudder.rotation.y += .16 * Math.sin(Math.PI * k) * Math.sin(wagT * 2 * Math.PI * 7);
+      if (k >= 1) wagT = -1;
     }
     // Re-seat the head: the body moved under it; the neck absorbs the motion.
     object.updateMatrixWorld(true);
     neck.parent.getWorldQuaternion(tmpQ);
     const stabilised = tmpQ.invert().multiply(headWorld);
     neck.quaternion.slerp(stabilised, .9 * freeFlight + .5 * folded);
-    neckBase.position.y -= clamp(h, -.03, .03) * .6 * freeFlight;
+    neckBase.position.y -= clamp(h, -.018, .018) * .6 * freeFlight;
+    // Peering: two or three quick head translations, side to side or up and
+    // down, while the gaze direction holds.
+    if (peerT >= 0) {
+      peerT += step;
+      const dur = 1.2, k = clamp(peerT / dur, 0, 1), env = Math.sin(Math.PI * k) ** .6;
+      const bob = .011 * env * Math.sin(peerT * 2 * Math.PI * 2.1);
+      if (peerAxis === 0) neckBase.position.x += bob; else neckBase.position.y += bob * .8;
+      if (k >= 1) peerT = -1;
+    }
     // The thorax pumps about 8 mm with each wingbeat while the head rides
     // almost level, as in slow-motion footage of flapping eagles.
     neckBase.position.y += .0068 * (pose.effort ?? 0) * Math.cos(air.phase ?? 0) * freeFlight;
@@ -233,7 +267,7 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
     const activity = (.25 + 1.2 * turbulence) * freeFlight * (1 - .7 * (pose.effort ?? 0));
     for (const {side, ray} of tailRays) ray.rotation.y += side * (.06 * clamp(g, 0, 2) * freeFlight + .03 * ctl.y * activity);
     rudder.rotation.y += -.25 * slip * freeFlight;
-    rudder.rotation.z += .035 * ctl.x * activity - .6 * clamp(rollJ, -.09, .09) * freeFlight;
+    rudder.rotation.z += (.035 * ctl.x * activity - .6 * clamp(rollJ, -.09, .09) * freeFlight) * tune.posture;
     for (const w of wings) w.wrist.rotation.y += .025 * ctl.z * activity;
 
     // ---- feather spring bones -----------------------------------------------------
@@ -250,11 +284,13 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
     let peak = 0, saturated = 0;
     for (const [k, s] of tailSprings.entries()) {
       const nz = stepNoise(s.noise, step);
-      force.copy(up).multiplyScalar(lift * .35).addScaledVector(down, gravity)
+      // The tail carries little of the load; keep it from lifting off the
+      // tucked feet in a hard pull-up.
+      force.copy(up).multiplyScalar(lift * .12).addScaledVector(down, gravity)
         .addScaledVector(right, (-slip * 400 * q) * freeFlight + windLocal.x * windLocal.length() * 1.6 * folded)
         .addScaledVector(back, (6 * q) * freeFlight)
         .addScaledVector(nz, (rough2 * 54 + windGust * 30) * (.6 + .8 * hash(k + 40)));
-      s.update(step, force, 1 - .7 * folded);
+      s.update(step, force, (1 - .7 * folded) * tune.tail);
       peak = Math.max(peak, s.offset); if (s.offset > s.maxAngle) saturated++;
     }
     for (const [k, s] of primarySprings.entries()) {
@@ -269,7 +305,7 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
       force.copy(up).multiplyScalar(lift + flutter + beat + curl).addScaledVector(down, gravity)
         .addScaledVector(back, (20 * q + 30 * effort) * freeFlight)
         .addScaledVector(nz, (rough2 * 116 + windGust * 25) * (.5 + hash(k + 90)));
-      s.update(step, force, 1 - .85 * folded);
+      s.update(step, force, (1 - .85 * folded) * tune.primaries);
       peak = Math.max(peak, s.offset); if (s.offset > s.maxAngle) saturated++;
     }
     for (const s of alulaSprings) {
@@ -317,7 +353,11 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
   }
   // The world's wind field, sampled at the perch: {sample(x, y, z, t, out)}.
   function setWindSource(field) { windSource = field && typeof field.sample === 'function' ? field : null; windAt = -1; }
-  const api = {update, stats, setWindSource};
+  // For tests: start a perched behaviour now ('rouse' or 'peer').
+  function trigger(name) {
+    if (name === 'rouse') rouseT = 0; else if (name === 'peer') { peerT = 0; peerAxis = 0; }
+  }
+  const api = {update, stats, setWindSource, trigger, tune, restoreUnanimated};
   window.aerieEagleMotionDebug = api;
   return api;
 };

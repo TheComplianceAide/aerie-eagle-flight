@@ -343,7 +343,7 @@ window.makeEagle = function makeEagle(THREE) {
         // uncorrelated ruffle; negative G and rousing float the whole plumage.
         float windward=max(0.,featherSlip*sign(position.x));
         float ruffle=featherTurb*sin(featherTime*23.+aero.y*3.1+position.x*41.)*sin(featherTime*7.3+position.z*53.);
-        lifting+=aero.x*(windward*(.006+.004*sin(featherTime*15.+aero.y))+abs(ruffle)*.0035+featherFluff*(.0045+.002*aero.z/.003));
+        lifting+=aero.x*(windward*(.006+.004*sin(featherTime*15.+aero.y))+abs(ruffle)*.0035+featherFluff*(.010+.004*aero.z/.003));
         // Nape hackles: gusts riffle them, crossflow raises the windward side.
         float hackleWind=featherTurb*(.0016+.0013*sin(featherTime*31.+aero.y*2.3+position.x*60.))+windward*.0022+featherFluff*.0024;
         transformed+=normal*(bend+lifting+hackle*(outside*.0016+abs(napeTwist.y)*.0012+hackleWind));
