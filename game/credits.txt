@@ -691,3 +691,7 @@ https://doi.org/10.1038/s41592-026-03281-w
 
 Graham K. Taylor and colleagues (2016). Soaring energetics and glide performance in a moving atmosphere. The speed trim in a sustained headwind uses the slope of the recorded straight glides.
 https://doi.org/10.1098/rstb.2015.0398
+
+
+SHORELINES AND SHALLOW WATER
+The Swiss and Alaskan shoreline fields are derived from the intersections of the in-game lake outlines and terrain surveys credited above. Shallow gravel profiles, wetting, suspended sediment, and currents are artistic simulations. Shore beds reuse the Poly Haven CC0 photographic materials credited under ground materials.

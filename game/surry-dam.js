@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  window.addSurryDam = function (THREE, scene, {survey, elevation, terrain, texture, sun, clock}) {
+  window.addSurryDam = function (THREE, scene, {survey, elevation, ground=elevation, terrain, texture, sun, sky, clock, aerial, half}) {
     // Crest coordinates trace the USGS terrain and USDA orthophoto.
     const west = [-1070, -2635], east = [-525, -2592];
     const length = Math.hypot(east[0]-west[0], east[1]-west[1]);
@@ -169,7 +169,7 @@
     }
     rocks.computeBoundingSphere();scene.add(rocks);
 
-    const riverHeight=addRiver(THREE,scene,survey.river||[],elevation,texture,sun,clock);
+    const riverHeight=addRiver(THREE,scene,survey.river||[],ground,texture,sun,sky,clock,aerial,half);
     return {
       riverHeight,
       onDam(x,z){
@@ -189,71 +189,269 @@
     };
   };
 
-  function addRiver(THREE,scene,line,elevation,texture,sun,clock){
+  function addRiver(THREE,scene,line,ground,texture,sun,sky,clock,aerial,half){
     if(line.length<2)return ()=>-Infinity;
-    const centers=[],vertices=[],uv=[],index=[];
+    const rows=[],vertices=[],uv=[],section=[],horizon=[],index=[];
+    const shelfPoints=[],shelfUv=[],shelfIndices=[],shelfWidth=6;
+    const {lerp,clamp,smoothstep}=THREE.MathUtils;
+    const bedMap=texture('shore-pebbles.webp',true),cobbleMap=texture('shore-cobble.webp',true);
     let distance=0;
-    for(let i=0;i<line.length;i++){
-      const [x,z,width,waterY]=line[i];
-      const prev=line[Math.max(0,i-1)],next=line[Math.min(line.length-1,i+1)];
-      if(i)distance+=Math.hypot(x-prev[0],z-prev[1]);
-      const dx=next[0]-prev[0],dz=next[1]-prev[1];
-      const inv=width*.5/Math.max(.01,Math.hypot(dx,dz));
-      const y=(waterY??elevation(x,z))+.23;
-      const left=[x-dz*inv,y,z+dx*inv],right=[x+dz*inv,y,z-dx*inv];
-      centers.push([x,y,z,width*.5]);
-      vertices.push(...left,...right);uv.push(0,distance,1,distance);
-      if(i){const j=i*2;index.push(j-2,j-1,j,j-1,j+1,j);}
+    function row(a,b,t){
+      const x=lerp(a[0],b[0],t),z=lerp(a[1],b[1],t),width=lerp(a[2],b[2],t)*.5;
+      const level=lerp(a[3]??ground(a[0],a[1]),b[3]??ground(b[0],b[1]),t)+.23;
+      const last=rows[rows.length-1];
+      if(last)distance+=Math.hypot(x-last.x,z-last.z);
+      rows.push({x,z,width,level,distance});
     }
+    for(let i=1;i<line.length;i++){
+      const a=line[i-1],b=line[i],length=Math.hypot(b[0]-a[0],b[1]-a[1]);
+      const count=Math.max(1,Math.ceil(length/(distance<380?1.18:3.7)));
+      for(let j=0;j<count;j++)row(a,b,j/count);
+    }
+    row(line[line.length-2],line[line.length-1],1);
+    for(let i=0;i<rows.length;i++){
+      const r=rows[i],a=rows[Math.max(0,i-2)],b=rows[Math.min(rows.length-1,i+2)];
+      const dx=b.x-a.x,dz=b.z-a.z,len=Math.max(.001,Math.hypot(dx,dz));
+      r.nx=-dz/len;r.nz=dx/len;
+      // The mapped outline and the actual rendered lidar triangles can differ
+      // by several metres. Find each bank independently in the displayed DEM.
+      r.banks=[1,-1].map(side=>{
+        const at=d=>ground(r.x+side*d*r.nx,r.z+side*d*r.nz);
+        let lo=r.width*.19,hi=r.width+Math.min(3,r.width*.30);
+        const stop=hi,step=Math.max(.85,(hi-lo)/7);
+        for(let off=lo;off<=stop;off+=step){
+          if(at(off)>r.level+.015){hi=off;break;}
+          lo=off;
+        }
+        for(let k=0;k<4;k++){
+          const mid=(lo+hi)*.5;
+          if(at(mid)>r.level+.015)hi=mid;else lo=mid;
+        }
+        return clamp((lo+hi)*.5-.38,r.width*.23,stop);
+      });
+    }
+    // Smooth the banks over a few metres along the river, independent of
+    // station spacing. A single lidar cell should not form a triangular spit.
+    for(let i=0;i<rows.length;i++){
+      const r=rows[i];let sum=0,left=0,right=0;
+      for(let j=Math.max(0,i-6);j<=Math.min(rows.length-1,i+6);j++){
+        const q=rows[j],delta=(r.distance-q.distance)/3.0,weight=Math.exp(-delta*delta);
+        sum+=weight;left+=q.banks[0]*weight;right+=q.banks[1]*weight;
+      }
+      left/=sum;right/=sum;
+      r.left=left;r.right=right;
+      const heights=[];
+      for(const [j,side] of [1,-1].entries()){
+        const edge=j===0?left:right;
+        // The water continues underneath the gravel. The gravel starts below
+        // water, crests gently on the dry side, then blends into real land.
+        const w=edge+.61;
+        vertices.push(r.x+side*w*r.nx,r.level,r.z+side*w*r.nz);
+        section.push(r.nz,-r.nx,(left+right+1.22)*.5);uv.push(j,r.distance);
+        const clay=(1.+Math.sin(r.distance*.112+side*.91)*.19);
+        const outer=clamp(r.width*.48,2.7,5.2)*clay;
+        const beachGrade=.12+.041*Math.sin(r.distance*.18+side);
+        for(const off of [-.65,0,.58,outer*.40,outer*.70,outer]){
+          const d=edge+off,x=r.x+side*d*r.nx,z=r.z+side*d*r.nz;
+          const fade=smoothstep(off,outer*.32,outer);
+          const y=Math.max(ground(x,z)+.04,r.level+off*beachGrade+.012-.38*fade);
+          shelfPoints.push(x,y,z);
+          shelfUv.push(off,off/outer);
+        }
+        heights.push(Math.max(r.level,ground(r.x+side*(edge+13)*r.nx,r.z+side*(edge+13)*r.nz))-r.level);
+      }
+      horizon.push(...heights,...heights);
+      if(i===0)continue;
+      const j=i*2;
+      index.push(j-2,j-1,j,j-1,j+1,j);
+      for(let side=0;side<2;side++)for(let k=0;k<shelfWidth-1;k++){
+        const b=(i*2+side)*shelfWidth+k,a=b-2*shelfWidth;
+        if(side===0)shelfIndices.push(a,b,a+1,a+1,b,b+1);
+        else shelfIndices.push(a,a+1,b,a+1,b+1,b);
+      }
+    }
+    const geom=new THREE.BufferGeometry();
+    geom.setAttribute('position',new THREE.Float32BufferAttribute(shelfPoints,3));
+    geom.setAttribute('uv',new THREE.Float32BufferAttribute(shelfUv,2));geom.setIndex(shelfIndices);
+    geom.computeVertexNormals();geom.computeBoundingSphere();
+    const gravelColor=`
+      vec3 gravelColorAt(vec2 p){
+        vec2 u=p*.39;
+        float shoal=.52+.25*sin(p.x*.49+p.y*.31)+.16*cos(p.y*.81-p.x*.25);
+        vec3 pebbles=texture2D(bed,u).rgb,stones=texture2D(cobble,mat2(.8,-.6,.6,.8)*u*.69).rgb;
+        return pow(mix(pebbles,stones,shoal*.75),vec3(2.2))*vec3(1.01,.94,.82);
+      }`;
+    const gravel=new THREE.ShaderMaterial({
+      side:THREE.DoubleSide,forceSinglePass:true,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1,
+      uniforms:{bed:{value:bedMap},cobble:{value:cobbleMap},sun:{value:sun},clock},
+      vertexShader:`varying vec3 wp,norm;varying vec2 bank;
+        void main(){wp=position;norm=normal;bank=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+      fragmentShader:`uniform sampler2D bed,cobble;uniform vec3 sun;uniform float clock;varying vec3 wp,norm;varying vec2 bank;
+        ${gravelColor}
+        void main(){
+          vec2 p=wp.xz;vec3 N=normalize(norm);if(N.y<0.)N=-N;
+          float granule=texture2D(cobble,p*.079).g;
+          vec3 substrate=gravelColorAt(p);
+          float splash=.085*sin(clock*2.34+dot(p,vec2(.31,.93)))+.036*sin(clock*3.25-p.x*1.68);
+          float wet=1.-smoothstep(.20,1.22,bank.x-splash+granule*.23);
+          float lut=.58+.49*max(0.,dot(N,sun));vec3 c=substrate*lut*(1.-.36*wet);
+          vec3 V=normalize(cameraPosition-wp);
+          c+=vec3(.12,.16,.19)*wet*.23*pow(1.-max(.0,dot(V,N)),3.);
+          float feather=(1.-smoothstep(.22,.95,bank.y+(granule-.45)*.31));
+          float dist=length(cameraPosition-wp);
+          gl_FragColor=vec4(mix(c,vec3(.39,.45,.50),1.-exp(-dist*.000032)),feather*(1.-smoothstep(400.,650.,dist)));
+          #include <colorspace_fragment>
+        }`
+    });
+    const bankMesh=new THREE.Mesh(geom,gravel);bankMesh.name='Ashuelot gravel banks';bankMesh.renderOrder=1;scene.add(bankMesh);
+    // Only submit the visible reach of the twelve-kilometre river. Keep one
+    // gravel draw and preserve bends that bring multiple sections into view.
+    const reaches=[];
+    for(let start=0;start<rows.length-1;start+=96){
+      const end=Math.min(rows.length-1,start+96);let x0=Infinity,z0=Infinity,x1=-Infinity,z1=-Infinity;
+      for(let i=start;i<=end;i++){const q=rows[i],w=q.width+11;
+        x0=Math.min(x0,q.x-w);x1=Math.max(x1,q.x+w);z0=Math.min(z0,q.z-w);z1=Math.max(z1,q.z+w);}
+      reaches.push({x0,x1,z0,z1,start,end});
+    }
+    let lastX=Infinity,lastZ=Infinity;
+    bankMesh.onBeforeRender=(_,__,camera)=>{
+      const {x,z}=camera.position;
+      if(Math.abs(lastX-x)<48&&Math.abs(lastZ-z)<48)return;
+      lastX=x;lastZ=z;let low=Infinity,high=0;
+      for(const q of reaches){
+        if(x<q.x0-720||x>q.x1+720||z<q.z0-720||z>q.z1+720)continue;
+        low=Math.min(low,q.start);high=Math.max(high,q.end);
+      }
+      const indicesPerRow=12*(shelfWidth-1);
+      geom.setDrawRange(high?low*indicesPerRow:0,high?(high-low)*indicesPerRow:0);
+    };
     const geometry=new THREE.BufferGeometry();
     geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
+    geometry.setAttribute('channel',new THREE.Float32BufferAttribute(section,3));
+    geometry.setAttribute('banks',new THREE.Float32BufferAttribute(horizon,2));
     geometry.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));geometry.setIndex(index);
-    geometry.computeVertexNormals();
+    geometry.computeBoundingSphere();
     const material=new THREE.ShaderMaterial({
       side:THREE.DoubleSide,
-      uniforms:{clock,normalMap:{value:texture('waternormals.jpg',true)},bed:{value:texture('shore-pebbles.webp',true)},sun:{value:sun}},
-      vertexShader:`varying vec3 wp;varying vec2 flow;void main(){
-        wp=position;flow=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
-      fragmentShader:`varying vec3 wp;varying vec2 flow;uniform float clock;uniform sampler2D normalMap,bed;uniform vec3 sun;
+      uniforms:{clock,normalMap:{value:texture('waternormals.jpg',true)},bed:{value:bedMap},
+        landPhoto:{value:aerial},atlasHalf:{value:half},cobble:{value:cobbleMap},sky:{value:sky},sun:{value:sun}},
+      vertexShader:`attribute vec3 channel;attribute vec2 banks;varying vec3 wp,section;varying vec2 flow,bankH;
+        void main(){wp=position;flow=uv;section=channel;bankH=banks;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+      fragmentShader:`varying vec3 wp,section;varying vec2 flow,bankH;uniform float clock,atlasHalf;uniform sampler2D normalMap,bed,cobble,sky,landPhoto;uniform vec3 sun;
+        ${gravelColor}
         void main(){
           vec3 V=normalize(cameraPosition-wp);
-          vec3 n1=texture2D(normalMap,vec2(wp.x,wp.z)*.12+vec2(.014,-.009)*clock).xyz-.5;
-          vec3 n2=texture2D(normalMap,vec2(flow.x*.64,flow.y*.065-clock*.18)).xyz-.5;
-          vec3 N=normalize(vec3(n1.x*.24+n2.x*.12,1.,n1.y*.27+n2.y*.12));
-          float f=.024+.976*pow(1.-max(0.,dot(V,N)),5.);
-          float edge=1.-smoothstep(.025,.27,min(flow.x,1.-flow.x));
-          float glint=pow(max(0.,dot(N,normalize(V+sun))),110.)*.40;
-          float rings=.5+.5*sin(flow.y*.73-clock*1.7+n1.x*8.);
-          vec3 c=mix(vec3(.065,.117,.083),vec3(.109,.157,.102),edge*(.38+.25*rings));
-          vec3 ray=refract(-V,N,.7502);
-          vec3 gravel=pow(texture2D(bed,(wp.xz+ray.xz*(.3+.65*(1.-edge)))*.57).rgb,vec3(2.2));
-          c=mix(c,gravel*vec3(.57,.72,.59),edge*(1.-f)*.83);
-          float froth=smoothstep(.65,.94,sin(flow.y*1.41-clock*2.19+n2.x*4.)*sin(flow.x*42.+n1.x*5.));
-          c+=vec3(.11,.12,.095)*froth*edge;
-          c=mix(c,vec3(.30,.42,.50),f*.77)+glint*vec3(1.,.82,.54);
+          vec2 downstream=normalize(section.xy),across=vec2(-downstream.y,downstream.x);
+          float bank=max(0.,2.*section.z*min(flow.x,1.-flow.x)-.61);
+          float crossChannel=(flow.x-.5)*2.*section.z;
+          float channelSpeed=smoothstep(.1,4.,bank);
+          float outlet=1.-smoothstep(26.,115.,flow.y);
+          float detail=1.-smoothstep(.09,1.65,max(length(dFdx(wp.xz)),length(dFdy(wp.xz))));
+          // Each current patch has its own oblique crest, speed and width.
+          // Long smooth margins shelter below the broken, faster center thread.
+          vec2 st=vec2(flow.y,crossChannel);
+          vec2 eddy=texture2D(normalMap,wp.xz*.041+vec2(-clock*.007,.013*clock)).rg-.5;
+          float swirl=sin(flow.y*.31-crossChannel*.43+eddy.x*3.6);
+          vec2 drift=st*vec2(.135,.25)+eddy*.48;
+          vec2 fast=texture2D(normalMap,drift-vec2(clock*.115,0.)).rg-.5;
+          vec2 slow=texture2D(normalMap,wp.xz*.079-downstream*(.027*clock)+.41).rg-.5;
+          float packet=.5+.5*sin(flow.y*.78+crossChannel*1.03+swirl*1.64)*sin(crossChannel*.83-flow.y*.24-eddy.y*3.);
+          float riffle=sin(flow.y*2.06+crossChannel*.85-clock*2.65+swirl*2.8+eddy.y*3.7);
+          float angled=sin(flow.y*1.55-crossChannel*1.39-clock*1.92+eddy.x*3.3);
+          float riffleStrength=(.012+.035*outlet)*channelSpeed*detail*packet;
+          vec2 r=mix(slow*.44,fast,channelSpeed);
+          vec2 slope=(downstream*r.x+across*r.y)*(.21+.22*outlet)*detail+
+                     ((downstream+across*.36)*riffle+(downstream-across*.49)*angled*.54)*riffleStrength;
+          vec3 N=normalize(vec3(slope.x,1.,slope.y));
+          float fres=.0204+.9796*pow(1.-max(0.,dot(V,N)),5.);
+          float bar=texture2D(normalMap,wp.xz*.03).r;
+          float depth=.015+min(bank*(.26+.21*bar),2.5);
+          vec3 ray=refract(-V,N,1./1.333);
+          vec2 bottom=wp.xz+ray.xz*depth/max(.32,-ray.y);
+          vec2 bend=texture2D(normalMap,bottom*.028).rg-.5;
+          vec3 grit=pow(texture2D(bed,bottom*.49+bend*.17).rgb,vec3(2.2));
+          vec3 stones=pow(texture2D(cobble,mat2(.6,-.8,.8,.6)*bottom*.31+bend*.12).rgb,vec3(2.2));
+          vec3 substrate=mix(grit,stones,smoothstep(.29,.79,bar)*.71);
+          float caustic=exp(-9.*abs(sin(dot(bottom,vec2(1.73,.93))-.94*clock+bend.x)+.69*sin(dot(bottom,vec2(-.56,2.2))+.87*clock)));
+          substrate*=.84+caustic*.43*detail*exp(-depth);
+          // The first thin layer of water refracts the very same wet gravel
+          // visible above it. This preserves continuity across the moving film.
+          float margin=1.-smoothstep(.08,1.64,bank);
+          if(margin>.0){
+            vec3 wetBed=gravelColorAt(bottom)*(.58+.49*max(0.,sun.y))*.64;
+            substrate=mix(substrate,wetBed,margin);
+          }
+          vec3 trans=exp(-depth*vec3(.87,.54,.71)/max(.32,-ray.y));
+          vec3 through=mix(vec3(.038,.082,.054),substrate,trans);
+          vec3 R=reflect(-V,N);
+          vec2 skyUV=vec2(.5+atan(R.z,R.x)*.15915494,.5+asin(clamp(R.y,-1.,1.))*.31830989);
+          vec3 reflected=texture2D(sky,skyUV).rgb;
+          // The low-angle ray meets the nearer wooded, surveyed bank. Use its
+          // photographed hue below the skyline and the region sky beyond it.
+          float crossRay=dot(normalize(R.xz+vec2(.00001)),across);
+          float side=step(0.,crossRay),toBank=2.*section.z*mix(1.-flow.x,flow.x,side);
+          float rayTravel=(toBank+13.)/max(.07,abs(crossRay));
+          float bankRise=mix(bankH.y,bankH.x,side);
+          float skyline=bankRise/max(1.,rayTravel);
+          vec2 landPoint=wp.xz+normalize(R.xz+vec2(.00001))*rayTravel;
+          vec3 pigment=pow(texture2D(landPhoto,vec2(landPoint.x,-landPoint.y)/(2.*atlasHalf)+.5).rgb,vec3(2.2));
+          float shoreReturn=1.-smoothstep(skyline-.045,skyline+.055,R.y);
+          reflected=mix(reflected,pigment*vec3(.73,.80,.85),shoreReturn*.90);
+          float glint=pow(max(0.,dot(N,normalize(V+sun))),118.);
+          vec3 c=mix(through,reflected,fres*(1.-.29*margin))+glint*vec3(.64,.48,.29)*(.32+.68*detail);
+          float foam=smoothstep(.14,.36,fast.x+.51*fast.y)*smoothstep(.64,.95,riffle)*outlet*channelSpeed*detail;
+          c=mix(c,vec3(.46,.52,.47),foam*.53);
           float haze=1.-exp(-distance(wp,cameraPosition)*.000032);
           gl_FragColor=vec4(mix(c,vec3(.39,.45,.50),haze),1.);
           #include <colorspace_fragment>
         }`
     });
-    scene.add(new THREE.Mesh(geometry,material));
+    const river=new THREE.Mesh(geometry,material);
+    river.name='Ashuelot River below Surry Dam';
+    scene.add(river);
     const cells=new Map(),key=(x,z)=>x*8192+z;
-    for(let i=1;i<centers.length;i++){
-      const A=centers[i-1],B=centers[i],pad=Math.max(A[3],B[3]);
-      for(let x=Math.floor((Math.min(A[0],B[0])-pad)/64);x<=Math.floor((Math.max(A[0],B[0])+pad)/64);x++){
-        for(let z=Math.floor((Math.min(A[2],B[2])-pad)/64);z<=Math.floor((Math.max(A[2],B[2])+pad)/64);z++){
-          const id=key(x,z);if(!cells.has(id))cells.set(id,[]);cells.get(id).push(i);
-        }
+    const surface=geometry.attributes.position.array,shingle=geom.attributes.position.array;
+    const bankFaces=geom.index.array,waterFaces=geometry.index.array,facesPerRow=12*(shelfWidth-1);
+    function bounds(data,first,last,stride){
+      let x0=Infinity,z0=Infinity,x1=-Infinity,z1=-Infinity;
+      for(let j=0;j<2;j++)for(let k=first+j*stride;k<last+j*stride;k++){
+        x0=Math.min(x0,data[k*3]);x1=Math.max(x1,data[k*3]);
+        z0=Math.min(z0,data[k*3+2]);z1=Math.max(z1,data[k*3+2]);
+      }
+      return [x0,z0,x1,z1];
+    }
+    for(let i=0;i<rows.length-1;i++){
+      const j=i*2*shelfWidth,m=bounds(surface,i*2,i*2+2,2);
+      const l=bounds(shingle,j,j+shelfWidth,2*shelfWidth),r=bounds(shingle,j+shelfWidth,j+2*shelfWidth,2*shelfWidth);
+      const q={i,m,l,r},x0=Math.min(m[0],l[0],r[0]),z0=Math.min(m[1],l[1],r[1]);
+      const x1=Math.max(m[2],l[2],r[2]),z1=Math.max(m[3],l[3],r[3]);
+      for(let x=Math.floor(x0/32);x<=Math.floor(x1/32);x++)for(let z=Math.floor(z0/32);z<=Math.floor(z1/32);z++){
+        const id=key(x,z);if(!cells.has(id))cells.set(id,[]);cells.get(id).push(q);
       }
     }
-    return (x,z)=>{
-      for(const i of cells.get(key(Math.floor(x/64),Math.floor(z/64)))||[]){
-        const A=centers[i-1],B=centers[i],dx=B[0]-A[0],dz=B[2]-A[2];
-        const t=((x-A[0])*dx+(z-A[2])*dz)/Math.max(.001,dx*dx+dz*dz);
-        if(t<0||t>1)continue;
-        if(Math.hypot(x-A[0]-t*dx,z-A[2]-t*dz)<A[3]+(B[3]-A[3])*t)return A[1]+(B[1]-A[1])*t;
+    function top(x,z,data,indices,first,count){
+      let h=-Infinity;
+      for(let o=first;o<first+count;o+=3){
+        const a=indices[o]*3,b=indices[o+1]*3,c=indices[o+2]*3;
+        const ax=data[a],az=data[a+2],bx=data[b]-ax,bz=data[b+2]-az,cx=data[c]-ax,cz=data[c+2]-az;
+        const det=bx*cz-bz*cx;if(Math.abs(det)<.00001)continue;
+        const u=((x-ax)*cz-(z-az)*cx)/det,v=(bx*(z-az)-bz*(x-ax))/det;
+        if(u>=0&&v>=0&&u+v<=1)h=Math.max(h,data[a+1]*(1-u-v)+data[b+1]*u+data[c+1]*v);
       }
-      return -Infinity;
+      return h;
+    }
+    return (x,z,includeBank=false)=>{
+      const bin=cells.get(key(Math.floor(x/32),Math.floor(z/32)));
+      if(!bin)return -Infinity;
+      let water=-Infinity,bank=-Infinity;
+      for(const {i,m,l,r} of bin){
+        if(x>=m[0]&&x<=m[2]&&z>=m[1]&&z<=m[3])water=Math.max(water,top(x,z,surface,waterFaces,i*6,6));
+        if(x>=l[0]&&x<=l[2]&&z>=l[1]&&z<=l[3])
+          bank=Math.max(bank,top(x,z,shingle,bankFaces,i*facesPerRow,facesPerRow/2));
+        if(x>=r[0]&&x<=r[2]&&z>=r[1]&&z<=r[3])
+          bank=Math.max(bank,top(x,z,shingle,bankFaces,(i+.5)*facesPerRow,facesPerRow/2));
+      }
+      return includeBank?Math.max(water,bank):water>=bank?water:-Infinity;
     };
   }
 })();

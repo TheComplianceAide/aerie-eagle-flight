@@ -1,5 +1,31 @@
 /* Water surface derived from three.js Water, MIT licensed. */
 window.makeAtlasWorld = function makeAtlasWorld(THREE, scene, region) {
+const shoreOptics=`
+    uniform sampler2D localBank;
+    uniform vec2 bankOrigin;
+    uniform float bankSpan;
+    vec4 coastDistance(vec2 p){
+      vec2 uv=(p-bankOrigin)/bankSpan;
+      float center=max(abs(uv.x-.5),abs(uv.y-.5));
+      if(center>=.5)return vec4(32.,0.,0.,0.);
+      vec3 field=texture2D(localBank,uv).rgb;
+      // Interpolate offset vectors across the edge before taking the length.
+      // Unsigned texels alone flatten the last metre on both sides of the shore.
+      float d=32.*field.r;
+      vec2 delta=(field.gb*255.-128.)*(32./127.);
+      d=mix(max(length(delta),d-1.1),d,smoothstep(29.,31.9,d));
+      return vec4(d,1.-smoothstep(.33,.49,center),delta*inversesqrt(max(.008,dot(delta,delta))));
+    }
+    // Crests advance toward decreasing bank distance. Their wavelength
+    // contracts on the shoal. Multiple packets reach each stretch at different times.
+    float shoreGroup(vec2 p,float t){
+      return .5+.5*sin(dot(p,vec2(.035,.013))-t*.19)*sin(dot(p,vec2(-.019,.029))+t*.27);
+    }
+    float shoreClock(vec2 p,float t,float exposure){
+      float rate=mix(3.45,1.70,exposure);
+      return t*rate+1.15*sin(dot(p,vec2(.063,.018))+.12*t)+.74*sin(dot(p,vec2(-.026,.049)));
+    }`;
+
 const {
 	Color,
 	FrontSide,
@@ -135,7 +161,10 @@ class Water extends Mesh {
 				varying vec4 worldPosition;
 
 				uniform sampler2D shoreField, pebbles, terrainLight;
-        uniform float basinSpan, oceanSurf, seaState, rockyBed;
+        uniform float shoreTexel;
+        uniform float basinSpan, oceanSurf, seaState, rockyBed, shoreExposure;
+        uniform sampler2D bedRelief,bedSand,foamCells;
+        ${shoreOptics}
         // Crossing wind swells and travelling capillary waves in metres. Dampen
         // wavelengths that are smaller than the current pixel footprint.
         vec2 slopes(vec2 p,float t,float footprint,float fetch,out float wind){
@@ -176,8 +205,31 @@ class Water extends Mesh {
         float fetch=mix(1.,shore.g,interior);
         float daylight=mix(1.,texture2D(terrainLight,basin).r,interior);
         vec3 v=normalize(eye-worldPosition.xyz);
+        vec4 local=coastDistance(p);
+        // Beyond the precision field, retain the windward fetch and distance
+        // encoded in the regional survey, including the Weirs and Alton tiles.
+        float localWeight=local.y*(1.-smoothstep(25.,32.,local.x));
+        bank=mix(bank,local.x,localWeight);
+        // Stored offsets give a stable shoreline normal even at a grazing camera
+        // angle. Differentiating a quantized distance per pixel aliases its facets.
+        vec2 away=vec2(0.);
+        if(localWeight<.999 && bank<55.){
+          vec2 stepUV=vec2(shoreTexel,0.);
+          away=vec2(texture2D(shoreField,basin+stepUV).r-texture2D(shoreField,basin-stepUV).r,
+                    texture2D(shoreField,basin-stepUV.yx).r-texture2D(shoreField,basin+stepUV.yx).r);
+          away*=inversesqrt(max(.000001,dot(away,away)));
+        }
+        away=mix(away,local.zw,localWeight);
+        float coast=shoreExposure,group=shoreGroup(p,time);
+        float k=mix(2.38,.31,coast),zone=mix(4.5,21.,coast);
+        float phase=shoreClock(p,time,coast)+mix(1.25,2.9,coast)*(1.-exp(-bank/zone));
+        float angle=k*bank+phase;
         float footprint=max(length(dFdx(p)),length(dFdy(p))),wind;
         vec2 slope=slopes(p,time,footprint,fetch,wind);
+        float shoaling=(1.-smoothstep(zone*.65,zone*2.,bank))*
+                      (1.-smoothstep(.38/k,1.7/k,footprint));
+        float incident=mix(.044,.155,coast)*(.49+.76*group)*(.68+.32*fetch);
+        slope+=away*(cos(angle)+.46*cos(2.*angle-.78))*incident*shoaling;
         vec3 n=normalize(vec3(slope.x,1.,slope.y));
         float cosV=clamp(dot(v,n),0.,1.);
         float fresnel=.0204+.9796*pow(1.-cosV,5.);
@@ -190,14 +242,40 @@ class Water extends Mesh {
         vec2 jitter=screenSlope*(.19+.13*(1.-cosV));
         float roughLod=-.85+fetch*.44+clamp(footprint*.022,0.,.95);
         vec3 reflectLight=texture2D(mirrorSampler,clamp(mirrorUV+jitter,.002,.998),roughLod).rgb;
-        float shallow=1.-smoothstep(2.,36.,bank);
+        float waterDepth=.06+bank*mix(.14,.27,shoreExposure);
+        float shallow=exp(-.47*waterDepth);
         vec3 deep=waterColor*(.40+.30*daylight+.09*wind);
         vec3 shoal=vec3(.040,.115,.097)*(.62+.38*daylight);
-        vec2 bedUV=p*.44+slope*.35;
-        vec3 gravel=pow(texture2D(pebbles,bedUV).rgb,vec3(2.2));
-        float bottom=exp(-bank*.073)*(1.-smoothstep(80.,360.,viewDistance));
-        shoal=mix(shoal,gravel*vec3(.50,.76,.65),bottom*rockyBed);
+        vec3 gravel=shoal,resolvedBed=shoal;
+        float fine=0.;
+        if(viewDistance<330. && bank<65.){
+          vec3 transmitted=refract(-v,n,.75019);
+          float path=waterDepth/max(.29,-transmitted.y);
+          vec2 bedPoint=p+transmitted.xz*min(path,5.);
+          vec2 uv=bedPoint*.48,rot=vec2(.8*uv.x+.6*uv.y,-.6*uv.x+.8*uv.y);
+          float deposit=smoothstep(.20,.77,.53+.31*sin(p.x*.30+p.y*.17)+.23*sin(p.y*.53-p.x*.21));
+          vec3 stones=texture2D(pebbles,uv).rgb,smallStones=texture2D(pebbles,rot*1.52).rgb;
+          vec3 sediment=texture2D(bedSand,bedPoint*.35).rgb;
+          gravel=pow(mix(stones,smallStones,.43*deposit),vec3(2.2));
+          vec3 relief=texture2D(bedRelief,uv).rgb*2.-1.;
+          float grazing=dot(relief.xy,sunDirection.xz);
+          fine=(1.-smoothstep(.12,.83,footprint))*(1.-smoothstep(35.,120.,viewDistance));
+          gravel*=1.+grazing*.38*fine;
+          float sandCover=deposit*mix(.32,.72,shoreExposure);
+          vec3 floorColor=mix(gravel,pow(sediment,vec3(2.2)),sandCover)*(.74+.26*rockyBed);
+          // Refracted light concentrates into short moving streaks in shallow water.
+          float rayA=sin(dot(bedPoint,vec2(1.83,.93))+time*.80+1.28*sin(p.y*.69+time*.37));
+          float rayB=sin(dot(bedPoint,vec2(-1.16,1.63))-time*.91+.53*sin(p.x*.48-time*.27));
+          float focus=exp(-10.*abs(rayA+.68*rayB));
+          floorColor*=.95+.55*focus*fine*daylight*exp(-.43*waterDepth);
+          vec3 transmission=exp(-path*vec3(.62,.34,.26));
+          resolvedBed=floorColor*transmission+deep*(1.-transmission);
+          shoal=mix(shoal,resolvedBed,
+                    (1.-smoothstep(90.,330.,viewDistance))*(.65+.35*daylight));
+        }
         vec3 body=mix(deep,shoal,shallow);
+        body=mix(body,resolvedBed,
+                 local.y*.64*exp(-waterDepth)*fine);
         vec3 h=normalize(v+sunDirection);
         float rough=.045+.045*fetch*seaState;
         float spec=exp(-dot(h.xz-n.xz,h.xz-n.xz)/(rough*rough));
@@ -211,9 +289,27 @@ class Water extends Mesh {
         float waterSky=clamp(fresnel+.027*chop*(1.-cosV),0.,1.);
         float visibleSun=getShadowMask();
         vec3 radiance=mix(body*mix(.70,1.,visibleSun),reflectLight,waterSky)+sunlight*visibleSun;
-        float line=sin(bank*.73-time*1.26+1.7*sin(dot(p,vec2(.041,.019))));
-        float foam=oceanSurf*(1.-smoothstep(2.,24.,bank))*smoothstep(.35,.93,line)*(.28+.40*wind);
-        radiance=mix(radiance,vec3(.69,.75,.70),foam);
+        float line=sin(bank*k+phase);
+        if(oceanSurf>.0 && bank<36. && footprint<4.){
+          // The lip breaks in patches, then its broken whitewater drifts back
+          // through the darker runnel. Quiet inland wavelets never whiten en masse.
+          vec2 across=vec2(-away.y,away.x);
+          vec2 wash=p+away*(.49*sin(angle)-time*.19);
+          vec2 warp=texture2D(normalSampler,p*.061+across*.023*time).rg-.5;
+          vec2 foamUV=wash*.21+warp*.19+across*.032*sin(angle);
+          float lace=texture2D(foamCells,foamUV).r;
+          float bubbles=texture2D(foamCells,foamUV*3.71+warp*.13).r;
+          float rafts=.5+.5*sin(wash.x*1.01+wash.y*.22+2.9*warp.x)*
+                              cos(wash.y*.75-wash.x*.37+3.8*warp.y);
+          float foamPatch=texture2D(normalSampler,p*.034-away*time*.024).r;
+          float setPulse=group+.27*(foamPatch-.5)+.12*sin(dot(p,vec2(.24,.17))-.23*time);
+          float breaker=smoothstep(.64-.19*rafts,.99-.09*rafts,line)*smoothstep(.28,.72,setPulse);
+          float trough=smoothstep(-.37,.43,-cos(angle))*(.16+.84*lace)*smoothstep(.28,.79,rafts);
+          float backwash=exp(-.32*bank)*trough*(.21+.27*group);
+          float aerated=.11+.46*smoothstep(.35,.77,rafts)+.36*lace+.18*bubbles;
+          float white=oceanSurf*shoaling*(breaker*aerated+backwash);
+          radiance=mix(radiance,vec3(.67,.77,.78)*(.53+.47*daylight),clamp(white,0.,.84));
+        }
         gl_FragColor=vec4(radiance,alpha);
         #include <colorspace_fragment>
 					#include <fog_fragment>	
@@ -408,7 +504,7 @@ class Water extends Mesh {
     const cityDistance=Math.max(Math.abs(x-cityX),Math.abs(z-cityZ));
     if(cityGrid&&cityDistance<1450)val=lerp(sample(cityGrid,1450,x-cityX,z-cityZ),val,smoothstep(cityDistance,1395,1450));
     if(r>h-200)val=lerp(val,farHeight(x,z),smoothstep(r,h-200,h));
-    return val;
+    return region==='crater'?shoreDetail.calderaBed(x,z,val):val;
   }
   function growth(x,z){
     const i=Math.floor((x/h*.5+.5)*384),j=Math.floor((z/h*.5+.5)*384);
@@ -441,25 +537,16 @@ class Water extends Mesh {
   const canopyMap=new THREE.DataTexture(cover,384,384,THREE.RedFormat);
   canopyMap.minFilter=canopyMap.magFilter=THREE.LinearFilter;canopyMap.needsUpdate=true;
   const localShoreMask=surry||dixville;
-  const maskSpan=(localShoreMask?h:Math.max(farH,h))*2,maskSize=localShoreMask?2048:512;
-  const mapCanvas=document.createElement('canvas');mapCanvas.width=mapCanvas.height=maskSize;
-  const mask2d=mapCanvas.getContext('2d');mask2d.fillStyle=survey.shore?.length?'#000':'#fff';mask2d.fillRect(0,0,maskSize,maskSize);
-  function paintRing(loop,fill){
-    mask2d.fillStyle=fill;mask2d.beginPath();
-    loop.forEach(([x,z],i)=>{const px=(.5+x/maskSpan)*maskSize,py=(.5+z/maskSpan)*maskSize;if(i)mask2d.lineTo(px,py);else mask2d.moveTo(px,py);});
-    mask2d.closePath();mask2d.fill();
-  }
-  if(survey.shore?.length)paintRing(survey.shore,'#fff');
-  for(const hole of survey.shoreHoles||[])paintRing(hole,'#000');
-  const wetMask=new THREE.CanvasTexture(mapCanvas);wetMask.minFilter=THREE.LinearFilter;wetMask.generateMipmaps=false;
-  const terrain=new THREE.ShaderMaterial({uniforms:{terrainLight:{value:terrainLight},fracture:{value:fracture},canopyMap:{value:canopyMap},temperate:{value:newEngland?1:0},wetMask:{value:wetMask},cut:{value:settings.water===undefined?-10000:settings.water+.19},arctic:{value:region==='lofoten'?1:0},aerial:{value:aerial},ranges:{value:ranges},rockScan:{value:stone},stoneGrain:{value:grain},sod:{value:sod},sun:{value:sun},halfMap:{value:h},farSpan:{value:2*farH},stoneTint:{value:new THREE.Vector3(...settings.stone)},haze:{value:color},desert:{value:region==='bryce'?1:0}},
+  const terrain=new THREE.ShaderMaterial({uniforms:{terrainLight:{value:terrainLight},fracture:{value:fracture},canopyMap:{value:canopyMap},temperate:{value:newEngland?1:0},shoreLevel:{value:settings.water===undefined?-10000:settings.water+.16},arctic:{value:region==='lofoten'?1:0},aerial:{value:aerial},ranges:{value:ranges},rockScan:{value:stone},stoneGrain:{value:grain},sod:{value:sod},sun:{value:sun},halfMap:{value:h},farSpan:{value:2*farH},stoneTint:{value:new THREE.Vector3(...settings.stone)},haze:{value:color},desert:{value:region==='bryce'?1:0}},
     vertexShader:'varying vec3 wp,norm;void main(){wp=position;norm=normal;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-    fragmentShader:`uniform sampler2D terrainLight,fracture,canopyMap,wetMask,aerial,ranges,rockScan,stoneGrain,sod;uniform vec3 sun,stoneTint,haze;uniform float halfMap,farSpan,desert,cut,arctic,temperate;varying vec3 wp,norm;
+    fragmentShader:`uniform sampler2D terrainLight,fracture,canopyMap,aerial,ranges,rockScan,stoneGrain,sod;uniform vec3 sun,stoneTint,haze;uniform float halfMap,farSpan,desert,shoreLevel,arctic,temperate;varying vec3 wp,norm;
       ${window.aerieFloorShader}
       float lum(vec3 c){return dot(c,vec3(.26,.58,.16));}
       void main(){
+        // Coastal DEMs store open water as a flat zero-height plate. It must
+        // stay out of the reflection camera as well as the main view.
+        ${settings.water!==undefined&&!survey.shore?.length?'if(wp.y<shoreLevel+.001)discard;':''}
         vec2 xz=wp.xz,photoUv=vec2(xz.x,-xz.y)/(halfMap*2.)+.5;
-        if(wp.y<cut && texture2D(wetMask,vec2(xz.x,-xz.y)/farSpan+.5).r>.5)discard;
         float extent=max(abs(xz.x),abs(xz.y)),d=distance(wp,cameraPosition);
         vec3 photo=mix(texture2D(aerial,photoUv).rgb,texture2D(ranges,vec2(xz.x,-xz.y)/farSpan+.5).rgb,smoothstep(halfMap-160.,halfMap,extent));
         photo=mix(photo,vec3(lum(photo)),arctic*.27);
@@ -501,6 +588,14 @@ class Water extends Mesh {
         float photoGain=.58+.69*clamp(lum(photo)*1.45,0.,1.);
         vec3 stoneColor=lithology*mix(.99,photoGain,orthoCoverage);
         vec3 c=mix(photo,stoneColor,materialWeight);
+        ${region==='napali'?`
+        // Some coast pixels in the orthophoto contain white surf projected onto
+        // land. Restore sand or basalt on bright lower banks at both flight scales.
+        float surfBleed=(1.-smoothstep(14.,45.,wp.y))*smoothstep(.54,.86,min(photo.r,min(photo.g,photo.b)));
+        float sandCove=max(1.-smoothstep(480.,740.,length(xz-vec2(-1524.,-383.))),
+                          1.-smoothstep(140.,310.,length(xz-vec2(-2892.,1150.))));
+        vec3 coastalGround=mix(stoneColor*.64,vec3(.48,.39,.27)*(.68+.64*grit),sandCove*smoothstep(.50,.87,normal.y));
+        c=mix(c,coastalGround,surfBleed*.96);`:''}
         // Pale caprock and rust-red silt alternate locally in the Claron beds;
         // retain the photographed variation instead of applying a single orange tint.
         float bedding=desert*(1.-veg);
@@ -646,10 +741,6 @@ class Water extends Mesh {
         photo=mix(photo,texture2D(detailOrtho,vec2(focus.x,-focus.y)/2900.+.5).rgb,blend);
         photo=mix(photo,vec3(lum(photo))`);
   }
-  if(localShoreMask){
-    terrain.uniforms.reservoirSpan={value:maskSpan};
-    terrain.fragmentShader='uniform float reservoirSpan;\n'+terrain.fragmentShader.replace('texture2D(wetMask,vec2(xz.x,-xz.y)/farSpan','texture2D(wetMask,vec2(xz.x,-xz.y)/reservoirSpan');
-  }
   if(survey.cityCenter){
     terrain.uniforms.cityOrtho={value:texture('atlas-surry-city-detail.webp')};
     terrain.uniforms.streetOrtho={value:texture('keene-downtown-ortho.webp')};
@@ -669,6 +760,111 @@ class Water extends Mesh {
         /* canopy transmission */`);
   }
   waterfront?.applyTerrain(terrain);
+  // The survey texture covers kilometres. Within gliding distance of the shore,
+  // rasterize metres from the actual clipped lake polygon or sea/terrain cut.
+  // The same small field follows the bird and serves the water and exposed bank.
+  function localShoreField(){
+    const count=144,spacing=1.5,reach=32,span=count*spacing,cell=192;
+    const bins=new Map(),pixels=new Uint8Array(count*count*4),squared=new Float32Array(count*count);
+    const nearestX=new Float32Array(squared.length),nearestZ=new Float32Array(squared.length);
+    pixels.fill(255);
+    const map=new THREE.DataTexture(pixels,count,count,THREE.RGBAFormat);
+    map.minFilter=map.magFilter=THREE.LinearFilter;map.needsUpdate=true;
+    const origin=new THREE.Vector2(1e7,1e7);
+    const uniforms={localBank:{value:map},bankOrigin:{value:origin},bankSpan:{value:span}};
+    const key=(x,z)=>x+z*8192,caldera=region==='crater'?new Map():null;
+    function add(ax,az,bx,bz){
+      const dx=bx-ax,dz=bz-az,den=dx*dx+dz*dz;
+      if(den<.0001)return;
+      const segment=[ax,az,bx,bz,dx,dz,1/den];
+      if(caldera){
+        for(let j=Math.floor((Math.min(az,bz)-48)/cell);j<=Math.floor((Math.max(az,bz)+48)/cell);j++)
+          for(let i=Math.floor((Math.min(ax,bx)-48)/cell);i<=Math.floor((Math.max(ax,bx)+48)/cell);i++){
+            const k=key(i,j);if(!caldera.has(k))caldera.set(k,[]);caldera.get(k).push(segment);
+          }
+      }
+      for(let j=Math.floor(Math.min(az,bz)/cell);j<=Math.floor(Math.max(az,bz)/cell);j++)
+        for(let i=Math.floor(Math.min(ax,bx)/cell);i<=Math.floor(Math.max(ax,bx)/cell);i++){
+          const k=key(i,j);if(!bins.has(k))bins.set(k,[]);bins.get(k).push(segment);
+        }
+    }
+    if(survey.shore?.length){
+      for(const loop of [survey.shore,...(survey.shoreHoles||[])])
+        for(let i=0,j=loop.length-1;i<loop.length;j=i++)add(...loop[j],...loop[i]);
+    }
+    function terrainEdges(grid){
+      if(survey.shore?.length)return;
+      const xyz=grid.attributes.position.array,tri=grid.index.array,level=settings.water+.16;
+      for(let i=0;i<tri.length;i+=3){
+        const a=tri[i]*3,b=tri[i+1]*3,c=tri[i+2]*3;
+        const wetA=xyz[a+1]<level,wetB=xyz[b+1]<level,wetC=xyz[c+1]<level;
+        if(wetA===wetB&&wetB===wetC)continue;
+        // The lone vertex of its sign touches both intersected triangle edges.
+        const lone=wetB===wetC?a:wetA===wetC?b:c,first=lone===a?b:a,last=lone===c?b:c;
+        const t=(level-xyz[lone+1])/(xyz[first+1]-xyz[lone+1]);
+        const u=(level-xyz[lone+1])/(xyz[last+1]-xyz[lone+1]);
+        add(lerp(xyz[lone],xyz[first],t),lerp(xyz[lone+2],xyz[first+2],t),
+            lerp(xyz[lone],xyz[last],u),lerp(xyz[lone+2],xyz[last+2],u));
+      }
+    }
+    let cellX=Infinity,cellZ=Infinity;
+    function update(player){
+      if(player.y>settings.water+350){
+        cellX=Infinity;cellZ=Infinity;origin.set(1e7,1e7);return;
+      }
+      const x=Math.round(player.x/32),z=Math.round(player.z/32);
+      if(x===cellX&&z===cellZ)return;
+      cellX=x;cellZ=z;
+      const ox=x*32-span*.5,oz=z*32-span*.5,nearby=new Set();
+      for(let j=Math.floor((oz-reach)/cell);j<=Math.floor((oz+span+reach)/cell);j++)
+        for(let i=Math.floor((ox-reach)/cell);i<=Math.floor((ox+span+reach)/cell);i++)
+          for(const line of bins.get(key(i,j))||[])nearby.add(line);
+      if(!nearby.size){origin.set(1e7,1e7);return;}
+      squared.fill(reach*reach);
+      for(const [ax,az,bx,bz,dx,dz,inv] of nearby){
+        const x0=Math.max(0,Math.floor((Math.min(ax,bx)-reach-ox)/spacing));
+        const x1=Math.min(count-1,Math.ceil((Math.max(ax,bx)+reach-ox)/spacing));
+        const z0=Math.max(0,Math.floor((Math.min(az,bz)-reach-oz)/spacing));
+        const z1=Math.min(count-1,Math.ceil((Math.max(az,bz)+reach-oz)/spacing));
+        if(x0>x1||z0>z1)continue;
+        for(let j=z0;j<=z1;j++){
+          const rz=oz+(j+.5)*spacing-az;
+          for(let i=x0;i<=x1;i++){
+            const rx=ox+(i+.5)*spacing-ax,t=clamp((rx*dx+rz*dz)*inv,0,1);
+            const ex=rx-dx*t,ez=rz-dz*t,k=j*count+i;
+            const dist=ex*ex+ez*ez;
+            if(dist<squared[k]){squared[k]=dist;nearestX[k]=ex;nearestZ[k]=ez;}
+          }
+        }
+      }
+      for(let i=0;i<squared.length;i++){
+        const k=i*4;pixels[k]=Math.round(255/reach*Math.sqrt(squared[i]));
+        pixels[k+1]=Math.round(128+127/reach*nearestX[i]);pixels[k+2]=Math.round(128+127/reach*nearestZ[i]);
+      }
+      origin.set(ox,oz);map.needsUpdate=true;
+    }
+    function calderaBed(x,z,y){
+      // The caldera survey measures the lake surface, with quarter-metre
+      // quantization at the shoreline. Low triangular cells can emerge above
+      // the actual lake inside its polygon. Grade only this narrow shallow belt.
+      const level=settings.water+.16;
+      if(y<level-.6||y>level+2.8)return y;
+      const nearby=caldera.get(key(Math.floor(x/cell),Math.floor(z/cell)));
+      if(!nearby)return y;
+      let nearest=48*48;
+      for(const [ax,az,,,dx,dz,inv] of nearby){
+        const rx=x-ax,rz=z-az,t=clamp((rx*dx+rz*dz)*inv,0,1);
+        nearest=Math.min(nearest,(rx-t*dx)**2+(rz-t*dz)**2);
+      }
+      if(nearest>=48*48||!inLoop(x,z,survey.shore))return y;
+      const d=Math.sqrt(nearest),strength=(1.-smoothstep(d,33,48))*(1.-smoothstep(y-level,.80,2.8));
+      const bed=level-.31-Math.min(1.3,d*.13);
+      return lerp(y,Math.min(y,bed),strength);
+    }
+    return {uniforms,terrainEdges,update,calderaBed};
+  }
+  const shoreDetail=settings.water!==undefined?localShoreField():null;
+
   function patch(left,top,width,depth,nx,nz){
     const grid=new THREE.PlaneGeometry(width,depth,nx,nz);grid.rotateX(-Math.PI/2);
     const p=grid.attributes.position,n=grid.attributes.normal;
@@ -679,6 +875,7 @@ class Water extends Mesh {
       const dx=elevation(x-step,z)-elevation(x+step,z),dz=elevation(x,z-step)-elevation(x,z+step),inv=1/Math.hypot(dx,2*step,dz);
       n.setXYZ(i,dx*inv,2*step*inv,dz*inv);
     }
+    shoreDetail?.terrainEdges(grid);
     grid.computeBoundingSphere();scene.add(new THREE.Mesh(grid,terrain));
   }
   function subdivide(left,top,right,bottom,step){
@@ -717,7 +914,83 @@ class Water extends Mesh {
     if(region==='bryce'&&window.bryceHighlands)window.addBryceEscarpment(THREE,scene,terrain,elevation);
     else for(let j=0;j<8;j++)for(let i=0;i<8;i++)patch(focusX-core+i*core/4,focusZ-core+j*core/4,core/4,core/4,tight?91:80,tight?91:80);
   }
-  const clock={value:0};let water=null;
+  // Periodic cellular foam film. The two closest irregular bubble centres define
+  // each membrane; bake it once so a low shore pass needs only filtered samples.
+  function foamTexture(){
+    const cells=19,size=256,points=[],film=new Uint8Array(size*size);
+    let seed=4213;
+    function random(){seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;}
+    for(let i=0;i<cells*cells;i++)points.push([.12+.76*random(),.12+.76*random()]);
+    for(let y=0;y<size;y++)for(let x=0;x<size;x++){
+      const fx=(x+.5)*cells/size,fy=(y+.5)*cells/size,ix=Math.floor(fx),iy=Math.floor(fy);
+      let a=4,b=4;
+      for(let j=iy-1;j<=iy+1;j++)for(let i=ix-1;i<=ix+1;i++){
+        const point=points[(j+cells)%cells*cells+(i+cells)%cells];
+        const dx=i+point[0]-fx,dy=j+point[1]-fy,d=dx*dx+dy*dy;
+        if(d<a){b=a;a=d;}else b=Math.min(b,d);
+      }
+      film[y*size+x]=Math.round(255*(1.-smoothstep(Math.sqrt(b)-Math.sqrt(a),.024,.19)));
+    }
+    const map=new THREE.DataTexture(film,size,size,THREE.RedFormat);
+    map.wrapS=map.wrapT=THREE.RepeatWrapping;map.minFilter=THREE.LinearMipmapLinearFilter;
+    map.magFilter=THREE.LinearFilter;map.generateMipmaps=true;map.needsUpdate=true;return map;
+  }
+  const clock={value:0};let water=null,shoreFloor=null;
+  // A short advancing sheet and a longer damp interval share the same packet
+  // phases as the waves just offshore. Keep the wetting below the swash limit.
+  const exposure=region==='napali'?1:region==='lofoten'?.55:region==='milford'?.37:.06;
+  const saltFoam=exposure>.1?foamTexture():null;
+  const shoreSand=shoreDetail?texture('shore-sand.webp',true):null;
+  if(shoreDetail){
+    if(region==='napali')terrain.uniforms.surfLace={value:saltFoam};
+    Object.assign(terrain.uniforms,shoreDetail.uniforms,{shoreTime:clock,shoreExposure:{value:exposure},
+      bankMaterial:{value:region==='napali'?shoreSand:texture('shore-cobble.webp',true)}});
+    terrain.fragmentShader=shoreOptics+(region==='napali'?'\nuniform sampler2D surfLace;':'')+'\nuniform float shoreTime,shoreExposure;uniform sampler2D bankMaterial;\n'+terrain.fragmentShader.replace('/* canopy transmission */', `
+      if(wp.y<shoreLevel+${region==='napali'?'23.':'3.5'} && d<260.){
+        vec2 local=coastDistance(xz).xy;
+        // The aerial survey can include bright breaking surf on the lower Nā
+        // Pali cliffs. Resolve the substrate at ground level where it is visible.
+        float above=wp.y-shoreLevel;
+        float strip=(1.-smoothstep(1.3,5.5,local.x))*(1.-smoothstep(.32,2.4,above));
+        ${region==='napali'?`
+          float sandBeach=max(1.-smoothstep(440.,670.,length(xz-vec2(-1524.,-383.))),
+                              1.-smoothstep(140.,300.,length(xz-vec2(-2892.,1150.))));
+          float beach=(1.-smoothstep(4.5,22.,above))*sandBeach*local.y;
+          float basalt=smoothstep(.50,.83,normal.y);
+          strip=max(strip,beach*(.65+.35*basalt));`:''}
+        if(strip*local.y>.006){
+          vec2 uv=xz*${region==='napali'?'.55':'.47'};
+          vec3 scanA=texture2D(bankMaterial,uv).rgb;
+          vec3 scanB=texture2D(bankMaterial,vec2(uv.x*.83+uv.y*.56,uv.y*.83-uv.x*.56)*.69+.31).rgb;
+          float blend=.35+.21*sin(xz.x*.23+xz.y*.14);
+          vec3 beachColor=pow(mix(scanA,scanB,blend),vec3(2.2));
+          ${region==='napali'?`beachColor=mix(beachColor,stoneColor*.32,(1.-sandBeach)*.68+(1.-basalt)*.23);`:''}
+          float shade=.52+.60*max(0.,dot(normal,sun))*sunlit+.21*skyView;
+          c=mix(c,beachColor*shade,strip*local.y*(1.-smoothstep(100.,260.,d))*
+                    ${region==='napali'?'.96':'.85'});
+        }
+        float zone=mix(.86,4.2,shoreExposure);
+        if(local.y>.0 && local.x<zone*1.25){
+          float t=shoreTime*.65,wave=shoreClock(xz,t,shoreExposure),packet=shoreGroup(xz,t);
+          float reach=zone*(.22+.78*packet)*(.57+.43*sin(wave));
+          float front=1.-smoothstep(reach-.20,reach+.20,local.x);
+          float heightLimit=mix(.13,.72,shoreExposure)*(.55+.45*packet);
+          float wet=local.y*(1.-smoothstep(heightLimit*.45,heightLimit,above))*(1.-smoothstep(100.,160.,d));
+          float damp=(1.-smoothstep(.25,zone*1.25,local.x))*(.66+.20*sin(wave-.85));
+          c*=1.-wet*(.21*damp+.24*front);
+          float glancing=pow(1.-clamp(dot(normal,viewDir),0.,1.),3.);
+          c=mix(c,vec3(.17,.24,.28)*(.64+.36*skyView),wet*front*(.06+.28*glancing));
+          ${region==='napali'?`
+          float margin=1.-smoothstep(.065,.34,abs(local.x-reach));
+          vec2 runUv=xz*.30+vec2(.031*t,-.014*t);
+          float trace=texture2D(surfLace,runUv).r;
+          float receding=smoothstep(-.6,.4,-cos(wave));
+          c=mix(c,vec3(.49,.59,.59)*(.60+.40*skyView),
+                wet*margin*packet*(.30+.45*trace)*(.46+.54*receding));`:''}
+        }
+      }
+      /* canopy transmission */`);
+  }
   if(settings.water!==undefined){
     // Crater Lake is a hanging caldera. Its mesh stops at the inside of the rim.
     let g;
@@ -730,18 +1003,24 @@ class Water extends Mesh {
     const waterColors={moosehead:0x25505c,winnipesaukee:0x20505e,surry:0x254b58,crater:0x0a3977,napali:0x096f77,milford:0x163d49,lofoten:0x215364};
     water=new Water(g,{textureWidth:1024,textureHeight:512,waterNormals:texture('waternormals.jpg',true),sunDirection:sun,waterColor:waterColors[region]??settings.sea,fog:true});
     Object.assign(water.material.uniforms,{
+      shoreTexel:{value:1/(surry?2048:dixville?768:region==='labrador'?640:1024)},
       shoreField:{value:texture('atlas-'+region+'-shore.webp')},terrainLight:{value:terrainLight},
       pebbles:{value:texture('shore-pebbles.webp',true)},basinSpan:{value:h*2},
-      oceanSurf:{value:region==='napali'?1:0},seaState:{value:region==='napali'?1.9:region==='lofoten'?1.28:newEngland?.87:.94},
+      oceanSurf:{value:region==='napali'?1:region==='lofoten'?.24:region==='milford'?.09:0},seaState:{value:region==='napali'?1.9:region==='lofoten'?1.28:newEngland?.87:.94},
       rockyBed:{value:newEngland?1:.75}
+    });
+    Object.assign(water.material.uniforms,shoreDetail.uniforms,{
+      shoreExposure:{value:exposure},bedRelief:{value:texture('shore-pebbles-normal.webp',true)},
+      bedSand:{value:shoreSand},foamCells:{value:saltFoam}
     });
     waterfront?.applyWater(water.material);
     water.rotation.x=-Math.PI/2;water.position.y=settings.water+.16;scene.add(water);
+    if(survey.shore?.length)shoreFloor=window.joinAtlasShore?.(THREE,scene,{region,survey,elevation,level:water.position.y,terrain});
   }
   let seed=134513;
   const rand=()=>{seed=(Math.imul(1664525,seed)+1013904223)>>>0;return seed/4294967296;};
   const trees=[],firTrees=[],broadTrees=[],cells=new Map(),cell=(x,z)=>(Math.floor(x/50)+500)*1024+Math.floor(z/50)+500;
-  const dam=surry?window.addSurryDam(THREE,scene,{survey,elevation,terrain,texture,sun,clock}):null;
+  const dam=surry?window.addSurryDam(THREE,scene,{survey,elevation,ground:shoreFloor?.ground||elevation,terrain,texture,sun,sky:skyMap,clock,aerial,half:h}):null;
   const settlement=waterfront?{
     buildings:[...(survey.settlement?.buildings||[]),...waterfront.settlement.buildings],
     piers:[...(survey.settlement?.piers||[]),...waterfront.settlement.piers]
@@ -849,7 +1128,7 @@ class Water extends Mesh {
   }
   function height(x,z){
     if(settings.water===undefined)return elevation(x,z);
-    const ground=Math.max(elevation(x,z),dam?.riverHeight(x,z)??-Infinity);
+    const ground=Math.max(elevation(x,z),dam?.riverHeight(x,z,true)??-Infinity,shoreFloor?.(x,z)??-Infinity);
     return ground<settings.water+.16&&inLake(x,z)?settings.water+.16:ground;
   }
   function clearance(x,z){
@@ -879,6 +1158,6 @@ class Water extends Mesh {
   const world={region,height,elevation,clearance,spawn,launches,landmarks,groundCover,coverHalf:h,cityTerrainMaterial:surry?terrain:null,
     bounds:{minX:region==='bryce'?-9850:-(settings.flightHalf||h)+90,maxX:(settings.flightHalf||h)-90,minZ:-(settings.flightHalf||h)+90,maxZ:(settings.flightHalf||h)-90},waterLevel:settings.water,lakeLevel:settings.water,
     skyTexture:skyMap,sunDirection:sun,sunMask,trees,firTrees,forestLightSpan:2*h,longForest:newEngland||region==='yosemite'||region==='labrador',useFirForest:firTrees.length>0,altitudeOffset:0,
-    update(dt,t,player){clock.value=t;updateWeather?.(t,player,world.windField);updateHardwoods?.(player);if(water)water.material.uniforms.time.value=t*.65;}};
+    update(dt,t,player){clock.value=t;shoreDetail?.update(player);updateWeather?.(t,player,world.windField);updateHardwoods?.(player);if(water)water.material.uniforms.time.value=t*.65;}};
   return world;
 };

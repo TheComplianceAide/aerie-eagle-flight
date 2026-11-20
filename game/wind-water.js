@@ -63,6 +63,11 @@ window.addReadableWindWater=function(T,scene,world){
         wn=normalize(vec3(wn.xz*(1.+.45*front)+roughWater,wn.y).xzy);
         vec3 refl=reflect(-eye,wn);`)
         .replace('color=mix(color,river,wet);','color=mix(color,river*(1.-.39*front),wet);');
+    }else if(mesh.name==='Ashuelot River below Surry Dam'){
+      shader=shader.replace('vec3 N=normalize(vec3(slope.x,1.,slope.y));',`
+        float front=windOnWater(wp.xz);
+        slope+=catspawSlope(wp.xz,max(length(dFdx(wp.xz)),length(dFdy(wp.xz))),front*channelSpeed*.61);
+        vec3 N=normalize(vec3(slope.x,1.,slope.y));`);
     }else if(mesh.name==='Tropic Reservoir'){
       shader=shader.replace('vec3 r=reflect(-v,n);',`
         float front=windOnWater(p);

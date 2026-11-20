@@ -86,6 +86,11 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
     uniform vec3 sun;uniform float clock;varying vec2 tc;varying vec3 wp,n;
     `+skyColor+`
     float lum(vec3 c){return dot(c,vec3(.299,.587,.114));}
+    float riverGrain(vec2 p){
+      vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+      vec4 h=fract(sin(dot(i,vec2(61.7,37.3))+vec4(0.,61.7,37.3,99.))*4375.19);
+      return mix(mix(h.x,h.y,f.x),mix(h.z,h.w,f.x),f.y);
+    }
     // Local photographs are measured in metres. Rotate alternate samples to
     // break up the repetition across broad bars, retaining the pebble scale.
     vec3 gravel(vec2 p){
@@ -163,6 +168,12 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
       }
       float signedBank=(texture2D(bankMap,clamp(flowUv,0.,1.)).r-.5)*96.;
       float closeGround=1.-smoothstep(20.,180.,dist);
+      // Keep wash on the measured shoreline, including the small shelf that
+      // emerges between surges. The ortho mask remains authoritative at range.
+      float shorePhase=dot(wp.xz,vec2(.15,-.083))+riverGrain(wp.xz*.13)*2.8;
+      float wash=.28*sin(shorePhase-clock*1.32)+.13*sin(shorePhase*1.93-clock*.87);
+      float waterline=1.-smoothstep(wash-.29,wash+.31,signedBank);
+      wet=mix(wet,waterline,closeGround*(1.-smoothstep(1.,3.,abs(signedBank))));
       if(closeGround>.001){
         vec2 p=wp.xz;float sandy=smoothstep(.58,.88,normal.y);
         float gravelBar=(1.-smoothstep(4.,43.,signedBank))*sandy;
@@ -204,18 +215,31 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
       float groundPass=closeGround*(1.-face)*(1.-wet)*smoothstep(3.,26.,signedBank);
       vec3 pebbly=floorColor(scrubFloor,wp.xz,.16);
       dry=mix(dry,pebbly*vec3(1.12,.91,.76)*(indirect+sunward),.84*groundPass);
+      float damp=closeGround*(1.-smoothstep(.25,1.95,signedBank))*(1.-wet);
+      dry*=mix(vec3(1.),vec3(.61,.65,.67),damp);
       vec3 color=dry;
       if(wet>.002){
         vec2 dir=normalize((hyd.gb-.5)*2.+vec2(.0001));
-        vec2 here=wp.xz;
-        vec3 a=texture2D(ripple,(here-dir*clock*.95)*.030).rgb-.5;
-        vec3 b=texture2D(ripple,(here-dir*clock*1.75+vec2(clock*.09,0.))*.075).rgb-.5;
+        vec2 here=wp.xz,across=vec2(-dir.y,dir.x);
+        float bankMeters=max(0.,-signedBank),channel=smoothstep(.45,9.,bankMeters);
+        float sheltered=(1.-smoothstep(.8,9.,bankMeters))*smoothstep(.33,.73,riverGrain(here*.071));
+        float reach=riverGrain(here*.021+vec2(7.,-2.));
+        vec2 velocity=dir*(.14+channel*(.86+.62*reach)-.48*sheltered);
+        velocity+=across*sheltered*.22*sin(dot(here,vec2(.13,.087))-.53*clock);
+        // Blend backtraced parcels while either phase rewinds. This follows
+        // the surveyed bend without stretching the normal map over time.
+        float phase=fract(clock*.15+riverGrain(here*.058)*.21),other=fract(phase+.5);
+        float weight=abs(2.*phase-1.);
+        vec2 p0=here-velocity*(phase-.5)*6.67,p1=here-velocity*(other-.5)*6.67;
+        vec3 a=mix(texture2D(ripple,p0*.065).rgb,texture2D(ripple,p1*.065).rgb,weight)-.5;
+        vec3 b=mix(texture2D(ripple,p0*.171+vec2(.32,.18)).rgb,texture2D(ripple,p1*.171+vec2(.32,.18)).rgb,weight)-.5;
         float smallWave=1.-smoothstep(.85,4.5,max(fwidth(here.x),fwidth(here.y)));
-        vec3 wn=normalize(vec3((a.r+b.r*.36*smallWave)*.25,1.,(a.g+b.g*.36*smallWave)*.25));
-        vec2 across=vec2(-dir.y,dir.x);
-        float seam=sin(dot(here,dir)*.87-clock*1.47+sin(dot(here,across)*1.56));
-        float eddy=sin(dot(here,across)*2.29+dot(here,dir)*.32-clock*1.81);
-        vec2 riffle=(dir*seam*.095+across*eddy*.035)*smallWave;
+        float activity=.38+.62*channel;
+        vec3 wn=normalize(vec3((a.r+b.r*.52*smallWave)*.38*activity,1.,(a.g+b.g*.52*smallWave)*.38*activity));
+        float riffles=smoothstep(.40,.79,reach)*channel;
+        float seam=sin(dot(here,dir)*.79-clock*1.62+2.7*riverGrain(here*.20));
+        float eddy=sin(dot(here,across)*1.24+dot(here,dir)*.25-clock*1.2);
+        vec2 riffle=(dir*seam*(.019+.068*riffles)+across*eddy*(.019+.058*sheltered))*smallWave;
         wn=normalize(wn+vec3(riffle.x,0.,riffle.y));
         vec3 refl=reflect(-eye,wn);refl.y=max(.015,refl.y);
         float fres=.026+.974*pow(1.-max(0.,dot(wn,eye)),4.3);
@@ -227,27 +251,31 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
         // clear shallows looking down than it does across the grazing surface.
         float shallows=(1.-smoothstep(2.,24.,-signedBank))*closeGround;
         if(shallows>.001){
-          vec2 surfaceSlope=wn.xz;
           float depth=clamp(.16-.093*signedBank,.12,2.1);
-          vec2 bedUv=(here+surfaceSlope*depth*.95-eye.xz*depth*.47)*.70;
-          vec3 bed=gravel(bedUv)*vec3(.86,.96,.84);
+          vec3 transmitted=refract(-eye,wn,.7502);
+          vec2 bottom=here+transmitted.xz*depth/max(.23,-transmitted.y),bedUv=bottom*.70;
+          float bar=smoothstep(.28,.72,riverGrain(bottom*.105)+.12*(1.-channel));
+          vec3 sandBed=texture2D(sand,bottom*.45).rgb*vec3(.90,.85,.70);
+          vec3 bed=mix(gravel(bedUv)*vec3(.89,.94,.81),sandBed,.69*bar);
           vec3 bedTone=mix(vec3(.07,.105,.084),vec3(.50,.44,.31),smoothstep(.17,.74,lum(bed)));
           bed=mix(bed,bedTone,.45);
           vec3 micro=texture2D(pebbleNormal,bedUv).rgb*2.-1.;
           bed*=.72+.42*max(dot(normalize(vec3(micro.r,1.65,-micro.g)),sun),0.);
-          float caustic=pow(clamp(1.-6.*abs(a.r-b.g),0.,1.),4.);
-          bed+=vec3(.16,.16,.095)*caustic;
+          float caustic=pow(clamp(1.-6.*abs(a.r-b.g),0.,1.),4.)*smallWave*sunVisibility;
+          bed+=vec3(.18,.15,.081)*caustic*exp(-depth*.65);
           float clearView=pow(clamp(dot(eye,wn),0.,1.),.63)*exp(-depth*.43);
           vec3 clarity=mix(river,river*vec3(.66,1.03,.93)+vec3(.001,.033,.021),.7);
           vec3 clear=mix(clarity,bed,clamp(.17+1.16*clearView,0.,.95));
           river=mix(river,clear,shallows);
-          float fringe=exp(-abs(signedBank)*.65)*(.45+.55*sin(here.x*1.5+here.y*1.13+clock*2.5+4.*a.g));
+          float fringe=exp(-abs(signedBank-wash)*2.8)*smoothstep(.3,.75,riverGrain(here*.98)+.13*sin(shorePhase-clock));
           river+=fringe*vec3(.083,.076,.061);
         }
         float glint=pow(max(dot(wn,normalize(sun+eye)),0.),155.);
         river+=vec3(.67,.48,.25)*glint*sunVisibility;
-        float foam=smoothstep(.62,.96,seam*eddy)*exp(-abs(signedBank+3.)*.19)*smallWave;
-        river=mix(river,vec3(.70,.71,.59),foam*.29);
+        float lace=mix(riverGrain(p0*.90),riverGrain(p1*.90),weight);
+        float broken=1.-smoothstep(.022,.123,abs(lace-.54));
+        float foam=broken*(sheltered*.63+riffles*.11)*smoothstep(.44,.69,riverGrain(here*.23))*smallWave;
+        river=mix(river,vec3(.73,.74,.65),foam);
         color=mix(color,river,wet);
       }
       vec3 haze=mix(vec3(.67,.625,.64),vec3(.85,.70,.60),pow(max(dot(-eye,sun),0.),3.));
