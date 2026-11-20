@@ -433,7 +433,9 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
       const beat = effort * Math.sin(phase - .35 - .08 * (k % 6)) * 230 * freeFlight;
       // Separated flow at high angle of attack curls the tips upward.
       const curl = (pose.separation ?? 0) * (60 + 40 * (k % 6) / 5) * freeFlight;
-      force.copy(up).multiplyScalar(lift + flutter + beat + curl).addScaledVector(down, gravity)
+      // The leading (emarginated) primaries carry the most tip load and turn up most.
+      const tipShare = 1.5 - .12 * (k % 6);
+      force.copy(up).multiplyScalar(lift * tipShare + flutter + beat + curl).addScaledVector(down, gravity)
         .addScaledVector(back, (20 * q + 30 * effort) * freeFlight)
         .addScaledVector(nz, (rough2 * 116 + windGust * 25) * (.5 + hash(k + 90)));
       s.update(step, force, (1 - .85 * folded) * tune.primaries);
