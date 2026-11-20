@@ -454,7 +454,8 @@
     function adopt(role, buffer) {
       if (!buffer) return false;
       if (role === 'lake' || role === 'surf' || role === 'inlet') {
-        if ((spec.water || []).some(w => w.kind === 'shore')) return true;
+        // A world's own shore recording wins; the existing bed is its fallback.
+        if ((spec.water || []).some(w => w.kind === 'shore')) { fallback.shore = fallback.shore || buffer; return true; }
         if (!extraWater.some(w => w.role === role)) extraWater.push({role, buffer, kind: 'shore', ref: role === 'lake' ? 16 : 28, reach: role === 'lake' ? 650 : 1000, gain: role === 'lake' ? .7 : .85, maxR: 700, span: 150});
         // Small wavelets directly below when skimming open water.
         if (role === 'lake' && !extraBeds.some(b => b.role === 'wavelets'))
@@ -586,7 +587,7 @@
       }
       // Rivers, streams and rocky shores: three emitters on the nearest water.
       [...(spec.water || []), ...extraWater].forEach((w, k) => {
-        const b = clipOf(w) || (w.kind === 'river' ? fallback.river : null); if (!b) return;
+        const b = clipOf(w) || (w.kind === 'river' ? fallback.river : w.kind === 'shore' ? fallback.shore : null); if (!b) return;
         let entry = state.water[k];
         if (!entry) entry = state.water[k] = {emitters: []};
         // Lapping belongs on the nearest shoreline, never under the bird mid-lake.
