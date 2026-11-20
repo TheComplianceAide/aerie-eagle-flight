@@ -334,11 +334,16 @@ window.addHabitat = function addHabitat(THREE,scene,world,region) {
   const grassGeo=new THREE.BufferGeometry();
   grassGeo.setAttribute('position',new THREE.Float32BufferAttribute(blades,3));grassGeo.setAttribute('color',new THREE.Float32BufferAttribute(tints,3));grassGeo.setIndex(indices);grassGeo.computeVertexNormals();
   const grassMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,side:THREE.DoubleSide});
+  const plantWind=window.getCanopyWind(THREE,scene);
   grassMat.onBeforeCompile=s=>{
-    s.uniforms.habitatTime=clock;s.vertexShader='uniform float habitatTime;\n'+s.vertexShader.replace('#include <begin_vertex>',`#include <begin_vertex>
+    Object.assign(s.uniforms,plantWind.uniforms);
+    s.uniforms.habitatTime=clock;s.vertexShader=plantWind.glsl+'\nuniform float habitatTime;\n'+s.vertexShader.replace('#include <begin_vertex>',`#include <begin_vertex>
       vec2 root=instanceMatrix[3].xz;
-      float gust=sin(dot(root,vec2(.24,.11))+habitatTime*2.)+.4*sin(dot(root,vec2(.51,.36))-habitatTime*3.1);
-      transformed.xz+=vec2(.27,.13)*gust*position.y*position.y;`);
+      vec2 field=plantFront(root),motion=plantMotion(root,field,habitatTime,.94);
+      vec3 bx=instanceMatrix[0].xyz,bz=instanceMatrix[2].xyz;
+      vec2 offset=motion*position.y*position.y*3.2*length(instanceMatrix[1].xyz);
+      transformed.x+=dot(offset,bx.xz)/max(.001,dot(bx,bx));
+      transformed.z+=dot(offset,bz.xz)/max(.001,dot(bz,bz));`);
   };
   const grass=new THREE.InstancedMesh(grassGeo,grassMat,3400);
   const wood=new THREE.InstancedMesh(new THREE.CylinderGeometry(.65,1,1,9,2),new THREE.MeshStandardMaterial({map:repeat('shore-bark.webp',true),color:0xc8bb99,roughness:.97}),480);

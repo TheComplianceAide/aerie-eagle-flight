@@ -6,9 +6,7 @@
     alaska:{beds:{lake:'lapping-glacial',canopy:'leaves-boreal',ice:'ice',cascade:'falls-spray'},birds:['jay','thrush','ak-goose','ak-raven','ak-mallard','ak-dipper'],animals:['juneau-red-squirrel']},
     swiss:{beds:{lake:'lapping-glacial',canopy:'leaves-alpine',cascade:'falls-spray'},birds:['chough','dunnock','ch-accentor','ch-wagtail','ch-raven','ch-mallard'],animals:['alpine-marmot']},
     canyon:{beds:{river:'stream-rock'},birds:['canyon-wren','poorwill','az-raven','az-peregrine','az-rock-wren','az-merganser'],animals:['canyon-treefrog']},
-    napali:{beds:{surf:'surf',cascade:'falls-spray'},birds:['kauai-shearwater','apapane','hi-nene','hi-plover','hi-shama','hi-cardinal'],animals:['hawaiian-monk-seal']},
     yosemite:{beds:{canopy:'leaves-montane',river:'stream-forest',cascade:'falls-spray'},birds:['nutcracker','thrush','jay','yo-chickadee','yo-dipper','yo-acorn'],animals:['douglas-squirrel']},
-    bryce:{beds:{canopy:'leaves-montane'},birds:['bryce-raven','poorwill','bc-chickadee','bc-nuthatch','bc-woodpecker','bc-tanager'],animals:['golden-mantled-squirrel']},
     crater:{beds:{lake:'lapping-caldera',canopy:'leaves-montane'},birds:['nutcracker','jay','cl-bluebird','cl-junco','cl-robin','cl-raven'],animals:['american-pika']},
     lofoten:{beds:{inlet:'inlet'},birds:['kittiwake','oystercatcher','meadow-pipit','no-eider','no-gull','no-tern'],animals:['norwegian-sheep']},
     milford:{beds:{lake:'lapping-fjord',cascade:'falls-spray'},birds:['bellbird','kea','nz-shelduck','nz-fantail','nz-tomtit','nz-tui'],animals:['nz-fur-seal']},
@@ -28,7 +26,6 @@
     "ak-raven":["raven","rock",265],
     "ch-raven":["raven","rock",265],
     "az-raven":["raven","rock",265],
-    "bryce-raven":["raven","rock",265],
     "cl-raven":["raven","rock",265],
     "ak-dipper":["dipper","bank",110],
     "yo-dipper":["dipper","bank",110],
@@ -37,16 +34,8 @@
     "az-peregrine":["peregrine","rock",230],
     "az-rock-wren":["rock-wren","rock",115],
     "az-merganser":["merganser","water",145],
-    "hi-shama":["shama","lowTree",130],
-    "hi-plover":["plover","coast",145],
-    "hi-nene":["nene","grazing",220],
-    "hi-cardinal":["cardinal","tree",110],
     "yo-chickadee":["mountain-chickadee","tree",90],
-    "bc-chickadee":["mountain-chickadee","tree",90],
     "yo-acorn":["acorn-woodpecker","tree",115],
-    "bc-nuthatch":["nuthatch","tree",90],
-    "bc-woodpecker":["hairy-woodpecker","tree",100],
-    "bc-tanager":["tanager","tree",105],
     "cl-bluebird":["bluebird","ground",110],
     "cl-junco":["junco","ground",100],
     "cl-robin":["robin","tree",130],
@@ -68,8 +57,6 @@
     "dunnock":["dunnock","lowTree",90],
     "canyon-wren":["canyon-wren","rock",135],
     "poorwill":["poorwill","ground",135],
-    "kauai-shearwater":["shearwater","coast",210],
-    "apapane":["apapane","highTree",125],
     "kittiwake":["kittiwake","coast",275],
     "oystercatcher":["oystercatcher","coast",220],
     "meadow-pipit":["pipit","ground",100],
@@ -122,7 +109,6 @@
     "canyon-wren":[0.15,0.2],
     "poorwill":[0.2,0.41],
     "shearwater":[0.42,1.02],
-    "apapane":[0.14,0.22],
     "kittiwake":[0.4,0.96],
     "oystercatcher":[0.42,0.83],
     "pipit":[0.15,0.24],
@@ -197,7 +183,7 @@
     if(kind==='bank'||kind==='beach'||kind==='coast'){
       if(!shore)return null;
       if(kind==='beach'){
-        const beach=feature(world.landmarks||[],/Kalalau Beach|beach/i,shore.x,shore.z);
+        const beach=feature(world.landmarks||[],/beach/i,shore.x,shore.z);
         if(beach.distance>600)return null;
       }
       const level=Math.max(ground(shore.x,shore.z),Number.isFinite(world.waterLevel)?waterY:world.height(shore.x,shore.z));
@@ -299,7 +285,7 @@
         if(windSource){windSource.stop(now+.32);windSource=null;}
         for(const bed of loops.values())bed.source.stop(now+.32);
         for(const shot of shots)shot.source.stop(now+.32);
-        loops.clear();
+        loops.clear();retireEchoes(true);
         return;
       }
       windSource=context.createBufferSource();windSource.buffer=airBuffer;windSource.loop=true;
@@ -321,7 +307,7 @@
       if(!anchor)c.pan.pan.value=pan;
       c.filter.frequency.value=cutoff;
       c.source.playbackRate.value=random(.982,1.015);
-      shots.add(c);
+      shots.add(c);reflectCall(c,anchor);
       c.source.onended=()=>{shots.delete(c);release(c);};
       c.source.start();return true;
     }
@@ -343,6 +329,31 @@
       }
       return null;
     }
+    const ears={x:0,y:0,z:0},gustSample={},returns=new Set();
+    let walls=[],nextWalls=-1,wallX=Infinity,wallY=Infinity,wallZ=Infinity;
+    function reflectCall(c,anchor){
+      const now=context.currentTime;
+      for(const wall of walls){
+        const source=anchor||ears;
+        const direct=Math.hypot(source.x-ears.x,source.y-ears.y,source.z-ears.z);
+        const path=wall.range+Math.hypot(source.x-wall.x,source.y-wall.y,source.z-wall.z);
+        const delay=(path-direct)/343;
+        if(delay<.041||delay>1.9)continue;
+        const level=wall.strength*.53*(anchor?.gain||.77)/(1+Math.max(0,path-2*wall.range)/210);
+        if(level<.022)continue;
+        const lag=context.createDelay(2),muffle=context.createBiquadFilter(),pan=context.createStereoPanner(),send=context.createGain();
+        lag.delayTime.value=delay;muffle.type='lowpass';muffle.frequency.value=7000/(1+path/360);
+        pan.pan.value=clamp(wall.dx*(-forward.z)+wall.dz*forward.x,-1,1)*.92;send.gain.value=level;
+        c.source.connect(lag).connect(muffle).connect(pan).connect(send).connect(master);
+        const endAt=now+c.source.buffer.duration/c.source.playbackRate.value+delay+.12;
+        returns.add({lag,muffle,pan,send,endAt});
+      }
+    }
+    function retireEchoes(all=false){
+      for(const e of returns)if(all||context.currentTime>=e.endAt){
+        e.lag.disconnect();e.muffle.disconnect();e.pan.disconnect();e.send.disconnect();returns.delete(e);
+      }
+    }
     let lastShore=null,shoreX=Infinity,shoreZ=Infinity,shoreSearchLow=false;
     function update(s,world,dt,camera,stage='free'){
       if(!enabled||!s||!world)return;
@@ -359,6 +370,12 @@
       if(tick>0)return;
       tick=.18;
       const now=context.currentTime,points=world.landmarks||[];
+      const listener=camera?.position||s;
+      ears.x=listener.x;ears.y=listener.y;ears.z=listener.z;
+      if(now>=nextWalls||Math.hypot(ears.x-wallX,ears.y-wallY,ears.z-wallZ)>25){
+        walls=window.aerieEchoSurfaces(world,ears);nextWalls=now+.54;wallX=ears.x;wallY=ears.y;wallZ=ears.z;
+      }
+      retireEchoes();
       const agl=Math.max(0,s.y-world.height(s.x,s.z));
       const waterY=world.waterLevel??world.lakeLevel??(region==='canyon'?8:0);
       const waterGap=Math.max(0,s.y-waterY);
@@ -381,13 +398,13 @@
         }
       }
       const shore=lastShore?Math.hypot(lastShore.x-s.x,lastShore.z-s.z):Infinity;
-      const shoreGain=attenuation(Math.hypot(waterGap,shore*.65),region==='napali'?245:120);
+      const shoreGain=attenuation(Math.hypot(waterGap,shore*.65),120);
       const tree=agl<145?world.habitat.nearestTree(s.x,s.z,80):null;
       const canopy=tree?attenuation(Math.hypot(s.x-tree.x,s.y-tree.y-tree.height*.63,s.z-tree.z),30):0;
       const land=world.elevation||world.height,here=land(s.x,s.z);
       const ridge=clamp((here-(land(s.x-90,s.z-42)+land(s.x+74,s.z-53)+land(s.x+21,s.z+99))/3-3)/37,0,1);
       const exposure=clamp((agl-12)/190+.51*ridge*(1-.63*canopy),0,1);
-      const gust=window.aerieWind(s.x,s.z,s.elapsed||0);
+      const gust=world.windField?.sample(s.x,s.y,s.z,s.elapsed||0,gustSample)?.gust??window.aerieWind(s.x,s.z,s.elapsed||0);
       const speed=clamp((s.airspeed||0)/32,0,1.3);
       air.gain.setTargetAtTime((.045+.12*speed+.63*exposure)*(.70+.37*gust)*(1-.46*canopy),now,.55);
       shelf.frequency.setTargetAtTime(550+1320*speed+2850*exposure+530*gust,now,.55);
@@ -396,30 +413,35 @@
         const a=shot.anchor;
         if(a.actor){a.x=a.actor.x;a.y=a.actor.y;a.z=a.actor.z;place(shot.pan,a.x,a.y,a.z);}
         const d=Math.hypot(s.x-a.x,s.y-a.y,s.z-a.z);
-        shot.gain.gain.setTargetAtTime(a.gain*(1-clamp((d/a.reach-.54)/.46,0,1)),now,.20);
-        shot.filter.frequency.setTargetAtTime(2400+12400*attenuation(d,a.reach*.57),now,.28);
+        const cover=window.aerieSoundPath(world,ears,a);
+        shot.gain.gain.setTargetAtTime(a.gain*(1-.57*cover)*(1-clamp((d/a.reach-.54)/.46,0,1)),now,.20);
+        shot.filter.frequency.setTargetAtTime((2400+12400*attenuation(d,a.reach*.57))*Math.exp(-2.45*cover),now,.18);
       }
-      const falls=feature(points,/falls|waterfall|cascade/i,s.x,s.z);
+      const falls=profile.beds.cascade?window.aerieCascadeSource(world,ears):null;
       const ice=feature(points,/ice passage|mendenhall glacier|crevass|terminus/i,s.x,s.z);
       const rivers=feature(points,/river|sandbar|meadow|riverbank/i,s.x,s.z);
       for(const [id,c] of loops){
-        let g=0,pan=0;
-        if(id==='canopy')g=.42*canopy;
+        let g=0,pan=0,cover=0;
+        if(id==='canopy')g=(.24+.47*gust)*canopy;
         if(id==='crickets')g=.31*ground;
         if(id==='lake')g=.59*shoreGain;
         if(id==='surf')g=.73*shoreGain;
         if(id==='inlet')g=.66*shoreGain;
         if(id==='river')g=.57*ground*attenuation(rivers.distance,1200);
-        if(id==='cascade'||id==='ice'){
-          const at=id==='ice'?ice:falls,reach=id==='ice'?960:620;
-          const dist=Math.hypot(at.distance,agl*.8);
-          g=(id==='ice'?.80:.64)*attenuation(dist,reach);
-          if(at.distance>1&&Number.isFinite(at.distance))
-            pan=clamp((at.dx*Math.cos(s.yaw)-at.dz*Math.sin(s.yaw))/at.distance,-1,1)*.68;
+        if(id==='ice'&&Number.isFinite(ice.distance)){
+          g=.80*attenuation(Math.hypot(ice.distance,agl*.8),960);
+          if(ice.distance>1)pan=clamp((ice.dx*Math.cos(s.yaw)-ice.dz*Math.sin(s.yaw))/ice.distance,-1,1)*.68;
+        }
+        if(id==='cascade'&&falls){
+          const dx=falls.x-ears.x,dz=falls.z-ears.z;
+          cover=window.aerieSoundPath(world,ears,falls);
+          const pulse=window.aerieChutePulse(falls.x,falls.z,s.elapsed||0);
+          g=(.59+.14*pulse)*attenuation(falls.distance,340)*(1-.40*cover);
+          pan=clamp((dx*(-forward.z)+dz*forward.x)/Math.max(1,Math.hypot(dx,dz)),-1,1)*(.88-.26*cover);
         }
         c.pan.pan.setTargetAtTime(pan,now,.45);
         c.gain.gain.setTargetAtTime(g,now,.55);
-        c.filter.frequency.setTargetAtTime(2200+12000*clamp(g*1.7,0,1),now,.65);
+        c.filter.frequency.setTargetAtTime((2200+12000*clamp(g*1.7,0,1))*Math.exp(-2.92*cover),now,.26);
       }
       if(stage!==previousStage){
         if(stage==='push'||stage==='perched'){

@@ -117,15 +117,9 @@ https://creativecommons.org/licenses/by/4.0/
 
 Aerie — additional landscapes
 
-Yosemite Valley, Bryce Canyon National Park and Crater Lake National Park:
-Aerial photography from USDA's National Agriculture Imagery Program, delivered by USGS The National Map. Heights are resampled USGS 3D Elevation Program (3DEP) terrain. The central 2.9 km of Bryce Amphitheater uses fins and hoodoos measured by the 2018 Southern Utah QL1 USGS survey. Its one-meter lidar elevation product was sampled at 1.42 m for the game. Trees and waterfalls are simulated.
+Yosemite Valley and Crater Lake National Park:
+Aerial photography from USDA's National Agriculture Imagery Program, delivered by USGS The National Map. Heights are resampled USGS 3D Elevation Program (3DEP) terrain. Trees and waterfalls are simulated.
 https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer
-https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer
-
-Nā Pali Coast:
-USDA Natural Resources Conservation Service historical 1962–1966 Hawaii orthophotography, matched to 2022 Copernicus Sentinel-2 natural-color imagery. USGS 3DEP terrain.
-https://apps.geo.fpac.usda.gov/nrcs-imagery/rest/services/ortho_imagery/hawaii_1962_1966_30cm/ImageServer
-https://earth-search.aws.element84.com/v1/collections/sentinel-2-l2a/items/S2A_4QDK_20220821_0_L2A
 https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer
 
 Reinefjorden, Lofoten:
@@ -405,7 +399,7 @@ Moss, sticks and leaves on the woodland floor, CC0. https://polyhaven.com/a/fore
 New audio license links: https://creativecommons.org/licenses/by/4.0/ (meadow pipit), https://creativecommons.org/licenses/by-sa/4.0/ (dunnock), https://creativecommons.org/publicdomain/zero/1.0/ (ʻapapane).
 
 Outer terrain and waterways
-Regional imagery and hill relief use USGS National Map NAIP and 3DEP, swisstopo SWISSIMAGE, and modified Copernicus Sentinel-2 and DEM GLO-30 products. The Mendenhall surface lighting uses the local ArcticDEM described above. Regional colour was matched to the game lighting. North American stream centerlines use USGS National Hydrography Dataset flowlines. Channel widths and water levels are visual estimates. Bryce Canyon is shown with seasonal flow.
+Regional imagery and hill relief use USGS National Map NAIP and 3DEP, swisstopo SWISSIMAGE, and modified Copernicus Sentinel-2 and DEM GLO-30 products. The Mendenhall surface lighting uses the local ArcticDEM described above. Regional colour was matched to the game lighting. North American stream centerlines use USGS National Hydrography Dataset flowlines. Channel widths and water levels are visual estimates.
 https://www.usgs.gov/programs/national-geospatial-program/national-map
 https://www.swisstopo.admin.ch/en/orthoimage-swissimage
 https://dataspace.copernicus.eu/
@@ -695,3 +689,7 @@ https://doi.org/10.1098/rstb.2015.0398
 
 SHORELINES AND SHALLOW WATER
 The Swiss and Alaskan shoreline fields are derived from the intersections of the in-game lake outlines and terrain surveys credited above. Shallow gravel profiles, wetting, suspended sediment, and currents are artistic simulations. Shore beds reuse the Poly Haven CC0 photographic materials credited under ground materials.
+
+Crater Lake storm photography uses the sky-only upper hemisphere of Cedar Bridge Sunset 1, photographed by Dario Barresi for Poly Haven, CC0. The storm position, lighting and rain over the caldera are simulated.
+https://polyhaven.com/a/cedar_bridge_sunset_1
+https://polyhaven.com/license

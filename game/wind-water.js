@@ -68,13 +68,6 @@ window.addReadableWindWater=function(T,scene,world){
         float front=windOnWater(wp.xz);
         slope+=catspawSlope(wp.xz,max(length(dFdx(wp.xz)),length(dFdy(wp.xz))),front*channelSpeed*.61);
         vec3 N=normalize(vec3(slope.x,1.,slope.y));`);
-    }else if(mesh.name==='Tropic Reservoir'){
-      shader=shader.replace('vec3 r=reflect(-v,n);',`
-        float front=windOnWater(p);
-        vec2 roughWater=catspawSlope(p,max(length(dFdx(p)),length(dFdy(p))),front);
-        n=normalize(vec3(n.xz*(1.+.42*front)+roughWater,n.y).xzy);
-        vec3 r=reflect(-v,n);`)
-        .replace('gl_FragColor=vec4(mix(vec3(.14,.29,.26)', 'gl_FragColor=vec4((1.-.42*front)*mix(vec3(.14,.29,.26)');
     }else if(mesh.name==='Mapped stream channels'){
       shader=shader.replace('vec3 n=normalize(vec3(-slope.x',`
         float front=windOnWater(wp.xz);

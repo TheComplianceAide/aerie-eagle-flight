@@ -15,6 +15,18 @@ window.makeFlightLight = function makeFlightLight(THREE, renderer, scene, world,
   shadow.bias=-.00005;
   scene.add(light.target);
   const directVisibility={value:1};
+  const probe=window.makeTerrainBounce(THREE,scene,world);
+  const terrainLighting=`
+    vec3 facing=inverseTransformDirection(geometryNormal,viewMatrix);
+    vec3 weight=facing*facing;
+    int ix=facing.x>=0.?0:1,iz=facing.z>=0.?2:3,iy=facing.y>=0.?4:5;
+    vec3 diffuseTerrain=weight.x*terrainBounce[ix]+weight.y*terrainBounce[iy]+weight.z*terrainBounce[iz];
+    float cover=weight.x*terrainCover[ix]+weight.y*terrainCover[iy]+weight.z*terrainCover[iz];
+    reflectedLight.indirectDiffuse*=1.-.40*clamp(cover,0.,1.);
+    // Thin overlapping vanes scatter a small fraction of incident side light
+    // through their edges. The dominant lobe remains on the illuminated side.
+    vec3 sideLight=.25*(terrainBounce[0]+terrainBounce[1]+terrainBounce[2]+terrainBounce[3]);
+    reflectedLight.indirectDiffuse+=material.diffuseColor*(diffuseTerrain+.22*sideLight);`;
   const changed=new Set();
   const lightChunk=THREE.ShaderChunk.lights_fragment_begin.replace(
     'getDirectionalLightInfo( directionalLight, directLight );',
@@ -31,7 +43,10 @@ window.makeFlightLight = function makeFlightLight(THREE, renderer, scene, world,
       m.onBeforeCompile=function(shader,renderer){
         before.call(this,shader,renderer);
         shader.uniforms.birdSunVisibility=directVisibility;
-        shader.fragmentShader='uniform float birdSunVisibility;\n'+shader.fragmentShader.replace('#include <lights_fragment_begin>',lightChunk);
+        shader.uniforms.terrainBounce={value:probe.value};shader.uniforms.terrainCover={value:probe.blocked};
+        shader.fragmentShader='uniform float birdSunVisibility;uniform vec3 terrainBounce[6];uniform float terrainCover[6];\n'+shader.fragmentShader
+          .replace('#include <lights_fragment_begin>',lightChunk)
+          .replace('#include <lights_fragment_end>','#include <lights_fragment_end>\n'+terrainLighting);
       };
       m.customProgramCacheKey=()=>cacheKey+':sun-occlusion';
     }
@@ -125,6 +140,7 @@ window.makeFlightLight = function makeFlightLight(THREE, renderer, scene, world,
   let nextSample=-1,previousTime=-1,exposure=1,target=1;
   const sampleLengths=[8,18,40,85,160,300,550,950,1600,2700,4500,7200,11000];
   function update(player,elapsed){
+    probe.update(player,elapsed);
     light.position.copy(player).addScaledVector(sun,7);
     light.target.position.copy(player);
     if(elapsed<previousTime)nextSample=-1;

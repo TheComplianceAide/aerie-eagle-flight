@@ -1054,7 +1054,7 @@ window.makeEagle = function makeEagle(THREE) {
     const wake=Math.sin(wakePhase);
     const spread=-.44+.32*smooth(.14,1.08,Math.abs(bank))+.21*Math.abs(rollTrim)+.27*stall+
       .095*effort+slowStroke*(.18+.23*wake)-.24*tuck;
-    const tailFan=blend(clamp(spread+1.01*tailBrake,-.68,.65),-.04,folded);
+    const tailFan=blend(clamp(spread+1.01*tailBrake,-.68,.65),-.04,folded)+(air.perchBalance||0)*.34;
     const cup=(.072*tailBrake+slowStroke*(.055+.072*wake))*(1-folded);
     for(const {side,ray} of tailRays){
       const outer=Math.abs(side);
@@ -1064,7 +1064,7 @@ window.makeEagle = function makeEagle(THREE) {
     }
     rudder.rotation.y=blend(-.085*bank+.088*rollTrim,0,folded);
     rudder.rotation.x=.085*pitch+.045*(air.climb||0)+.08*stall+.08*Math.abs(rollTrim)-.18*slowStroke*wake;
-    rudder.rotation.x=blend(rudder.rotation.x-.30*tailBrake,-.19,folded);
+    rudder.rotation.x=blend(rudder.rotation.x-.30*tailBrake,-.19,folded)-(air.perchBalance||0)*.12;
     // Long rectrices clear a ledge as the eagle loads its legs. From a tree
     // limb they can hang further below its feet as the breast rises.
     const tailDownLimit=air.perchOnRock ? .14+.14*folded-.11*compression : .56+.10*folded-.42*perchPivot;

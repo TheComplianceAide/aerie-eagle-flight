@@ -3,11 +3,10 @@
 window.addRegionalWildlife=function(T,scene,w){
   const region=w.region,{birds,sizes,species,scenes}=window.aerieFauna,profile=scenes[region];
   const ground=w.elevation||w.height,h=w.habitat,models=window.makeWildlifeModels(T,scene);
-  const reservoir=region==='bryce'?window.tropicReservoir.build(T,scene,w):null;
   const feedingFish={dixville:'brook-trout',moosehead:'atlantic-salmon',labrador:'brook-trout'}[region];
   const stations={alaska:[-424,-476],swiss:[-613,437],canyon:[-322,-32],yosemite:[-728,1256],
-    bryce:[-8990,1898],crater:[-3209,1679],lofoten:[923,2104],milford:[2371,3244],
-    napali:[-2535,272],winnipesaukee:[1210,1854],moosehead:[648,-662],surry:[-1142,-3101]};
+    crater:[-3209,1679],lofoten:[923,2104],milford:[2371,3244],
+    winnipesaukee:[1210,1854],moosehead:[648,-662],surry:[-1142,-3101]};
   const tau=2*Math.PI,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const sCurve=f=>{f=clamp(f,0,1);return f*f*(3-2*f);};
   function randomAt(x,z){
@@ -17,7 +16,6 @@ window.addRegionalWildlife=function(T,scene,w){
   let lakeOffset=0;
   scene.traverse(o=>{if(o.isWater&&Number.isFinite(w.waterLevel))lakeOffset=o.position.y-w.waterLevel;});
   function waterAt(x,z){
-    if(reservoir)return window.tropicReservoir.distance(x,z)>0?window.tropicReservoir.level:-Infinity;
     const channel=w.channelWater?.(x,z);
     if(Number.isFinite(channel))return channel;
     const y=ground(x,z);
@@ -167,13 +165,6 @@ window.addRegionalWildlife=function(T,scene,w){
         sites.set(site.key,site);w.landmarks.push({name:'Forest bird lookout',x:site.x,z:site.z,discoveryRadius:110});
       }
     }
-    if(region==='napali'){
-      const beach=w.landmarks.find(p=>/kalalau beach/i.test(p.name));
-      if(beach){const water=findWater(beach.x,beach.z,250);
-        if(water){const site={key:'seal-beach',curated:true,x:beach.x,z:beach.z,water,flocks:[],schools:[]};
-          placeGroup(site,'hawaiian-monk-seal',randomAt(site.x,site.z));sites.set(site.key,site);}
-      }
-    }
     let launchHeight=4.8;
     const clearance=w.flightClearance||w.clearance||w.height;
     const wind=w.windField.sample(pick.x,pick.y+5,pick.z,0);
@@ -245,7 +236,7 @@ window.addRegionalWildlife=function(T,scene,w){
         }
       }
     }
-    const shallows={bryce:'Tropic Reservoir shallows',moosehead:'Wildlife shallows · Salmon rise',labrador:'Wildlife shallows · Brook trout'}[region]||'Wildlife shallows';
+    const shallows={moosehead:'Wildlife shallows · Salmon rise',labrador:'Wildlife shallows · Brook trout'}[region]||'Wildlife shallows';
     w.landmarks.push({name:shallows,x:pick.x,z:pick.z,discoveryRadius:72,
       approach:[launch.x,launch.z,launch.x-30*Math.sin(launch.yaw),launch.z-30*Math.cos(launch.yaw),launchHeight,launch.glance]});
   }
@@ -349,7 +340,7 @@ window.addRegionalWildlife=function(T,scene,w){
     return best;
   }
   function update(player,t){
-    prepare();if(reservoir)reservoir.value=t;
+    prepare();
     const dt=lastTime<0?0:clamp(t-lastTime,0,.15);lastTime=t;
     if(t>=nextCheck||t===0){
       nextCheck=t+.8;

@@ -26,20 +26,6 @@
       path: [[-656,951,16],[-777,1013,13],[-879,1073,20]],
       perch: ['branch',-920,1132,'Meadow-edge conifer'],
     },
-    napali: {
-      name: 'Kalalau surf and sea cliffs', sight: 'Kalalau Beach',
-      // The survey landmark is offshore. Use the visible strand for the fly-by.
-      sightPoint: [-1540,89,'Kalalau strand'],
-      label: 'Trace the surf below Kalalau, then bank toward the exposed basalt point.',
-      path: [[-1330,-61,18],[-1530,44,14],[-1740,142,14],[-1907,145,17]],
-      perch: ['ledge',-1955,186,'Kalalau basalt point'],
-    },
-    bryce: {
-      name: 'Thor’s Hammer amphitheater', sight: 'Thor’s Hammer',
-      label: 'Thread the amphitheater past Thor’s Hammer to a sandstone bench.',
-      path: [[-950,-168,19],[-1007,-192,16],[-1055,-240,16],[-1081,-279,14]],
-      perch: ['ledge',-1100,-298,'Amphitheater sandstone bench'],
-    },
     crater: {
       name: 'Wizard Island cinder shore', sight: 'Wizard Island',
       sightPoint: [-1602,357,'Wizard Island cinder shore'],

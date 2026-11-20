@@ -35,9 +35,10 @@ window.addHardwoods=function addHardwoods(T,scene,trees,options){
   function texture(file){
     const tex=loader.load(file);tex.anisotropy=8;return tex;
   }
-  const maritime=region==='milford'||region==='napali';
+  const wind=window.getCanopyWind(T,scene);
+  const maritime=region==='milford';
   const leaf=texture(maritime?'island-branches.webp':'hardwood-branches.webp');
-  const uniforms={
+  const uniforms={...wind.uniforms,
     profile:{value:texture(maritime?'island-profile.webp':'hardwood-profiles.webp')},canopy:{value:texture(maritime?'island-crown.webp':'hardwood-crowns.webp')},
     leaves:{value:leaf},forestLight:{value:sunMask},sun:{value:sun},clock,
     haze:{value:fogColor},span:{value:half*2}
@@ -59,6 +60,7 @@ window.addHardwoods=function addHardwoods(T,scene,trees,options){
     #include <colorspace_fragment>
   }`;
   const mat=new T.ShaderMaterial({side:T.DoubleSide,uniforms,vertexShader:`
+    ${wind.glsl}
     attribute vec3 root;attribute vec4 form;
     uniform float clock,span;uniform vec3 sun;uniform sampler2D forestLight;
     varying vec2 coord;varying float species,tilt,keyLight,fade,orientation,atmosphere,phase;
@@ -71,8 +73,10 @@ window.addHardwoods=function addHardwoods(T,scene,trees,options){
       // The center rises toward the upper crown as its underside disappears.
       center.y+=form.y*.19*high*high;
       vec3 p=center+right*position.x*form.x+up*position.y*height;
-      p.x+=.06*form.y*.12*sin(clock*1.16+form.z*29.)*uv.y*uv.y;
-      coord=uv;species=form.w;tilt=smoothstep(.39,.91,high);phase=form.z;
+      vec2 front=plantFront(root.xz),motion=plantMotion(root.xz,front,clock,.24);
+      p.xz+=form.y*.29*motion*uv.y*uv.y;
+      p.y-=form.y*.08*dot(motion,motion)*uv.y;
+      coord=uv;species=form.w;tilt=smoothstep(.39,.91,high);phase=form.z+front.x*.68;
       keyLight=texture2D(forestLight,vec2(root.x,-root.z)/span+.5).r;
       orientation=dot(right,sun);
       float dist=distance(center,cameraPosition);
@@ -160,19 +164,23 @@ window.addHardwoods=function addHardwoods(T,scene,trees,options){
   const speciesAttr=new T.InstancedBufferAttribute(new Float32Array(stems.instanceMatrix.count),1);
   twigGeometry.setAttribute('kind',speciesAttr);
   const closeMat=new T.ShaderMaterial({side:T.DoubleSide,uniforms,vertexShader:`
+    ${wind.glsl}
     attribute float kind;uniform float clock,span;uniform vec3 sun;uniform sampler2D forestLight;
     varying vec2 coord;varying float species,illum,fade,atmosphere;
     void main(){
       vec3 root=instanceMatrix[3].xyz;vec3 p=position;
-      float gust=sin(clock*.69+dot(root.xz,vec2(.033,.018)));
-      float bend=(.0068*gust+.0031*sin(clock*2.15+root.z*.093+p.x*8.))*p.y*p.y;
-      p.xz+=vec2(bend,.47*bend);
-      p.y+=.004*sin(clock*3.25+dot(root.xz,vec2(.087,.05))+p.z*14.)*uv.y;
+      vec2 front=plantFront(root.xz),motion=plantMotion(root.xz,front,clock,.24);
+      float height=length(instanceMatrix[1].xyz),tip=clamp(p.y,0.,1.);
+      float flick=sin(clock*4.2+root.z*.091+p.z*17.+p.x*12.);
       vec3 world=(instanceMatrix*vec4(p,1.)).xyz;
-      vec3 normalWorld=normalize(mat3(instanceMatrix)*normal);
+      world.xz+=height*tip*tip*(motion*.29+canopyDownwind*front.x*.018*flick*uv.y);
+      world.y+=height*tip*uv.y*front.x*.009*flick;
+      vec3 normalWorld=normalize(mat3(instanceMatrix)*normal+
+                        vec3(canopyDownwind.x,.2,canopyDownwind.y)*flick*front.x*.66);
       float light=texture2D(forestLight,vec2(root.x,-root.z)/span+.5).r;
       float transmission=pow(max(0.,dot(normalize(world-cameraPosition),sun)),3.);
       illum=(.55+.28*max(dot(normalWorld,sun),0.)+.21*max(0.,p.y)+.23*transmission)*mix(.64,1.,light);
+      illum*=1.+front.x*tip*(.16+.13*flick);
       coord=uv;species=kind;
       float dist=length(cameraPosition-root-vec3(0.,.5*length(instanceMatrix[1].xyz),0.));
       fade=smoothstep(85.,175.,dist);atmosphere=0.;

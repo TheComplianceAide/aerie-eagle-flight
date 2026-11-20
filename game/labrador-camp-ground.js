@@ -7,7 +7,7 @@ window.addBerteCampGround=function addBerteCampGround(T,scene,root,{site,floor,g
   const grids=[];
   scene.traverse(o=>{
     const g=o.geometry,p=g?.attributes?.position,cols=g?.parameters?.widthSegments+1;
-    if(!p||!o.material?.uniforms?.wetMask||!Number.isFinite(cols))return;
+    if(!p||!o.material?.uniforms?.shoreLevel||!Number.isFinite(cols))return;
     const rows=p.count/cols,left=p.getX(0),right=p.getX(cols-1),top=p.getZ(0),bottom=p.getZ(p.count-1);
     if(site.x+90>=left&&site.x-90<=right&&site.z+90>=top&&site.z-90<=bottom)grids.push({p,cols,rows,left,right,top,bottom});
   });

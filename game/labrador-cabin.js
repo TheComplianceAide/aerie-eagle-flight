@@ -339,5 +339,5 @@ window.addLabradorCabin = function addLabradorCabin(T, scene, world, site) {
   }
   scene.add(root);
   const campTrees=window.addBerteCampGround(T,scene,root,{site,floor,ground,water,waterDistance,texture});
-  return {root,clearance,inClearing,campTrees};
+  return {root,clearance,inClearing,campTrees,roofs,waterDistance};
 };

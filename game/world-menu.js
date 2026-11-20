@@ -1,7 +1,7 @@
 (() => {
   const worlds = {
-    alaska: { name: ['Mendenhall', 'Glacier'], region: 'Juneau, Alaska', description: 'Follow the western crest above the icefield, then descend over spruce forest to Mendenhall Lake.', launches: { lake: 'Glacier terminus', ridge: 'West Glacier Ridge', shore: 'Nugget Falls beach', spray: 'Nugget Falls spray pass', alpine: 'West alpine crest' } },
-    canyon: { name: ['Horseshoe', 'Bend'], region: 'Arizona, USA', description: 'Bank around the sandstone bend and follow the Colorado River below the rim.', launches: { lake: 'Horseshoe overlook', ridge: 'River corridor', shore: 'Colorado sandbar' } },
+    alaska: { name: ['Mendenhall', 'Glacier'], region: 'Juneau, Alaska', description: 'Follow the western crest above the icefield, then descend over spruce forest to Mendenhall Lake.', launches: { lake: 'Glacier terminus', ridge: 'West Glacier Ridge', shore: 'Nugget Falls beach', spray: 'Nugget Falls spray pass', spur: 'Around the Nugget Falls spur', alpine: 'West alpine crest' } },
+    canyon: { name: ['Horseshoe', 'Bend'], region: 'Arizona, USA', description: 'Bank around the sandstone bend and follow the Colorado River below the rim.', launches: { lake: 'Horseshoe overlook', ridge: 'River corridor', shore: 'Colorado sandbar', wall: 'Sunlit sandstone wall' } },
     swiss: { name: ['Oeschinen', 'Lake'], region: 'Bernese Alps, Switzerland', description: 'Follow the waterfalls from the high cliffs to the spruce-lined lakeshore.', launches: { lake: 'Lake overlook', falls: 'Waterfall approach', forest: 'Forest edge', shore: 'Western gravel beach' } }
   };
   Object.assign(worlds,{
@@ -9,17 +9,15 @@
     surry: {name:['Surry Dam','& Keene'],region:'New Hampshire, USA',description:'Skim the dam and its wooded reservoir, then follow the Ashuelot River valley to downtown Keene.',launches:{lake:'Surry Mountain Dam',ridge:'Keene Main Street',valley:'Ashuelot Valley overlook'}},
     dixville: {name:['Dixville','Notch'],region:'Dawn · New Hampshire, USA',description:'Cross Lake Gloriette toward the red roofs of the Balsams. Dawn lights the autumn hardwoods above Route 26 and the split ledge of Table Rock.',launches:{dawn:'First light on Table Rock',lake:'Dawn over Lake Gloriette',hotel:'The Balsams flyby',highway:'Route 26 through the notch',ridge:'Table Rock overlook',panorama:'Resort and notch panorama'}},
     labrador: {name:['Lac','Berté'],region:'Côte-Nord, Québec, Canada',description:'A sun shower crosses the narrows. Follow the rainbow over the spruce islands or skim the white cabin and log steps on the point.',launches:{rainbow:'Rainbow over the narrows',cabin:'Cabin flyby',lake:'Lake overlook',ridge:'Spruce narrows'}},
-    moosehead: {name:['Moosehead','Lake'],region:'Maine, USA',description:'Bank past the cliffs of Mount Kineo, then follow the forested shoreline toward Rockwood.',launches:{lake:'Mount Kineo cliffs',ridge:'Rockwood crossing'}},
-    napali: {name:['Nā Pali','Coast'],region:'Kauaʻi, Hawaiʻi',description:'Follow the folds of the volcanic cliffs from a hanging valley to the Pacific.',launches:{lake:'Kalalau sea cliffs',ridge:'Kalalau beach'}},
+    moosehead: {name:['Moosehead','Lake'],region:'Maine, USA',description:'Bank past the cliffs of Mount Kineo, then follow the forested shoreline toward Rockwood.',launches:{lake:'Mount Kineo cliffs',ridge:'Rockwood crossing',reeds:'Wind across the reeds'}},
     yosemite: {name:['Yosemite','Valley'],region:'California, USA',description:'Bank between granite walls above the Merced River and its forested valley floor.',launches:{lake:'El Capitan overlook',ridge:'Valley floor'}},
-    bryce: {name:['Bryce','Canyon'],region:'Utah, USA',description:'Drop from the rim and thread the orange limestone spires of the amphitheater.',launches:{lake:'Amphitheater rim',ridge:'Hoodoo corridor'}},
-    crater: {name:['Crater','Lake'],region:'Oregon, USA',description:'Cross the caldera above deep blue water and circle the volcanic cone of Wizard Island.',launches:{lake:'Caldera overlook',ridge:'Wizard Island'}},
+    crater: {name:['Crater','Lake'],region:'Oregon, USA',description:'Fly from the golden caldera rim toward Wizard Island. A red-lit storm front advances across the far shore.',launches:{lake:'Caldera overlook',ridge:'Wizard Island'}},
     lofoten: {name:['Lofoten','Islands'],region:'Reinefjorden, Norway',description:'Trace the saltwater fjord between sheer mountain faces and narrow islands.',launches:{lake:'Fjord overlook',ridge:'Reinefjorden channel'}},
     milford: {name:['Milford','Sound'],region:'Fiordland, New Zealand',description:'Follow the rainforest walls and waterfall channels along Piopiotahi.',launches:{lake:'Mitre Peak overlook',ridge:'Bowen Falls approach'}}
   });
   for(const [id,w] of Object.entries(worlds)){
     w.launches.lookout=window.PERCH_ROUTE_NAMES[id];
-    w.launches.wildlife=id==='bryce'?'Tropic Reservoir shallows':id==='moosehead'?'Wildlife shallows · Salmon rise':'Wildlife shallows';
+    w.launches.wildlife=id==='moosehead'?'Wildlife shallows · Salmon rise':'Wildlife shallows';
   }
   const app = document.getElementById('app');
   const picker = document.getElementById('worldPicker');
@@ -32,10 +30,12 @@
   const mapSource=document.getElementById('mapSource');
   document.getElementById('creditsLink').href=asset('credits.txt');
   function previewName(id,start){
+    if(['wall','spur','reeds'].includes(start))return id+'-'+start+'-view.webp';
     if(id==='dixville')return 'dixville-'+({dawn:'dawn',lake:'lake',hotel:'hotel',highway:'highway',ridge:'ridge',panorama:'panorama',lookout:'ridge',wildlife:'lake'}[start]||'lake')+'-view.jpg';
     if(id==='labrador')return start==='cabin'?'labrador-cabin-view.jpg':start==='rainbow'?'labrador-rainbow-view.jpg':'labrador-lake-view.jpg';
     if(id==='alaska' && start==='spray')return 'alaska-shore-view.jpg';
     if(start==='wildlife')start='lake';
+    if(id==='crater'&&['lake','ridge'].includes(start))return 'crater-storm-'+start+'.webp';
     if(start==='lookout')return 'perch-'+id+'-view.jpg';
     if(id==='swiss')return {lake:'valley.jpg',falls:'falls-view.jpg',forest:'forest-view.jpg',shore:'swiss-shore-view.jpg'}[start];
     return id+'-'+start+'-view.jpg';
@@ -62,7 +62,14 @@
     const params = new URLSearchParams({world:picker.value==='labrador'?'lac-berte':picker.value, launch:launch.value});
     try { history.replaceState(null, '', '#'+params); } catch { location.hash = params.toString(); }
     app.dataset.departure = launch.value;
-    document.querySelector('.intro p').textContent=picker.value==='alaska'&&launch.value==='spray'?'Follow the shoreline toward Nugget Falls. Watch the spray lift off the ledges and bend downwind.':launch.value==='lookout'?window.PERCH_ROUTE_DESCRIPTIONS[picker.value]:worlds[picker.value].description;
+    const descriptions={
+      wall:'Glide beside the sunlit sandstone, then bank left into the open canyon. Look at the light on the eagle’s neck.',
+      spur:'Glide around the spur with sound on. Listen for the high hiss of Nugget Falls as the cascade comes into view.',
+      reeds:'Follow the dark ripples toward the sedge beds and watch the gust reach the trees along the shore.',
+      spray:'Follow the shoreline toward Nugget Falls. Watch the spray lift off the ledges and bend downwind.'
+    };
+    document.querySelector('.intro p').textContent=descriptions[launch.value]||
+      (launch.value==='lookout'?window.PERCH_ROUTE_DESCRIPTIONS[picker.value]:worlds[picker.value].description);
     preview(picker.value,launch.value);
   }
   function show(start) {
@@ -85,7 +92,7 @@
     for (const button of list.children) button.setAttribute('aria-pressed', String(button.dataset.choice === picker.value));
     remember();
   }
-  show(initial.get('launch'));
+  show(Object.hasOwn(worlds,initialWorld)?initial.get('launch'):null);
   picker.addEventListener('change', () => { show(); window.dispatchEvent(new CustomEvent('worldchange')); });
   launch.addEventListener('change',remember);
 })();

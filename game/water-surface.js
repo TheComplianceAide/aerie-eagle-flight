@@ -20,7 +20,7 @@
     scene.traverse(mesh=>{
       if(!mesh.isWater)return;
       const mat=mesh.material,atlas=!!mat.uniforms.shoreField;
-      const energy=({dixville:.52,napali:2.9,lofoten:1.65,milford:1.25,labrador:1.10,moosehead:1.05,alaska:.88,swiss:.58,crater:.85,surry:.58})[region]||.92;
+      const energy=({dixville:.52,lofoten:1.65,milford:1.25,labrador:1.10,moosehead:1.05,alaska:.88,swiss:.58,crater:.85,surry:.58})[region]||.92;
       let shader=waves+'\n'+mat.fragmentShader;
       if(atlas){
         shader=shader.replace('vec2 slope=slopes(p,time,footprint,fetch,wind);',`
@@ -45,59 +45,52 @@
     });
   }
 
+  // Share a nearby planar reflection between streams, reservoirs and rain pools.
+  window.attachLocalWaterReflection=(T,surface,surfacePlane)=>{
+    const u=surface.material.uniforms;
+    const image=new T.WebGLRenderTarget(512,256,{stencilBuffer:false});
+    const mirror=new T.PerspectiveCamera(),projection=new T.Matrix4(),direction=new T.Vector3(),target=new T.Vector3();
+    const lastEye=new T.Vector3(Infinity,0,0),lastDirection=new T.Vector3(),normal=new T.Vector3(),centre=new T.Vector3();
+    const plane=new T.Plane(),clip=new T.Vector4(),corner=new T.Vector4();
+    mirror.userData.lakeReflection=true;
+    Object.assign(u,{sceneReflection:{value:image.texture},reflectProjection:{value:projection},reflectionWeight:{value:0},reflectCentre:{value:centre}});
+    let lastUpdate=-Infinity;
+    surface.onBeforeRender=(renderer,viewScene,camera)=>{
+      if(!camera.isPerspectiveCamera||camera.userData.lakeReflection)return;
+      const eye=camera.position,time=u.t.value;camera.getWorldDirection(direction);
+      if(time>=lastUpdate&&time-lastUpdate<.16&&lastEye.distanceToSquared(eye)<25&&lastDirection.dot(direction)>.997)return;
+      lastUpdate=time;lastEye.copy(eye);lastDirection.copy(direction);
+      const weight=surfacePlane(eye,centre,normal);u.reflectionWeight.value=weight;
+      if(!weight)return;
+      plane.setFromNormalAndCoplanarPoint(normal,centre);
+      const height=plane.distanceToPoint(eye);if(height<.01){u.reflectionWeight.value=0;return;}
+      mirror.position.copy(eye).addScaledVector(normal,-2*height);target.copy(direction).reflect(normal).add(mirror.position);
+      mirror.up.set(0,1,0).applyQuaternion(camera.quaternion).reflect(normal);mirror.lookAt(target);
+      mirror.far=camera.far;mirror.updateMatrixWorld();mirror.projectionMatrix.copy(camera.projectionMatrix);
+      projection.set(.5,0,0,.5,0,.5,0,.5,0,0,.5,.5,0,0,0,1).multiply(mirror.projectionMatrix).multiply(mirror.matrixWorldInverse);
+      // Clip below the water on the reflected pass, including sloping riffles.
+      plane.applyMatrix4(mirror.matrixWorldInverse);clip.set(plane.normal.x,plane.normal.y,plane.normal.z,plane.constant);
+      const e=mirror.projectionMatrix.elements;
+      corner.set((Math.sign(clip.x)+e[8])/e[0],(Math.sign(clip.y)+e[9])/e[5],-1,(1+e[10])/e[14]);
+      clip.multiplyScalar(2/clip.dot(corner));e[2]=clip.x;e[6]=clip.y;e[10]=clip.z+.997;e[14]=clip.w;
+      const saved=renderer.getRenderTarget(),xr=renderer.xr.enabled,shadows=renderer.shadowMap.autoUpdate;
+      surface.visible=false;renderer.xr.enabled=false;renderer.shadowMap.autoUpdate=false;
+      try{
+        renderer.setRenderTarget(image);renderer.state.buffers.depth.setMask(true);if(!renderer.autoClear)renderer.clear();
+        renderer.render(viewScene,mirror);
+      }finally{
+        renderer.setRenderTarget(saved);renderer.xr.enabled=xr;renderer.shadowMap.autoUpdate=shadows;surface.visible=true;
+        if(camera.viewport)renderer.state.viewport(camera.viewport);
+      }
+    };
+  };
+
   function streams(T,scene,w){
     const lines=window.aerieChannels;
     if(!lines?.length)return;
     const positions=[],uv=[],grade=[],sections=[],indices=[],cells=new Map();
     const cell=(x,z)=>Math.floor(x/64)+','+Math.floor(z/64);
-    // Bryce renders an adaptive lidar mesh. Between its retained vertices
-    // the visible triangle can sit above or below the raw DEM sample. Index
-    // only faces touching a mapped stream so its centreline stays connected.
-    const banks=new Map(),bankCell=(x,z)=>Math.floor(x/16)+','+Math.floor(z/16);
-    if(w.region==='bryce'){
-      for(const [width,path] of lines)for(let i=1;i<path.length;i++){
-        const [ax,az]=path[i-1],[bx,bz]=path[i],steps=Math.max(1,Math.ceil(Math.hypot(bx-ax,bz-az)/8));
-        for(let j=0;j<=steps;j++){
-          const x=ax+(bx-ax)*j/steps,z=az+(bz-az)*j/steps,pad=width*.5+4;
-          for(let col=Math.floor((x-pad)/16);col<=Math.floor((x+pad)/16);col++)
-            for(let row=Math.floor((z-pad)/16);row<=Math.floor((z+pad)/16);row++)banks.set(col+','+row,[]);
-        }
-      }
-      scene.traverse(o=>{
-        if(o.name!=='Bryce Amphitheater · surveyed fins')return;
-        const g=o.geometry,p=g.attributes.position.array,index=g.index.array;
-        const {center,radius}=g.boundingSphere;
-        let nearby=false;
-        for(let col=Math.floor((center.x-radius)/16);!nearby&&col<=Math.floor((center.x+radius)/16);col++)
-          for(let row=Math.floor((center.z-radius)/16);row<=Math.floor((center.z+radius)/16);row++)
-            if(banks.has(col+','+row)){nearby=true;break;}
-        if(!nearby)return;
-        for(let i=0;i<index.length;i+=3){
-          const a=index[i]*3,b=index[i+1]*3,c=index[i+2]*3,x=p[a],z=p[a+2];
-          const bx=p[b],bz=p[b+2],cx=p[c],cz=p[c+2];
-          let face;
-          for(let col=Math.floor(Math.min(x,bx,cx)/16);col<=Math.floor(Math.max(x,bx,cx)/16);col++)
-            for(let row=Math.floor(Math.min(z,bz,cz)/16);row<=Math.floor(Math.max(z,bz,cz)/16);row++){
-              const list=banks.get(col+','+row);
-              if(!list)continue;
-              if(!face){
-                const ux=bx-x,uz=bz-z,vx=cx-x,vz=cz-z,d=ux*vz-uz*vx;
-                if(Math.abs(d)<.0001)continue;
-                face=[x,z,vz/d,-vx/d,-uz/d,ux/d,p[a+1],p[b+1]-p[a+1],p[c+1]-p[a+1]];
-              }
-              list.push(face);
-            }
-        }
-      });
-    }
-    function floor(x,z){
-      const list=banks.size&&banks.get(bankCell(x,z));
-      if(list)for(const [ox,oz,ux,uz,vx,vz,y,by,cy] of list){
-        const px=x-ox,pz=z-oz,u=px*ux+pz*uz,v=px*vx+pz*vz;
-        if(u>=-.00001&&v>=-.00001&&u+v<=1.00001)return y+u*by+v*cy;
-      }
-      return w.habitat.surface(x,z);
-    }
+    const floor=(x,z)=>w.habitat.surface(x,z);
     for(const [width,source] of lines){
       // Hydrography polylines may be stored in either order. Compare the
       // elevations at their ends before assigning the downstream coordinate.
@@ -120,7 +113,7 @@
       const samples=[];
       for(let i=1;i<path.length;i++){
         const a=path[i-1],b=path[i],dx=b[0]-a[0],dz=b[1]-a[1];
-        const spacing=w.region==='bryce'?Math.min(1.5,width*.48):Math.min(3.8,width*.78);
+        const spacing=Math.min(3.8,width*.78);
         const steps=Math.max(1,Math.ceil(Math.hypot(dx,dz)/spacing));
         for(let j=0;j<steps;j++)samples.push([a[0]+dx*j/steps,a[1]+dz*j/steps]);
       }
@@ -167,11 +160,11 @@
     g.setAttribute('position',new T.Float32BufferAttribute(positions,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));
     g.setAttribute('grade',new T.Float32BufferAttribute(grade,1));g.setAttribute('section',new T.Float32BufferAttribute(sections,4));g.setIndex(indices);
     const loader=new T.TextureLoader(),pebbles=loader.load('shore-pebbles.webp');
-    const deposit=loader.load(w.region==='bryce'?'shore-sand.webp':'shore-cobble.webp');
+    const deposit=loader.load('shore-cobble.webp');
     for(const tex of [pebbles,deposit]){tex.wrapS=tex.wrapT=T.RepeatWrapping;tex.anisotropy=8;}
     const clock={value:0};
     const m=new T.ShaderMaterial({side:T.DoubleSide,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-2,
-      uniforms:{t:clock,bed:{value:pebbles},deposit:{value:deposit},sky:{value:w.skyTexture},sun:{value:w.sunDirection},desert:{value:w.region==='bryce'?1:0}},
+      uniforms:{t:clock,bed:{value:pebbles},deposit:{value:deposit},sky:{value:w.skyTexture},sun:{value:w.sunDirection},desert:{value:0}},
       vertexShader:`attribute float grade;attribute vec4 section;varying float fall;varying vec3 wp;varying vec2 flow;varying vec4 channel,mirrorUv;uniform mat4 reflectProjection;
         void main(){fall=grade;wp=position;flow=uv;channel=section;mirrorUv=reflectProjection*vec4(wp,1.);gl_Position=projectionMatrix*modelViewMatrix*vec4(wp,1.);}`,
       fragmentShader:`varying float fall;varying vec3 wp;varying vec2 flow;varying vec4 channel,mirrorUv;uniform float t,desert,reflectionWeight;uniform vec3 sun,reflectCentre;uniform sampler2D sky,bed,deposit,sceneReflection;
@@ -233,46 +226,7 @@
           #include <colorspace_fragment>
         }`});
     const mesh=new T.Mesh(g,m);mesh.name='Mapped stream channels';scene.add(mesh);
-    // Reflect the nearby bank and canopy in the local surface plane. Bryce's
-    // reservoir uses this same renderer with its level shoreline plane.
-    w.reflectLocalWater=(surface,surfacePlane)=>{
-      const u=surface.material.uniforms;
-      const image=new T.WebGLRenderTarget(512,256,{stencilBuffer:false});
-      const mirror=new T.PerspectiveCamera(),projection=new T.Matrix4(),direction=new T.Vector3(),target=new T.Vector3();
-      const lastEye=new T.Vector3(Infinity,0,0),lastDirection=new T.Vector3(),normal=new T.Vector3(),centre=new T.Vector3();
-      const plane=new T.Plane(),clip=new T.Vector4(),corner=new T.Vector4();
-      mirror.userData.lakeReflection=true;
-      Object.assign(u,{sceneReflection:{value:image.texture},reflectProjection:{value:projection},reflectionWeight:{value:0},reflectCentre:{value:centre}});
-      let lastUpdate=-Infinity;
-      surface.onBeforeRender=(renderer,viewScene,camera)=>{
-        if(!camera.isPerspectiveCamera||camera.userData.lakeReflection)return;
-        const eye=camera.position,time=u.t.value;camera.getWorldDirection(direction);
-        if(time>=lastUpdate&&time-lastUpdate<.16&&lastEye.distanceToSquared(eye)<25&&lastDirection.dot(direction)>.997)return;
-        lastUpdate=time;lastEye.copy(eye);lastDirection.copy(direction);
-        const weight=surfacePlane(eye,centre,normal);u.reflectionWeight.value=weight;
-        if(!weight)return;
-        plane.setFromNormalAndCoplanarPoint(normal,centre);
-        const height=plane.distanceToPoint(eye);if(height<.01){u.reflectionWeight.value=0;return;}
-        mirror.position.copy(eye).addScaledVector(normal,-2*height);target.copy(direction).reflect(normal).add(mirror.position);
-        mirror.up.set(0,1,0).applyQuaternion(camera.quaternion).reflect(normal);mirror.lookAt(target);
-        mirror.far=camera.far;mirror.updateMatrixWorld();mirror.projectionMatrix.copy(camera.projectionMatrix);
-        projection.set(.5,0,0,.5,0,.5,0,.5,0,0,.5,.5,0,0,0,1).multiply(mirror.projectionMatrix).multiply(mirror.matrixWorldInverse);
-        // Clip below the water on the reflected pass, including sloping riffles.
-        plane.applyMatrix4(mirror.matrixWorldInverse);clip.set(plane.normal.x,plane.normal.y,plane.normal.z,plane.constant);
-        const e=mirror.projectionMatrix.elements;
-        corner.set((Math.sign(clip.x)+e[8])/e[0],(Math.sign(clip.y)+e[9])/e[5],-1,(1+e[10])/e[14]);
-        clip.multiplyScalar(2/clip.dot(corner));e[2]=clip.x;e[6]=clip.y;e[10]=clip.z+.997;e[14]=clip.w;
-        const saved=renderer.getRenderTarget(),xr=renderer.xr.enabled,shadows=renderer.shadowMap.autoUpdate;
-        surface.visible=false;renderer.xr.enabled=false;renderer.shadowMap.autoUpdate=false;
-        try{
-          renderer.setRenderTarget(image);renderer.state.buffers.depth.setMask(true);if(!renderer.autoClear)renderer.clear();
-          renderer.render(viewScene,mirror);
-        }finally{
-          renderer.setRenderTarget(saved);renderer.xr.enabled=xr;renderer.shadowMap.autoUpdate=shadows;surface.visible=true;
-          if(camera.viewport)renderer.state.viewport(camera.viewport);
-        }
-      };
-    };
+    w.reflectLocalWater=(surface,plane)=>window.attachLocalWaterReflection(T,surface,plane);
     w.reflectLocalWater(mesh,(eye,centre,normal)=>{
       let best=105*105;
       for(let col=Math.floor((eye.x-95)/64);col<=Math.floor((eye.x+95)/64);col++)for(let row=Math.floor((eye.z-95)/64);row<=Math.floor((eye.z+95)/64);row++){
@@ -290,6 +244,6 @@
   }
   window.addFlightWater=(T,scene,w)=>{
     lakes(scene,w.region);
-    if(w.region==='yosemite'||w.region==='bryce')streams(T,scene,w);
+    if(w.region==='yosemite')streams(T,scene,w);
   };
 })();

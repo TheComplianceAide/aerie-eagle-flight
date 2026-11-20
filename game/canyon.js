@@ -401,7 +401,7 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
   const spawn={x:45,z:76,y:elevation(45,76)+72,yaw:1.38};
   const ridge={x:-425,z:-2450,y:elevation(-425,-2450)+90,yaw:1.54};
   const shore={x:-441,z:-76,y:elevation(-441,-76)+7.2,yaw:.24};
-  return {height:elevation,elevation,clearance,spawn,launches:{lake:spawn,ridge,shore},trees:[],
+  return {height:elevation,elevation,clearance,spawn,launches:{lake:spawn,ridge,shore,wall:{x:-920,y:67.814,z:-72,yaw:1.7984}},trees:[],
     skyTexture,sunDirection:sun,altitudeOffset:950,bounds:{minX:-2950,maxX:2950,minZ:-2950,maxZ:2950},
     landmarks:[{name:'Horseshoe Bend',x:-925,z:-235},{name:'Horseshoe Bend Overlook',x:0,z:80},
       {name:'Colorado River',x:-950,z:-2450},{name:'Glen Canyon Rim',x:-1830,z:500},

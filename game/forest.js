@@ -4,6 +4,7 @@ window.addForest = function addForest(THREE, scene, world) {
   const forest = world.firTrees || world.trees;
   if (!forest || !forest.length || !window.firAsset) return;
   const asset = window.firAsset;
+  const wind=window.getCanopyWind(THREE,scene);
   const mobile=matchMedia("(pointer: coarse)").matches;
   const sunlightSpan=(world.forestLightSpan || 8000).toFixed(1);
   const loader = new THREE.TextureLoader();
@@ -23,18 +24,20 @@ window.addForest = function addForest(THREE, scene, world) {
   const time = {value: 0};
   const observer = {value:new THREE.Vector3()};
   nearMaterial.onBeforeCompile = shader => {
+    Object.assign(shader.uniforms,wind.uniforms);
     shader.uniforms.firTime = time;
     shader.uniforms.surveyLight = {value:world.sunMask};
-    shader.vertexShader = 'uniform float firTime;uniform sampler2D surveyLight;varying float inSun;\n' + shader.vertexShader.replace(
+    shader.vertexShader = wind.glsl+'\nuniform float firTime;uniform sampler2D surveyLight;varying float inSun;\n' + shader.vertexShader.replace(
       '#include <begin_vertex>',
       `#include <begin_vertex>
        inSun = texture2D(surveyLight,vec2(.5+instanceMatrix[3].x/${sunlightSpan},.5-instanceMatrix[3].z/${sunlightSpan})).r;
-       float offset = dot(instanceMatrix[3].xz, vec2(.014, .027));
-       float breeze=sin(firTime*.69+dot(instanceMatrix[3].xz,vec2(.033,.018)));
-       float flutter=sin(firTime*2.8-offset+dot(position.xz,vec2(2.1,1.3)));
-       float bend=.0026*max(0.,position.y)*length(position.xz)*(breeze+.32*flutter);
-       transformed.xz+=vec2(bend,bend*.47);
-       transformed.y+=.007*length(position.xz)*flutter;`);
+       vec2 anchor=instanceMatrix[3].xz,front=plantFront(anchor),motion=plantMotion(anchor,front,firTime,.13);
+       vec3 basisX=instanceMatrix[0].xyz,basisZ=instanceMatrix[2].xyz;
+       vec2 disp=length(instanceMatrix[1].xyz)*position.y*clamp(position.y*.085,0.,1.)*.22*motion;
+       transformed.x+=dot(disp,basisX.xz)/max(.001,dot(basisX,basisX));
+       transformed.z+=dot(disp,basisZ.xz)/max(.001,dot(basisZ,basisZ));
+       float flutter=sin(firTime*2.8+dot(anchor,vec2(.014,.027))+dot(position.xz,vec2(2.1,1.3)));
+       transformed.y+=length(position.xz)*(.006+.045*front.x)*flutter;`);
     shader.fragmentShader='varying float inSun;\n'+shader.fragmentShader.replace(
       '#include <color_fragment>',
       '#include <color_fragment>\n diffuseColor.rgb *= mix(vec3(.47,.55,.65),vec3(.94,.98,.88),inSun);');
@@ -60,6 +63,8 @@ window.addForest = function addForest(THREE, scene, world) {
     cells.get(k).push(root);
   });
   const farVertex = `
+    ${wind.glsl}
+    uniform float firTime;
     attribute vec3 rootPosition;
     attribute vec4 dimensions;
     uniform vec4 uvCrops[8];
@@ -88,6 +93,8 @@ window.addForest = function addForest(THREE, scene, world) {
       vec3 up = normalize(cross(viewDir,right));
       vec2 size = (blend.x*captureSizes[first]+blend.y*captureSizes[middle]+blend.z*captureSizes[last])*dimensions.xy;
       vec3 wp = rootPosition+c+right*(position.x*size.x)+up*(position.y*size.y);
+      vec2 field=plantFront(rootPosition.xz),motion=plantMotion(rootPosition.xz,field,firTime,.13);
+      wp.xz+=motion*.22*max(0.,wp.y-rootPosition.y)*uv.y;
       uvFirst=mix(uvCrops[first].xy,uvCrops[first].zw,uv);
       uvMiddle=mix(uvCrops[middle].xy,uvCrops[middle].zw,uv);
       uvLast=mix(uvCrops[last].xy,uvCrops[last].zw,uv);
@@ -133,7 +140,7 @@ window.addForest = function addForest(THREE, scene, world) {
     const rectangle = new THREE.PlaneGeometry(1,1);
     const views=v.farViews;
     const uniforms=THREE.UniformsUtils.clone(THREE.UniformsLib.fog);
-    Object.assign(uniforms,{
+    Object.assign(uniforms,wind.uniforms,{firTime:time,
       observer,sunDirection:{value:world.sunDirection||new THREE.Vector3(-.5,.65,-.55)},surveyLight:{value:world.sunMask},captures:{value:distant},uvCrops:{value:views.map(f=>new THREE.Vector4(...f.uv))},
       captureSizes:{value:views.map(f=>new THREE.Vector2(f.width,f.height))},
       captureCenters:{value:views.map(f=>new THREE.Vector3(...f.center))}

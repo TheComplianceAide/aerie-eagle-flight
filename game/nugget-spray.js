@@ -31,7 +31,7 @@ window.makeNuggetSpray=function makeNuggetSpray(THREE,scene,world,texture){
     vertexShader:`
       attribute vec3 spraySource;attribute vec4 spraySeed;attribute float bankSlope;
       uniform vec2 sprayWind,sprayOrigin;uniform float sprayPhase,sprayAdvection,sprayClock;
-      varying vec2 puffUv;varying vec4 particle;
+      varying vec2 puffUv;varying vec4 particle;varying float impactPulse;
       ${window.aerieGustGLSL}
       void main(){
         bool drop=spraySeed.w>.5;
@@ -42,6 +42,10 @@ window.makeNuggetSpray=function makeNuggetSpray(THREE,scene,world,texture){
         // Sample along the trajectory at emission and at mid-flight. A new gust
         // reaches successive puffs in sequence without moving their source.
         float birth=sprayClock-age;
+        // Match the time and position of the audible impact. Each descending
+        // packet makes a denser, briefly higher fan of spray at its own ledge.
+        impactPulse=.52+.30*sin(1.23*birth+.031*spraySource.x-.017*spraySource.z)
+                        +.18*sin(2.21*birth-.018*spraySource.x+.043*spraySource.z);
         vec2 source=spraySource.xz-sprayOrigin;
         float gust=.5*(aerieGust(source,birth,sprayWind,sprayPhase,sprayAdvection)+
           aerieGust(source+sprayWind*age*1.7,birth+.5*age,sprayWind,sprayPhase,sprayAdvection));
@@ -53,16 +57,19 @@ window.makeNuggetSpray=function makeNuggetSpray(THREE,scene,world,texture){
         center.xz+=vec2(-1.7,.65)*(1.-exp(-age))*2.;
         center.y+=drop?(4.+3.*seed)*age-3.8*age*age:
           (4.5+5.*seed)*(1.-exp(-age*.77))+bankSlope*travel+age*(.25+.57*gust);
+        float launch=impactPulse*impactPulse;
+        center.y+=launch*(drop?2.3*age:3.9*(1.-exp(-1.6*age)));
+        center.xz+=crosswind*(seed-.5)*launch*2.4*(1.-exp(-2.2*age));
         vec4 v=viewMatrix*vec4(center,1.);
         float diameter=drop?.13+.17*seed:2.1+life*(8.+13.*seed);
         vec2 corner=position.xy;
         if(drop)corner.y*=2.8;
         else{float a=seed*6.283+.26*age;corner=mat2(cos(a),sin(a),-sin(a),cos(a))*corner;}
-        v.xy+=corner*diameter;gl_Position=projectionMatrix*v;
+        v.xy+=corner*diameter*mix(.87,1.27,impactPulse);gl_Position=projectionMatrix*v;
         puffUv=uv;particle=vec4(life,seed,drop?1.:0.,gust);
       }`,
     fragmentShader:`
-      uniform sampler2D sprayNoise;varying vec2 puffUv;varying vec4 particle;
+      uniform sampler2D sprayNoise;varying vec2 puffUv;varying vec4 particle;varying float impactPulse;
       void main(){
         vec2 q=puffUv*2.-1.;float radius=dot(q,q);if(radius>=1.)discard;
         float life=particle.x,seed=particle.y;
@@ -70,7 +77,7 @@ window.makeNuggetSpray=function makeNuggetSpray(THREE,scene,world,texture){
         float body=smoothstep(.03,.70,(1.-radius)*(.35+1.15*grain));
         float fade=smoothstep(0.,.12,life)*(1.-smoothstep(.53,1.,life));
         vec3 light=mix(vec3(.61,.72,.77),vec3(.95,.95,.89),.27+.62*grain);
-        float alpha=body*fade*mix(.15+.055*particle.w,.68,particle.z);
+        float alpha=body*fade*mix(.15+.055*particle.w,.68,particle.z)*(.57+1.45*impactPulse*impactPulse);
         gl_FragColor=vec4(mix(light,vec3(.94,.98,1.),particle.z*.62),alpha);
       }`});
   const mesh=new THREE.Mesh(geo,material);mesh.name='Nugget Falls wind-blown spray';scene.add(mesh);

@@ -7,9 +7,7 @@
     alaska:          [[23,23,6,19,13,10,6], .87, .81, .09],
     swiss:           [[40,18,15,8,6,12,1], .87, .92, .17],
     canyon:          [[8,0,57,0,4,0,31], .57, .42, .80],
-    napali:          [[11,20,8,31,17,12,1], 1.40, 1.0, .04],
     yosemite:        [[28,22,10,15,13,7,5], 1.04, .83, .23],
-    bryce:           [[17,9,33,0,7,1,33], .72, .53, .63],
     crater:          [[25,19,15,8,10,7,16], .72, .69, .23],
     lofoten:         [[13,47,16,2,7,5,10], .65, .83, .25],
     milford:         [[6,19,4,42,16,12,1], 1.30, 1.0, .05],
@@ -19,9 +17,9 @@
     surry:           [[25,19,14,15,11,14,2], .94, .91, .09],
     moosehead:       [[16,23,8,24,15,10,4], .95, .93, .19]
   };
-  window.aerieSoil=region=>['bryce','canyon'].includes(region)?'dry':
+  window.aerieSoil=region=>region==='canyon'?'dry':
     ['dixville','surry','moosehead','winnipesaukee'].includes(region)?'temperate':
-    ['napali','milford'].includes(region)?'rainforest':'boreal';
+    region==='milford'?'rainforest':'boreal';
   // Continuous mirrored UVs preserve derivatives at tile boundaries on WebGL 1 and 2.
   window.aerieFloorShader=`
     vec4 soilSample(sampler2D field,vec2 p,float woodland){
@@ -52,6 +50,7 @@
     return (u,v)=>pixels&&u>=0&&v>=0&&u<1&&v<1?pixels[(Math.floor(u*w)+Math.floor(v*h)*w)*4]/255:0;
   }
   window.addUnderstory=function addUnderstory(T,scene,world){
+    const wind=window.getCanopyWind(T,scene);
     const wildlife=window.addRegionalWildlife(T,scene,world);
     const {region,habitat}=world,[weights,scale,density,dry]=profiles[region];
     const loader=new T.TextureLoader(),half=world.coverHalf;
@@ -65,7 +64,7 @@
         const local=downtown&&x>1640&&x<2280&&z>4210&&z<4930;
         const green=local?downtown((x-1640)/640,(z-4210)/720):photo(.5+x/(2*half),.5+z/(2*half));
         if(local)return clamp((green-.43)*2,0,1);
-        cover=Math.max(cover*(region==='bryce'?.82:.73),green*(region==='bryce'?.60:.86));
+        cover=Math.max(cover*.73,green*.86);
       }
       return cover;
     }
@@ -76,10 +75,11 @@
     for(const map of [nearMap,standMap]){map.anisotropy=4;map.colorSpace=T.SRGBColorSpace;}
     const sun=world.sunDirection||new T.Vector3(-.5,.62,-.6).normalize();
     const lightMap=world.sunMask,lightSpan=world.forestLightSpan||(region==='alaska'?9600:8000);
-    const uniforms={clock,sun:{value:sun},leaves:{value:nearMap},stands:{value:standMap},dryness:{value:dry},
+    const uniforms={...wind.uniforms,clock,sun:{value:sun},leaves:{value:nearMap},stands:{value:standMap},dryness:{value:dry},
       terrainLight:{value:lightMap||null},lightSpan:{value:lightSpan}};
     const coarse=matchMedia('(pointer: coarse)').matches,reach=coarse?80:106,near=coarse?13:20;
     const vertex=(far)=>`
+      ${wind.glsl}
       attribute vec4 planting;attribute vec4 trait;
       uniform float clock,lightSpan;uniform vec3 sun;uniform sampler2D terrainLight;
       varying vec2 coord;varying float illum,variation,edge,viewIndex,kind;
@@ -88,7 +88,7 @@
         float a=trait.x,ca=cos(a),sa=sin(a);
         vec3 look=normalize(cameraPosition-root-vec3(0.,h*.5,0.));
         float d=distance(cameraPosition,root);
-        float gust=sin(clock*.69+dot(root.xz,vec2(.033,.018)));
+        vec2 front=plantFront(root.xz);
         float ripple=sin(clock*2.8+root.z*.27+a);
         vec3 p;
         ${far?`
@@ -108,7 +108,11 @@
           viewIndex=0.;edge=1.-smoothstep(${near-3}.,${near+3}.,d);
         `}
         float tip=clamp((p.y-root.y)/h,0.,1.);
-        p.xz+=vec2(1.,.47)*h*tip*tip*(.069*gust+.024*ripple);
+        vec2 motion=plantMotion(root.xz,front,clock,.92);
+        float flex=kind<2.5?1.55:kind<5.5?.89:.55;
+        p.xz+=h*tip*tip*flex*(motion+canopyDownwind*(.018+.035*front.x)*ripple);
+        p.y-=h*tip*tip*dot(motion,motion)*flex*.62;
+        illum*=1.+tip*front.x*(.15+.09*ripple);
         float shadow=${lightMap?'texture2D(terrainLight,vec2(root.x,-root.z)/lightSpan+.5).r':'1.'};
         illum*=mix(.67,1.09,shadow)*(.71+.29*tip);
         variation=trait.y;
@@ -149,13 +153,109 @@
       g.setIndex(new T.BufferAttribute(typed(r.i,Uint16Array),1));return batch(g,nearMat,coarse?100:220);
     });
     const far=batch(new T.PlaneGeometry(1,1),farMat,coarse?3800:7200);
+    // A close softstem bulrush clump has cylindrical stems, small terminal
+    // seed clusters and keeled blades. The base stays buried while a gust
+    // bends the culm and twists the lighter blades further downwind.
+    function rushGeometry(){
+      const pos=[],colors=[],idx=[];
+      const v=(x,y,z,c)=>{colors.push(...c);pos.push(x,y,z);return pos.length/3-1;};
+      const green=[.095,.165,.043],light=[.219,.281,.063],edge=[.205,.218,.066];
+      for(let n=0;n<10;n++){
+        const a=n*2.39996,r=.23*Math.sqrt(n/10),dx=Math.cos(a),dz=Math.sin(a);
+        const h=.58+.38*(.5+.5*Math.cos(n*3.15+.42*n*n)),slant=.045+.09*(n%4)/3;
+        let prev;
+        for(let j=0;j<5;j++){
+          const f=j/4,rad=(.003+.0037*(1-f)),ring=[];
+          for(let k=0;k<4;k++){
+            const theta=k*1.5708;ring.push(v(dx*(r+slant*f*f)+rad*Math.cos(theta),h*f,dz*(r+slant*f*f)+rad*Math.sin(theta),k===1?light:green));
+          }
+          if(prev)for(let k=0;k<4;k++){const next=(k+1)%4;idx.push(prev[k],ring[k],prev[next],prev[next],ring[k],ring[next]);}
+          prev=ring;
+        }
+        if(n%3!==1){
+          const x=dx*(r+slant),z=dz*(r+slant),seed=[.145,.081,.026];
+          const tip=v(x,h+.016,z,seed),low=v(x-.010,h-.057,z-.009,seed);
+          for(let k=0;k<5;k++){
+            const a=k*1.25664,b=(k+1)*1.25664;
+            const u=v(x+.016*Math.cos(a),h-.014,z+.016*Math.sin(a),seed);
+            const t=v(x+.016*Math.cos(b),h-.014,z+.016*Math.sin(b),[.205,.124,.035]);idx.push(low,u,t,tip,t,u);
+          }
+        }
+        for(let b=0;b<3;b++){
+          const a2=a+b*2.10+.53,ex=Math.cos(a2),ez=Math.sin(a2);
+          let back;
+          for(let j=0;j<6;j++){
+            const u=j/5,head=u*u,reach=.08*u+.30*head;
+            const x=dx*r+ex*reach,z=dz*r+ez*reach,y=h*(.84*u-.18*head);
+            const wide=.013*(1-.91*u)+.004*Math.sin(u*Math.PI);
+            const row=[v(x-ez*wide,y,z+ex*wide,edge),v(x+ex*wide*.45,y+.005,z+ez*wide*.45,light),v(x+ez*wide,y,z-ex*wide,green)];
+            if(back)idx.push(back[0],row[0],row[1],back[0],row[1],back[1],back[1],row[1],row[2],back[1],row[2],back[2]);
+            back=row;
+          }
+        }
+      }
+      const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(pos,3));
+      g.setAttribute('color',new T.Float32BufferAttribute(colors,3));g.setIndex(idx);return g;
+    }
+    const rushMat=new T.ShaderMaterial({uniforms,side:T.DoubleSide,vertexShader:`
+      ${wind.glsl}
+      attribute vec3 color;attribute vec4 planting,trait;uniform float clock;
+      varying vec3 hue;
+      void main(){
+        vec2 root=planting.xz,front=plantFront(root),motion=plantMotion(root,front,clock,.91);
+        float a=trait.x,h=planting.w,height=position.y;
+        vec3 p=vec3(cos(a)*position.x+sin(a)*position.z,height,-sin(a)*position.x+cos(a)*position.z);
+        float flick=sin(4.2*clock+dot(p.xz,vec2(8.,9.))+.079*root.y+a);
+        p.xz+=height*height*(1.52*motion+.022*front.x*flick*vec2(-canopyDownwind.y,canopyDownwind.x));
+        p.y-=.94*height*height*dot(motion,motion);
+        hue=color*(.58+.50*height)*(.77+.35*trait.y)*(1.+front.x*(.18+.12*flick));
+        gl_Position=projectionMatrix*viewMatrix*vec4(planting.xyz+h*p,1.);
+      }`,fragmentShader:`varying vec3 hue;void main(){gl_FragColor=vec4(hue,1.);
+        #include <colorspace_fragment>
+      }`});
+    const lakesideRushes=['moosehead','winnipesaukee','surry','dixville','labrador'].includes(region);
+    const rush=lakesideRushes?batch(rushGeometry(),rushMat,coarse?180:330):null;
     const size=12,tiles=new Map(),bounds=world.bounds;
+    // Flat freshwater margins support discontinuous sedge beds. Keep their
+    // roots tied to the mapped shore and the displayed gravel shelf. Settlement
+    // pavement, steep rock and deep water remain clear.
+    const bankPatches=new Map(),lake=window.ATLAS_SURVEYS?.[region];
+    if(lake?.shore&&lakesideRushes){
+      for(const ring of [lake.shore,...(lake.shoreHoles||[])]){
+        for(let i=0,j=ring.length-1;i<ring.length;j=i++){
+          const [ax,az]=ring[j],[bx,bz]=ring[i],dx=bx-ax,dz=bz-az;
+          const count=Math.max(1,Math.ceil(Math.hypot(dx,dz)/4.5));
+          for(let k=0;k<count;k++){
+            const u=(k+.5)/count,x=ax+dx*u,z=az+dz*u;
+            if(Math.sin(.021*x+.011*z)+.73*Math.sin(.043*z-.036*x)<-.13)continue;
+            const key=Math.floor(x/size)+'|'+Math.floor(z/size);
+            let arr=bankPatches.get(key);if(!arr)bankPatches.set(key,arr=[]);arr.push(x,z);
+          }
+        }
+      }
+    }
+
     function patch(ix,iz){
       const key=ix+'|'+iz;
       if(tiles.has(key))return tiles.get(key);
       let seed=(Math.imul(ix,374761393)^Math.imul(iz,668265263))>>>0;
       const rand=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
       const result=[];tiles.set(key,result);
+      const bank=bankPatches.get(key),water=world.waterLevel;
+      if(bank&&Number.isFinite(water)){
+        // Use a separate sequence so reeds do not rearrange established plants.
+        let growSeed=seed;const grow=()=>((growSeed=(Math.imul(growSeed,1664525)+1013904223)>>>0)/4294967296);
+        for(let n=0;n<bank.length;n+=2)for(let j=0;j<5;j++){
+          const x=bank[n]+(grow()-.5)*4.8,z=bank[n+1]+(grow()-.5)*4.8;
+          const surveyed=survey(x,z),bed=world.height(x,z);
+          if(bed>water+1.25||surveyed<water-1.0||surveyed>water+1.35)continue;
+          if(Math.hypot(world.height(x+1,z)-bed,world.height(x,z+1)-bed)>.47)continue;
+          if((world.clearance?.(x,z)??bed)>bed+.5)continue;
+          const root=bed>water+.18?bed:Math.max(water-.22,surveyed);
+          const h=.84+.64*grow();
+          result.push([x,Math.max(root,habitat.surface(x,z))-.04,z,h,grow()*6.283,grow(),7,1.1]);
+        }
+      }
       for(let i=0;i<10;i++){
         const cx=(ix+rand())*size,cz=(iz+rand())*size,c=suitability(cx,cz);
         if(c<.07||rand()>c*density)continue;
@@ -179,8 +279,9 @@
       g.attributes.trait.setXYZW(i,p[4],p[5],p[6],full?-p[7]:p[7]);g.instanceCount++;return true;
     }
     const last=new T.Vector3(Infinity,Infinity,Infinity);
-    const batches=[far,...fine.filter(Boolean)];
+    const batches=[rush,far,...fine].filter(Boolean);
     return (eye,t)=>{
+      wind.update(world.windField,eye,t);
       wildlife(eye,t);
       clock.value=t;
       if(last.distanceToSquared(eye)<16)return;
@@ -195,6 +296,7 @@
         for(const p of patch(mx+u,mz+v)){
           const d=(eye.x-p[0])**2+(eye.y-p[1])**2+(eye.z-p[2])**2;
           if(d>reach*reach)continue;
+          if(p[6]===7){if(d<(coarse?47:67)**2)put(rush,p);continue;}
           const close=d<(near+9)**2&&fine[p[6]];
           const overflow=close&&!put(fine[p[6]],p);
           if(overflow||d>(near-9)**2||!fine[p[6]])put(far,p,overflow);

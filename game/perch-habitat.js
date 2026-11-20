@@ -17,7 +17,7 @@ window.makePerchHabitat=function makePerchHabitat(T,scene,world,region){
     const image=loader.load(name);image.wrapS=image.wrapT=T.RepeatWrapping;
     image.colorSpace=linear?T.NoColorSpace:T.SRGBColorSpace;image.anisotropy=8;return image;
   }
-  const dryRock=region==='bryce'||region==='canyon';
+  const dryRock=region==='canyon';
   const bark=new T.MeshStandardMaterial({map:texture('shore-bark.webp'),roughness:.92,vertexColors:true});
   const rock=new T.MeshStandardMaterial({map:texture(dryRock?'atlas-bedded-rock.webp':'atlas-jointed-rock.webp'),
     normalMap:texture(dryRock?'cliff-strata-normal.jpg':'granite-normal.jpg',true),normalScale:new T.Vector2(.30,.30),roughness:.92,vertexColors:true});
@@ -348,6 +348,17 @@ window.makePerchHabitat=function makePerchHabitat(T,scene,world,region){
     g.setIndex(index);g.computeVertexNormals();g.computeBoundingSphere();g.computeBoundingBox();
     // Cache each upward triangle's projected barycentric transform once. This
     // includes the sloping ledge edges and limb forks during ordinary flight.
+    // Store cantilever influence per vertex. The trunk attachment stays fixed;
+    // the outer bearing and its twigs follow the tip as one connected limb.
+    let influence;
+    if(p.type==='branch'){
+      influence=new Float32Array(pos.length/3);
+      for(let k=0;k<influence.length;k++){
+        const u=clamp(1+pos[3*k+2]/p.length,0,1);
+        influence[k]=.5*u*u*(3-u);
+      }
+      g.userData.branch={restY:Float32Array.from(influence,(_,i)=>pos[3*i+1]),influence,drawn:0};
+    }
     const surfaces=[];
     for(let i=0;i<index.length;i+=3){
       const a=3*index[i],b=3*index[i+1],c=3*index[i+2];
@@ -355,7 +366,8 @@ window.makePerchHabitat=function makePerchHabitat(T,scene,world,region){
       const determinant=ax*bz-az*bx;
       if(determinant>=-.000001)continue;
       surfaces.push([pos[c],pos[c+2],bz/determinant,-bx/determinant,-az/determinant,ax/determinant,
-        pos[c+1],pos[a+1]-pos[c+1],pos[b+1]-pos[c+1]]);
+        pos[c+1],pos[a+1]-pos[c+1],pos[b+1]-pos[c+1],
+        influence?.[c/3]||0,(influence?.[a/3]||0)-(influence?.[c/3]||0),(influence?.[b/3]||0)-(influence?.[c/3]||0)]);
     }
     g.userData.topSurfaces=surfaces;return g;
   }
@@ -373,6 +385,34 @@ window.makePerchHabitat=function makePerchHabitat(T,scene,world,region){
       mesh.position.set(p.x,p.y,p.z);mesh.rotation.y=p.yaw;mesh.name=p.label;
       mesh.userData.site=p;mesh.visible=true;mesh.castShadow=true;mesh.receiveShadow=true;
     }
+  }
+  const bending=new Map();
+  function flexBranch(site,load,dt){
+    if(site?.type==='branch'&&load>0&&!bending.has(site.id)){
+      // Equal eagle weight produces much more travel on a long, slim limb.
+      const radius=clamp(site.tree.height*.017,.16,.46);
+      const drop=clamp(.16*(site.length/3.1)**1.65*(.22/radius)**2.0,.065,.29);
+      bending.set(site.id,{site,drop,y:0,velocity:0,omega:Math.sqrt(12.5/drop),damping:.23+.045*site.seed});
+    }
+    let occupied=0;
+    for(const [id,b] of bending){
+      const force=id===site?.id?load:0,target=-force*b.drop;
+      const rel=b.y-target,d=b.damping*b.omega,w=b.omega*Math.sqrt(1-b.damping*b.damping);
+      const c=Math.cos(w*dt),sn=Math.sin(w*dt),decay=Math.exp(-d*dt);
+      const next=target+decay*(rel*c+(b.velocity+d*rel)*sn/w);
+      b.velocity=decay*(b.velocity*c-(d*b.velocity+b.omega*b.omega*rel)*sn/w);
+      b.y=next;
+      if(!force&&Math.abs(b.y)<.00012&&Math.abs(b.velocity)<.0015){b.y=0;bending.delete(id);}
+      const mesh=slots.find(m=>m.visible&&m.userData.site?.id===id);
+      const branch=mesh?.geometry.userData.branch;
+      if(branch&&(Math.abs(b.y-branch.drawn)>.0002||b.y===0&&branch.drawn)){
+        const geometry=mesh.geometry,position=geometry.attributes.position;
+        for(let k=0;k<position.count;k++)position.setY(k,branch.restY[k]+b.y*branch.influence[k]);
+        position.needsUpdate=true;geometry.computeVertexNormals();branch.drawn=b.y;
+      }
+      if(force)occupied=b.y;
+    }
+    return occupied;
   }
   function update(s){
     if(!s||!Number.isFinite(s.x)||!Number.isFinite(s.z))return;
@@ -430,7 +470,7 @@ window.makePerchHabitat=function makePerchHabitat(T,scene,world,region){
       if(u<box.min.x||u>box.max.x||v<box.min.z||v>box.max.z)continue;
       for(const t of mesh.geometry.userData.topSurfaces){
         const du=u-t[0],dv=v-t[1],a=du*t[2]+dv*t[3],b=du*t[4]+dv*t[5];
-        if(a>=-.000001&&b>=-.000001&&a+b<=1.000001)highest=Math.max(highest,p.y+t[6]+a*t[7]+b*t[8]);
+        if(a>=-.000001&&b>=-.000001&&a+b<=1.000001)highest=Math.max(highest,p.y+t[6]+a*t[7]+b*t[8]+(mesh.geometry.userData.branch?.drawn||0)*(t[9]+a*t[10]+b*t[11]));
       }
     }
     return highest;
@@ -453,5 +493,5 @@ window.makePerchHabitat=function makePerchHabitat(T,scene,world,region){
     }
     return best;
   }
-  return {update,choices,pick,select,resolveRoute,clearance,dispose,surface,wet,nearestTree};
+  return {update,flexBranch,choices,pick,select,resolveRoute,clearance,dispose,surface,wet,nearestTree};
 };

@@ -59,16 +59,27 @@ The Chamonix bird-mounted footage was the visual reference for the shoulder view
 
 Dark patches of rough water travel downwind. A circling bird on open wings marks a thermal. Bank into its circle to use the same rising air. These cues are visible from either camera.
 
-Cloud banks drift across all fourteen ranges. Their shadows follow the ridges, forest and water, and narrow mist banks drift with the local wind. In Alaska, choose [Nugget Falls spray pass](https://aerie-valley-flight.randyb308826.chatgpt.site/#world=alaska&launch=spray) to fly alongside the cascade. Fine spray blows off the ledges while larger drops fall back into the chute.
+Cloud banks drift across all twelve ranges. Their shadows follow the ridges, forest and water, and narrow mist banks drift with the local wind. In Alaska, choose [Nugget Falls spray pass](https://aerie-valley-flight.randyb308826.chatgpt.site/#world=alaska&launch=spray) to fly alongside the cascade. Fine spray blows off the ledges while larger drops fall back into the chute.
+
+## Try the world physics
+
+| Departure | What to watch or listen for |
+| --- | --- |
+| Moosehead Lake · Wind across the reeds | A traveling dark patch on the water reaches the sedges and then the trees. Open water and sheltered woods respond differently. |
+| Horseshoe Bend · Sunlit sandstone wall | Bank left alongside the wall. Warm light from the rock reaches the eagle’s white neck, then fades in the open canyon. |
+| Lac Berté · Cabin flyby | Look beneath the eaves and across the porch after the shower. Drips, shallow puddles and a thin stream carry water down the bank into the lake. |
+| Moosehead Lake · Kineo Cove shoreward glide | Land on the shoreline limb and push off. The feet follow the branch as it dips under load, and the branch springs back after release. |
+| Mendenhall Glacier · Around the Nugget Falls spur | With sound on, glide around the spur. The rumble carries through while the higher hiss returns when the falls come into view. Listen for delayed eagle calls beside rock walls. |
+| Crater Lake · Caldera overlook | Look across the sunlit rim toward Wizard Island as the storm approaches. |
 
 ## Scenery and credits
 
-The playable worlds include Oeschinen Lake, Mendenhall Glacier, Horseshoe Bend, Yosemite Valley, Bryce Canyon, Crater Lake, the Nā Pali Coast, Lofoten, Milford Sound, Lake Winnipesaukee, Moosehead Lake, Surry Mountain Dam with Keene, Lac Berté in Québec, and Dixville Notch at dawn in New Hampshire.
+The playable worlds include Oeschinen Lake, Mendenhall Glacier, Horseshoe Bend, Yosemite Valley, Crater Lake, Lofoten, Milford Sound, Lake Winnipesaukee, Moosehead Lake, Surry Mountain Dam with Keene, Lac Berté in Québec, and Dixville Notch at dawn in New Hampshire.
 
 Low passes reveal wind-bent photographed grasses, shrubs, and ferns. Position and head direction shape the stereo field of recorded birds near crowns, shores, and rocky ground. Exposed ridges and higher flight carry a stronger wind. Ten bald-eagle phrases from six field recordings accompany takeoffs, climbing, soaring, shoreline flight, and perching. The seven Yellowstone excerpts include the three recordings on the park’s bald-eagle page. Headphones make the direction of individual calls easiest to hear.
 
-On a low shoreline pass, ripples turn toward the bank and leave a dark band on the exposed gravel. The water at Mendenhall Lake carries more glacial sediment than the clear shallows at Oeschinen. Along the Nā Pali Coast, watch the broken crests spread and retreat across the beach. On the Merced and the Ashuelot, the current runs fastest away from the banks. The game models these waves, currents and shallow beds from the terrain and local setting.
+On a low shoreline pass, ripples turn toward the bank and leave a dark band on the exposed gravel. The water at Mendenhall Lake carries more glacial sediment than the clear shallows at Oeschinen. On the Merced and the Ashuelot, the current runs fastest away from the banks. The game models these waves, currents and shallow beds from the terrain and local setting.
 
-Choose **Wildlife shallows** for a low departure past each region’s fish and shore birds. At Bryce, choose **Tropic Reservoir shallows**. At Moosehead and Winnipesaukee, watch for mixed mallard and American black duck rafts, individual loons or pairs, and passing Canada goose flocks. Lac Berté’s shallows include brook trout.
+Choose **Wildlife shallows** for a low departure past each region’s fish and shore birds. At Moosehead and Winnipesaukee, watch for mixed mallard and American black duck rafts, individual loons or pairs, and passing Canada goose flocks. Lac Berté’s shallows include brook trout.
 
 See the [scenery and field-recording credits](game/credits.txt) for the source imagery, terrain, bird recordings, and their individual licenses. [Three.js](game/three-LICENSE.txt) and the bundled [pako decompressor](tools/pako/LICENSE) include their license notices.

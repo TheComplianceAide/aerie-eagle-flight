@@ -344,6 +344,7 @@ class Water extends Mesh {
 
 		let checkedReflectionType=false;
     scope.onBeforeRender = function ( renderer, scene, camera ) {
+      if(camera.userData.lakeReflection)return;
       if(!checkedReflectionType){
         if(!renderer.extensions.has('EXT_color_buffer_float')&&!renderer.extensions.has('EXT_color_buffer_half_float'))renderTarget.texture.type=THREE.UnsignedByteType;
         checkedReflectionType=true;
@@ -467,9 +468,7 @@ class Water extends Mesh {
 
   const survey=window.ATLAS_SURVEYS[region];
   const settings={
-    napali:{sky:'atlas-qwantani_sunrise_puresky.webp',sun:[-.72,.37,.42],water:0,sea:0x17636b,stone:[.31,.26,.21],treeH:13,top:1300,cover:.91,launch:[-2550,-440,1800,-1920,230],low:[-1910,-560,1200,-1820,48]},
     yosemite:{sky:'alaska-evening.jpg',sun:[-.62,.46,.53],stone:[.64,.61,.57],treeH:30,top:2840,cover:.91,launch:[-4600,1780,2300,0,150],low:[-1700,1110,1560,-490,70]},
-    bryce:{sky:'sky.jpg',sun:[.60,.31,-.63],stone:[.83,.51,.34],treeH:13,top:3000,cover:.92,launch:[-1170,-190,-650,-540,68],low:[-1110,-460,-520,-750,45]},
     crater:{sky:'alaska-evening.jpg',sun:[-.37,.53,-.71],water:1880.62,sea:0x123951,stone:[.43,.385,.337],treeH:21,top:2430,cover:.96,launch:[-3410,1770,-960,-230,315],low:[-2360,1720,600,1630,57]},
     lofoten:{sky:'atlas-qwantani_sunrise_puresky.webp',sun:[-.66,.35,.58],water:0,sea:0x225060,stone:[.37,.38,.37],treeH:6,top:330,cover:.6,launch:[600,2470,-450,-1890,320],low:[310,1680,-770,-1750,56]},
     milford:{sky:'atlas-wasteland_clouds_puresky.webp',sun:[-.4,.43,.71],water:0,sea:0x1c4548,stone:[.34,.37,.36],treeH:17,top:1060,cover:1.15,launch:[2370,3200,-2000,-700,330],low:[2630,4340,560,1900,105]}
@@ -479,7 +478,7 @@ class Water extends Mesh {
   const newEngland=dixville||region==='moosehead'||region==='winnipesaukee'||surry;
   const waterfront=region==='winnipesaukee'?window.makeWinnipesaukeeWaterfront?.(THREE,scene,texture):null;
   const bytes=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
-  const unpack=s=>new Int16Array(bytes(s).buffer), near=unpack(survey.terrain),far=unpack(survey.outer),tight=region==='bryce'&&window.bryceHighlands?window.bryceHighlands.heights:(survey.inner?unpack(survey.inner):null),cover=bytes(survey.canopy);
+  const unpack=s=>new Int16Array(bytes(s).buffer), near=unpack(survey.terrain),far=unpack(survey.outer),tight=survey.inner?unpack(survey.inner):null,cover=bytes(survey.canopy);
   const h=survey.half,farH=survey.farHalf,{clamp,smoothstep,lerp}=THREE.MathUtils;
   function sample(grid,half,x,z){
     const n=Math.round(Math.sqrt(grid.length)),u=clamp((x+half)*(n-1)/(half*2),0,n-1),v=clamp((z+half)*(n-1)/(half*2),0,n-1),i=Math.min(n-2,Math.floor(u)),j=Math.min(n-2,Math.floor(v)),a=u-i,b=v-j,k=j*n+i;
@@ -492,8 +491,7 @@ class Water extends Mesh {
   function farHeight(x,z){
     const base=sample(far,farH,x,z);
     const shore=settings.water===undefined?1:smoothstep(base-settings.water,2,25);
-    const height=base+shore*window.rangeRelief(region,x,z);
-    return region==='bryce'?window.tropicReservoir.ground(x,z,height):height;
+    return base+shore*window.rangeRelief(region,x,z);
   }
   function elevation(x,z){
     const r=Math.max(Math.abs(x),Math.abs(z));
@@ -512,15 +510,15 @@ class Water extends Mesh {
   }
   const loader=new THREE.TextureLoader();
   function texture(file,repeat=false){const tex=loader.load(file);tex.anisotropy=12;if(repeat)tex.wrapS=tex.wrapT=THREE.RepeatWrapping;return tex;}
-  const lightAngles={moosehead:[-84,15.5],winnipesaukee:[-112,4.2],surry:[-52,19],napali:[-36,15],yosemite:[-43,6.5],bryce:[-48,14.5],crater:[-70,8],lofoten:[-115,4.3],milford:[-71,8]};
+  const lightAngles={moosehead:[-84,15.5],winnipesaukee:[-112,4.2],surry:[-52,19],yosemite:[-43,6.5],crater:[-70,8],lofoten:[-115,4.3],milford:[-71,8]};
   const [azimuth,altitude]=(settings.lightAngles||lightAngles[region]).map(THREE.MathUtils.degToRad);
   const sun=new THREE.Vector3(Math.cos(azimuth)*Math.cos(altitude),Math.sin(altitude),Math.sin(azimuth)*Math.cos(altitude));
   const skyMap=texture(settings.skyMap||'atlas-'+region+'-sky.webp');
   skyMap.colorSpace=THREE.SRGBColorSpace;skyMap.wrapS=THREE.RepeatWrapping;
   skyMap.minFilter=THREE.LinearFilter;skyMap.generateMipmaps=false;
-  const fog=dixville?0xc5b7b6:region==='milford'?0xb2b9b9:region==='bryce'?0xcdb29c:0xb6bfc8;
+  const fog=dixville?0xc5b7b6:region==='milford'?0xb2b9b9:0xb6bfc8;
   scene.fog=new THREE.FogExp2(fog,region==='milford'?.000064:.000042);
-  const sunlight=new THREE.DirectionalLight(dixville?0xffc493:region==='bryce'?0xffc68a:0xffdcad,2.1);
+  const sunlight=new THREE.DirectionalLight(dixville?0xffc493:0xffdcad,2.1);
   sunlight.position.copy(sun).multiplyScalar(1000);scene.add(sunlight,new THREE.HemisphereLight(0xdde7fa,0x756757,1.39));
   const sky=new THREE.Mesh(new THREE.SphereGeometry(1,32,18),new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,uniforms:{map:{value:skyMap}},
     vertexShader:'varying vec3 ray;void main(){ray=position;vec4 clip=projectionMatrix*vec4(mat3(viewMatrix)*position,1.);gl_Position=clip.xyww;}',
@@ -530,14 +528,14 @@ class Water extends Mesh {
       #include <colorspace_fragment>
     }`}));
   sky.frustumCulled=false;sky.renderOrder=-1000;scene.add(sky);
-  const geology=region==='bryce'?'bedded':'jointed';
+  const geology='jointed';
   const aerial=texture('atlas-'+region+'-photo.webp'),ranges=texture('atlas-'+region+'-ranges.webp'),stone=texture('atlas-'+geology+'-rock.webp',true),grain=texture('rock.jpg',true),sod=texture('soil-'+window.aerieSoil(region)+'.webp',true);
   const color=new THREE.Color(fog);
   const terrainLight=texture('atlas-'+region+'-light.webp'),fracture=texture('atlas-'+geology+'-relief.webp',true);
   const canopyMap=new THREE.DataTexture(cover,384,384,THREE.RedFormat);
   canopyMap.minFilter=canopyMap.magFilter=THREE.LinearFilter;canopyMap.needsUpdate=true;
   const localShoreMask=surry||dixville;
-  const terrain=new THREE.ShaderMaterial({uniforms:{terrainLight:{value:terrainLight},fracture:{value:fracture},canopyMap:{value:canopyMap},temperate:{value:newEngland?1:0},shoreLevel:{value:settings.water===undefined?-10000:settings.water+.16},arctic:{value:region==='lofoten'?1:0},aerial:{value:aerial},ranges:{value:ranges},rockScan:{value:stone},stoneGrain:{value:grain},sod:{value:sod},sun:{value:sun},halfMap:{value:h},farSpan:{value:2*farH},stoneTint:{value:new THREE.Vector3(...settings.stone)},haze:{value:color},desert:{value:region==='bryce'?1:0}},
+  const terrain=new THREE.ShaderMaterial({uniforms:{terrainLight:{value:terrainLight},fracture:{value:fracture},canopyMap:{value:canopyMap},temperate:{value:newEngland?1:0},shoreLevel:{value:settings.water===undefined?-10000:settings.water+.16},arctic:{value:region==='lofoten'?1:0},aerial:{value:aerial},ranges:{value:ranges},rockScan:{value:stone},stoneGrain:{value:grain},sod:{value:sod},sun:{value:sun},halfMap:{value:h},farSpan:{value:2*farH},stoneTint:{value:new THREE.Vector3(...settings.stone)},haze:{value:color},desert:{value:0}},
     vertexShader:'varying vec3 wp,norm;void main(){wp=position;norm=normal;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
     fragmentShader:`uniform sampler2D terrainLight,fracture,canopyMap,aerial,ranges,rockScan,stoneGrain,sod;uniform vec3 sun,stoneTint,haze;uniform float halfMap,farSpan,desert,shoreLevel,arctic,temperate;varying vec3 wp,norm;
       ${window.aerieFloorShader}
@@ -588,14 +586,6 @@ class Water extends Mesh {
         float photoGain=.58+.69*clamp(lum(photo)*1.45,0.,1.);
         vec3 stoneColor=lithology*mix(.99,photoGain,orthoCoverage);
         vec3 c=mix(photo,stoneColor,materialWeight);
-        ${region==='napali'?`
-        // Some coast pixels in the orthophoto contain white surf projected onto
-        // land. Restore sand or basalt on bright lower banks at both flight scales.
-        float surfBleed=(1.-smoothstep(14.,45.,wp.y))*smoothstep(.54,.86,min(photo.r,min(photo.g,photo.b)));
-        float sandCove=max(1.-smoothstep(480.,740.,length(xz-vec2(-1524.,-383.))),
-                          1.-smoothstep(140.,310.,length(xz-vec2(-2892.,1150.))));
-        vec3 coastalGround=mix(stoneColor*.64,vec3(.48,.39,.27)*(.68+.64*grit),sandCove*smoothstep(.50,.87,normal.y));
-        c=mix(c,coastalGround,surfBleed*.96);`:''}
         // Pale caprock and rust-red silt alternate locally in the Claron beds;
         // retain the photographed variation instead of applying a single orange tint.
         float bedding=desert*(1.-veg);
@@ -625,7 +615,6 @@ class Water extends Mesh {
           float eligible=smoothstep(.49,.89,normal.y)*(1.-snow)*(1.-smoothstep(45.,228.,d));
           vec3 detail=floorColor(sod,xz,woody);
           float strength=mix(.09,.95,smoothstep(.025,.38,natural));
-          ${region==='bryce'?'strength=max(strength,.89);':''}
           float shade=clamp(.78+.42*lum(photo),.74,1.07);
           c=mix(c,detail*shade,eligible*strength);
         }
@@ -713,26 +702,7 @@ class Water extends Mesh {
       vec3 strata=vec3(.49,.48,.465)*(.43+1.07*weathering)*(.76+.92*cliff);
       lithology=mix(lithology,strata,headland*.93);`);
   }
-  if(region==='bryce'){
-    terrain.uniforms.finLight={value:texture('atlas-bryce-fins-light.webp')};
-    terrain.fragmentShader='uniform sampler2D finLight;\n'+terrain.fragmentShader
-      .replace('vec3 microX=',`float finCoverage=1.-smoothstep(1374.,1450.,max(abs(xz.x),abs(xz.y)));
-        occ=mix(occ,texture2D(finLight,vec2(xz.x,-xz.y)/2900.+.5).rgb,finCoverage);
-        vec3 microX=`)
-      .replace('/* exposed field geology */',`
-        // The fine joints run down a fin while the rock beds cross it. Sampling
-        // them on both axes preserves pale caprock as a fin turns away from us.
-        vec2 slump=vec2(strataY*.008,warp.y*.12);
-        float runoff=mix(texture2D(rockScan,vec2(wp.x*.065,wp.y*.010)+slump.yx).g,
-                         texture2D(rockScan,vec2(wp.z*.065,wp.y*.010)+slump.yx).g,axis);
-        vec3 broadColor=texture2D(aerial,photoUv,3.).rgb;
-        vec3 warmClaron=mix(broadColor,vec3(.78,.58,.40),.36);
-        lithology=mix(lithology,warmClaron*(.60+.85*cliff+.41*runoff),.73);
-        lithology*=.91+.38*runoff;`)
-      .replace('float bedding=desert*(1.-veg);',`float bedding=desert*(1.-veg);
-        c*=mix(vec3(1.),vec3(1.065,.977,.885),bedding);`);
-  }
-  if((survey.innerCenter && settings.detailOrtho!==false)||region==='bryce'){
+  if(survey.innerCenter && settings.detailOrtho!==false){
     terrain.uniforms.detailOrtho={value:texture('atlas-'+region+'-detail.webp')};
     terrain.uniforms.orthoOrigin={value:new THREE.Vector2(focusX,focusZ)};
     terrain.fragmentShader='uniform sampler2D detailOrtho;uniform vec2 orthoOrigin;\n'+terrain.fragmentShader.replace('photo=mix(photo,vec3(lum(photo))', `
@@ -911,8 +881,7 @@ class Water extends Mesh {
     }
   }else{
     if(tight)ring(core,h,h/320,focusX,focusZ);
-    if(region==='bryce'&&window.bryceHighlands)window.addBryceEscarpment(THREE,scene,terrain,elevation);
-    else for(let j=0;j<8;j++)for(let i=0;i<8;i++)patch(focusX-core+i*core/4,focusZ-core+j*core/4,core/4,core/4,tight?91:80,tight?91:80);
+    for(let j=0;j<8;j++)for(let i=0;i<8;i++)patch(focusX-core+i*core/4,focusZ-core+j*core/4,core/4,core/4,tight?91:80,tight?91:80);
   }
   // Periodic cellular foam film. The two closest irregular bubble centres define
   // each membrane; bake it once so a low shore pass needs only filtered samples.
@@ -938,36 +907,26 @@ class Water extends Mesh {
   const clock={value:0};let water=null,shoreFloor=null;
   // A short advancing sheet and a longer damp interval share the same packet
   // phases as the waves just offshore. Keep the wetting below the swash limit.
-  const exposure=region==='napali'?1:region==='lofoten'?.55:region==='milford'?.37:.06;
+  const exposure=region==='lofoten'?.55:region==='milford'?.37:.06;
   const saltFoam=exposure>.1?foamTexture():null;
   const shoreSand=shoreDetail?texture('shore-sand.webp',true):null;
   if(shoreDetail){
-    if(region==='napali')terrain.uniforms.surfLace={value:saltFoam};
     Object.assign(terrain.uniforms,shoreDetail.uniforms,{shoreTime:clock,shoreExposure:{value:exposure},
-      bankMaterial:{value:region==='napali'?shoreSand:texture('shore-cobble.webp',true)}});
-    terrain.fragmentShader=shoreOptics+(region==='napali'?'\nuniform sampler2D surfLace;':'')+'\nuniform float shoreTime,shoreExposure;uniform sampler2D bankMaterial;\n'+terrain.fragmentShader.replace('/* canopy transmission */', `
-      if(wp.y<shoreLevel+${region==='napali'?'23.':'3.5'} && d<260.){
+      bankMaterial:{value:texture('shore-cobble.webp',true)}});
+    terrain.fragmentShader=shoreOptics+'\nuniform float shoreTime,shoreExposure;uniform sampler2D bankMaterial;\n'+terrain.fragmentShader.replace('/* canopy transmission */', `
+      if(wp.y<shoreLevel+3.5 && d<260.){
         vec2 local=coastDistance(xz).xy;
-        // The aerial survey can include bright breaking surf on the lower Nā
-        // Pali cliffs. Resolve the substrate at ground level where it is visible.
         float above=wp.y-shoreLevel;
         float strip=(1.-smoothstep(1.3,5.5,local.x))*(1.-smoothstep(.32,2.4,above));
-        ${region==='napali'?`
-          float sandBeach=max(1.-smoothstep(440.,670.,length(xz-vec2(-1524.,-383.))),
-                              1.-smoothstep(140.,300.,length(xz-vec2(-2892.,1150.))));
-          float beach=(1.-smoothstep(4.5,22.,above))*sandBeach*local.y;
-          float basalt=smoothstep(.50,.83,normal.y);
-          strip=max(strip,beach*(.65+.35*basalt));`:''}
         if(strip*local.y>.006){
-          vec2 uv=xz*${region==='napali'?'.55':'.47'};
+          vec2 uv=xz*.47;
           vec3 scanA=texture2D(bankMaterial,uv).rgb;
           vec3 scanB=texture2D(bankMaterial,vec2(uv.x*.83+uv.y*.56,uv.y*.83-uv.x*.56)*.69+.31).rgb;
           float blend=.35+.21*sin(xz.x*.23+xz.y*.14);
           vec3 beachColor=pow(mix(scanA,scanB,blend),vec3(2.2));
-          ${region==='napali'?`beachColor=mix(beachColor,stoneColor*.32,(1.-sandBeach)*.68+(1.-basalt)*.23);`:''}
           float shade=.52+.60*max(0.,dot(normal,sun))*sunlit+.21*skyView;
           c=mix(c,beachColor*shade,strip*local.y*(1.-smoothstep(100.,260.,d))*
-                    ${region==='napali'?'.96':'.85'});
+                    .85);
         }
         float zone=mix(.86,4.2,shoreExposure);
         if(local.y>.0 && local.x<zone*1.25){
@@ -980,13 +939,6 @@ class Water extends Mesh {
           c*=1.-wet*(.21*damp+.24*front);
           float glancing=pow(1.-clamp(dot(normal,viewDir),0.,1.),3.);
           c=mix(c,vec3(.17,.24,.28)*(.64+.36*skyView),wet*front*(.06+.28*glancing));
-          ${region==='napali'?`
-          float margin=1.-smoothstep(.065,.34,abs(local.x-reach));
-          vec2 runUv=xz*.30+vec2(.031*t,-.014*t);
-          float trace=texture2D(surfLace,runUv).r;
-          float receding=smoothstep(-.6,.4,-cos(wave));
-          c=mix(c,vec3(.49,.59,.59)*(.60+.40*skyView),
-                wet*margin*packet*(.30+.45*trace)*(.46+.54*receding));`:''}
         }
       }
       /* canopy transmission */`);
@@ -1000,13 +952,13 @@ class Water extends Mesh {
       for(const hole of survey.shoreHoles||[])outline.holes.push(new THREE.Path(hole.map(vec)));
       g=new THREE.ShapeGeometry(outline);
     }else g=new THREE.PlaneGeometry(farH*2.4,farH*2.4);
-    const waterColors={moosehead:0x25505c,winnipesaukee:0x20505e,surry:0x254b58,crater:0x0a3977,napali:0x096f77,milford:0x163d49,lofoten:0x215364};
+    const waterColors={moosehead:0x25505c,winnipesaukee:0x20505e,surry:0x254b58,crater:0x0a3977,milford:0x163d49,lofoten:0x215364};
     water=new Water(g,{textureWidth:1024,textureHeight:512,waterNormals:texture('waternormals.jpg',true),sunDirection:sun,waterColor:waterColors[region]??settings.sea,fog:true});
     Object.assign(water.material.uniforms,{
       shoreTexel:{value:1/(surry?2048:dixville?768:region==='labrador'?640:1024)},
       shoreField:{value:texture('atlas-'+region+'-shore.webp')},terrainLight:{value:terrainLight},
       pebbles:{value:texture('shore-pebbles.webp',true)},basinSpan:{value:h*2},
-      oceanSurf:{value:region==='napali'?1:region==='lofoten'?.24:region==='milford'?.09:0},seaState:{value:region==='napali'?1.9:region==='lofoten'?1.28:newEngland?.87:.94},
+      oceanSurf:{value:region==='lofoten'?.24:region==='milford'?.09:0},seaState:{value:region==='lofoten'?1.28:newEngland?.87:.94},
       rockyBed:{value:newEngland?1:.75}
     });
     Object.assign(water.material.uniforms,shoreDetail.uniforms,{
@@ -1061,9 +1013,9 @@ class Water extends Mesh {
   const cityTrees=surry?[...window.KEENE_CITY.trees,...(window.keeneCurbTrees||[])]:null;
   for(const [x,z,height,width,seed] of cityTrees||[])plant({x,z,y:elevation(x,z),height,width,seed},false);
   waterfront?.createTrees(plant,elevation,settings.water);
-  const conifer=settings.conifers??['yosemite','bryce','crater'].includes(region);
+  const conifer=settings.conifers??['yosemite','crater'].includes(region);
   const firFraction=newEngland?clamp(settings.mixedFirFraction??(region==='moosehead'?.56:.30),0,1):(conifer?1:0);
-  const treeSpacing=newEngland?clamp((settings.treeSpacing??18)*.68,10,20):(settings.treeSpacing??(region==='milford'?16:region==='napali'?17:region==='lofoten'?24:region==='bryce'?17:21));
+  const treeSpacing=newEngland?clamp((settings.treeSpacing??18)*.68,10,20):(settings.treeSpacing??(region==='milford'?16:region==='lofoten'?24:21));
   for(let z=-h;z<h && (region!=='yosemite'||!crownPoints);z+=treeSpacing)for(let x=-h;x<h;x+=treeSpacing){
     const px=x+rand()*treeSpacing,pz=z+rand()*treeSpacing,y=elevation(px,pz);
     if(survey.crownPoints&&Math.max(Math.abs(px-focusX),Math.abs(pz-focusZ))<1445)continue;
@@ -1087,7 +1039,8 @@ class Water extends Mesh {
     }
   }
   const sunMask=terrainLight;
-  const updateWeather=region==='labrador'?window.addBerteWeather(THREE,scene,{sun,clock,sky,terrain,settings,survey}):null;
+  const updateWeather=region==='labrador'?window.addBerteWeather(THREE,scene,{sun,clock,sky,terrain,settings,survey}):
+    region==='crater'?window.addCraterWeather(THREE,scene,{sun,clock,sky,terrain,water}):null;
   window.shadeAtlasForest(THREE,terrain,trees,sun,h);
   const updateHardwoods=broadTrees.length?window.addHardwoods(THREE,scene,broadTrees,{region,sun,sunMask,half:h,fogColor:color,clock}):null;
   const spray=texture('waternormals.jpg',true);
@@ -1142,6 +1095,7 @@ class Water extends Mesh {
   const start=([x,z,tx,tz,agl,glance=0,lookDown=0])=>({x,z,y:clearance(x,z)+agl,yaw:Math.atan2(x-tx,z-tz),glance,lookDown});
   const spawn=start(settings.launch),low=start(settings.low);
   const launches={lake:spawn,ridge:low};
+  if(region==='moosehead')launches.reeds={x:1363,y:318.2,z:-681,yaw:-.15};
   for(const [key,tuple] of Object.entries(waterfront?.launches||settings.extraLaunches||{}))launches[key]=start(tuple);
   let landmarks=waterfront?[...survey.landmarks.filter(mark=>!waterfront.landmarks.some(local=>local.name===mark.name)),...waterfront.landmarks]:survey.landmarks;
   if(cabin){
@@ -1156,8 +1110,9 @@ class Water extends Mesh {
     return growth(x,z);
   }
   const world={region,height,elevation,clearance,spawn,launches,landmarks,groundCover,coverHalf:h,cityTerrainMaterial:surry?terrain:null,
-    bounds:{minX:region==='bryce'?-9850:-(settings.flightHalf||h)+90,maxX:(settings.flightHalf||h)-90,minZ:-(settings.flightHalf||h)+90,maxZ:(settings.flightHalf||h)-90},waterLevel:settings.water,lakeLevel:settings.water,
+    bounds:{minX:-(settings.flightHalf||h)+90,maxX:(settings.flightHalf||h)-90,minZ:-(settings.flightHalf||h)+90,maxZ:(settings.flightHalf||h)-90},waterLevel:settings.water,lakeLevel:settings.water,
     skyTexture:skyMap,sunDirection:sun,sunMask,trees,firTrees,forestLightSpan:2*h,longForest:newEngland||region==='yosemite'||region==='labrador',useFirForest:firTrees.length>0,altitudeOffset:0,
-    update(dt,t,player){clock.value=t;shoreDetail?.update(player);updateWeather?.(t,player,world.windField);updateHardwoods?.(player);if(water)water.material.uniforms.time.value=t*.65;}};
+    update(dt,t,player){clock.value=t;shoreDetail?.update(player);updateWeather?.(t,player,world.windField);rainTrace?.(t,player,world.windField);updateHardwoods?.(player);if(water)water.material.uniforms.time.value=t*.65;}};
+  const rainTrace=window.makeRainTrace(THREE,scene,{world,terrain,water,cabin,survey,inLake,ground:(x,z)=>Math.max(shoreFloor?.ground(x,z)??elevation(x,z),shoreFloor?.(x,z)??-Infinity)});
   return world;
 };

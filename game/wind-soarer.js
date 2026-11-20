@@ -3,11 +3,10 @@
 window.makeWindSoarer = function makeWindSoarer(T, scene, world, field) {
   const region = world.region;
   const harrier = region === 'milford';
-  const frigate = region === 'napali';
-  const golden = region === 'swiss' || region === 'bryce' || region === 'canyon';
+  const golden = region === 'swiss' || region === 'canyon';
   const seaEagle = region === 'lofoten';
-  const name = frigate ? 'Great frigatebird' : harrier ? 'Swamp harrier' : golden ? 'Golden eagle' : seaEagle ? 'White-tailed eagle' : 'Bald eagle';
-  const span = frigate ? 2.18 : harrier ? 1.52 : seaEagle ? 2.35 : 2.16;
+  const name = harrier ? 'Swamp harrier' : golden ? 'Golden eagle' : seaEagle ? 'White-tailed eagle' : 'Bald eagle';
+  const span = harrier ? 1.52 : seaEagle ? 2.35 : 2.16;
   const speed = harrier ? 10.8 : 12.6;
   const radius = harrier ? 23 : 29;
   const point = {}, core = {};
@@ -22,52 +21,29 @@ window.makeWindSoarer = function makeWindSoarer(T, scene, world, field) {
     return index;
   }
 
-  if (frigate) {
-    // Long bent handwings and a divided streamer tail are distinctive even
-    // against a bright sky. Two cambered surfaces give the wings an edge.
-    const panels = [[0,-.16,.09,.02],[.27,-.13,.07,.03],[.55,-.25,-.07,.065],[.76,-.14,-.035,.07],[1.09,.10,.11,.035]];
-    for (const side of [-1, 1]) {
-      const base = pos.length / 3;
-      for (let i = 0; i < panels.length; i++) {
-        const [x,front,back,y] = panels[i];
-        vertex(side*x,y,front,0,0,[.032,.037,.038]);
-        vertex(side*x,y+.023,(front+back)/2,0,0,[.078,.085,.081]);
-        vertex(side*x,y-.015,back,0,0,[.037,.037,.040]);
-        if (!i) continue;
-        const a = base + 3*i;
-        indices.push(a-3,a,a-2, a-2,a,a+1, a-2,a+1,a-1, a-1,a+1,a+2);
-      }
-      const b = pos.length / 3;
-      for (const [x,y,z] of [[0,.012,-.345],[.052,0,-.10],[0,.04,.15],[.03,-.015,.16],[.12,.02,.49],[.049,0,.25]]) {
-        vertex(side*x,y,z,0,0,[.04,.045,.047]);
-      }
-      indices.push(b,b+1,b+2,b,b+3,b+1,b+1,b+3,b+2,b+2,b+3,b+4,b+3,b+5,b+4);
-    }
-  } else {
-    // The photograph carries the slots between individual primaries. A low-
-    // resolution set of cambered ribs supplies the wing thickness and torso.
-    const columns = 38, rows = 18;
-    const length = span*(harrier ? .445 : .381);
-    for (const side of [1, -1]) {
-      const base = pos.length / 3;
-      for (let j=0; j<=rows; j++) for (let i=0; i<=columns; i++) {
-        const u=i/columns, v=j/rows, x=(u-.5)*span, ax=Math.abs(x)*2/span;
-        const bodyWidth=(.053+.084*Math.sin(Math.PI*clamp(v/.78,0,1)))*span/2.16;
-        const round=Math.max(0,1-(x/bodyWidth)**2);
-        const breast=.085*Math.sin(Math.PI*clamp(v/.79,0,1))*Math.sqrt(round);
-        const wing=ax*ax*(harrier ? .135 : .055)+.018*Math.sin(Math.PI*ax);
-        const airfoil=.028*Math.sin(Math.PI*clamp((v-.14)/.55,0,1));
-        const z=(v-.44)*length + (harrier ? .025*ax*ax : 0);
-        const shade=side>0 ? 1 : .72;
-        const paleHead=ax<.11 && v<.32, paleTail=ax<.29 && v>.64;
-        const tint=(golden||harrier) && (paleHead||paleTail) ? [.18,.119,.074] :
-          seaEagle && paleHead ? [.55,.45,.32] : [1,1,1];
-        vertex(x,wing+side*(breast+airfoil),z,u,v,tint.map(c=>c*shade));
-        if (!i || !j) continue;
-        const a=base+j*(columns+1)+i, b=a-columns-1;
-        if(side>0)indices.push(a,b,a-1,b,b-1,a-1);
-        else indices.push(a,a-1,b,b,a-1,b-1);
-      }
+  // The photograph carries the slots between individual primaries. A low-
+  // resolution set of cambered ribs supplies the wing thickness and torso.
+  const columns = 38, rows = 18;
+  const length = span*(harrier ? .445 : .381);
+  for (const side of [1, -1]) {
+    const base = pos.length / 3;
+    for (let j=0; j<=rows; j++) for (let i=0; i<=columns; i++) {
+      const u=i/columns, v=j/rows, x=(u-.5)*span, ax=Math.abs(x)*2/span;
+      const bodyWidth=(.053+.084*Math.sin(Math.PI*clamp(v/.78,0,1)))*span/2.16;
+      const round=Math.max(0,1-(x/bodyWidth)**2);
+      const breast=.085*Math.sin(Math.PI*clamp(v/.79,0,1))*Math.sqrt(round);
+      const wing=ax*ax*(harrier ? .135 : .055)+.018*Math.sin(Math.PI*ax);
+      const airfoil=.028*Math.sin(Math.PI*clamp((v-.14)/.55,0,1));
+      const z=(v-.44)*length + (harrier ? .025*ax*ax : 0);
+      const shade=side>0 ? 1 : .72;
+      const paleHead=ax<.11 && v<.32, paleTail=ax<.29 && v>.64;
+      const tint=(golden||harrier) && (paleHead||paleTail) ? [.18,.119,.074] :
+        seaEagle && paleHead ? [.55,.45,.32] : [1,1,1];
+      vertex(x,wing+side*(breast+airfoil),z,u,v,tint.map(c=>c*shade));
+      if (!i || !j) continue;
+      const a=base+j*(columns+1)+i, b=a-columns-1;
+      if(side>0)indices.push(a,b,a-1,b,b-1,a-1);
+      else indices.push(a,a-1,b,b,a-1,b-1);
     }
   }
   const geometry=new T.BufferGeometry();
@@ -76,8 +52,8 @@ window.makeWindSoarer = function makeWindSoarer(T, scene, world, field) {
   geometry.setAttribute('color',new T.Float32BufferAttribute(color,3));
   geometry.setIndex(indices);geometry.computeVertexNormals();geometry.computeBoundingSphere();
   const material=new T.MeshLambertMaterial({
-    vertexColors:true,side:T.DoubleSide,map:frigate ? null : map,
-    alphaTest:frigate ? 0 : .23,alphaToCoverage:!frigate
+    vertexColors:true,side:T.DoubleSide,map,
+    alphaTest:.23,alphaToCoverage:true
   });
   const bird=new T.Mesh(geometry,material);
   bird.name='Thermal soarer · '+name; bird.visible=false; scene.add(bird);

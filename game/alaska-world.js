@@ -978,7 +978,7 @@ class Water extends Mesh {
   });
   const sunMask=map('alaska-tree-light.webp');
   return {region:"alaska",spraySources,forestLightSpan:14400,elevation,clearance,height,trees,sunMask,sunDirection:sun,skyTexture:skyMap,waterLevel:0,lakeLevel:0,lakePolygon:shore,altitudeOffset:18,spawn:lakeLaunch,
-    launches:{lake:lakeLaunch,ridge,shore:shoreLaunch,spray:sprayPass,alpine:{x:-2900,z:-2010,y:elevation(-2900,-2010)+58,yaw:-.28}},bounds:{minX:-6890,maxX:6890,minZ:-6890,maxZ:6890},
+    launches:{lake:lakeLaunch,ridge,shore:shoreLaunch,spray:sprayPass,spur:{x:612,y:68.4704,z:977,yaw:-.08159},alpine:{x:-2900,z:-2010,y:elevation(-2900,-2010)+58,yaw:-.28}},bounds:{minX:-6890,maxX:6890,minZ:-6890,maxZ:6890},
     landmarks:[{name:'West alpine crest',x:-2900,z:-2010},{name:'Upper crevasse field',x:1500,z:-4130},{name:'Blue Ice Passage',x:-116,z:-1010},{name:'Nugget Falls beach',x:473,z:927},{name:'Medial moraine',x:632,z:-2450},{name:'Mendenhall Glacier',x:40,z:-1400},{name:'Nugget Falls',x:518,z:658},{name:'Mendenhall Lake',x:-700,z:680},{name:'West Glacier Ridge',x:-860,z:-1890}],
     update(dt,time,player){updateTerrainLOD(player);updateLedges(player);clock.value=time;lake.material.uniforms.time.value=time*.72;}
   };

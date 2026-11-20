@@ -9,7 +9,7 @@ window.makePerchFlight=function(T,world,habitat,route){
   const xyz=p=>new T.Vector3(p.x,p.y,p.z);
   const contactHeight=.20;
   let routeTarget=null,selected=null,usingRoute=false,stage='free',track,along=0;
-  let strokeForce=0;
+  let strokeForce=0,limbTravel=0;
   let stance=null,arrivalYaw=0,nextFoot=1,stepPause=0,stepStart=0,stepEnd=0,stepDuration=0,exitLook=0;
   let settleTime=0,openYaw=0,selectionRange=750,lookYaw=0,lookPitch=0,baseYaw=0,pushTime=0,refresh=0,selection=[],selectionTime=-99;
   const station=new T.Vector3(),ahead=new T.Vector3(),velocity=new T.Vector3();
@@ -18,7 +18,7 @@ window.makePerchFlight=function(T,world,habitat,route){
     if(!target)usingRoute=false;
   }
   function reset(s,onRoute){
-    stage='free';refresh=0;selection=[];track=null;usingRoute=onRoute;
+    stage='free';limbTravel=0;s.perchBalance=0;refresh=0;selection=[];track=null;usingRoute=onRoute;
     if(onRoute&&!routeTarget)routeTarget=habitat.resolveRoute(route.perch);
     select(onRoute?routeTarget:null);
     stance=null;s.perchStep=null;s.perchLaunchPending=false;
@@ -232,6 +232,19 @@ window.makePerchFlight=function(T,world,habitat,route){
     s.phase=0;
   }
   function advance(s,dt,input){
+    // Only a branch carrying the bird receives the load. A released branch
+    // continues ringing in ordinary flight until its stored energy decays.
+    const onBranch=selected?.type==='branch';
+    let load=0;
+    if(onBranch&&stage==='perched')load=1+.39*Math.exp(-12*settleTime)+.065*Math.sin(Math.PI*(stance?.progress||0))*(stance?.moving||0);
+    if(onBranch&&stage==='push'&&pushTime+dt<=.24)load=1+.66*Math.sin(Math.PI*pushTime/.24);
+    const travel=habitat.flexBranch?.(selected,load,dt)||0;
+    if(load){
+      s.y=selected.y+contactHeight+travel;
+      const impulse=Math.min(1,Math.abs(travel-limbTravel)/Math.max(dt,.0001)*1.85);
+      s.perchBalance=(s.perchBalance||0)+(impulse-(s.perchBalance||0))*ease(13,dt);
+    }else s.perchBalance=(s.perchBalance||0)*Math.exp(-7*dt);
+    limbTravel=travel;
     if(stage==='free')return false;
     const update=(p)=>{
       velocity.set((p.x-s.x)/dt,(p.y-s.y)/dt,(p.z-s.z)/dt);
@@ -275,12 +288,13 @@ window.makePerchFlight=function(T,world,habitat,route){
       }
       s.perchStep=null;stance=null;
       const flightTime=pushTime-preload;
+      if(!('seatOffset' in track))track.seatOffset=s.y-track.points[0].y;
       const u=Math.min(1,flightTime/track.pushDuration);
       // Integrate the exit speed in arc length so the rendered distance and
       // displayed speed agree from toe-off to the handover to free flight.
       const t=(2*track.entrySpeed*u+(track.releaseSpeed-track.entrySpeed)*u*u)/
         (track.entrySpeed+track.releaseSpeed);
-      const old=station.set(s.x,s.y,s.z);track.getPointAt(t,ahead);
+      const old=station.set(s.x,s.y,s.z);track.getPointAt(t,ahead);ahead.y+=track.seatOffset*(1-smooth(flightTime,0,.40));
       s.airspeed=lerp(track.entrySpeed,track.releaseSpeed,u);
       s.effort+=(.98-s.effort)*ease(18,dt);
       s.wingExtension=lerp(.62,.97,smooth(flightTime,0,.28));

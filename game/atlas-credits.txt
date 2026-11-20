@@ -8,15 +8,9 @@ https://esa-worldcover.org/en
 https://www.openstreetmap.org/copyright
 https://github.com/microsoft/USBuildingFootprints
 
-Yosemite Valley, Bryce Canyon National Park and Crater Lake National Park:
-Aerial photography from USDA's National Agriculture Imagery Program, delivered by USGS The National Map. Heights are resampled USGS 3D Elevation Program (3DEP) terrain. The central 2.9 km of Bryce Amphitheater uses fins and hoodoos measured by the 2018 Southern Utah QL1 USGS survey. Its one-meter lidar elevation product was sampled at 1.42 m for the game. Trees and waterfalls are simulated.
+Yosemite Valley and Crater Lake National Park:
+Aerial photography from USDA's National Agriculture Imagery Program, delivered by USGS The National Map. Heights are resampled USGS 3D Elevation Program (3DEP) terrain. Trees and waterfalls are simulated.
 https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer
-https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer
-
-Nā Pali Coast:
-USDA Natural Resources Conservation Service historical 1962–1966 Hawaii orthophotography, matched to 2022 Copernicus Sentinel-2 natural-color imagery. USGS 3DEP terrain.
-https://apps.geo.fpac.usda.gov/nrcs-imagery/rest/services/ortho_imagery/hawaii_1962_1966_30cm/ImageServer
-https://earth-search.aws.element84.com/v1/collections/sentinel-2-l2a/items/S2A_4QDK_20220821_0_L2A
 https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer
 
 Reinefjorden, Lofoten:

@@ -49,6 +49,72 @@
       return smoothstep(0.0,.84,edge)*grain*(middle ? 1.0 : .71+.29*h1/250.0);
     }`;
 
+  // Sample the flight field on a moving 8 m grid. R/G interpolate the front
+  // through a short time interval; B/A carry its recent history for heavy
+  // limbs. Every mesh sharing this scene samples the same passing front.
+  window.getCanopyWind=function(T,scene){
+    if(scene.userData.canopyWind)return scene.userData.canopyWind;
+    const side=65,step=8,period=.42,pixels=new Uint8Array(side*side*4);
+    const texture=new T.DataTexture(pixels,side,side,T.RGBAFormat);
+    texture.minFilter=texture.magFilter=T.LinearFilter;texture.needsUpdate=true;
+    const uniforms={canopyFlow:{value:texture},canopyCenter:{value:new T.Vector2()},
+      canopyDownwind:{value:new T.Vector2(1,0)},canopyFraction:{value:0}};
+    const glsl=`
+      uniform sampler2D canopyFlow;
+      uniform vec2 canopyCenter,canopyDownwind;
+      uniform float canopyFraction;
+      vec2 plantFront(vec2 root){
+        vec2 uv=(root-canopyCenter)/520.+.5;
+        vec4 front=texture2D(canopyFlow,uv);
+        float boundary=1.-smoothstep(.42,.49,max(abs(uv.x-.5),abs(uv.y-.5)));
+        return mix(vec2(.10),mix(front.rb,front.ga,canopyFraction),boundary);
+      }
+      vec2 plantMotion(vec2 root,vec2 front,float t,float softness){
+        float along=dot(root,canopyDownwind),crosswind=dot(root,vec2(-canopyDownwind.y,canopyDownwind.x));
+        float phase=.035*along+.021*crosswind;
+        float sway=mix(front.y,front.x,softness);
+        float pulse=.59*sin(t*(.77+.19*softness)-.14*along+.82*sin(.076*crosswind))+
+                    .41*sin(t*1.83-.19*along+.15*cos(crosswind*.11));
+        float fore=.026+.019*sin(t*.82-phase)+sway*(.18+.085*pulse)+.085*(front.x-front.y);
+        float side=.012*sin(t*1.21+phase)+sway*.036*sin(t*(1.2+softness)+.19*crosswind);
+        return canopyDownwind*fore+vec2(-canopyDownwind.y,canopyDownwind.x)*side;
+      }`;
+    // Terrain exposure changes on a coarser scale than the front. Sample the
+    // upwind skyline once per move, then interpolate at the gust texels.
+    const exposureSize=17,exposures=new Float32Array(exposureSize**2);
+    const localExposure=new Float32Array(side*side);
+    function refreshShelter(field,x,z){
+      for(let j=0;j<exposureSize;j++)for(let i=0;i<exposureSize;i++){
+        exposures[j*exposureSize+i]=field.canopyExposure(x+(i-8)*32,z+(j-8)*32);
+      }
+      for(let j=0;j<side;j++)for(let i=0;i<side;i++){
+        const a=Math.min(15,Math.floor(i/4)),b=Math.min(15,Math.floor(j/4));
+        const dx=i/4-a,dz=j/4-b,k=b*exposureSize+a;
+        const near=exposures[k]*(1-dx)+exposures[k+1]*dx;
+        const far=exposures[k+exposureSize]*(1-dx)+exposures[k+exposureSize+1]*dx;
+        localExposure[j*side+i]=near*(1-dz)+far*dz;
+      }
+    }
+    let previous=NaN,centerX=NaN,centerZ=NaN;
+    const update=(field,eye,t)=>{
+      if(!field||!Number.isFinite(t))return;
+      const x=Math.round(eye.x/32)*32,z=Math.round(eye.z/32)*32,tick=Math.floor(t/period),start=tick*period;
+      uniforms.canopyFraction.value=clamp((t-start)/period,0,1);
+      if(previous===tick&&x===centerX&&z===centerZ)return;
+      if(x!==centerX||z!==centerZ)refreshShelter(field,x,z);
+      previous=tick;centerX=x;centerZ=z;uniforms.canopyCenter.value.set(x,z);
+      uniforms.canopyDownwind.value.set(field.direction.x,field.direction.z);
+      for(let j=0,k=0;j<side;j++)for(let i=0;i<side;i++,k+=4){
+        const wx=x+(i-32)*step,wz=z+(j-32)*step,gain=255*localExposure[j*side+i];
+        pixels[k]=Math.round(gain*field.gust(wx,wz,start));
+        pixels[k+1]=Math.round(gain*field.gust(wx,wz,start+period));
+        pixels[k+2]=Math.round(gain*field.gust(wx,wz,start-.88));
+        pixels[k+3]=Math.round(gain*field.gust(wx,wz,start+period-.88));
+      }
+      texture.needsUpdate=true;
+    };
+    return scene.userData.canopyWind={uniforms,glsl,update};
+  };
   window.makeWindField = function(terrain, region) {
     let seed = 0;
     for (const c of (region || 'swiss')) seed = (Math.imul(seed,31)+c.charCodeAt(0))>>>0;
@@ -153,6 +219,13 @@
       const across=-x*direction.z+z*direction.x;
       return gustAt(along,across,phase);
     }
+    function canopyExposure(x,z) {
+      const y=ground(x,z),upwind=d=>ground(x-direction.x*d,z-direction.z*d);
+      // Shelter starts at a 4-degree skyline and reaches its deepest lee
+      // near 29 degrees. Open shore and level forest retain the full gust.
+      const skyline=Math.max((upwind(32)-y)/32,(upwind(112)-y)/112);
+      return 1-.64*smooth(.07,.55,skyline);
+    }
     function sample(x,y,z,t,out={},groundPlane) {
       const localX=x-origin.x, localZ=z-origin.z;
       const along=localX*direction.x+localZ*direction.z-t*advection;
@@ -203,6 +276,6 @@
       return out;
     }
     return {centers, get launchCenter(){return launchCenter;}, ensureLaunchCore, core, gust,
-            direction, origin, phase, advection, sample};
+            direction, origin, phase, advection, canopyExposure, sample};
   };
 })();
