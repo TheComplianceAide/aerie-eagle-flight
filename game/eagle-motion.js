@@ -135,6 +135,8 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
   let prevHeadQ = new THREE.Quaternion(), haveHead = false;
   const up = new THREE.Vector3(), right = new THREE.Vector3(), back = new THREE.Vector3(), down = new THREE.Vector3(), force = new THREE.Vector3();
   const headWorld = new THREE.Quaternion(), tmpQ = new THREE.Quaternion();
+  const ahead = new THREE.Vector3(), headRollQ = new THREE.Quaternion(), FORWARD = new THREE.Vector3(0, 0, -1);
+  let headRoll = 0;
   const stats = {springs: allSprings.length, oscillators: 8, blinks: 0, turbulence: 0, peakBend: 0, saturated: 0};
 
   // Channels eagle.js does not set every frame. They are restored to their
@@ -229,6 +231,15 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
     neck.parent.getWorldQuaternion(tmpQ);
     const stabilised = tmpQ.invert().multiply(headWorld);
     neck.quaternion.slerp(stabilised, .9 * freeFlight + .5 * folded);
+    // Raptors inspect the ground with one eye: looking down and to a side,
+    // the head cocks so that eye faces the ground.
+    neck.getWorldQuaternion(tmpQ);
+    const lookDown = -Math.asin(clamp(ahead.copy(FORWARD).applyQuaternion(tmpQ).y, -1, 1));
+    ahead.copy(FORWARD).applyQuaternion(tmpQ.copy(neckBase.quaternion).multiply(neck.quaternion));
+    const turned = Math.atan2(ahead.x, -ahead.z);                    // + to the right of the breast
+    const wantRoll = Math.sign(turned) * .38 * smooth(.12, .55, lookDown) * smooth(.08, .4, Math.abs(turned));
+    headRoll += (wantRoll - headRoll) * (1 - Math.exp(-step / .12));
+    neck.quaternion.multiply(headRollQ.setFromAxisAngle(FORWARD, headRoll));
     neckBase.position.y -= clamp(h, -.018, .018) * .6 * freeFlight;
     // Peering: two or three quick head translations, side to side or up and
     // down, while the gaze direction holds.
@@ -346,7 +357,7 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
     const perchSlip = clamp(windLocal.x / 8, -1, 1) * folded;
     uniforms.featherSlip.value += (slip * clamp(q, 0, 2) * freeFlight + perchSlip - uniforms.featherSlip.value) * (1 - Math.exp(-8 * step));
     uniforms.featherFluff.value += (fluff - uniforms.featherFluff.value) * (1 - Math.exp(-10 * step));
-    stats.turbulence = turbulence; stats.wind = +windSpeed.toFixed(2);
+    stats.turbulence = turbulence; stats.wind = +windSpeed.toFixed(2); stats.headRoll = +headRoll.toFixed(3);
     Object.defineProperty(stats, 'air', {value: air, writable: true, configurable: true, enumerable: false});
     stats.tailBend = tailSprings.reduce((a, s) => a + s.offset, 0) / tailSprings.length;
     stats.primaryBend = primarySprings.reduce((a, s) => a + s.offset, 0) / primarySprings.length;
