@@ -175,35 +175,65 @@ window.addRegionalWildlife=function(T,scene,w){
       }
     }
     let launchHeight=4.8;
-    launch={x:pick.bx,y:Math.max(pick.y,(w.clearance||w.height)(pick.bx,pick.bz))+launchHeight,z:pick.bz,
+    const clearance=w.flightClearance||w.clearance||w.height;
+    const wind=w.windField.sample(pick.x,pick.y+5,pick.z,0);
+    launch={x:pick.bx,y:Math.max(pick.y,clearance(pick.bx,pick.bz))+launchHeight,z:pick.bz,
       yaw:Math.atan2(pick.bx-pick.x,pick.bz-pick.z),glance:0};
-    if(feedingFish||region==='canyon'){
+    const crossesBank=[35,60,85,110,135,160,185,210,235,260,285].some(d=>{
+      const x=launch.x-Math.sin(launch.yaw)*d+wind.windX*d/15;
+      const z=launch.z-Math.cos(launch.yaw)*d+wind.windZ*d/15;
+      return !Number.isFinite(waterAt(x,z))||clearance(x,z)>launch.y-1.5;
+    });
+    // The Merced bends below the shallows. At Milford a setback inland from
+    // the resident shelducks would put the eagle in the fjord wall. Start on
+    // the surveyed water and cross the resident site on the open side.
+    const shoreStart={yosemite:[-704.04,1237.95,12],milford:[2376,3244,9]}[region];
+    if(shoreStart&&Number.isFinite(waterAt(shoreStart[0],shoreStart[1]))){
+      const [x,z,height]=shoreStart,dx=pick.x-x,dz=pick.z-z,length=Math.hypot(dx,dz);
+      const alongX=dx/length,alongZ=dz/length,sideX=-alongZ,sideZ=alongX;
+      // Aim into the crosswind so the initial ground track follows the shore.
+      const cross=clamp((wind.windX*sideX+wind.windZ*sideZ)/15,-.8,.8);
+      const forward=Math.sqrt(1-cross*cross);
+      launchHeight=height;
+      launch={x,y:Math.max(waterAt(x,z),clearance(x,z))+launchHeight,z,
+        yaw:Math.atan2(-forward*alongX+cross*sideX,-forward*alongZ+cross*sideZ),glance:0};
+    }else if(feedingFish||crossesBank){
       // Survey the whole low pass. A short patch of open water can aim the
       // eagle straight into the opposite canyon wall.
       let bestRun=-Infinity,course;
-      for(let i=0;i<32;i++){
-        const a=i*tau/32,dx=Math.cos(a),dz=Math.sin(a),rightX=-dz,rightZ=dx;
+      const passEnd=feedingFish?158:300,fullPass=Math.floor((passEnd+29)/7)+1;
+      // Inspect headings away from sun glitter first. A clear full-length
+      // pass on the least reflective remaining bearing is already optimal.
+      const bearings=Array.from({length:32},(_,i)=>{
+        const dx=Math.cos(i*tau/32),dz=Math.sin(i*tau/32);
+        return {dx,dz,glare:Math.max(0,dx*w.sunDirection.x+dz*w.sunDirection.z)};
+      }).sort((a,b)=>a.glare-b.glare);
+      for(const {dx,dz,glare} of bearings){
+        const rightX=-dz,rightZ=dx;
         const bx=pick.x-dx*29,bz=pick.z-dz*29;
         if(!Number.isFinite(waterAt(bx,bz)))continue;
-        let score=0;
-        for(let d=-29;d<=158;d+=7){
+        let clearSamples=0;
+        for(let d=-29;d<=passEnd;d+=7){
           const seconds=(d+29)/17.5;
-          const x=pick.x+dx*d+2.4*seconds,z=pick.z+dz*d-1.25*seconds;
-          if([0,5,-3].every(off=>Number.isFinite(waterAt(x+rightX*off,z+rightZ*off))))score++;
+          const x=pick.x+dx*d+wind.windX*seconds,z=pick.z+dz*d+wind.windZ*seconds;
+          if([0,5,-3].every(off=>{
+            const px=x+rightX*off,pz=z+rightZ*off,water=waterAt(px,pz);
+            return Number.isFinite(water)&&(feedingFish||clearance(px,pz)<water+5);
+          }))clearSamples++;
           else break;
         }
-        // Avoid looking into the brightest stripe of reflected sky.
-        score-=.45*Math.max(0,dx*w.sunDirection.x+dz*w.sunDirection.z);
+        const score=clearSamples-.45*glare;
         if(score>bestRun){bestRun=score;course={dx,dz,rightX,rightZ,bx,bz};}
+        if(clearSamples===fullPass)break;
       }
       if(course){
         const {dx,dz,rightX,rightZ,bx,bz}=course;
         launchHeight=feedingFish?2.65:9;
-        launch={x:bx,y:Math.max(pick.y,(w.clearance||w.height)(bx,bz))+launchHeight,z:bz,yaw:Math.atan2(-dx,-dz),glance:feedingFish?-19:0};
+        launch={x:bx,y:Math.max(pick.y,clearance(bx,bz))+launchHeight,z:bz,yaw:Math.atan2(-dx,-dz),glance:feedingFish?-19:0};
         // Keep feeding fish on the visible side of the right-shoulder camera.
         if(feedingFish)for(const d of [15,43,76,112,148]){
           const drift=(d+29)/17.5;
-          const x=pick.x+dx*d+rightX*3.1+2.4*drift,z=pick.z+dz*d+rightZ*3.1-1.25*drift;
+          const x=pick.x+dx*d+rightX*3.1+wind.windX*drift,z=pick.z+dz*d+rightZ*3.1+wind.windZ*drift;
           if(!Number.isFinite(waterAt(x,z)))continue;
           const feeding=fish.populate({x,z,findWater},randomAt(Math.round(x),Math.round(z)),true,[feedingFish]);
           for(const school of feeding){
@@ -217,7 +247,7 @@ window.addRegionalWildlife=function(T,scene,w){
     }
     const shallows={bryce:'Tropic Reservoir shallows',moosehead:'Wildlife shallows · Salmon rise',labrador:'Wildlife shallows · Brook trout'}[region]||'Wildlife shallows';
     w.landmarks.push({name:shallows,x:pick.x,z:pick.z,discoveryRadius:72,
-      approach:[launch.x,launch.z,pick.x,pick.z,launchHeight,launch.glance]});
+      approach:[launch.x,launch.z,launch.x-30*Math.sin(launch.yaw),launch.z-30*Math.cos(launch.yaw),launchHeight,launch.glance]});
   }
   Object.defineProperty(w.launches,'wildlife',{enumerable:true,get(){prepare();return launch;}});
   function birdPose(a,f,t,dt,player){
