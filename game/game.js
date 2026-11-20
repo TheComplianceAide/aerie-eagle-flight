@@ -488,7 +488,7 @@
       if(factory)updateHabitat=addHabitat(THREE,scene,world,region);
       window.addFlightWater(THREE,scene,world);
       updateUnderstory=window.addUnderstory(THREE,scene,world);
-      if(region==="swiss") updateTalus=window.addTalus?.(THREE,scene,world);
+      if(region==="swiss"||region==="canyon") updateTalus=window.addTalus?.(THREE,scene,world);
       if(region==="swiss" || region==="alaska" || world.useFirForest) updateForest=window.addForest?.(THREE,scene,world);
       updateMist=window.addValleyMist?.(THREE,scene,world);
       eagle=makeEagle(THREE);scene.add(eagle.object);

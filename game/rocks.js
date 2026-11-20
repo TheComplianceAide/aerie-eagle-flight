@@ -2,6 +2,7 @@
 // a fixed ring decides where a high-detail scan is worth drawing.
 window.addTalus = function addTalus(THREE, scene, world) {
   if (!window.talusScans?.length) return;
+  const arid=world.region==='canyon';
   const loader = new THREE.TextureLoader();
   function map(path, color = false) {
     const texture = loader.load(path);
@@ -11,10 +12,25 @@ window.addTalus = function addTalus(THREE, scene, world) {
     return texture;
   }
   const material = new THREE.MeshStandardMaterial({
-    map: map("talus-colour.webp", true), normalMap: map("talus-normal.webp"),
+    map: map(arid?"canyon-talus.webp":"talus-colour.webp", true), normalMap: map("talus-normal.webp"),
     normalScale:new THREE.Vector2(.8,.8), roughnessMap:map("talus-roughness.webp"),
     roughness:1,metalness:0
   });
+  if(arid){
+    // The orthophoto was lit at midday. Light the loose debris from the
+    // same sunset horizon field that shades the host cliff and its apron.
+    material.onBeforeCompile=shader=>{
+      shader.uniforms.rockHorizon=world.rockLight;
+      shader.vertexShader='varying vec2 rockXZ;\n'+shader.vertexShader.replace('#include <project_vertex>',`
+        #include <project_vertex>
+        rockXZ=(instanceMatrix*vec4(transformed,1.)).xz;`);
+      shader.fragmentShader='varying vec2 rockXZ;uniform sampler2D rockHorizon;\n'+shader.fragmentShader.replace('#include <lights_fragment_end>',`
+        #include <lights_fragment_end>
+        float openSun=texture2D(rockHorizon,vec2(rockXZ.x,-rockXZ.y)/6400.+.5).b;
+        reflectedLight.directDiffuse*=mix(.15,1.,openSun);
+        reflectedLight.indirectDiffuse*=mix(vec3(.70,.76,.82),vec3(1.),openSun);`);
+    };
+  }
   function unpack(encoded, Type) {
     const str = atob(encoded), bytes = new Uint8Array(str.length);
     for(let i=0;i<str.length;i++)bytes[i]=str.charCodeAt(i);
@@ -64,12 +80,13 @@ window.addTalus = function addTalus(THREE, scene, world) {
     const f=(d-distanceAlong[i])/Math.max(.01,distanceAlong[i+1]-distanceAlong[i]);
     return {x:a.x+(b.x-a.x)*f,z:a.z+(b.z-a.z)*f};
   }
+  const substrate=world.rockSurface||world.height;
   function spawnRock(x,z,size,onShore){
-    const h=world.height(x,z);
-    if(!Number.isFinite(h) || (h<water+.5 && inLake(x,z)))return;
+    const h=substrate(x,z);
+    if(!Number.isFinite(h) || (h<water+.5 && inLake(x,z)) || (arid && world.habitat.wet(x,z,world.height(x,z))))return;
     const r=Math.max(.7,size*.32);
-    const dx=(world.height(x+r,z)-world.height(x-r,z))/(2*r);
-    const dz=(world.height(x,z+r)-world.height(x,z-r))/(2*r);
+    const dx=(substrate(x+r,z)-substrate(x-r,z))/(2*r);
+    const dz=(substrate(x,z+r)-substrate(x,z-r))/(2*r);
     const slope=Math.hypot(dx,dz);
     if(slope>2.4)return;
     const variant=Math.floor(random()*meshes.length);
@@ -96,31 +113,52 @@ window.addTalus = function addTalus(THREE, scene, world) {
     const key=gridKey(Math.floor(x/gridSize),Math.floor(z/gridSize));
     let cell=cells.get(key);if(!cell){cell=[];cells.set(key,cell);}cell.push(rock);
   }
-  for(let i=0;i<2150;i++){
-    const onShore=i<470 && shore.length>2;
-    let x,z;
-    if(onShore){
-      const p=shorelinePoint();x=p.x+(random()-.5)*48;z=p.z+(random()-.5)*48;
-    }else{
-      x=bounds.minX+random()*(bounds.maxX-bounds.minX);
-      z=bounds.minZ+random()*(bounds.maxZ-bounds.minZ);
-    }
-    const h=world.height(x,z);
-    const dx=(world.height(x+13,z)-world.height(x-13,z))/26;
-    const dz=(world.height(x,z+13)-world.height(x,z-13))/26;
-    const grade=Math.hypot(dx,dz);
-    if(!onShore && (grade<.18 || grade>1.95 || (h<maxHeight*.27 && random()<.63)))continue;
-    const diameter=onShore?1.55+random()**2*5.5:2.5+random()**2*7.5;
-    const radius=onShore?8+random()*15:15+random()*40;
-    const pieces=onShore?8+Math.floor(random()*15):10+Math.floor(random()*25);
-    for(let n=0;n<pieces;n++){
-      const angle=random()*2*Math.PI, reach=Math.sqrt(random())*radius;
-      const spread=n===0?0:reach;
-      const size=n===0?diameter:diameter*(.09+.64*random()**2);
-      spawnRock(x+Math.cos(angle)*spread,z+Math.sin(angle)*spread,size,onShore);
+  function seedCliffAprons(){
+    // Fan out below the inner canyon walls. Rocks can stop on a shallow
+    // apron, but cannot collect halfway up the cliff that released them.
+    const ground=world.height;
+    for(let x=-1640;x<40;x+=24)for(let z=-860;z<860;z+=24){
+      const cx=x+24*random(),cz=z+24*random(),h=ground(cx,cz);
+      const relief=Math.max(ground(cx-22,cz),ground(cx+22,cz),ground(cx,cz-22),ground(cx,cz+22))-h;
+      const slope=Math.hypot(ground(cx+2,cz)-ground(cx-2,cz),ground(cx,cz+2)-ground(cx,cz-2))/4;
+      if(relief<8||slope>1.22||world.habitat.wet(cx,cz,h))continue;
+      const size=.77+3.55*random()**1.7, radius=4+6.1*size;
+      spawnRock(cx,cz,size,false);
+      const count=7+Math.floor(size*4);
+      for(let i=0;i<count;i++){
+        const a=random()*2*Math.PI,r=radius*Math.sqrt(random());
+        const px=cx+r*Math.cos(a),pz=cz+r*Math.sin(a);
+        if(ground(px,pz)<h+size*1.5)spawnRock(px,pz,size*(.085+.51*random()**1.45),false);
+      }
     }
   }
+  if(!arid){
+    for(let i=0;i<2150;i++){
+      const onShore=i<470 && shore.length>2;
+      let x,z;
+      if(onShore){
+        const p=shorelinePoint();x=p.x+(random()-.5)*48;z=p.z+(random()-.5)*48;
+      }else{
+        x=bounds.minX+random()*(bounds.maxX-bounds.minX);
+        z=bounds.minZ+random()*(bounds.maxZ-bounds.minZ);
+      }
+      const h=world.height(x,z);
+      const dx=(world.height(x+13,z)-world.height(x-13,z))/26;
+      const dz=(world.height(x,z+13)-world.height(x,z-13))/26;
+      const grade=Math.hypot(dx,dz);
+      if(!onShore && (grade<.18 || grade>1.95 || (h<maxHeight*.27 && random()<.63)))continue;
+      const diameter=onShore?1.55+random()**2*5.5:2.5+random()**2*7.5;
+      const radius=onShore?8+random()*15:15+random()*40;
+      const pieces=onShore?8+Math.floor(random()*15):10+Math.floor(random()*25);
+      for(let n=0;n<pieces;n++){
+        const angle=random()*2*Math.PI, reach=Math.sqrt(random())*radius;
+        const spread=n===0?0:reach;
+        const size=n===0?diameter:diameter*(.09+.64*random()**2);
+        spawnRock(x+Math.cos(angle)*spread,z+Math.sin(angle)*spread,size,onShore);
+      }
+    }
 
+  }
   const disk=new THREE.PlaneGeometry(2,2);disk.rotateX(-Math.PI/2);
   const shadowMaterial=new THREE.ShaderMaterial({
     transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,
@@ -149,7 +187,11 @@ window.addTalus = function addTalus(THREE, scene, world) {
   };
   const groups=meshes.map(()=>[[],[]]);
   let lastX=Infinity,lastY=Infinity,lastZ=Infinity,lastTime=-Infinity;
+  // The dry channel mask is an image. Seed after the initial scenery load so
+  // both HTTP and offline launches use the same shoreline and rock positions.
+  let needsAprons=arid;
   return function updateTalus(player,time) {
+    if(needsAprons){seedCliffAprons();needsAprons=false;}
     if(time>=lastTime && Math.hypot(player.x-lastX,player.y-lastY,player.z-lastZ)<9)return;
     lastX=player.x;lastY=player.y;lastZ=player.z;lastTime=time;
     const cx=Math.floor(player.x/gridSize),cz=Math.floor(player.z/gridSize);

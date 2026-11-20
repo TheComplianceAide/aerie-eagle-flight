@@ -63,7 +63,8 @@
     try { history.replaceState(null, '', '#'+params); } catch { location.hash = params.toString(); }
     app.dataset.departure = launch.value;
     const descriptions={
-      wall:'Glide beside the sunlit sandstone, then bank left into the open canyon. Look at the light on the eagle’s neck.',
+      wall:'Follow the broken ledges on your right. Bank left past the fallen sandstone blocks into the open canyon.',
+      cabin:'Fly out of the shower toward the white cabin. Look for sunlight catching the wet roof and the puddles by the shore.',
       spur:'Glide around the spur with sound on. Listen for the high hiss of Nugget Falls as the cascade comes into view.',
       reeds:'Follow the dark ripples toward the sedge beds and watch the gust reach the trees along the shore.',
       spray:'Follow the shoreline toward Nugget Falls. Watch the spray lift off the ledges and bend downwind.'

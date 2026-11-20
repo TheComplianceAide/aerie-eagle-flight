@@ -690,6 +690,11 @@ https://doi.org/10.1098/rstb.2015.0398
 SHORELINES AND SHALLOW WATER
 The Swiss and Alaskan shoreline fields are derived from the intersections of the in-game lake outlines and terrain surveys credited above. Shallow gravel profiles, wetting, suspended sediment, and currents are artistic simulations. Shore beds reuse the Poly Haven CC0 photographic materials credited under ground materials.
 
-Crater Lake storm photography uses the sky-only upper hemisphere of Cedar Bridge Sunset 1, photographed by Dario Barresi for Poly Haven, CC0. The storm position, lighting and rain over the caldera are simulated.
+Crater Lake storm photography uses the sky-only upper hemisphere of Cedar Bridge Sunset 1, photographed by Dario Barresi for Poly Haven, CC0. The close arcus cloud face in crater-arcus-front.webp is original game artwork generated with OpenAI ImageGen. The cloud depth, moving light shafts, lake and terrain shadows, and wind-driven rain are rendered in the game.
 https://polyhaven.com/a/cedar_bridge_sunset_1
+https://polyhaven.com/license
+
+
+The close Horseshoe Bend wall material uses Poly Haven’s Cliff Side scan by Dario Barresi, James Ray Cock and Jenelle van Heerden (CC0). Colour, measured displacement, occlusion and tangent normals are fitted to the mapped canyon walls. Loose sandstone reuses the credited boulder scans with a dry mineral palette.
+https://polyhaven.com/a/cliff_side
 https://polyhaven.com/license

@@ -79,7 +79,7 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
     void main(){wp=position;n=normal;tc=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`;
   shared.scrubFloor={value:texture('soil-dry.webp',true)};
   const fragment=`
-    uniform sampler2D scrubFloor;
+    uniform sampler2D scrubFloor,wallRelief;
     ${window.aerieFloorShader}
     uniform sampler2D terrainField,bankRadiance,crossbeds;
     uniform sampler2D photo,strata,grain,flow,ripple,panorama,sand,pebbles,pebbleNormal,bankMap;
@@ -158,14 +158,6 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
       dry*=1.+(.23*(grains-.43)*(1.-face)+.36*(beds-.46)*face)*exp(-dist*.0014);
       dry*=vec3(.94,.94,.98)+vec3(.33,.205,.095)*exposure;
       dry+=vec3(.014,.012,.016);
-      if(face>.05 && dist<1100.){
-        vec3 macroRock=mix(texture2D(strata,xuv*.146+vec2(.3,.2)).rgb,texture2D(strata,zuv*.146).rgb,sideMix);
-        vec3 fracture=mix(texture2D(grain,xuv*.62).rgb,texture2D(grain,zuv*.62).rgb,sideMix);
-        float fissure=smoothstep(.15,.79,lum(macroRock))*.52+.29*lum(fracture)+.19*beds;
-        vec3 wall=mix(vec3(.30,.17,.116),vec3(.78,.516,.347),fissure);
-        wall*=.64+.35*smoothstep(.07,.5,lum(aerial))+.20*exposure;
-        dry=mix(dry,wall,face*(1.-smoothstep(250.,1050.,dist))*.84);
-      }
       float signedBank=(texture2D(bankMap,clamp(flowUv,0.,1.)).r-.5)*96.;
       float closeGround=1.-smoothstep(20.,180.,dist);
       // Keep wash on the measured shoreline, including the small shelf that
@@ -193,18 +185,47 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
       float sunVisibility=mix(1.,valleyLight.b,region);
       float openSky=mix(1.,texture2D(bankRadiance,clamp(flowUv,0.,1.)).a,region);
       if(face>.025){
-        // The sloping sets are sampled in the cliff plane, preserving the
-        // distinction between individual fine laminae and larger dune beds.
+        // Curved sets of dune beds run through the scan. Project along each
+        // exposed face so steep and vertical surfaces retain their metre scale.
         float dip=wp.y+.072*wp.x-.065*wp.z+shift*1.7+longWave*.75;
         vec2 a=vec2(wp.z,dip)*vec2(.030,.048),b=vec2(-wp.x,dip)*vec2(.030,.048);
         vec3 series=mix(texture2D(crossbeds,a).rgb,texture2D(crossbeds,b).rgb,sideMix);
         vec3 large=mix(texture2D(crossbeds,a*.238+.32).rgb,texture2D(crossbeds,b*.238+.32).rgb,sideMix);
-        float ledge=clamp(.50+.91*(series.r-.50)+.66*(large.g-.5)+.55*(series.g-.5),.03,.95);
-        float varnish=smoothstep(.22,.63,large.b)*smoothstep(.30,.63,series.b);
-        vec3 pigment=mix(vec3(.49,.274,.178),vec3(.84,.59,.389),ledge);
-        pigment=mix(pigment,pigment*vec3(.53,.60,.66),varnish*.75);
-        pigment*=.86+.30*smoothstep(.05,.61,lum(aerial));
-        dry=mix(dry,pigment,face*(.94-.46*smoothstep(1300.,6100.,dist)));
+        float band=clamp(.5+1.15*(series.r-.5)+.61*(large.g-.5)+.48*(series.g-.5),0.,1.);
+        float varnish=smoothstep(.23,.66,large.b)*smoothstep(.34,.67,series.b);
+        vec3 pigment=mix(vec3(.47,.257,.163),vec3(.88,.61,.393),band);
+        pigment*=mix(vec3(1.),vec3(.54,.62,.70),varnish*.83);
+        if(dist<850.){
+          vec2 lateral=vec2(-wp.x*sign(normal.z),wp.z*sign(normal.x));
+          float warp=1.1*sin(wp.x*.031+wp.z*.025)+.27*sin(wp.x*.137-wp.z*.14);
+          float bench=wp.y+warp+.064*wp.x-.05*wp.z;
+          vec2 uvX=vec2(lateral.y*.125+sin(bench*.24)*.031,bench*.20);
+          vec2 uvZ=vec2(lateral.x*.125+sin(bench*.24)*.031,bench*.20);
+          // The photographed displacement, normal and occlusion come from
+          // the same surface. At grazing angles ledge lips hide the layer behind.
+          vec3 tx=vec3(0.,0.,sign(normal.x)),tz=vec3(-sign(normal.z),0.,0.);
+          float travel=.033*(1.-smoothstep(28.,125.,dist))/max(.30,abs(dot(normal,eye)));
+          vec2 incX=vec2(dot(tx,eye),eye.y)*travel,incZ=vec2(dot(tz,eye),eye.y)*travel;
+          uvX+=(texture2D(strata,uvX).a-.60)*incX;
+          uvZ+=(texture2D(strata,uvZ).a-.60)*incZ;
+          // Sharpen the choice of wall plane to preserve laminae on diagonal faces.
+          float axis=smoothstep(.24,.76,sideMix);
+          vec4 rock=mix(texture2D(strata,uvX),texture2D(strata,uvZ),axis);
+          vec3 nx=texture2D(wallRelief,uvX).rgb,nz=texture2D(wallRelief,uvZ).rgb;
+          vec2 increment=mix(nx.rg,nz.rg,axis)*2.-1.;
+          vec3 tangent=normalize(mix(tx,tz,axis)+vec3(.00001));
+          vec3 tangentUp=normalize(vec3(0.,1.,0.)-normal*normal.y);
+          vec3 local=normalize(normal+1.16*(tangent*increment.x+tangentUp*increment.y));
+          float cavity=mix(nx.b,nz.b,axis);
+          float light=.65+.38*max(0.,local.y)+.30*max(0.,dot(local,normalize(vec3(-.48,.68,.57))));
+          light+=.41*sunVisibility*max(0.,dot(local,sun));
+          float crevice=mix(.48,1.03,cavity)*mix(.78,1.07,smoothstep(.34,.86,rock.a));
+          float foot=1.-smoothstep(100.,850.,dist);
+          vec3 slab=rock.rgb*vec3(1.14,1.055,1.)*mix(.74,1.30,band);
+          slab*=mix(vec3(1.),vec3(.59,.64,.72),varnish*.69);
+          pigment=mix(pigment,slab*light*crevice,foot*.94);
+        }
+        dry=mix(dry,pigment,face*(.98-.46*smoothstep(1300.,6100.,dist)));
       }
       float incidence=max(0.,dot(normal,sun));
       // Sky scatter and light bouncing off the opposite warm wall both reach
@@ -215,6 +236,17 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
       float groundPass=closeGround*(1.-face)*(1.-wet)*smoothstep(3.,26.,signedBank);
       vec3 pebbly=floorColor(scrubFloor,wp.xz,.16);
       dry=mix(dry,pebbly*vec3(1.12,.91,.76)*(indirect+sunward),.84*groundPass);
+      // Grit and fallen fragments collect where the survey rises sharply
+      // within a few metres. Leave the smooth river bars free of scree.
+      if(groundPass>.005){
+        float rim=max(max(groundHeight(wp.xz+vec2(20.,0.)),groundHeight(wp.xz-vec2(20.,0.))),
+                      max(groundHeight(wp.xz+vec2(0.,20.)),groundHeight(wp.xz-vec2(0.,20.))));
+        float fan=smoothstep(4.,27.,rim-wp.y+6.*riverGrain(wp.xz*.08));
+        vec3 chips=gravel(wp.xz*.42);
+        float sunFacing=texture2D(pebbleNormal,wp.xz*.42).g;
+        vec3 chipsColor=mix(pebbly*vec3(1.12,.91,.76),lum(chips)*vec3(1.52,1.13,.85),.59);
+        dry=mix(dry,chipsColor*(.80+.23*sunFacing)*(indirect+sunward),fan*groundPass*.79);
+      }
       float damp=closeGround*(1.-smoothstep(.25,1.95,signedBank))*(1.-wet);
       dry*=mix(vec3(1.),vec3(.61,.65,.67),damp);
       vec3 color=dry;
@@ -282,8 +314,24 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
       float dusty=.000030+.000041*exp(-max(0.,wp.y+cameraPosition.y-50.)/380.);
       color=mix(color,haze,1.-exp(-dist*dusty));gl_FragColor=vec4(color,1.);
     }`;
+  const scarp=texture('canyon-scarp.webp',true),wallRelief=texture('canyon-scarp-relief.webp',true);
   function material(file){
-    return new THREE.ShaderMaterial({extensions:{derivatives:true},uniforms:{...shared,photo:{value:texture(file)}},vertexShader:vertex,fragmentShader:fragment});
+    return new THREE.ShaderMaterial({extensions:{derivatives:true},uniforms:{...shared,strata:{value:scarp},wallRelief:{value:wallRelief},photo:{value:texture(file)}},vertexShader:vertex,fragmentShader:fragment});
+  }
+  const seams=new Map();
+  function joinEdge(mat,pos,norm,uv,first,stride,steps,depth){
+    let data=seams.get(mat);
+    if(!data){data={p:[],n:[],uv:[],ix:[]};seams.set(mat,data);}
+    const firstVertex=data.p.length/3;
+    for(let j=0;j<=steps;j++){
+      const i=first+j*stride,x=pos.getX(i),y=pos.getY(i),z=pos.getZ(i);
+      data.p.push(x,y,z,x,y-depth,z);
+      for(let k=0;k<2;k++){data.n.push(norm.getX(i),norm.getY(i),norm.getZ(i));data.uv.push(uv.getX(i),uv.getY(i));}
+      if(j>0){
+        const b=firstVertex+j*2;
+        data.ix.push(b-2,b-1,b,b,b-1,b+1,b,b-1,b-2,b+1,b-1,b);
+      }
+    }
   }
   function patch(left,north,width,steps,mat,photoX,photoZ,photoSize){
     const geo=new THREE.PlaneGeometry(width,width,steps,steps);
@@ -296,6 +344,22 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
       const nx=elevation(x-d,z)-elevation(x+d,z),nz=elevation(x,z-d)-elevation(x,z+d);
       const len=Math.hypot(nx,2*d,nz);normal.setXYZ(i,nx/len,2*d/len,nz/len);
     }
+    // At a change of mesh spacing the two edge polylines can differ on a
+    // steep cliff. Carry the exposed edge down behind its neighbour so the
+    // sky never leaks through a survey tile.
+    function depthAt(coordinate,begin,end,axis){
+      if(Math.abs(coordinate)===3200&&begin>=-3200&&end<=3200)return 160;
+      if(axis==='x'&&(coordinate===-1600||coordinate===0)&&begin>=-800&&end<=800)return 90;
+      if(axis==='z'&&Math.abs(coordinate)===800&&begin>=-1600&&end<=0)return 90;
+      return 0;
+    }
+    const edges=[
+      [depthAt(left,north,north+width,'x'),0,steps+1],
+      [depthAt(left+width,north,north+width,'x'),steps,steps+1],
+      [depthAt(north,left,left+width,'z'),0,1],
+      [depthAt(north+width,left,left+width,'z'),steps*(steps+1),1]
+    ];
+    for(const [depth,first,stride] of edges)if(depth)joinEdge(mat,pos,normal,uv,first,stride,steps,depth);
     geo.computeBoundingSphere();scene.add(new THREE.Mesh(geo,mat));
   }
   const horizon=material('canyon-horizon.webp');
@@ -311,6 +375,26 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
       const finePatch=x>=-1600&&x<0&&z>=-800&&z<800;
       patch(x,z,800,finePatch?160:64,mat,px,pz,1600);
     }
+  }
+  const joins=new THREE.Group();joins.name='Survey tile joins';
+  for(const [mat,data] of seams){
+    const geo=new THREE.BufferGeometry();
+    geo.setAttribute('position',new THREE.Float32BufferAttribute(data.p,3));
+    geo.setAttribute('normal',new THREE.Float32BufferAttribute(data.n,3));
+    geo.setAttribute('uv',new THREE.Float32BufferAttribute(data.uv,2));geo.setIndex(data.ix);
+    joins.add(new THREE.Mesh(geo,mat));
+  }
+  scene.add(joins);
+  // The immediate basin is drawn as two triangles per height-field cell.
+  // Place loose rocks on the visible triangles even where the cliff toe
+  // falls between DEM samples.
+  function rockSurface(x,z){
+    const step=x>=-1600&&x<0&&z>=-800&&z<800?5:12.5;
+    const x0=Math.floor(x/step)*step,z0=Math.floor(z/step)*step;
+    const u=(x-x0)/step,v=(z-z0)/step;
+    const b=elevation(x0+step,z0),c=elevation(x0,z0+step);
+    if(u+v<=1)return (1-u-v)*elevation(x0,z0)+u*b+v*c;
+    return (u+v-1)*elevation(x0+step,z0+step)+(1-v)*b+(1-u)*c;
   }
   // Eroded beds emerge from the mapped sandstone footwall. The same triangles
   // paint a local height grid for clearance near the overhanging rims.
@@ -401,7 +485,7 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
   const spawn={x:45,z:76,y:elevation(45,76)+72,yaw:1.38};
   const ridge={x:-425,z:-2450,y:elevation(-425,-2450)+90,yaw:1.54};
   const shore={x:-441,z:-76,y:elevation(-441,-76)+7.2,yaw:.24};
-  return {height:elevation,elevation,clearance,spawn,launches:{lake:spawn,ridge,shore,wall:{x:-920,y:67.814,z:-72,yaw:1.7984}},trees:[],
+  return {height:elevation,elevation,rockSurface,rockLight:shared.terrainField,clearance,spawn,launches:{lake:spawn,ridge,shore,wall:{x:-920,y:67.814,z:-72,yaw:1.7984}},trees:[],
     skyTexture,sunDirection:sun,altitudeOffset:950,bounds:{minX:-2950,maxX:2950,minZ:-2950,maxZ:2950},
     landmarks:[{name:'Horseshoe Bend',x:-925,z:-235},{name:'Horseshoe Bend Overlook',x:0,z:80},
       {name:'Colorado River',x:-950,z:-2450},{name:'Glen Canyon Rim',x:-1830,z:500},

@@ -4,7 +4,7 @@
   const trees = ['fir-data.js','forest.js'];
   const scripts = {
     alaska: ['nugget-spray.js','alaska-survey.js','alaska-world.js','talus-data.js','habitat.js',...trees],
-    canyon: ['canyon-survey.js','canyon.js','habitat.js'],
+    canyon: ['canyon-survey.js','canyon.js','habitat.js','talus-data.js','rocks.js'],
     swiss: ['alpine-survey.js','alpine-headwall.js','world.js','talus-data.js','rocks.js','habitat.js',...trees]
   };
   const loaded=new Map();
@@ -15,7 +15,7 @@
         tag.onload=resolve;
         tag.onerror=()=>reject(new Error('Unable to open '+name));
         const url=window.aerieAssetURL?.(name)||name;
-        tag.src=url===name&&location.protocol!=='file:'?url+'?v=0.12.0':url;
+        tag.src=url===name&&location.protocol!=='file:'?url+'?v=0.13.0':url;
         document.head.appendChild(tag);
       });
       loaded.set(name,request.catch(error=>{loaded.delete(name);throw error;}));

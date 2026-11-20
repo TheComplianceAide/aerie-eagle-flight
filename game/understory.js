@@ -51,6 +51,7 @@
   }
   window.addUnderstory=function addUnderstory(T,scene,world){
     const wind=window.getCanopyWind(T,scene);
+    wind.uniforms.canopyLakeshore.value=world.region==='moosehead'?1:0;
     const wildlife=window.addRegionalWildlife(T,scene,world);
     const {region,habitat}=world,[weights,scale,density,dry]=profiles[region];
     const loader=new T.TextureLoader(),half=world.coverHalf;
@@ -156,20 +157,21 @@
     // A close softstem bulrush clump has cylindrical stems, small terminal
     // seed clusters and keeled blades. The base stays buried while a gust
     // bends the culm and twists the lighter blades further downwind.
-    function rushGeometry(){
+    function rushGeometry(distant=false){
       const pos=[],colors=[],idx=[];
       const v=(x,y,z,c)=>{colors.push(...c);pos.push(x,y,z);return pos.length/3-1;};
       const green=[.095,.165,.043],light=[.219,.281,.063],edge=[.205,.218,.066];
-      for(let n=0;n<10;n++){
+      const stems=distant?6:10,sections=distant?3:5,sides=distant?3:4,bladePoints=distant?4:6;
+      for(let n=0;n<stems;n++){
         const a=n*2.39996,r=.23*Math.sqrt(n/10),dx=Math.cos(a),dz=Math.sin(a);
         const h=.58+.38*(.5+.5*Math.cos(n*3.15+.42*n*n)),slant=.045+.09*(n%4)/3;
         let prev;
-        for(let j=0;j<5;j++){
-          const f=j/4,rad=(.003+.0037*(1-f)),ring=[];
-          for(let k=0;k<4;k++){
-            const theta=k*1.5708;ring.push(v(dx*(r+slant*f*f)+rad*Math.cos(theta),h*f,dz*(r+slant*f*f)+rad*Math.sin(theta),k===1?light:green));
+        for(let j=0;j<sections;j++){
+          const f=j/(sections-1),rad=(.003+.0037*(1-f))*(distant?1.47:1.),ring=[];
+          for(let k=0;k<sides;k++){
+            const theta=k*6.28318/sides;ring.push(v(dx*(r+slant*f*f)+rad*Math.cos(theta),h*f,dz*(r+slant*f*f)+rad*Math.sin(theta),k===1?light:green));
           }
-          if(prev)for(let k=0;k<4;k++){const next=(k+1)%4;idx.push(prev[k],ring[k],prev[next],prev[next],ring[k],ring[next]);}
+          if(prev)for(let k=0;k<sides;k++){const next=(k+1)%sides;idx.push(prev[k],ring[k],prev[next],prev[next],ring[k],ring[next]);}
           prev=ring;
         }
         if(n%3!==1){
@@ -181,11 +183,11 @@
             const t=v(x+.016*Math.cos(b),h-.014,z+.016*Math.sin(b),[.205,.124,.035]);idx.push(low,u,t,tip,t,u);
           }
         }
-        for(let b=0;b<3;b++){
+        for(let b=0;b<(distant?1:3);b++){
           const a2=a+b*2.10+.53,ex=Math.cos(a2),ez=Math.sin(a2);
           let back;
-          for(let j=0;j<6;j++){
-            const u=j/5,head=u*u,reach=.08*u+.30*head;
+          for(let j=0;j<bladePoints;j++){
+            const u=j/(bladePoints-1),head=u*u,reach=.08*u+.30*head;
             const x=dx*r+ex*reach,z=dz*r+ez*reach,y=h*(.84*u-.18*head);
             const wide=.013*(1-.91*u)+.004*Math.sin(u*Math.PI);
             const row=[v(x-ez*wide,y,z+ex*wide,edge),v(x+ex*wide*.45,y+.005,z+ez*wide*.45,light),v(x+ez*wide,y,z-ex*wide,green)];
@@ -197,6 +199,7 @@
       const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(pos,3));
       g.setAttribute('color',new T.Float32BufferAttribute(colors,3));g.setIndex(idx);return g;
     }
+    const reedMarsh=region==='moosehead';
     const rushMat=new T.ShaderMaterial({uniforms,side:T.DoubleSide,vertexShader:`
       ${wind.glsl}
       attribute vec3 color;attribute vec4 planting,trait;uniform float clock;
@@ -209,12 +212,30 @@
         p.xz+=height*height*(1.52*motion+.022*front.x*flick*vec2(-canopyDownwind.y,canopyDownwind.x));
         p.y-=.94*height*height*dot(motion,motion);
         hue=color*(.58+.50*height)*(.77+.35*trait.y)*(1.+front.x*(.18+.12*flick));
+        ${reedMarsh?`
+          // Fresh blades and older straw culms expose different faces in a
+          // gust. Bend them through a circular arc so the tall stems retain
+          // their length as the coherent leading edge passes.
+          vec2 down=normalize(motion+vec2(.00001,0.));
+          float bend=.07+1.01*smoothstep(.10,.83,front.x)+.47*(front.x-front.y)+.075*flick*front.x;
+          bend=max(.025,bend);
+          p.xz-=height*height*1.52*motion;
+          p.xz+=down*(1.-cos(height*bend))/bend;
+          p.y=sin(height*bend)/bend-.018*flick*height*front.x;
+          float stem=smoothstep(.016,.061,color.g-color.b)*smoothstep(.011,.034,color.g-color.r);
+          float straw=smoothstep(.17,.90,trait.y+.095*flick);
+          vec3 aged=mix(color*vec3(1.07,1.40,.92),vec3(.45,.305,.095)*(.54+1.05*color.r),straw);
+          float flash=front.x*(.30+.45*max(0.,dot(normalize(cameraPosition.xz-root),down)));
+          hue=mix(color*vec3(.91,.78,.63),aged,stem)*(.49+.72*height)*(1.+stem*flash);
+        `:''}
+
         gl_Position=projectionMatrix*viewMatrix*vec4(planting.xyz+h*p,1.);
       }`,fragmentShader:`varying vec3 hue;void main(){gl_FragColor=vec4(hue,1.);
         #include <colorspace_fragment>
       }`});
     const lakesideRushes=['moosehead','winnipesaukee','surry','dixville','labrador'].includes(region);
-    const rush=lakesideRushes?batch(rushGeometry(),rushMat,coarse?180:330):null;
+    const rush=lakesideRushes?batch(rushGeometry(),rushMat,reedMarsh?(coarse?135:235):(coarse?180:330)):null;
+    const distantRush=reedMarsh?batch(rushGeometry(true),rushMat,coarse?235:470):null;
     const size=12,tiles=new Map(),bounds=world.bounds;
     // Flat freshwater margins support discontinuous sedge beds. Keep their
     // roots tied to the mapped shore and the displayed gravel shelf. Settlement
@@ -222,14 +243,21 @@
     const bankPatches=new Map(),lake=window.ATLAS_SURVEYS?.[region];
     if(lake?.shore&&lakesideRushes){
       for(const ring of [lake.shore,...(lake.shoreHoles||[])]){
+        let winding=0;
+        if(reedMarsh)for(let i=0,j=ring.length-1;i<ring.length;j=i++)winding+=ring[j][0]*ring[i][1]-ring[i][0]*ring[j][1];
+        const landSide=(winding>0?1:-1)*(ring===lake.shore?1:-1);
         for(let i=0,j=ring.length-1;i<ring.length;j=i++){
           const [ax,az]=ring[j],[bx,bz]=ring[i],dx=bx-ax,dz=bz-az;
-          const count=Math.max(1,Math.ceil(Math.hypot(dx,dz)/4.5));
+          const length=Math.hypot(dx,dz);if(length<.01)continue;
+          const count=Math.max(1,Math.ceil(length/(reedMarsh?3.2:4.5)));
           for(let k=0;k<count;k++){
             const u=(k+.5)/count,x=ax+dx*u,z=az+dz*u;
-            if(Math.sin(.021*x+.011*z)+.73*Math.sin(.043*z-.036*x)<-.13)continue;
+            const cover=Math.sin(.021*x+.011*z)+.73*Math.sin(.043*z-.036*x);
+            // Broad shallow shelves carry a continuous emergent fringe;
+            // rockier shores keep their gaps between small individual beds.
+            if(cover<-.13&&(!reedMarsh||survey(x+landSide*dz/length*7,z-landSide*dx/length*7)>world.waterLevel+.92))continue;
             const key=Math.floor(x/size)+'|'+Math.floor(z/size);
-            let arr=bankPatches.get(key);if(!arr)bankPatches.set(key,arr=[]);arr.push(x,z);
+            let arr=bankPatches.get(key);if(!arr)bankPatches.set(key,arr=[]);arr.push(x,z,landSide*dz/length,-landSide*dx/length);
           }
         }
       }
@@ -245,15 +273,19 @@
       if(bank&&Number.isFinite(water)){
         // Use a separate sequence so reeds do not rearrange established plants.
         let growSeed=seed;const grow=()=>((growSeed=(Math.imul(growSeed,1664525)+1013904223)>>>0)/4294967296);
-        for(let n=0;n<bank.length;n+=2)for(let j=0;j<5;j++){
-          const x=bank[n]+(grow()-.5)*4.8,z=bank[n+1]+(grow()-.5)*4.8;
+        for(let n=0;n<bank.length;n+=4)for(let j=0;j<(reedMarsh?17:5);j++){
+          const cross=reedMarsh?2.0-12.5*grow():(grow()-.5)*4.8;
+          const along=(grow()-.5)*(reedMarsh?4.3:4.8);
+          const x=bank[n]+(reedMarsh?cross*bank[n+2]-along*bank[n+3]:cross);
+          const z=bank[n+1]+(reedMarsh?cross*bank[n+3]+along*bank[n+2]:along);
           const surveyed=survey(x,z),bed=world.height(x,z);
           if(bed>water+1.25||surveyed<water-1.0||surveyed>water+1.35)continue;
           if(Math.hypot(world.height(x+1,z)-bed,world.height(x,z+1)-bed)>.47)continue;
           if((world.clearance?.(x,z)??bed)>bed+.5)continue;
           const root=bed>water+.18?bed:Math.max(water-.22,surveyed);
-          const h=.84+.64*grow();
-          result.push([x,Math.max(root,habitat.surface(x,z))-.04,z,h,grow()*6.283,grow(),7,1.1]);
+          const h=reedMarsh?1.18+1.14*grow():.84+.64*grow();
+          const sy=reedMarsh&&cross<0&&bed<water+.26?Math.max(water-.65,water+.11+.13*cross):Math.max(root,habitat.surface(x,z))-.04;
+          result.push([x,sy,z,h,grow()*6.283,grow(),7,1.1]);
         }
       }
       for(let i=0;i<10;i++){
@@ -279,7 +311,7 @@
       g.attributes.trait.setXYZW(i,p[4],p[5],p[6],full?-p[7]:p[7]);g.instanceCount++;return true;
     }
     const last=new T.Vector3(Infinity,Infinity,Infinity);
-    const batches=[rush,far,...fine].filter(Boolean);
+    const batches=[rush,distantRush,far,...fine].filter(Boolean);
     return (eye,t)=>{
       wind.update(world.windField,eye,t);
       wildlife(eye,t);
@@ -296,7 +328,10 @@
         for(const p of patch(mx+u,mz+v)){
           const d=(eye.x-p[0])**2+(eye.y-p[1])**2+(eye.z-p[2])**2;
           if(d>reach*reach)continue;
-          if(p[6]===7){if(d<(coarse?47:67)**2)put(rush,p);continue;}
+          if(p[6]===7){
+            if(d<(coarse?47:67)**2)put(distantRush&&d>(coarse?15:23)**2?distantRush:rush,p);
+            continue;
+          }
           const close=d<(near+9)**2&&fine[p[6]];
           const overflow=close&&!put(fine[p[6]],p);
           if(overflow||d>(near-9)**2||!fine[p[6]])put(far,p,overflow);

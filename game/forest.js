@@ -4,7 +4,7 @@ window.addForest = function addForest(THREE, scene, world) {
   const forest = world.firTrees || world.trees;
   if (!forest || !forest.length || !window.firAsset) return;
   const asset = window.firAsset;
-  const wind=window.getCanopyWind(THREE,scene);
+  const wind=window.getCanopyWind(THREE,scene),squall=scene.userData.calderaCanopy;
   const mobile=matchMedia("(pointer: coarse)").matches;
   const sunlightSpan=(world.forestLightSpan || 8000).toFixed(1);
   const loader = new THREE.TextureLoader();
@@ -24,13 +24,14 @@ window.addForest = function addForest(THREE, scene, world) {
   const time = {value: 0};
   const observer = {value:new THREE.Vector3()};
   nearMaterial.onBeforeCompile = shader => {
-    Object.assign(shader.uniforms,wind.uniforms);
+    Object.assign(shader.uniforms,wind.uniforms,squall?.uniforms);
     shader.uniforms.firTime = time;
     shader.uniforms.surveyLight = {value:world.sunMask};
-    shader.vertexShader = wind.glsl+'\nuniform float firTime;uniform sampler2D surveyLight;varying float inSun;\n' + shader.vertexShader.replace(
+    shader.vertexShader = (squall?.glsl||'')+wind.glsl+'\nuniform float firTime;uniform sampler2D surveyLight;varying float inSun;\n' + shader.vertexShader.replace(
       '#include <begin_vertex>',
       `#include <begin_vertex>
        inSun = texture2D(surveyLight,vec2(.5+instanceMatrix[3].x/${sunlightSpan},.5-instanceMatrix[3].z/${sunlightSpan})).r;
+       ${squall?'inSun*=1.-.82*craterShade(instanceMatrix[3].xyz);':''}
        vec2 anchor=instanceMatrix[3].xz,front=plantFront(anchor),motion=plantMotion(anchor,front,firTime,.13);
        vec3 basisX=instanceMatrix[0].xyz,basisZ=instanceMatrix[2].xyz;
        vec2 disp=length(instanceMatrix[1].xyz)*position.y*clamp(position.y*.085,0.,1.)*.22*motion;
@@ -63,6 +64,7 @@ window.addForest = function addForest(THREE, scene, world) {
     cells.get(k).push(root);
   });
   const farVertex = `
+    ${squall?.glsl||''}
     ${wind.glsl}
     uniform float firTime;
     attribute vec3 rootPosition;
@@ -101,6 +103,7 @@ window.addForest = function addForest(THREE, scene, world) {
       float localSun=texture2D(surveyLight,vec2(.5+rootPosition.x/${sunlightSpan},.5-rootPosition.z/${sunlightSpan})).r;
       float facing=dot(normalize(vec3(viewDir.x,max(.2,viewDir.y),viewDir.z)),sunDirection);
       tint=dimensions.w*mix(vec3(.47,.58,.67),vec3(.89,.98,.90)*(.92+.14*facing),localSun);
+      ${squall?'tint*=mix(vec3(1.23,1.04,.76),vec3(.375,.50,.66),craterShade(rootPosition));':''}
       vec4 mvPosition=viewMatrix*vec4(wp,1.);
       gl_Position=projectionMatrix*mvPosition;
       #include <fog_vertex>
@@ -140,7 +143,7 @@ window.addForest = function addForest(THREE, scene, world) {
     const rectangle = new THREE.PlaneGeometry(1,1);
     const views=v.farViews;
     const uniforms=THREE.UniformsUtils.clone(THREE.UniformsLib.fog);
-    Object.assign(uniforms,wind.uniforms,{firTime:time,
+    Object.assign(uniforms,wind.uniforms,squall?.uniforms,{firTime:time,
       observer,sunDirection:{value:world.sunDirection||new THREE.Vector3(-.5,.65,-.55)},surveyLight:{value:world.sunMask},captures:{value:distant},uvCrops:{value:views.map(f=>new THREE.Vector4(...f.uv))},
       captureSizes:{value:views.map(f=>new THREE.Vector2(f.width,f.height))},
       captureCenters:{value:views.map(f=>new THREE.Vector3(...f.center))}

@@ -58,11 +58,11 @@
     const texture=new T.DataTexture(pixels,side,side,T.RGBAFormat);
     texture.minFilter=texture.magFilter=T.LinearFilter;texture.needsUpdate=true;
     const uniforms={canopyFlow:{value:texture},canopyCenter:{value:new T.Vector2()},
-      canopyDownwind:{value:new T.Vector2(1,0)},canopyFraction:{value:0}};
+      canopyDownwind:{value:new T.Vector2(1,0)},canopyLakeshore:{value:0},canopyFraction:{value:0}};
     const glsl=`
       uniform sampler2D canopyFlow;
       uniform vec2 canopyCenter,canopyDownwind;
-      uniform float canopyFraction;
+      uniform float canopyFraction,canopyLakeshore;
       vec2 plantFront(vec2 root){
         vec2 uv=(root-canopyCenter)/520.+.5;
         vec4 front=texture2D(canopyFlow,uv);
@@ -77,6 +77,11 @@
                     .41*sin(t*1.83-.19*along+.15*cos(crosswind*.11));
         float fore=.026+.019*sin(t*.82-phase)+sway*(.18+.085*pulse)+.085*(front.x-front.y);
         float side=.012*sin(t*1.21+phase)+sway*.036*sin(t*(1.2+softness)+.19*crosswind);
+        if(canopyLakeshore>.5){
+          float leading=clamp(front.x-front.y,-.23,.23);
+          fore+=.17*smoothstep(.16,.82,sway)+.24*leading;
+          side+=leading*.14*sin(phase*9.+t*1.8);
+        }
         return canopyDownwind*fore+vec2(-canopyDownwind.y,canopyDownwind.x)*side;
       }`;
     // Terrain exposure changes on a coarser scale than the front. Sample the

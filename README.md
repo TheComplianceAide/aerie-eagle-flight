@@ -66,11 +66,11 @@ Cloud banks drift across all twelve ranges. Their shadows follow the ridges, for
 | Departure | What to watch or listen for |
 | --- | --- |
 | Moosehead Lake · Wind across the reeds | A traveling dark patch on the water reaches the sedges and then the trees. Open water and sheltered woods respond differently. |
-| Horseshoe Bend · Sunlit sandstone wall | Bank left alongside the wall. Warm light from the rock reaches the eagle’s white neck, then fades in the open canyon. |
-| Lac Berté · Cabin flyby | Look beneath the eaves and across the porch after the shower. Drips, shallow puddles and a thin stream carry water down the bank into the lake. |
+| Horseshoe Bend · Sunlit sandstone wall | Bank left alongside the wall. Look for cross-bedded sandstone, broken ledges and piles of fallen rock at the base. Warm light reaches the eagle’s white neck, then fades in the open canyon. |
+| Lac Berté · Cabin flyby | Fly through the last curtain of rain toward the cabin. As the sun breaks through, look for the wet roof, puddles and runoff along the bank. |
 | Moosehead Lake · Kineo Cove shoreward glide | Land on the shoreline limb and push off. The feet follow the branch as it dips under load, and the branch springs back after release. |
 | Mendenhall Glacier · Around the Nugget Falls spur | With sound on, glide around the spur. The rumble carries through while the higher hiss returns when the falls come into view. Listen for delayed eagle calls beside rock walls. |
-| Crater Lake · Caldera overlook | Look across the sunlit rim toward Wizard Island as the storm approaches. |
+| Crater Lake · Caldera overlook | Look across Wizard Island. A break in the storm lights the western rim while a dark shelf of cloud and falling rain cross the lake. |
 
 ## Scenery and credits
 
