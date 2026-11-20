@@ -132,6 +132,8 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
   // Perched behaviour: peering (head bobs that give motion parallax) and a
   // tail wag after a rouse.
   let peerT = -1, peerAt = rand(8, 20), peerAxis = 0, wagT = -1, perchedFor = 0;
+  // A quick head shake, and bouts of preening the breast feathers.
+  let shakeT = -1, shakeAt = rand(20, 45), preenT = -1, preenAt = rand(40, 80), preenDur = 2.5, preenSide = 1;
   let prevHeadQ = new THREE.Quaternion(), haveHead = false;
   const up = new THREE.Vector3(), right = new THREE.Vector3(), back = new THREE.Vector3(), down = new THREE.Vector3(), force = new THREE.Vector3();
   const headWorld = new THREE.Quaternion(), tmpQ = new THREE.Quaternion();
@@ -238,7 +240,9 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
       chest.position.y += .0016 * Math.sin(time * 2 * Math.PI * .33);
       if (time > rouseAt && rouseT < 0) { rouseT = 0; rouseAt = time + rand(35, 80); }
       if (time > peerAt && peerT < 0 && perchedFor > 2) { peerT = 0; peerAt = time + rand(10, 28); peerAxis = Math.random() < .65 ? 0 : 1; }
-    } else { peerT = wagT = -1; }
+      if (time > shakeAt && shakeT < 0 && preenT < 0 && perchedFor > 3) { shakeT = 0; shakeAt = time + rand(25, 60); }
+      if (time > preenAt && preenT < 0 && rouseT < 0 && perchedFor > 8) { preenT = 0; preenAt = time + rand(60, 120); preenDur = rand(2.2, 4); preenSide = Math.random() < .5 ? -1 : 1; }
+    } else { peerT = wagT = shakeT = preenT = -1; }
     let fluff = clamp((1 - n) * .45, 0, .5) * freeFlight;            // negative G floats the plumage
     // A tailwind at the perch lifts the back and nape feathers.
     fluff = Math.max(fluff, clamp(-windLocal.z / 7, 0, 1) * folded * (.5 + .5 * windGust));
@@ -262,7 +266,29 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
     neck.parent.getWorldQuaternion(tmpQ);
     const stabilised = tmpQ.invert().multiply(headWorld);
     neck.quaternion.slerp(stabilised, .9 * freeFlight + .5 * folded);
-    updateScan(time, step, perched, air, peerT >= 0 || rouseT >= 0);
+    updateScan(time, step, perched, air, peerT >= 0 || rouseT >= 0 || preenT >= 0 || shakeT >= 0);
+    // Preening: the bill drops into the breast plumage and works it in short
+    // nibbles, the head turned a little to one side.
+    if (preenT >= 0) {
+      preenT += step;
+      const k = clamp(preenT / preenDur, 0, 1), env = smooth(0, .18, k) * (1 - smooth(.82, 1, k));
+      const nibble = Math.max(0, Math.sin(preenT * 2 * Math.PI * 4.5)) * (.6 + .4 * Math.sin(preenT * 1.7));
+      neckBase.quaternion.multiply(scanQ.setFromAxisAngle(SIDE, -.55 * env));
+      neck.quaternion.premultiply(scanQ.setFromAxisAngle(UP, preenSide * .35 * env));
+      neck.quaternion.multiply(scanQ.setFromAxisAngle(SIDE, -(.75 + .08 * nibble) * env));
+      neckBase.position.z += -.012 * env;
+      fluff = Math.max(fluff, .25 * env);
+      if (k >= 1) preenT = -1;
+    }
+    // Head shake: a few rapid turns about the bill axis, decaying (about 9 Hz).
+    if (shakeT >= 0) {
+      shakeT += step;
+      const k = clamp(shakeT / .38, 0, 1);
+      neck.quaternion.multiply(scanQ.setFromAxisAngle(FORWARD, .42 * Math.sin(Math.PI * k) * (1 - k) * 1.6 * Math.sin(shakeT * 2 * Math.PI * 9)));
+      neck.quaternion.premultiply(scanQ.setFromAxisAngle(UP, .12 * Math.sin(Math.PI * k) * Math.sin(shakeT * 2 * Math.PI * 9 + 1)));
+      fluff = Math.max(fluff, .3 * Math.sin(Math.PI * k));
+      if (k >= 1) shakeT = -1;
+    }
     // Raptors inspect the ground with one eye: looking down and to a side,
     // the head cocks so that eye faces the ground.
     neck.getWorldQuaternion(tmpQ);
@@ -399,6 +425,7 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
   // For tests: start a perched behaviour now ('rouse' or 'peer').
   function trigger(name) {
     if (name === 'rouse') rouseT = 0; else if (name === 'peer') { peerT = 0; peerAxis = 0; }
+    else if (name === 'shake') shakeT = 0; else if (name === 'preen') { preenT = 0; preenDur = 3; preenSide = 1; }
   }
   const api = {update, stats, setWindSource, trigger, tune, restoreUnanimated};
   window.aerieEagleMotionDebug = api;
