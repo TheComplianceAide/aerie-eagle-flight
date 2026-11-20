@@ -1,0 +1,116 @@
+AERIE REGIONAL SOUNDSCAPES
+
+Field recordings placed in 3D in each world. Excerpts were trimmed, filtered below 45 Hz, level-matched and faded or loop-crossfaded. Thunder strikes and close raindrops are synthesised physically in the game. Reverberation is simulated per world with pyroomacoustics (MIT). Binaural rendering uses Omnitone 2.0 (Google, Apache-2.0; see omnitone-LICENSE.txt) with SADIE HRIRs.
+
+LAKE WINNIPESAUKEE
+
+scape-winnipesaukee-dock-creak.m4a — “Dock,Wood,Creak,Water,Laping.wav.” Filipe Chagas. Private yacht-club dock; place not stated, no geotag.. CC0 1.0.
+https://freesound.org/people/Filipe%20Chagas/sounds/91912/
+https://creativecommons.org/publicdomain/zero/1.0/
+Excerpt: 30.00 to 200.00 seconds; loop seam crossfaded; rumble removed; level matched.
+
+scape-winnipesaukee-veery.m4a — “Veery (Catharus fuscescens), iNaturalist observation 230231343.” Clifton Ladd, C.W.B.. Carroll County Farm Cemetery, Ossipee, NH (43.684, -71.110), 13 Jul 2024, 20:37 (dusk).. CC BY 4.0.
+https://www.inaturalist.org/observations/230231343
+https://creativecommons.org/licenses/by/4.0/
+Excerpt: 6.00 to 19.00 seconds; faded; rumble removed; level matched.
+
+scape-winnipesaukee-wood-thrush.m4a — “Wood Thrush (Hylocichla mustelina), iNaturalist observation 374441074.” Alan Perkins (nhaperkins). Deerfield, NH (43.152, -71.211), 22 Jun 2026, 13:36.. CC0 1.0.
+https://www.inaturalist.org/observations/374441074
+https://creativecommons.org/publicdomain/zero/1.0/
+Excerpt: 1.50 to 16.00 seconds; faded; rumble removed; level matched.
+
+scape-winnipesaukee-chipmunk.m4a — “210527 Chipmunks, rhythmic chirps, wind in trees, Raymore Park.” TRP. Raymore Park, Toronto, ON (urban park); no geotag.. CC0 1.0.
+https://freesound.org/people/TRP/sounds/616971/
+https://creativecommons.org/publicdomain/zero/1.0/
+Excerpt: 40.00 to 58.00 seconds; faded; rumble removed; level matched.
+
+SURRY MOUNTAIN DAM & KEENE
+
+scape-surry-dam-outlet.m4a — “water_over_damn_spillway.wav.” leo153. 'A paper mill in Massachusetts' (from the description). No geotag; the uploader's geotagged recordings are around Pittsfield, Berkshire County, MA.. CC0 1.0.
+https://freesound.org/people/leo153/sounds/497695/
+https://creativecommons.org/publicdomain/zero/1.0/
+Excerpt: full length; loop seam crossfaded; rumble removed; level matched.
+
+scape-surry-ashuelot-riffles.m4a — “Stream 2.wav.” forrisday. Palmer, MA (42.183, -72.306).. CC BY 4.0.
+https://freesound.org/people/forrisday/sounds/167364/
+https://creativecommons.org/licenses/by/4.0/
+Excerpt: full length; loop seam crossfaded; rumble removed; level matched.
+
+scape-surry-dog-day-cicada.m4a — “Northern Dog-day Cicada (Neotibicen canicularis), iNaturalist observation 341908676.” Nick Kleinschmidt (nick2524). Springfield, NH (43.509, -72.098), 22 Aug 2025, 10:45.. CC BY 4.0.
+https://www.inaturalist.org/observations/341908676
+https://creativecommons.org/licenses/by/4.0/
+Excerpt: 1.00 to 13.50 seconds; loop seam crossfaded; rumble removed; level matched.
+
+scape-surry-gray-catbird.m4a — “Gray Catbird (Dumetella carolinensis), iNaturalist observation 168582186.” jzlloyd. Lower Landing Rd, Charlestown, NH (43.229, -72.432), 20 Jun 2023, 20:38.. CC BY 4.0.
+https://www.inaturalist.org/observations/168582186
+https://creativecommons.org/licenses/by/4.0/
+Excerpt: 0.80 to 9.80 seconds; faded; rumble removed; level matched.
+
+scape-surry-song-sparrow.m4a — “Song Sparrow (Melospiza melodia), iNaturalist observation 54099646.” Steven Lamonde (slamonde). Cheshire County, NH (43.083, -72.363; Walpole area), 23 Jul 2020, 07:37.. CC BY 4.0.
+https://www.inaturalist.org/observations/54099646
+https://creativecommons.org/licenses/by/4.0/
+Excerpt: 2.40 to 5.20 seconds; faded; rumble removed; level matched.
+
+scape-surry-gray-treefrog.m4a — “Gray Treefrog (Dryophytes versicolor), iNaturalist observation 287022625.” Michael Nerrie (mnerrie). Distant Hill Gardens water feature, Walpole, NH (43.084, -72.364), 4 Jun 2025, 07:48.. CC BY 4.0.
+https://www.inaturalist.org/observations/287022625
+https://creativecommons.org/licenses/by/4.0/
+Excerpt: 2.00 to 15.50 seconds; faded; rumble removed; level matched.
+
+scape-surry-town-church-bell.m4a — “bec low bell solo.wav.” HMTSCCSound. Bethesda Church four-bell tower, Saratoga Springs, NY (43.080, -73.787).. CC0 1.0.
+https://freesound.org/people/HMTSCCSound/sounds/554655/
+https://creativecommons.org/publicdomain/zero/1.0/
+Excerpt: 0.00 to 30.00 seconds; faded; rumble removed; level matched.
+
+DIXVILLE NOTCH
+
+scape-dixville-white-throated-sparrow.m4a — “White-throated Sparrow (Zonotrichia albicollis), iNaturalist observation 242883729.” Charlie O'Brien (cobrien207). Franklin County, ME (44.938, -70.365), 891 m elevation, 17 Sep 2024, 12:15 (autumn).. CC0 1.0.
+https://www.inaturalist.org/observations/242883729
+https://creativecommons.org/publicdomain/zero/1.0/
+Excerpt: 14.00 to 27.50 seconds; faded; rumble removed; level matched.
+
+scape-dixville-ruffed-grouse-drum.m4a — “Ruffed Grouse (Bonasa umbellus) drumming, iNaturalist observation 48663214.” Richard Littauer (richardlitt). Montpelier, VT (44.283, -72.570; accuracy ~850 m), 20 Apr 2020, 07:23.. CC BY 4.0.
+https://www.inaturalist.org/observations/48663214
+https://creativecommons.org/licenses/by/4.0/
+Excerpt: full length; faded; rumble removed; level matched.
+
+scape-dixville-canada-geese-migrating.m4a — “geese_copake_farmland_2.aif.” markb. Copake Falls, Columbia County, NY (42.149, -73.510); October, dusk.. CC BY 4.0.
+https://freesound.org/people/markb/sounds/106736/
+https://creativecommons.org/licenses/by/4.0/
+Excerpt: 115.00 to 170.00 seconds; loop seam crossfaded; rumble removed; level matched.
+
+scape-dixville-pileated-woodpecker.m4a — “Pileated Woodpecker (Dryocopus pileatus), iNaturalist observation 51967746.” Richard Littauer (richardlitt). East Montpelier, VT (44.271, -72.487; accuracy ~9 km), 21 Jun 2020, 15:00.. CC BY 4.0.
+https://www.inaturalist.org/observations/51967746
+https://creativecommons.org/licenses/by/4.0/
+Excerpt: 16.00 to 28.00 seconds; faded; rumble removed; level matched.
+
+scape-dixville-blue-jay.m4a — “Blue Jay (Cyanocitta cristata), iNaturalist observation 315374821.” Erik (erikoid). South Percy Peak Trail, Stark, NH (44.659, -71.434), 20 Sep 2025, 11:08 (autumn).. CC BY 4.0.
+https://www.inaturalist.org/observations/315374821
+https://creativecommons.org/licenses/by/4.0/
+Excerpt: 17.50 to 21.50 seconds; faded; rumble removed; level matched.
+
+scape-dixville-dry-leaves.m4a — “Winds and Leaves MIX From October 23rd 2019 Smaller File Size.” kvgarlic. Illinois oak-hickory woods next to an asphalt parking lot, 23 Oct 2019.. CC0 1.0.
+https://freesound.org/people/kvgarlic/sounds/489774/
+https://creativecommons.org/publicdomain/zero/1.0/
+Excerpt: 190.00 to 290.00 seconds; loop seam crossfaded; rumble removed; level matched.
+
+scape-dixville-notch-brook.m4a — “Cascade Sound Loop (Hariman State Park New York) - excerpt 15-135 s.” BobVoldar. Cascade of Slid, Stony Brook, Harriman State Park, Sloatsburg, NY (41.174, -74.168).. CC BY 4.0.
+https://freesound.org/people/BobVoldar/sounds/860683/
+https://creativecommons.org/licenses/by/4.0/
+Excerpt: full length; loop seam crossfaded; rumble removed; level matched.
+
+MOOSEHEAD LAKE
+
+scape-moosehead-ovenbird.m4a — “Seiurus aurocapilla - Ovenbird XC178052.” Jonathon Jongsma (xeno-canto XC178052). Wild River State Park, Chisago County, MN, 10 May 2014, 06:30.. CC BY-SA 4.0.
+https://commons.wikimedia.org/wiki/File:Seiurus_aurocapilla_-_Ovenbird_XC178052.mp3
+https://creativecommons.org/licenses/by-sa/4.0/
+Excerpt: 0.00 to 37.00 seconds; faded; rumble removed; level matched.
+
+scape-moosehead-black-throated-green.m4a — “Black-throated Green Warbler (Setophaga virens), iNaturalist observation 290551759.” Charlie O'Brien (cobrien207). Lovell, ME (44.182, -70.820), 17 Jun 2025, 09:18.. CC0 1.0.
+https://www.inaturalist.org/observations/290551759
+https://creativecommons.org/publicdomain/zero/1.0/
+Excerpt: 11.00 to 27.00 seconds; faded; rumble removed; level matched.
+
+scape-moosehead-red-breasted-nuthatch.m4a — “Red-breasted Nuthatch (Sitta canadensis), iNaturalist observation 297459450.” Daniel Ward (warddaniel). Hancock County, ME (44.267, -68.314; accuracy ~500 m, Mount Desert Island area), 27 Jun 2025, 08:58.. CC BY 4.0.
+https://www.inaturalist.org/observations/297459450
+https://creativecommons.org/licenses/by/4.0/
+Excerpt: 1.00 to 15.80 seconds; faded; rumble removed; level matched.

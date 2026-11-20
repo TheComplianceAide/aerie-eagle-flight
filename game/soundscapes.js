@@ -18,6 +18,36 @@
     yosemite: {tempC: 25, humidity: 28, ir: 'yosemite'}, crater: {tempC: 9, humidity: 68, ir: 'crater'},
     lofoten: {tempC: 9, humidity: 84, ir: 'lofoten'},    milford: {tempC: 12, humidity: 96, ir: 'milford'}
   };
+  // Real coordinates for live air from Open-Meteo (CC BY 4.0). US worlds ask
+  // for NOAA GFS/HRRR; others use the provider's best regional model.
+  const site = {
+    alaska: [58.418, -134.565, 'us'], canyon: [36.879, -111.510, 'us'], swiss: [46.498, 7.727], winnipesaukee: [43.585, -71.330, 'us'],
+    surry: [43.006, -72.311, 'us'], dixville: [44.867, -71.305, 'us'], labrador: [50.747, -68.500], moosehead: [45.700, -69.730, 'us'],
+    yosemite: [37.723, -119.637, 'us'], crater: [42.944, -122.109, 'us'], lofoten: [67.932, 13.089], milford: [-44.641, 167.897]
+  };
+  async function liveAir(region) {
+    const key = 'aerie-air-' + region;
+    try { const c = JSON.parse(localStorage.getItem(key) || 'null'); if (c && Date.now() - c.at < 30 * 60e3) return c.air; } catch (e) {}
+    const [lat, lon, us] = site[region] || [];
+    if (lat === undefined || !navigator.onLine) return null;
+    const url = 'https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon +
+      '&current=temperature_2m,relative_humidity_2m,surface_pressure,wind_speed_10m&hourly=temperature_80m,temperature_120m,wind_speed_80m,wind_speed_120m' +
+      '&forecast_hours=1&wind_speed_unit=ms' + (us ? '&models=gfs_seamless' : '');
+    const ctrl = new AbortController(), timer = setTimeout(() => ctrl.abort(), 5000);
+    try {
+      const d = await (await fetch(url, {signal: ctrl.signal})).json(), c = d.current, h = d.hourly || {};
+      const t2 = c.temperature_2m, tHigh = h.temperature_120m?.[0] ?? h.temperature_80m?.[0], zHigh = h.temperature_120m?.[0] != null ? 120 : 80;
+      const wHigh = h.wind_speed_120m?.[0] ?? h.wind_speed_80m?.[0];
+      // Lapse rate: stable air (warmer aloft than the standard -6.5 K/km) bends sound down.
+      const lapse = tHigh != null ? (tHigh - t2) / (zHigh - 2) : -.0065;
+      const air = {tempC: t2, humidity: c.relative_humidity_2m, pressure: c.surface_pressure / 10,
+        inversion: clamp((lapse + .0065) / .015, 0, 1) * .6,
+        windRefract: wHigh != null ? clamp((wHigh - c.wind_speed_10m) / (zHigh - 10) / .02, .3, 2.2) : 1,
+        source: 'Open-Meteo ' + (us ? 'NOAA GFS/HRRR' : 'best match') + ' ' + c.time, lapse};
+      try { localStorage.setItem(key, JSON.stringify({at: Date.now(), air})); } catch (e) {}
+      return air;
+    } catch (e) { return null; } finally { clearTimeout(timer); }
+  }
   const irLevel = {canyon: .020, lofoten: .016, milford: .011, yosemite: .0013, swiss: .019, dixville: .088, alaska: .017, crater: .011, lake: .00012};
 
   // ---- placement helpers ------------------------------------------------------
@@ -297,6 +327,11 @@
     return null;
   };
 
+  const nearEar = (r = 1.6) => c => ({x: c.ear.x + rand(-r, r), y: c.ear.y + rand(-.4, .7), z: c.ear.z + rand(-r, r)});
+  const lowAndLeafy = c => c.agl < 18 && !c.overWater;
+  // Insect choruses: several emitters seeded in the right habitat around the
+  // eagle (canopy for cicadas and katydids, grass for crickets and
+  // grasshoppers), re-seeded as the bird moves on.
   const scapes = {
     alaska: {
       falls: {clip: 'scape-alaska-nugget-falls', ref: 70, reach: 3200, gain: .95},
@@ -309,12 +344,15 @@
             return {x, y: (waterLevel(c.world) ?? 0) + rand(8, 40), z}; }},
         {clip: 'scape-alaska-varied-thrush', every: [14, 30], ref: 20, reach: 650, gain: .6, where: inTrees(60, 420, .7)},
         {clip: 'scape-alaska-pacific-wren', every: [18, 40], ref: 12, reach: 320, gain: .55, where: inTrees(40, 250, .1)},
+        {clip: 'scape-alaska-mosquito-swarm', every: [18, 40], ref: 1.2, reach: 20, gain: .35, when: lowAndLeafy, where: nearEar()},
         {clip: 'scape-alaska-arctic-tern', every: [22, 55], ref: 25, reach: 700, gain: .55, where: onWater(80, 600, 6)}
       ]
     },
     canyon: {
       water: [{clip: 'scape-canyon-colorado-river', kind: 'river', ref: 35, reach: 1600, gain: .9, maxR: 1200, span: 140}],
       beds: [{clip: 'scape-canyon-canyon-wind', ref: 1, gain: c => .10 + .38 * c.exposure * (.6 + .5 * c.gust)}],
+      choruses: [{clip: 'scape-canyon-apache-cicada', habitat: 'trees', count: 3, r: [25, 160], ref: 14, reach: 600, gain: .5},
+                 {clip: 'scape-canyon-desert-crickets', habitat: 'grass', count: 4, r: [15, 120], ref: 10, reach: 380, gain: .45}],
       events: [
         {clip: 'scape-canyon-swifts', every: [9, 22], ref: 15, reach: 500, gain: .65, moving: true,
           where: c => { const path = passPath(c.ear, {offset: [20, 160], length: 420, speed: 28}); return {path: {...path, y: c.ear.y + rand(-40, 40)}}; }},
@@ -326,7 +364,8 @@
     swiss: {
       falls: {clip: 'scape-swiss-alpine-falls', ref: 45, reach: 2400, gain: .85},
       beds: [{clip: 'scape-swiss-alpine-wind', ref: 1, gain: c => .06 + .32 * c.exposure * (.6 + .5 * c.gust)}],
-            events: [
+            choruses: [{clip: 'scape-swiss-alpine-grasshoppers', habitat: 'grass', count: 4, r: [12, 110], ref: 8, reach: 300, gain: .45}],
+      events: [
         {clip: 'scape-swiss-black-redstart', every: [16, 34], ref: 12, reach: 320, gain: .55, where: onCliff(40, 300)},
         {clip: 'scape-swiss-water-pipit', every: [18, 40], ref: 10, reach: 260, gain: .5, where: onGround(40, 250)},
         {clip: 'scape-swiss-rockfall-alps', every: [110, 260], ref: 60, reach: 4000, gain: .7, wet: .9, where: onCliff(400, 1800)}
@@ -335,6 +374,8 @@
     yosemite: {
       falls: {clip: 'scape-yosemite-yosemite-falls', ref: 150, reach: 6000, gain: .95},
       water: [{clip: 'scape-yosemite-merced-river', kind: 'river', ref: 28, reach: 1200, gain: .75, maxR: 900, span: 120}],
+      choruses: [{clip: 'scape-yosemite-sierra-cicada', habitat: 'trees', count: 3, r: [25, 170], ref: 12, reach: 500, gain: .45},
+                 {clip: 'scape-yosemite-dusk-crickets', habitat: 'grass', count: 4, r: [15, 120], ref: 10, reach: 380, gain: .4}],
       events: [
         {clip: 'scape-yosemite-coyote', every: [80, 200], ref: 90, reach: 3500, gain: .6, wet: .8, where: onGround(500, 1600)},
         {clip: 'scape-yosemite-brewers-blackbird', every: [16, 36], ref: 12, reach: 300, gain: .5, where: at(/El Capitan Meadow/, 1, 250)},
@@ -346,12 +387,14 @@
       storm: {front: [.948683, .316228], speed: 17, head: -2590, period: 18000, cloudY: 3000},
       beds: [{clip: 'scape-crater-rim-wind', ref: 1, gain: c => .08 + .36 * c.exposure * (.6 + .5 * c.gust)}],
       events: [
+        {clip: 'scape-crater-grasshopper-crepitation', every: [9, 22], ref: 6, reach: 160, gain: .45, where: onGround(10, 90)},
         {clip: 'scape-crater-canada-jay', every: [24, 55], ref: 15, reach: 380, gain: .5, where: inTrees(40, 260, .6)}
       ]
     },
     lofoten: {
       water: [{clip: 'scape-lofoten-waves-rocks', kind: 'shore', ref: 25, reach: 900, gain: .8, maxR: 700, span: 160}],
       events: [
+        {clip: 'scape-lofoten-bumblebees', every: [25, 60], ref: 2.5, reach: 50, gain: .4, when: c => c.agl < 30, where: onGround(4, 25)},
         {clip: 'scape-lofoten-white-tailed-eagle', every: [60, 140], ref: 40, reach: 1600, gain: .6, wet: .7, where: onCliff(200, 900)},
         {clip: 'scape-lofoten-herring-gull', every: [14, 32], ref: 25, reach: 700, gain: .55, where: onWater(60, 500, 3)},
         {clip: 'scape-lofoten-arctic-tern-colony', every: [30, 70], ref: 30, reach: 800, gain: .55, where: onWater(100, 600, 4)}
@@ -360,6 +403,7 @@
     milford: {
       falls: {clip: 'scape-milford-big-waterfall', ref: 160, reach: 7000, gain: 1},
       beds: [{clip: 'scape-milford-rainforest-rain', ref: 1, gain: c => .16 * (1 - smooth(60, 260, c.agl)) + .05}],
+      choruses: [{clip: 'scape-milford-chorus-cicada', habitat: 'trees', count: 3, r: [25, 160], ref: 14, reach: 600, gain: .38}],
       events: [
         {clip: 'scape-milford-weka', every: [30, 70], ref: 18, reach: 450, gain: .5, where: onGround(40, 300)},
         {clip: 'scape-milford-kaka', every: [50, 120], ref: 30, reach: 800, gain: .5, where: inTrees(80, 500, .8)},
@@ -367,11 +411,12 @@
       ]
     },
     winnipesaukee: {
+      choruses: [{clip: 'scape-winnipesaukee-snowy-tree-cricket', habitat: 'trees', count: 3, r: [15, 140], ref: 9, reach: 350, gain: .45},
+                 {clip: 'scape-winnipesaukee-true-katydid', habitat: 'trees', count: 3, r: [20, 160], ref: 12, reach: 450, gain: .45}],
+      // Creaking boards and moored hulls at the modeled Weirs Beach and Alton Bay docks.
+      loops: [{clip: 'scape-winnipesaukee-dock-creak', ref: 7, reach: 260, gain: .55, where: at(/Weirs Beach Boardwalk/, 1, 0)},
+              {clip: 'scape-winnipesaukee-dock-creak', ref: 7, reach: 260, gain: .5, where: at(/Alton Bay Water Bandstand/, 1, 0)}],
       events: [
-        {clip: 'scape-winnipesaukee-dock-creak', every: [30, 70], ref: 8, reach: 220, gain: .5,
-          where: c => { const d = [landmark(c.world, /Weirs Beach Boardwalk/), landmark(c.world, /Alton Bay Water Bandstand/)].filter(Boolean)
-            .map(p => ({p, d: Math.hypot(p.x - c.ear.x, p.z - c.ear.z)})).sort((a, b) => a.d - b.d)[0];
-            return d && d.d < 260 ? {x: d.p.x + rand(-25, 25), y: (waterLevel(c.world) ?? 153) + .8, z: d.p.z + rand(-25, 25)} : null; }},
         {clip: 'scape-winnipesaukee-veery', every: [18, 40], ref: 15, reach: 400, gain: .55, where: inTrees(40, 300, .2)},
         {clip: 'scape-winnipesaukee-wood-thrush', every: [20, 45], ref: 18, reach: 450, gain: .55, where: inTrees(40, 300, .4)},
         {clip: 'scape-winnipesaukee-chipmunk', every: [35, 80], ref: 6, reach: 150, gain: .45, where: onGround(20, 120)}
@@ -380,9 +425,10 @@
     surry: {
       water: [{clip: 'scape-surry-ashuelot-riffles', kind: 'river', ref: 16, reach: 600, gain: .65, maxR: 500, span: 90}],
       loops: [{clip: 'scape-surry-dam-outlet', ref: 55, reach: 2400, gain: .85, where: at(/Surry Mountain Dam/, 4, 0)}],
-      beds: [{clip: 'scape-surry-dog-day-cicada', ref: 1, gain: c => .22 * (1 - smooth(40, 220, c.agl)) * (1 - c.town)}],
+      choruses: [{clip: 'scape-surry-dog-day-cicada', habitat: 'trees', count: 4, r: [20, 170], ref: 16, reach: 650, gain: .5},
+                 {clip: 'scape-surry-meadow-katydid', habitat: 'grass', count: 3, r: [12, 110], ref: 8, reach: 300, gain: .4}],
       events: [
-        {clip: 'scape-surry-town-church-bell', every: [120, 260], ref: 220, reach: 7000, gain: .6, wet: .7, where: c => ({x: 1860, y: ground(c.world, 1860, 4290) + 24, z: 4290})},
+        {clip: 'scape-surry-town-church-bell', repeat: [3, 7], spacing: 3.4, every: [140, 280], ref: 220, reach: 7000, gain: .6, wet: .7, where: c => ({x: 1860, y: ground(c.world, 1860, 4290) + 24, z: 4290})},
         {clip: 'scape-surry-gray-catbird', every: [20, 45], ref: 12, reach: 300, gain: .5, where: inTrees(30, 220, .25)},
         {clip: 'scape-surry-song-sparrow', every: [16, 38], ref: 12, reach: 320, gain: .5, where: onGround(30, 250)},
         {clip: 'scape-surry-gray-treefrog', every: [40, 90], ref: 12, reach: 280, gain: .45, where: inTrees(20, 200, .15)}
@@ -402,6 +448,7 @@
     labrador: {
       shower: true,
       events: [
+        {clip: 'scape-labrador-mosquitoes', every: [16, 36], ref: 1.2, reach: 20, gain: .35, when: lowAndLeafy, where: nearEar()},
         {clip: 'scape-labrador-swainsons-thrush', every: [16, 34], ref: 16, reach: 420, gain: .6, where: inTrees(40, 300, .4)},
         {clip: 'scape-labrador-boreal-chickadee', every: [24, 55], ref: 10, reach: 250, gain: .5, where: inTrees(30, 220, .5)},
         {clip: 'scape-labrador-white-throated-sparrow-qc', every: [18, 42], ref: 16, reach: 420, gain: .55, where: inTrees(40, 320, .2)},
@@ -410,7 +457,9 @@
       ]
     },
     moosehead: {
+      choruses: [{clip: 'scape-moosehead-field-crickets', habitat: 'grass', count: 4, r: [15, 120], ref: 10, reach: 380, gain: .42}],
       events: [
+        {clip: 'scape-moosehead-mosquitoes', every: [18, 40], ref: 1.2, reach: 20, gain: .35, when: lowAndLeafy, where: nearEar()},
         {clip: 'scape-moosehead-ovenbird', every: [16, 36], ref: 16, reach: 420, gain: .55, where: inTrees(40, 300, .15)},
         {clip: 'scape-moosehead-black-throated-green', every: [20, 45], ref: 12, reach: 300, gain: .5, where: inTrees(40, 260, .8)},
         {clip: 'scape-moosehead-red-breasted-nuthatch', every: [24, 55], ref: 8, reach: 200, gain: .45, where: inTrees(30, 200, .7)},
@@ -424,6 +473,8 @@
     const spec = scapes[region] || {}, air = climate[region] || {};
     const engine = window.makeSpatialAudio(context, world, {climate: air});
     engine.setSurveyPath(window.aerieSoundPath);
+    // Today's air at the real location, when reachable; the stored climate otherwise.
+    liveAir(region).then(airNow => { if (airNow) { engine.setClimate(airNow); engine.live = airNow; } });
     engine.output.connect(destination);
     const buffers = new Map(), loading = new Map();
     function load(id) {
@@ -441,7 +492,7 @@
     const ids = new Set();
     const listClips = c => Array.isArray(c) ? c : [c];
     for (const e of spec.events || []) listClips(e.clip).forEach(id => ids.add(id));
-    for (const g of [spec.falls, ...(spec.water || []), ...(spec.beds || []), ...(spec.loops || [])]) if (g) ids.add(g.clip);
+    for (const g of [spec.falls, ...(spec.water || []), ...(spec.beds || []), ...(spec.loops || []), ...(spec.choruses || [])]) if (g) ids.add(g.clip);
     for (const id of ids) load(id);
     load('ir-' + (air.ir || 'lake')).then(b => engine.setImpulse(b, (irLevel[air.ir || 'lake'] || .0002) * 7.5));
     if (spec.shower || spec.storm) { load('scape-' + region + '-rain-on-lake'); load('scape-' + region + '-rain-on-spruce'); load('scape-' + region + '-rain-approach'); }
@@ -474,8 +525,17 @@
       }
       return false;
     }
+    function chorusSite(habitat, r0, r1) {
+      for (let i = 0; i < 16; i++) {
+        const a = Math.random() * Math.PI * 2, r = rand(r0, r1), x = engine.ear.x + Math.cos(a) * r, z = engine.ear.z + Math.sin(a) * r;
+        if (isWet(world, x, z)) continue;
+        if (habitat === 'trees') { const t = world.habitat?.nearestTree?.(x, z, 30); if (t) return {x: t.x, y: t.y + t.height * rand(.4, .85), z: t.z}; continue; }
+        return {x, y: ground(world, x, z) + .3, z};
+      }
+      return null;
+    }
     let enabled = false;
-    const state = {falls: new Map(), water: [], beds: [], loops: [], movers: new Set(), rain: null, due: new Map()};
+    const state = {falls: new Map(), water: [], beds: [], loops: [], choruses: [], movers: new Set(), rain: null, due: new Map()};
     const rainTex = {};
     function rainTexture(surface, density) {
       const key = surface + density;
@@ -486,9 +546,10 @@
       for (const w of state.water) w.emitters.forEach(s => s.stop(.4));
       for (const b of state.beds) b.emitters.forEach(s => s.stop(.4));
       for (const l of state.loops) l.source?.stop(.4);
+      for (const c of state.choruses) c.forEach(e => e.stop(.4));
       for (const m of state.movers) m.source.stop(.3);
       if (state.rain) state.rain.emitters.forEach(s => s.stop(.4));
-      state.falls.clear(); state.water = []; state.beds = []; state.loops = []; state.movers.clear(); state.rain = null;
+      state.falls.clear(); state.water = []; state.beds = []; state.loops = []; state.choruses = []; state.movers.clear(); state.rain = null;
     }
     function setEnabled(value) {
       if (enabled === value) return; enabled = value;
@@ -582,7 +643,7 @@
         for (const {p, i} of ranked) if (!state.falls.has(i)) {
           const y = (p.y ?? ground(world, p.x, p.z)) + Math.min(14, 3 + .2 * (p.drop || 20));
           const size = clamp(.55 + (p.drop || 40) / 160 + (p.width || 10) / 80, .5, 1.25);
-          state.falls.set(i, engine.loop(fallsClip, {x: p.x, y, z: p.z}, {gain: fallsSpec.gain * size, ref: fallsSpec.ref * size, reach: fallsSpec.reach, wet: .6, rate: clamp(1.08 - (p.drop || 40) / 900, .9, 1.08)}));
+          state.falls.set(i, engine.loop(fallsClip, {x: p.x, y, z: p.z}, {gain: fallsSpec.gain * size, ref: fallsSpec.ref * size, reach: fallsSpec.reach, wet: .6, echo: true, rate: clamp(1.08 - (p.drop || 40) / 900, .9, 1.08)}));
         }
       }
       // Rivers, streams and rocky shores: three emitters on the nearest water.
@@ -612,6 +673,19 @@
         const d = Math.hypot(entry.pos.x - ear.x, entry.pos.z - ear.z);
         if (d < l.reach && !entry.source) entry.source = engine.loop(b, entry.pos, {gain: l.gain, ref: l.ref, reach: l.reach, wet: .5});
         else if (d > l.reach * 1.1 && entry.source) { entry.source.stop(1); entry.source = null; }
+      });
+      // Insect choruses seeded in habitat around the eagle.
+      (spec.choruses || []).forEach((ch, k) => {
+        const b = buffers.get(ch.clip); if (!b) return;
+        const entry = state.choruses[k] || (state.choruses[k] = []);
+        for (let i = entry.length - 1; i >= 0; i--) {
+          const e = entry[i];
+          if (Math.hypot(e.x - ear.x, e.z - ear.z) > ch.r[1] * 1.8) { e.stop(2.5); entry.splice(i, 1); }
+        }
+        if (entry.length < ch.count && Math.random() < .5) {
+          const site = chorusSite(ch.habitat, ch.r[0], ch.r[1]);
+          if (site) entry.push(engine.loop(b, site, {gain: ch.gain * rand(.7, 1.15), ref: ch.ref, reach: ch.reach, wet: .3, rate: rand(.97, 1.03)}));
+        }
       });
       // Diffuse beds driven by local conditions.
       [...(spec.beds || []), ...extraBeds].forEach((b, k) => {
@@ -675,7 +749,9 @@
           state.movers.add({source: src, path: p, start: now, gain: e.gain});
         } else {
           if (Math.hypot(where.x - ear.x, where.y - ear.y, where.z - ear.z) > e.reach) return;
-          engine.play(b, where, {gain: e.gain, ref: e.ref, reach: e.reach, wet: e.wet ?? .45, rate: rand(.985, 1.015)});
+          const strikes = e.repeat ? Math.round(rand(e.repeat[0], e.repeat[1])) : 1;
+          for (let k = 0; k < strikes; k++)
+            engine.play(b, where, {gain: e.gain, ref: e.ref, reach: e.reach, wet: e.wet ?? .45, rate: e.repeat ? 1 : rand(.985, 1.015), when: k * (e.spacing || 0), echo: e.ref >= 20});
         }
       });
     }
