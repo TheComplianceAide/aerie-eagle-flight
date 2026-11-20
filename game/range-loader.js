@@ -1,9 +1,9 @@
 // A destination's elevation surveys and textures are opened when the player takes flight.
 (() => {
-  const base = ['eagle.js','flight-light.js','field-audio.js','perch-flight.js','perch-habitat.js','plant-models.js','understory.js','wildlife-models.js','fauna-shapes.js','fish-schools.js','wildlife.js','range-relief.js','water-surface.js','wind-field.js','wind-water.js','wind-soarer.js'];
+  const base = ['eagle.js','flight-light.js','field-audio.js','perch-flight.js','perch-habitat.js','plant-models.js','understory.js','wildlife-models.js','fauna-shapes.js','fish-schools.js','wildlife.js','range-relief.js','water-surface.js','wind-field.js','wind-water.js','wind-soarer.js','moving-weather.js','valley-mist.js'];
   const trees = ['fir-data.js','forest.js'];
   const scripts = {
-    alaska: ['alaska-survey.js','alaska-world.js','talus-data.js','habitat.js',...trees],
+    alaska: ['nugget-spray.js','alaska-survey.js','alaska-world.js','talus-data.js','habitat.js',...trees],
     canyon: ['canyon-survey.js','canyon.js','habitat.js'],
     swiss: ['alpine-survey.js','alpine-headwall.js','world.js','talus-data.js','rocks.js','habitat.js',...trees]
   };
@@ -25,7 +25,6 @@
   window.loadFlightRange=async region=>{
     const lakes=region==='winnipesaukee'||region==='moosehead';
     const files=scripts[region]||['atlas-'+region+'-survey.js','atlas-worlds.js','hardwood.js','scanned-hardwood.js',...(lakes?['lakeside.js']:[]),...trees];
-    const mist=['alaska','milford','lofoten','yosemite','napali'].includes(region)?['valley-mist.js']:[];
     const surveyDetail={
       labrador:['labrador-camp-ground.js','labrador-cabin.js','labrador-weather.js'],
       yosemite:['atlas-yosemite-crowns.js'],bryce:['atlas-bryce-relief.js','tropic-reservoir.js'],
@@ -33,7 +32,7 @@
       surry:['surry-dam.js','keene-city-data.js','keene-frontages.js','keene-streetscape.js','keene-city.js','keene-light.js']
     }[region]||[];
     const streams=['yosemite','bryce'].includes(region)?['river-'+region+'.js']:[];
-    await Promise.all([...streams,...base,...files,...mist,...surveyDetail].map(open));
+    await Promise.all([...streams,...base,...files,...surveyDetail].map(open));
     await window.prepareRangeRelief(region);
     if(region==='bryce')await window.prepareBryceTerrain();
   };

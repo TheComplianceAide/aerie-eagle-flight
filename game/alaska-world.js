@@ -385,12 +385,40 @@ class Water extends Mesh {
     const u=(x+3600)/3,v=(z+4200)/3,i=Math.floor(u),j=Math.floor(v),a=u-i,b=v-j,k=j*801+i;
     return .125*((1-b)*((1-a)*crest[k]+a*crest[k+1])+b*((1-a)*crest[k+801]+a*crest[k+802]));
   }
-  function elevation(x,z){
+  function surveyElevation(x,z){
     const d=Math.max(Math.abs(x),Math.abs(z));
     const outer=()=>sample(far,601,18000,x,z)+window.rangeRelief('alaska',x,z)*THREE.MathUtils.smoothstep(d,6900,7700);
     if(d>=4800)return outer()+reliefHeight(x,z);
     const local=sample(near,961,4800,x,z)+iceRelief(x,z)+crestHeight(x,z);
     return reliefHeight(x,z)+(d>4650?THREE.MathUtils.lerp(local,sample(far,601,18000,x,z),(d-4650)/150):local);
+  }
+  const flow=[[1080,895],[1000,870],[946,821],[890,765],[819,711],[754,732],[696,743],[660,734],[636,696],[602,670],[567,653],[539,643],[522,644],[507,656],[493,669],[474,680]];
+  // A treetop or protruding DEM triangle in a narrow chute can put a dry
+  // triangular wall through the water. Constrain only the incised channel to
+  // a downhill bed; the surrounding ridge retains its original elevation.
+  const channel=[];
+  let downstream=surveyElevation(...flow[0]);
+  for(let i=1;i<flow.length;i++){
+    const [ax,az]=flow[i-1],[bx,bz]=flow[i],dx=bx-ax,dz=bz-az;
+    const bottom=Math.max(-.35,Math.min(downstream,surveyElevation(bx,bz)));
+    channel.push({ax,az,dx,dz,inv:1/(dx*dx+dz*dz),top:downstream,bottom});
+    downstream=bottom;
+  }
+  function channelAt(x,z){
+    if(x<435||x>1120||z<605||z>933)return null;
+    let nearest=34*34,hit=null;
+    for(const reach of channel){
+      const u=clamp(((x-reach.ax)*reach.dx+(z-reach.az)*reach.dz)*reach.inv,0,1);
+      const distance2=(x-reach.ax-u*reach.dx)**2+(z-reach.az-u*reach.dz)**2;
+      if(distance2<nearest){nearest=distance2;hit={distance:Math.sqrt(distance2),bed:reach.top+(reach.bottom-reach.top)*u};}
+    }
+    return hit;
+  }
+  function elevation(x,z){
+    const y=surveyElevation(x,z),p=channelAt(x,z);
+    if(!p)return y;
+    const blend=THREE.MathUtils.smoothstep(p.distance,8,34);
+    return THREE.MathUtils.lerp(p.bed+Math.max(0,p.distance-5)*.24,y,blend);
   }
   const height=(x,z)=>Math.max(0,elevation(x,z));
   const loader=new THREE.TextureLoader();
@@ -647,7 +675,8 @@ class Water extends Mesh {
       const x=left+a*1200,z=top+b*1200;
       const icePatch=x>=-1200&&x<=1200&&z<=-400&&z>=-4800;
       const westCrest=x>=-3600&&x<-1200&&z>=-4800&&z<-1200;
-      const steps=westCrest?300:icePatch?240:Math.max(Math.abs(x+600),Math.abs(z+600))<6250?120:75;
+      const fallsPatch=x===0&&z===0;
+      const steps=fallsPatch?300:westCrest?300:icePatch?240:Math.max(Math.abs(x+600),Math.abs(z+600))<6250?120:75;
       patch(x,z,x+1200,z+1200,steps,steps,material);
     }
   }
@@ -661,6 +690,8 @@ class Water extends Mesh {
   const treeData=unpack(survey.trees),trees=[],cells=new Map(),cell=(x,z)=>Math.floor(x/48)*1024+Math.floor(z/48);
   for(let i=0;i<treeData.length;i+=3){
     const x=treeData[i],z=treeData[i+1],h=treeData[i+2],y=elevation(x,z),seed=((i*1583)%65521)/65521;
+    const stream=channelAt(x,z);
+    if(stream && stream.distance<10+h*.20)continue;
     const t={x,y,z,height:h,width:h*(.30+.13*seed),seed};trees.push(t);const id=cell(x,z);if(!cells.has(id))cells.set(id,[]);cells.get(id).push(t);
   }
   // Calved blocks have a fractured crown, a sloping leeward shoulder, and a
@@ -884,64 +915,51 @@ class Water extends Mesh {
   }
   const clock={value:0};
   // Surveyed valley bed and the visible whitewater in the satellite image locate Nugget Falls.
-  const flow=[[1080,895],[1000,870],[946,821],[890,765],[819,711],[754,732],[696,743],[660,734],[636,696],[602,670],[567,653],[539,643],[522,644],[507,656],[493,669],[474,680]];
-  const points=[],flowUv=[],idx=[];let meters=0,previous=null;
+  const points=[],flowUv=[],whitewater=[],idx=[];let meters=0,previous=null;
   for(let seg=0;seg<flow.length-1;seg++){
     const a=flow[seg],b=flow[seg+1],length=Math.hypot(b[0]-a[0],b[1]-a[1]),steps=Math.ceil(length/3.5);
     const vx=(b[1]-a[1])/length,vz=(a[0]-b[0])/length;
     for(let step=0;step<steps;step++){
       const f=step/steps,x=a[0]+(b[0]-a[0])*f,z=a[1]+(b[1]-a[1])*f;
-      const spread=seg>8?7.4+3*Math.sin(seg*.6):3.4;
+      const steepness=clamp((elevation(a[0],a[1])-elevation(b[0],b[1]))/length,0,1);
+      const spread=(seg<6?5.4+steepness*9.:Math.max(2.2,6.5-.35*(seg-6)))*(1+.17*Math.sin(meters*.086)+.12*Math.sin(meters*.147));
       if(previous)meters+=Math.hypot(x-previous.x,z-previous.z,elevation(x,z)-previous.y);previous={x,z,y:elevation(x,z)};
       for(let side=0;side<5;side++){
         const dx=x+(side-2)*spread*.5*vx,dz=z+(side-2)*spread*.5*vz;
-        const k=points.length/3;points.push(dx,height(dx,dz)+.85,dz);flowUv.push(side/4,meters);
+        const k=points.length/3;points.push(dx,height(dx,dz)+.85,dz);flowUv.push(side/4,meters);whitewater.push(steepness);
         if(k>=5&&side>0)idx.push(k-6,k-5,k-1,k-5,k,k-1);
       }
     }
   }
-  const fg=new THREE.BufferGeometry();fg.setAttribute('position',new THREE.Float32BufferAttribute(points,3));fg.setAttribute('uv',new THREE.Float32BufferAttribute(flowUv,2));fg.setIndex(idx);
+  const fg=new THREE.BufferGeometry();fg.setAttribute('position',new THREE.Float32BufferAttribute(points,3));fg.setAttribute('uv',new THREE.Float32BufferAttribute(flowUv,2));fg.setIndex(idx);fg.setAttribute('aeration',new THREE.Float32BufferAttribute(whitewater,1));
   const foam=new THREE.ShaderMaterial({uniforms:{clock,noise:{value:waters}},side:THREE.DoubleSide,transparent:true,depthWrite:false,
-    vertexShader:`varying vec2 f;void main(){f=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,fragmentShader:`uniform float clock;uniform sampler2D noise;varying vec2 f;void main(){float v=f.y-clock*10.;float n=texture2D(noise,vec2(f.x*1.3,v*.02)).r*.6+texture2D(noise,vec2(f.x*.6,v*.055)).g*.4;float edge=smoothstep(0.,.20,min(f.x,1.-f.x));gl_FragColor=vec4(mix(vec3(.48,.67,.69),vec3(.96,.98,1.),smoothstep(.28,.67,n)),edge*(.52+.45*n));}`});
+    vertexShader:`attribute float aeration;varying vec2 f;varying float grade;
+      void main(){f=uv;grade=aeration;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+    fragmentShader:`uniform float clock;uniform sampler2D noise;varying vec2 f;varying float grade;
+      void main(){
+        float v=f.y-clock*(3.8+7.*grade);
+        float n=.6*texture2D(noise,vec2(f.x*1.45,v*.026)).r+.4*texture2D(noise,vec2(f.x*.67,v*.057)).g;
+        float side=f.x+.06*sin(f.y*.065)+.04*sin(f.y*.137+clock*.43);
+        float edge=smoothstep(.005,.22,min(side,1.-side)+.14*(n-.5));
+        float churn=smoothstep(.04,.38,grade);
+        float strands=texture2D(noise,vec2(f.x*3.4,v*.010)).g;
+        float thread=.5+.5*sin(27.*f.x+3.6*strands+1.5*sin(.039*v));
+        float foam=smoothstep(.25,.82,.43*n+.27*strands+.30*thread+.09*churn);
+        vec3 color=mix(vec3(.34,.54,.56),vec3(.94,.96,.97),foam*(.57+.43*churn));
+        gl_FragColor=vec4(color,edge*(.17+.71*churn)*(.38+.62*foam));
+      }`});
   scene.add(new THREE.Mesh(fg,foam));
-  // Water breaks into mist on the surveyed steps and drifts out over the
-  // receiving pool. Each puff has a different phase, velocity and lifetime.
-  const sprayPoints=[],sprayDrifts=[];
+  const spraySources=[];
   for(let i=1;i<flow.length;i++){
     const [x,z]=flow[i],[px,pz]=flow[i-1];
     const drop=elevation(px,pz)-elevation(x,z);
-    if(drop<3.5&&i!==flow.length-2)continue;
-    const count=Math.min(36,Math.round(10+Math.max(0,drop)*.70));
-    for(let j=0;j<count;j++){
-      const dx=x+(random()-.5)*9.5,dz=z+(random()-.5)*8.5;
-      sprayPoints.push(dx,Math.max(.35,elevation(dx,dz))+1.,dz);
-      sprayDrifts.push(random(),random(),random());
+    if(drop>3.5 || i===flow.length-2 || i===flow.length-1)spraySources.push({x,z,drop:Math.max(0,drop)});
+    if(drop>15){
+      const t=.58;
+      spraySources.push({x:px+(x-px)*t,z:pz+(z-pz)*t,drop:drop*.45});
     }
   }
-  const sprayGeo=new THREE.BufferGeometry();
-  sprayGeo.setAttribute('position',new THREE.Float32BufferAttribute(sprayPoints,3));
-  sprayGeo.setAttribute('drift',new THREE.Float32BufferAttribute(sprayDrifts,3));
-  const plume=new THREE.Points(sprayGeo,new THREE.ShaderMaterial({
-    uniforms:{clock},transparent:true,depthWrite:false,
-    vertexShader:`attribute vec3 drift;uniform float clock;varying float life,seed;
-      void main(){
-        seed=drift.z;life=fract(clock*(.085+.12*drift.x)+drift.y);
-        vec3 where=position+vec3(-2.-drift.z*6.,5.+8.*drift.y,2.+5.*drift.x)*life;
-        where.x+=1.2*sin(life*4.2+seed*9.)*life;
-        vec4 v=modelViewMatrix*vec4(where,1.);gl_Position=projectionMatrix*v;
-        gl_PointSize=clamp((2200.+life*5800.)/max(1.,-v.z),1.,90.);
-      }`,
-    fragmentShader:`varying float life,seed;
-      void main(){
-        vec2 q=gl_PointCoord-.5;
-        float r=length(q)*2.;
-        float fold=sin(15.*q.x+4.*sin(q.y*10.+seed*22.))+cos(14.*q.y+8.*seed);
-        float density=1.-smoothstep(.015,1.,r+.065*fold);
-        gl_FragColor=vec4(mix(vec3(.65,.76,.80),vec3(.90,.93,.92),density),
-          .112*pow(density,1.35)*sin(3.14159*life));
-      }`
-  }));
-  plume.name='Nugget Falls spray';scene.add(plume);
+  const sprayPass={x:690,z:602,y:Math.max(96,clearance(690,602)+32),yaw:-2.14,glance:-8};
   const lakeLaunch={x:-269,z:-568,y:71,yaw:-.32},shoreLaunch={x:473,z:927,y:height(473,927)+8,yaw:.27},ridge={x:-860,z:-1890,y:elevation(-860,-1890)+100,yaw:-2.73};
   scene.traverse(mesh=>{
     const material=mesh.material;
@@ -959,8 +977,8 @@ class Water extends Mesh {
     mesh.onBeforeRender=(renderer,scene,camera)=>{material.uniforms.linearOutput.value=!!camera.userData.lakeReflection;};
   });
   const sunMask=map('alaska-tree-light.webp');
-  return {region:"alaska",forestLightSpan:14400,elevation,clearance,height,trees,sunMask,sunDirection:sun,skyTexture:skyMap,waterLevel:0,lakeLevel:0,lakePolygon:shore,altitudeOffset:18,spawn:lakeLaunch,
-    launches:{lake:lakeLaunch,ridge,shore:shoreLaunch,alpine:{x:-2900,z:-2010,y:elevation(-2900,-2010)+58,yaw:-.28}},bounds:{minX:-6890,maxX:6890,minZ:-6890,maxZ:6890},
+  return {region:"alaska",spraySources,forestLightSpan:14400,elevation,clearance,height,trees,sunMask,sunDirection:sun,skyTexture:skyMap,waterLevel:0,lakeLevel:0,lakePolygon:shore,altitudeOffset:18,spawn:lakeLaunch,
+    launches:{lake:lakeLaunch,ridge,shore:shoreLaunch,spray:sprayPass,alpine:{x:-2900,z:-2010,y:elevation(-2900,-2010)+58,yaw:-.28}},bounds:{minX:-6890,maxX:6890,minZ:-6890,maxZ:6890},
     landmarks:[{name:'West alpine crest',x:-2900,z:-2010},{name:'Upper crevasse field',x:1500,z:-4130},{name:'Blue Ice Passage',x:-116,z:-1010},{name:'Nugget Falls beach',x:473,z:927},{name:'Medial moraine',x:632,z:-2450},{name:'Mendenhall Glacier',x:40,z:-1400},{name:'Nugget Falls',x:518,z:658},{name:'Mendenhall Lake',x:-700,z:680},{name:'West Glacier Ridge',x:-860,z:-1890}],
     update(dt,time,player){updateTerrainLOD(player);updateLedges(player);clock.value=time;lake.material.uniforms.time.value=time*.72;}
   };

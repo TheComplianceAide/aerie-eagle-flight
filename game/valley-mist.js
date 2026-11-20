@@ -2,6 +2,18 @@
 // Opaque terrain, trees and the eagle test each slab against the scene depth.
 window.addValleyMist = function addValleyMist(THREE, scene, world) {
   const banks = {
+    // Thin morning banks sit below the forest canopy in sheltered lake coves.
+    moosehead: [
+      [440,112,7, 265,9,75,-.32,.0046,'water'],
+      [-182,652,10, 370,13,115,-.50,.0028,'water'],
+      [14610,10580,8, 500,12,150,.44,.0030,'water']
+    ],
+    winnipesaukee: [[582,1940,9, 360,11,100,.56,.0026,'water'],[5300,12280,8, 315,11,100,-.12,.003,'water']],
+    surry: [[-1187,-3706,8, 275,11,85,-.65,.0034,'water'],[-505,-113,10, 210,15,90,-.38,.0025,'ground']],
+    crater: [[-2100,1390,12, 425,15,125,-.12,.0024,'water']],
+    swiss: [[48,265,9, 245,13,72,.10,.0033,'water'],[472,922,12, 72,27,60,-.25,.0041,'foot']],
+    canyon: [[-950,-2450,29, 330,30,100,-.46,.0013,'ground']],
+    bryce: [[-505,-480,36, 240,35,105,.25,.0013,'ground']],
     alaska: [
       [-220,-910,13, 265,22,150,-.35,.0026,'water'],
       [650,-2850,57, 290,62,780,.19,.0018,'ground'],
@@ -86,6 +98,7 @@ window.addValleyMist = function addValleyMist(THREE, scene, world) {
   const fragmentShader=`
     uniform sampler2D lattice;
     uniform vec3 sun;
+    uniform vec2 mistWind;
     uniform float clock,section,frequency,extinction,direct;
     varying vec3 fieldPosition;
     varying vec3 worldPoint;
@@ -105,7 +118,7 @@ window.addValleyMist = function addValleyMist(THREE, scene, world) {
       vec3 eyeRay=worldPoint-cameraPosition;
       float range=length(eyeRay);
       vec3 ray=eyeRay/max(range,.01);
-      vec3 p=(worldPoint-vec3(clock*1.52,clock*.11,-clock*.66))*frequency+section;
+      vec3 p=(worldPoint-vec3(mistWind.x*clock,clock*.11,mistWind.y*clock))*frequency+section;
       p.y*=1.7;
       float billow=densityNoise(p);
       float curl=densityNoise(p*2.37+vec3(.6,3.8,5.4)+billow*.7);
@@ -125,6 +138,8 @@ window.addValleyMist = function addValleyMist(THREE, scene, world) {
       #include <colorspace_fragment>
     }`;
 
+  const direction=world.windField.direction;
+  const mistWind={value:new THREE.Vector2(direction.x,direction.z).multiplyScalar(world.windField.advection*.55)};
   const volumes=[];
   banks.forEach(([cx,cz,rise,rx,ry,rz,yaw,extinction,base],index)=>{
     let x=cx,z=cz;
@@ -152,7 +167,7 @@ window.addValleyMist = function addValleyMist(THREE, scene, world) {
       uniforms:{radii:{value:new THREE.Vector3(rx,ry,rz)},
         orientation:{value:new THREE.Vector2(Math.cos(yaw),Math.sin(yaw))},
         section:{value:2.7+5.31*index}, frequency:{value:2.6/radius},
-        direct:{value:direct}, extinction:{value:extinction}, clock, lattice:{value:noise},sun:{value:sun}},
+        direct:{value:direct}, extinction:{value:extinction}, clock, mistWind, lattice:{value:noise},sun:{value:sun}},
       vertexShader,fragmentShader,depthTest:true,depthWrite:false,transparent:true,side:THREE.FrontSide
     });
     const mesh=new THREE.Mesh(geometry,mat);

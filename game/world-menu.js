@@ -1,6 +1,6 @@
 (() => {
   const worlds = {
-    alaska: { name: ['Mendenhall', 'Glacier'], region: 'Juneau, Alaska', description: 'Follow the western crest above the icefield, then descend over spruce forest to Mendenhall Lake.', launches: { lake: 'Glacier terminus', ridge: 'West Glacier Ridge', shore: 'Nugget Falls beach', alpine: 'West alpine crest' } },
+    alaska: { name: ['Mendenhall', 'Glacier'], region: 'Juneau, Alaska', description: 'Follow the western crest above the icefield, then descend over spruce forest to Mendenhall Lake.', launches: { lake: 'Glacier terminus', ridge: 'West Glacier Ridge', shore: 'Nugget Falls beach', spray: 'Nugget Falls spray pass', alpine: 'West alpine crest' } },
     canyon: { name: ['Horseshoe', 'Bend'], region: 'Arizona, USA', description: 'Bank around the sandstone bend and follow the Colorado River below the rim.', launches: { lake: 'Horseshoe overlook', ridge: 'River corridor', shore: 'Colorado sandbar' } },
     swiss: { name: ['Oeschinen', 'Lake'], region: 'Bernese Alps, Switzerland', description: 'Follow the waterfalls from the high cliffs to the spruce-lined lakeshore.', launches: { lake: 'Lake overlook', falls: 'Waterfall approach', forest: 'Forest edge', shore: 'Western gravel beach' } }
   };
@@ -32,6 +32,7 @@
   document.getElementById('creditsLink').href=asset('credits.txt');
   function previewName(id,start){
     if(id==='labrador')return start==='cabin'?'labrador-cabin-view.jpg':start==='rainbow'?'labrador-rainbow-view.jpg':'labrador-lake-view.jpg';
+    if(id==='alaska' && start==='spray')return 'alaska-shore-view.jpg';
     if(start==='wildlife')start='lake';
     if(start==='lookout')return 'perch-'+id+'-view.jpg';
     if(id==='swiss')return {lake:'valley.jpg',falls:'falls-view.jpg',forest:'forest-view.jpg',shore:'swiss-shore-view.jpg'}[start];
@@ -59,7 +60,7 @@
     const params = new URLSearchParams({world:picker.value==='labrador'?'lac-berte':picker.value, launch:launch.value});
     try { history.replaceState(null, '', '#'+params); } catch { location.hash = params.toString(); }
     app.dataset.departure = launch.value;
-    document.querySelector('.intro p').textContent=launch.value==='lookout'?window.PERCH_ROUTE_DESCRIPTIONS[picker.value]:worlds[picker.value].description;
+    document.querySelector('.intro p').textContent=picker.value==='alaska'&&launch.value==='spray'?'Follow the shoreline toward Nugget Falls. Watch the spray lift off the ledges and bend downwind.':launch.value==='lookout'?window.PERCH_ROUTE_DESCRIPTIONS[picker.value]:worlds[picker.value].description;
     preview(picker.value,launch.value);
   }
   function show(start) {

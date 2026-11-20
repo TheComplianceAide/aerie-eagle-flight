@@ -22,7 +22,7 @@
   window.addEventListener("worldchange",()=>{if(renderer||launchPending)location.reload();});
   const keys = new Set(), found = new Set();
   let renderer, scene, camera, world, eagle, player, gaze, cameraTarget;
-  let updateLight,perching,perchRoute,perchMarker,windSoarer;
+  let updateLight, updateWeather,perching,perchRoute,perchMarker,windSoarer;
   let perchNotice="",perchNoticeUntil=0,nextPerchHUD=0;
   let dynamics, elapsed, distance, nextReadout, noticeUntil, accumulator;
   let updateTalus, updateForest, updateHabitat, updateUnderstory, updateMist;
@@ -327,6 +327,7 @@
       windSoarer=window.makeWindSoarer(THREE,scene,world,world.windField);
       updateLight=window.makeFlightLight(THREE,renderer,scene,world,eagle);
       if(region==="surry")window.lightKeeneStreet(THREE,renderer,scene,world,eagle.object);
+      updateWeather=await window.makeMovingWeather(THREE,scene,world);
     } catch(error) {
       loadPromise=null;world=null;eagle=null;renderer.dispose();renderer=null;
       throw error;
@@ -643,6 +644,7 @@
     updateUnderstory(player,elapsed);
     windSoarer.update(dt,s);
     if(fieldAudio&&soundOn)fieldAudio.update(s,world,dt,camera,perching.stage);
+    updateWeather(elapsed);
     world.update(dt,elapsed,player);updateLight?.(player,elapsed);updateMist?.(player,elapsed);renderer.render(scene,camera);updatePerchHUD(s);
     if(s.contact){showDialog("contact");return;}
     if(elapsed>=nextReadout){
