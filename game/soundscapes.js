@@ -286,6 +286,36 @@
     };
   }
 
+  // Small movement sounds of animals that are on the map: steps in grass and
+  // litter, and swirls/splashes of fish at the surface.
+  function synthRustle(context) {
+    const fs = context.sampleRate, len = Math.floor(1.4 * fs), b = context.createBuffer(1, len, fs), d = b.getChannelData(0);
+    let t = rand(.02, .1);
+    while (t < 1.2) {
+      const at = Math.floor(t * fs), n = Math.floor(rand(.025, .07) * fs), amp = rand(.25, .7);
+      let lp = 0, prev = 0; const k = rand(.25, .55);
+      for (let i = 0; i < n && at + i < len; i++) { lp += ((Math.random() * 2 - 1) - lp) * k; const hp = lp - prev; prev = lp; d[at + i] += amp * hp * Math.exp(-i / n * 4); }
+      t += rand(.16, .38);
+    }
+    return b;
+  }
+  function synthSplash(context) {
+    const fs = context.sampleRate, len = Math.floor(.7 * fs), b = context.createBuffer(1, len, fs), d = b.getChannelData(0);
+    for (let i = 0; i < .03 * fs; i++) d[i] += (Math.random() * 2 - 1) * Math.exp(-i / fs / .008) * .6;
+    for (let n = 0; n < 4; n++) {
+      const at = Math.floor(rand(.01, .25) * fs), f0 = rand(700, 2100), dec = rand(.02, .05); let ph = 0;
+      for (let i = 0; i < dec * 5 * fs && at + i < len; i++) { const tt = i / fs; ph += 2 * Math.PI * f0 * (1 + 1.5 * tt / dec * .1) / fs; d[at + i] += .4 * Math.sin(ph) * Math.exp(-tt / dec); }
+    }
+    return b;
+  }
+  function synthBlip(context) {
+    const fs = context.sampleRate, len = Math.floor(.28 * fs), b = context.createBuffer(1, len, fs), d = b.getChannelData(0);
+    for (let i = 0; i < len; i++) { const t = i / fs; d[i] = (Math.random() * 2 - 1) * .5 * Math.exp(-t / .05) * (1 - Math.exp(-t / .002)); }
+    return b;
+  }
+  const headProfiles = [['default', 'Dummy head (KU100, Omnitone default)'], ['fabian', 'Dummy head (FABIAN)'], ['small', 'Small head'],
+    ['small-medium', 'Small to medium head'], ['medium', 'Medium head'], ['large-medium', 'Medium to large head'], ['large', 'Large head']];
+
   // ---- regional definitions -----------------------------------------------------
   // Events: clip, every [min,max] seconds, where(ctx) -> position or path,
   // gain at ref metres, reach in metres, optional when(ctx) condition.
@@ -411,7 +441,7 @@
       ]
     },
     winnipesaukee: {
-      choruses: [{clip: 'scape-winnipesaukee-snowy-tree-cricket', habitat: 'trees', count: 3, r: [15, 140], ref: 9, reach: 350, gain: .45},
+      choruses: [{clip: 'scape-winnipesaukee-snowy-tree-cricket', rate: 1.11 /* Dolbear's law: recorded at 21 C, sung at 23 C */, habitat: 'trees', count: 3, r: [15, 140], ref: 9, reach: 350, gain: .45},
                  {clip: 'scape-winnipesaukee-true-katydid', habitat: 'trees', count: 3, r: [20, 160], ref: 12, reach: 450, gain: .45}],
       // Creaking boards and moored hulls at the modeled Weirs Beach and Alton Bay docks.
       loops: [{clip: 'scape-winnipesaukee-dock-creak', ref: 7, reach: 260, gain: .55, where: at(/Weirs Beach Boardwalk/, 1, 0)},
@@ -462,8 +492,7 @@
         {clip: 'scape-moosehead-mosquitoes', every: [18, 40], ref: 1.2, reach: 20, gain: .35, when: lowAndLeafy, where: nearEar()},
         {clip: 'scape-moosehead-ovenbird', every: [16, 36], ref: 16, reach: 420, gain: .55, where: inTrees(40, 300, .15)},
         {clip: 'scape-moosehead-black-throated-green', every: [20, 45], ref: 12, reach: 300, gain: .5, where: inTrees(40, 260, .8)},
-        {clip: 'scape-moosehead-red-breasted-nuthatch', every: [24, 55], ref: 8, reach: 200, gain: .45, where: inTrees(30, 200, .7)},
-        {clip: 'scape-moosehead-loon-tremolo', every: [60, 140], ref: 120, reach: 4000, gain: .6, wet: .8, where: onWater(300, 2000, .4)}
+        {clip: 'scape-moosehead-red-breasted-nuthatch', every: [24, 55], ref: 8, reach: 200, gain: .45, where: inTrees(30, 200, .7)}
       ]
     }
   };
@@ -577,6 +606,94 @@
     }
 
     let thunderDue = 0, ctx = null, ticks = null, airflow = null;
+    // ---- Eagle Ears (L): eagle head, raptor hearing, audible prey ------------
+    let eagleEars = false, humanProfile = engine.profile, rustles = null, splash = null, nextCue = 0;
+    const cueDue = new WeakMap();
+    function setEagleEars(on) {
+      eagleEars = on;
+      if (on) { humanProfile = engine.profile === 'eagle' ? humanProfile : engine.profile; engine.setHeadProfile('eagle'); }
+      else engine.setHeadProfile(humanProfile || 'default');
+      engine.setRaptorHearing(on);
+      const b = document.getElementById('earsToggle'); if (b) b.setAttribute('aria-pressed', String(on));
+    }
+    function preyCues(now) {
+      const wl = world.wildlife; if (!wl?.nearby || now < nextCue) return;
+      nextCue = now + .3;
+      rustles = rustles || [0, 1, 2, 3].map(() => synthRustle(context)); splash = splash || [0, 1, 2].map(() => synthSplash(context));
+      const radius = eagleEars ? 170 : 70;
+      let played = 0;
+      for (const a of wl.nearby(engine.ear, radius)) {
+        if (played >= 2) break;
+        if (!a.actor || now < (cueDue.get(a.actor) ?? 0) || a.kind === 'Bird') continue;
+        const moving = a.behavior && !/rest|perch|sleep/i.test(a.behavior);
+        cueDue.set(a.actor, now + rand(moving ? 1.1 : 3, moving ? 2.6 : 7));
+        const fish = a.kind === 'Fish';
+        if (fish && Number.isFinite(a.actor.level) && a.actor.level - a.y > .6) continue; // deep fish are silent
+        const pos = {x: a.x, y: fish ? (a.actor.level ?? a.y) : a.y + .2, z: a.z};
+        engine.play(pick(fish ? splash : rustles), pos, {gain: (eagleEars ? .55 : .16) * (fish ? .8 : 1), ref: 4, reach: radius, wet: .15, rate: rand(.9, 1.1)});
+        played++;
+      }
+    }
+    // Controls: an Eagle Ears toggle beside Game Vision, and a head-profile
+    // chooser with a short 3D sweep in the Flight controls dialog.
+    function installControls() {
+      if (!document.getElementById('aerieEarsStyle')) {
+        const st = document.createElement('style'); st.id = 'aerieEarsStyle';
+        st.textContent = '#earsToggle{width:auto;padding:0 13px;gap:7px;border-radius:24px;font-size:12px;font-weight:600;white-space:nowrap}' +
+          '#earsToggle[aria-pressed=true]{background:#efe0b9;color:#192720;border-color:#fff1ca}' +
+          '.headProfile{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0;font-size:13px}.headProfile select{max-width:100%}';
+        document.head.appendChild(st);
+      }
+      const vision = document.getElementById('visionToggle');
+      if (vision && !document.getElementById('earsToggle')) {
+        const b = document.createElement('button');
+        b.className = 'icon flightOnly'; b.id = 'earsToggle'; b.setAttribute('aria-pressed', 'false'); b.title = 'Eagle Ears (L)';
+        b.setAttribute('aria-label', 'Toggle Eagle Ears (L)');
+        b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 18c0 2 1.5 3 3 3s3-1.5 3-3.2c0-1.6 1.2-2.3 2.2-3.4A6.5 6.5 0 1 0 6 9.5"/><path d="M10 10.5a2.5 2.5 0 1 1 4 2"/></svg><span>Eagle Ears</span>';
+        vision.after(b);
+      }
+      const box = document.getElementById('instructions');
+      if (box && !document.getElementById('headProfile')) {
+        const wrap = document.createElement('div'); wrap.className = 'headProfile';
+        wrap.innerHTML = '<label for="headProfile">3D audio head</label><select id="headProfile"></select><button type="button" id="headTest" class="secondary">Play 3D test</button>';
+        const sel = wrap.querySelector('select');
+        for (const [v, label] of headProfiles) sel.add(new Option(label, v));
+        box.insertBefore(wrap, box.querySelector('.references'));
+      }
+      window.aerieSoundscapeControls = {setEagleEars, test: sweep, setProfile: name => { if (eagleEars) humanProfile = name; else engine.setHeadProfile(name); }};
+      const sel = document.getElementById('headProfile');
+      if (sel) sel.value = engine.profile === 'eagle' ? humanProfile : engine.profile;
+    }
+    let blip = null;
+    function sweep() {
+      blip = blip || synthBlip(context);
+      // Front, right, behind, left, above, 3 m from the head in the camera frame.
+      const steps = [[0, 0, -3], [3, 0, 0], [0, 0, 3], [-3, 0, 0], [0, 3, 0]];
+      steps.forEach(([x, y, z], i) => {
+        const v = new THREE.Vector3(x, y, z).applyQuaternion(lastCamera?.quaternion || new THREE.Quaternion());
+        engine.play(blip, {x: engine.ear.x + v.x, y: engine.ear.y + v.y, z: engine.ear.z + v.z}, {gain: .9, ref: 1, reach: 50, wet: .1, occlude: false, doppler: false, when: i * .55});
+      });
+    }
+    let lastCamera = null;
+    if (!window.__aerieEarsKeys) {
+      window.__aerieEarsKeys = true;
+      window.addEventListener('keydown', e => {
+        if (e.code === 'KeyL' && !e.repeat && document.getElementById('app')?.dataset.mode === 'flight') {
+          const c = window.aerieSoundscapeControls; if (c) { e.preventDefault(); c.setEagleEars(!document.getElementById('earsToggle')?.getAttribute('aria-pressed')?.includes('true')); }
+        }
+      });
+      document.addEventListener('click', e => {
+        const c = window.aerieSoundscapeControls; if (!c) return;
+        if (e.target.closest?.('#earsToggle')) c.setEagleEars(document.getElementById('earsToggle').getAttribute('aria-pressed') !== 'true');
+        if (e.target.closest?.('#headTest')) c.test();
+      });
+      document.addEventListener('change', e => {
+        if (e.target.id !== 'headProfile') return;
+        try { localStorage.setItem('aerie-head-profile', e.target.value); } catch (err) {}
+        window.aerieSoundscapeControls?.setProfile(e.target.value);
+      });
+    }
+    installControls();
     function stormDepth(storm, x, z, t) {
       const [ax, az] = storm.front, sx = -az, sz = ax, side = x * sx + z * sz;
       const edge = 175 * Math.sin(side * .00073) + 112 * Math.sin(side * .00181 + .7) + 43 * Math.sin(side * .0031);
@@ -619,7 +736,7 @@
     let nextScan = 0, shore = null;
     function update(s, camera, dt, extras = {}) {
       if (!enabled) return;
-      engine.update(camera, dt);
+      engine.update(camera, dt); lastCamera = camera;
       const now = context.currentTime, t = s.elapsed || 0, ear = engine.ear;
       airflow = airflow || makeAirflow(context, destination);
       airflow.update(s, extras.gust ?? .5, now);
@@ -628,6 +745,7 @@
         shore: extras.shore, town: 0, t, overWater: isWet(world, ear.x, ear.z)};
       const keene = landmark(world, /Central Square/);
       if (keene) ctx.town = 1 - smooth(300, 1400, Math.hypot(ear.x - keene.x, ear.z - keene.z));
+      preyCues(now);
       if (now < nextScan) { tickEvents(now); return; }
       nextScan = now + .25;
 
@@ -684,7 +802,7 @@
         }
         if (entry.length < ch.count && Math.random() < .5) {
           const site = chorusSite(ch.habitat, ch.r[0], ch.r[1]);
-          if (site) entry.push(engine.loop(b, site, {gain: ch.gain * rand(.7, 1.15), ref: ch.ref, reach: ch.reach, wet: .3, rate: rand(.97, 1.03)}));
+          if (site) entry.push(engine.loop(b, site, {gain: ch.gain * rand(.7, 1.15), ref: ch.ref, reach: ch.reach, wet: .3, rate: (ch.rate || 1) * rand(.97, 1.03)}));
         }
       });
       // Diffuse beds driven by local conditions.
@@ -755,6 +873,6 @@
         }
       });
     }
-    return {engine, setEnabled, update, load, buffers, adopt};
+    return {engine, setEnabled, update, load, buffers, adopt, setEagleEars, get eagleEars() { return eagleEars; }};
   };
 })();

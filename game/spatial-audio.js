@@ -29,12 +29,44 @@ window.makeSpatialAudio = function makeSpatialAudio(context, world, options = {}
   const output = context.createGain();
   const bus = context.createGain();
   bus.channelCount = channels; bus.channelCountMode = 'explicit'; bus.channelInterpretation = 'discrete';
-  let renderer = null, rendererReady = false;
-  try {
-    renderer = order > 1 ? Omnitone.createHOARenderer(context, {ambisonicOrder: order}) : Omnitone.createFOARenderer(context);
-    renderer.initialize().then(() => { bus.connect(renderer.input); renderer.output.connect(output); rendererReady = true; })
-      .catch(error => console.warn('Aerie spatial renderer unavailable', error));
-  } catch (error) { console.warn('Aerie spatial renderer unavailable', error); }
+  // Head profiles: Omnitone's built-in SADIE KU100 set, six measured HUTUBS
+  // heads (CC BY 4.0) and an eagle-sized rigid sphere, each converted to
+  // 3rd-order decoders by tools/acoustics/make_hrirs.py.
+  let renderer = null, rendererReady = false, profile = 'default';
+  function buildRenderer(name) {
+    const config = {ambisonicOrder: order};
+    if (name && name !== 'default' && order === 3)
+      config.hrirPathList = [0, 1, 2, 3, 4, 5, 6, 7].map(k => { const f = 'hrir-' + name + '-' + k + '.wav'; return window.aerieAssetURL?.(f) || f; });
+    const next = order > 1 ? Omnitone.createHOARenderer(context, config) : Omnitone.createFOARenderer(context);
+    return next.initialize().then(() => {
+      const previous = renderer;
+      bus.connect(next.input); next.output.connect(output);
+      if (previous) { try { bus.disconnect(previous.input); previous.output.disconnect(); } catch (e) {} }
+      renderer = next; rendererReady = true; profile = name || 'default';
+    });
+  }
+  function setHeadProfile(name) {
+    return buildRenderer(name).catch(error => { console.warn('Aerie head profile unavailable', name, error); if (!renderer) return buildRenderer('default'); });
+  }
+  let storedProfile = 'default';
+  try { storedProfile = localStorage.getItem('aerie-head-profile') || 'default'; } catch (e) {}
+  try { setHeadProfile(storedProfile); } catch (error) { console.warn('Aerie spatial renderer unavailable', error); }
+  // Raptor hearing (Eagle Ears): diurnal raptor audiograms are most sensitive
+  // near 1-4 kHz and fall steeply above ~6 kHz (Dooling 1980; Dooling,
+  // Lohr & Dent 2000). Bypassed for normal listening.
+  const final = context.createGain(), hearing = [];
+  for (const [type, f, g, q] of [['highpass', 160, 0, .7], ['peaking', 2200, 5, .9], ['highshelf', 6000, -12, .7], ['lowpass', 9500, 0, .7]]) {
+    const b = context.createBiquadFilter(); b.type = type; b.frequency.value = f; b.gain.value = g; b.Q.value = q; hearing.push(b);
+  }
+  hearing.reduce((a, b) => (a.connect(b), b));
+  output.connect(final);
+  let raptor = false;
+  function setRaptorHearing(on) {
+    if (on === raptor) return; raptor = on;
+    try { output.disconnect(); } catch (e) {}
+    if (on) { output.connect(hearing[0]); hearing[hearing.length - 1].connect(final); }
+    else { try { hearing[hearing.length - 1].disconnect(final); } catch (e) {} output.connect(final); }
+  }
 
   // Reverberation: a stereo convolution of a world-specific impulse response.
   const reverbIn = context.createGain(), convolver = context.createConvolver(), reverbOut = context.createGain();
@@ -289,7 +321,7 @@ window.makeSpatialAudio = function makeSpatialAudio(context, world, options = {}
   }
   function setSurveyPath(fn) { surveyPath = fn; }
   return {
-    context, output, play, loop, update, setImpulse, setSurveyPath, absorption, airCutoff, setClimate, climate,
+    context, output: final, play, loop, setHeadProfile, setRaptorHearing, get profile() { return profile; }, update, setImpulse, setSurveyPath, absorption, airCutoff, setClimate, climate,
     get speed() { return SPEED; }, ear, order, get walls() { return walls; }, get ready() { return rendererReady; }, get count() { return live.size; }
   };
 };
