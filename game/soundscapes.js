@@ -67,7 +67,7 @@
     }
     return null;
   }
-  // A straight path that passes the listener at a chosen offset (aircraft, birds, boats).
+  // A straight path that passes the listener at a chosen offset (flying birds).
   function passPath(ear, opt) {
     const heading = Math.random() * Math.PI * 2, dx = Math.cos(heading), dz = Math.sin(heading);
     const offset = rand(opt.offset[0], opt.offset[1]) * (Math.random() < .5 ? -1 : 1);
@@ -309,8 +309,7 @@
             return {x, y: (waterLevel(c.world) ?? 0) + rand(8, 40), z}; }},
         {clip: 'scape-alaska-varied-thrush', every: [14, 30], ref: 20, reach: 650, gain: .6, where: inTrees(60, 420, .7)},
         {clip: 'scape-alaska-pacific-wren', every: [18, 40], ref: 12, reach: 320, gain: .55, where: inTrees(40, 250, .1)},
-        {clip: 'scape-alaska-arctic-tern', every: [22, 55], ref: 25, reach: 700, gain: .55, where: onWater(80, 600, 6)},
-        {clip: 'scape-alaska-helicopter', every: [240, 480], ref: 180, reach: 7000, gain: .55, moving: true, where: inSky([500, 900], [800, 2500], 9000, 55)}
+        {clip: 'scape-alaska-arctic-tern', every: [22, 55], ref: 25, reach: 700, gain: .55, where: onWater(80, 600, 6)}
       ]
     },
     canyon: {
@@ -321,21 +320,13 @@
           where: c => { const path = passPath(c.ear, {offset: [20, 160], length: 420, speed: 28}); return {path: {...path, y: c.ear.y + rand(-40, 40)}}; }},
         {clip: 'scape-canyon-swallows', every: [16, 34], ref: 10, reach: 280, gain: .5, where: onCliff(40, 300)},
         {clip: 'scape-canyon-rockfall', every: [70, 160], ref: 30, reach: 1400, gain: .7, where: onCliff(120, 700)},
-        {clip: 'scape-canyon-outboard', every: [150, 320], ref: 45, reach: 3200, gain: .55, moving: true, where: acrossWater([150, 900], 2600, 9)},
         {clip: 'scape-canyon-ravens-canyon', every: [40, 90], ref: 25, reach: 900, gain: .55, where: onCliff(100, 600)}
       ]
     },
     swiss: {
       falls: {clip: 'scape-swiss-alpine-falls', ref: 45, reach: 2400, gain: .85},
       beds: [{clip: 'scape-swiss-alpine-wind', ref: 1, gain: c => .06 + .32 * c.exposure * (.6 + .5 * c.gust)}],
-      loops: [
-        // Herd on the Oeschinen alp meadows west of the lake: bells at several distances.
-        {clip: 'scape-swiss-cowbells', ref: 22, reach: 1300, gain: .75, where: at(/Lakeshore meadow/, 1, 160)},
-        {clip: 'scape-swiss-cowbells', ref: 22, reach: 1300, gain: .6, where: at(/Western gravel beach/, 1, 260)}
-      ],
-      events: [
-        // Kandersteg lies ~3 km west of the lake, 400 m lower.
-        {clip: 'scape-swiss-church-bells', every: [150, 300], ref: 260, reach: 9000, gain: .6, wet: .8, where: fixed(-3300, 50, 120)},
+            events: [
         {clip: 'scape-swiss-black-redstart', every: [16, 34], ref: 12, reach: 320, gain: .55, where: onCliff(40, 300)},
         {clip: 'scape-swiss-water-pipit', every: [18, 40], ref: 10, reach: 260, gain: .5, where: onGround(40, 250)},
         {clip: 'scape-swiss-rockfall-alps', every: [110, 260], ref: 60, reach: 4000, gain: .7, wet: .9, where: onCliff(400, 1800)}
@@ -360,23 +351,16 @@
     },
     lofoten: {
       water: [{clip: 'scape-lofoten-waves-rocks', kind: 'shore', ref: 25, reach: 900, gain: .8, maxR: 700, span: 160}],
-      loops: [{clip: 'scape-lofoten-harbor-rigging', ref: 30, reach: 900, gain: .6, where: at(/^Reine$/, 2, 60)},
-              {clip: 'scape-lofoten-harbor-rigging', ref: 30, reach: 900, gain: .5, where: at(/Hamnøy/, 2, 60)}],
       events: [
-        {clip: 'scape-lofoten-fishing-boat', every: [90, 200], ref: 55, reach: 4000, gain: .6, moving: true, where: acrossWater([300, 1600], 3200, 6)},
         {clip: 'scape-lofoten-white-tailed-eagle', every: [60, 140], ref: 40, reach: 1600, gain: .6, wet: .7, where: onCliff(200, 900)},
         {clip: 'scape-lofoten-herring-gull', every: [14, 32], ref: 25, reach: 700, gain: .55, where: onWater(60, 500, 3)},
-        {clip: 'scape-lofoten-arctic-tern-colony', every: [30, 70], ref: 30, reach: 800, gain: .55, where: onWater(100, 600, 4)},
-        {clip: 'scape-lofoten-sheep-bells', every: [60, 150], ref: 15, reach: 500, gain: .5, where: onGround(80, 400)},
-        {clip: 'scape-lofoten-stockfish-racks', every: [70, 160], ref: 10, reach: 300, gain: .45, where: at(/^Reine$/, 3, 120)}
+        {clip: 'scape-lofoten-arctic-tern-colony', every: [30, 70], ref: 30, reach: 800, gain: .55, where: onWater(100, 600, 4)}
       ]
     },
     milford: {
       falls: {clip: 'scape-milford-big-waterfall', ref: 160, reach: 7000, gain: 1},
       beds: [{clip: 'scape-milford-rainforest-rain', ref: 1, gain: c => .16 * (1 - smooth(60, 260, c.agl)) + .05}],
       events: [
-        {clip: 'scape-milford-cruise-boat', every: [140, 300], ref: 120, reach: 6000, gain: .6, moving: true, wet: .8, where: acrossWater([400, 2000], 5000, 7)},
-        {clip: 'scape-milford-scenic-plane', every: [110, 260], ref: 160, reach: 8000, gain: .55, moving: true, wet: .9, where: inSky([200, 600], [300, 1800], 9000, 60)},
         {clip: 'scape-milford-weka', every: [30, 70], ref: 18, reach: 450, gain: .5, where: onGround(40, 300)},
         {clip: 'scape-milford-kaka', every: [50, 120], ref: 30, reach: 800, gain: .5, where: inTrees(80, 500, .8)},
         {clip: 'scape-milford-fiordland-penguin', every: [80, 180], ref: 18, reach: 400, gain: .5, where: onWater(40, 300, .4)}
@@ -384,14 +368,10 @@
     },
     winnipesaukee: {
       events: [
-        // The M/S Mount Washington sails from Weirs Beach; her horn carries across the Broads.
-        {clip: 'scape-winnipesaukee-mount-washington-horn', every: [180, 360], ref: 700, reach: 16000, gain: .7, wet: .9,
-          where: c => { const w = landmark(c.world, /Weirs Beach$/); const b = landmark(c.world, /The Broads/);
-            if (!w || !b) return null; const t = Math.random(); return {x: w.x + (b.x - w.x) * t, y: (waterLevel(c.world) ?? 153) + 12, z: w.z + (b.z - w.z) * t}; }},
-        {clip: 'scape-winnipesaukee-motorboat-pass', every: [55, 130], ref: 50, reach: 3500, gain: .6, moving: true, where: acrossWater([200, 1500], 2400, 14)},
-        {clip: 'scape-winnipesaukee-boat-wake', every: [70, 160], ref: 12, reach: 300, gain: .5, where: c => c.shore ? {x: c.shore.x, y: (waterLevel(c.world) ?? 153) + .3, z: c.shore.z} : null},
-        {clip: 'scape-winnipesaukee-dock-creak', every: [40, 90], ref: 8, reach: 180, gain: .45, where: c => c.shore ? {x: c.shore.x, y: (waterLevel(c.world) ?? 153) + .8, z: c.shore.z} : null},
-        {clip: 'scape-winnipesaukee-weirs-boardwalk', every: [60, 120], ref: 120, reach: 3000, gain: .4, where: at(/Weirs Beach Boardwalk/, 3, 60)},
+        {clip: 'scape-winnipesaukee-dock-creak', every: [30, 70], ref: 8, reach: 220, gain: .5,
+          where: c => { const d = [landmark(c.world, /Weirs Beach Boardwalk/), landmark(c.world, /Alton Bay Water Bandstand/)].filter(Boolean)
+            .map(p => ({p, d: Math.hypot(p.x - c.ear.x, p.z - c.ear.z)})).sort((a, b) => a.d - b.d)[0];
+            return d && d.d < 260 ? {x: d.p.x + rand(-25, 25), y: (waterLevel(c.world) ?? 153) + .8, z: d.p.z + rand(-25, 25)} : null; }},
         {clip: 'scape-winnipesaukee-veery', every: [18, 40], ref: 15, reach: 400, gain: .55, where: inTrees(40, 300, .2)},
         {clip: 'scape-winnipesaukee-wood-thrush', every: [20, 45], ref: 18, reach: 450, gain: .55, where: inTrees(40, 300, .4)},
         {clip: 'scape-winnipesaukee-chipmunk', every: [35, 80], ref: 6, reach: 150, gain: .45, where: onGround(20, 120)}
@@ -399,13 +379,10 @@
     },
     surry: {
       water: [{clip: 'scape-surry-ashuelot-riffles', kind: 'river', ref: 16, reach: 600, gain: .65, maxR: 500, span: 90}],
-      loops: [{clip: 'scape-surry-dam-outlet', ref: 55, reach: 2400, gain: .85, where: at(/Surry Mountain Dam/, 4, 0)},
-              {clip: 'scape-surry-keene-downtown', ref: 60, reach: 1400, gain: .65, where: at(/Central Square/, 4, 0)},
-              {clip: 'scape-surry-route12-traffic', ref: 180, reach: 5000, gain: .35, where: at(/Ashuelot River Park/, 4, 200)}],
+      loops: [{clip: 'scape-surry-dam-outlet', ref: 55, reach: 2400, gain: .85, where: at(/Surry Mountain Dam/, 4, 0)}],
       beds: [{clip: 'scape-surry-dog-day-cicada', ref: 1, gain: c => .22 * (1 - smooth(40, 220, c.agl)) * (1 - c.town)}],
       events: [
-        {clip: 'scape-surry-town-church-bell', every: [120, 260], ref: 220, reach: 7000, gain: .6, wet: .7, where: at(/Central Square/, 25, 0)},
-        {clip: 'scape-surry-crosswalk', every: [25, 60], ref: 6, reach: 160, gain: .45, where: at(/Main Street, Keene|Central Square/, 2, 70)},
+        {clip: 'scape-surry-town-church-bell', every: [120, 260], ref: 220, reach: 7000, gain: .6, wet: .7, where: c => ({x: 1860, y: ground(c.world, 1860, 4290) + 24, z: 4290})},
         {clip: 'scape-surry-gray-catbird', every: [20, 45], ref: 12, reach: 300, gain: .5, where: inTrees(30, 220, .25)},
         {clip: 'scape-surry-song-sparrow', every: [16, 38], ref: 12, reach: 320, gain: .5, where: onGround(30, 250)},
         {clip: 'scape-surry-gray-treefrog', every: [40, 90], ref: 12, reach: 280, gain: .45, where: inTrees(20, 200, .15)}
@@ -419,11 +396,7 @@
         {clip: 'scape-dixville-ruffed-grouse-drum', every: [60, 140], ref: 25, reach: 700, gain: .55, where: onGround(80, 500)},
         {clip: 'scape-dixville-canada-geese-migrating', every: [120, 280], ref: 60, reach: 2500, gain: .55, moving: true, where: inSky([150, 380], [50, 600], 3000, 18)},
         {clip: 'scape-dixville-pileated-woodpecker', every: [50, 120], ref: 30, reach: 900, gain: .55, where: inTrees(80, 500, .6)},
-        {clip: 'scape-dixville-blue-jay', every: [24, 55], ref: 20, reach: 500, gain: .55, where: inTrees(40, 350, .7)},
-        // Logging trucks braking down Route 26 through the notch.
-        {clip: 'scape-dixville-engine-brake', every: [140, 300], ref: 160, reach: 5000, gain: .55, wet: 1, moving: true,
-          where: c => { const r = landmark(c.world, /Route 26/); if (!r) return null; const dir = Math.random() < .5 ? 1 : -1;
-            return {path: {ax: r.x - 1500 * dir, az: r.z - 200 * dir, bx: r.x + 1500 * dir, bz: r.z + 200 * dir, speed: 17, y: ground(c.world, r.x, r.z) + 2.5}}; }}
+        {clip: 'scape-dixville-blue-jay', every: [24, 55], ref: 20, reach: 500, gain: .55, where: inTrees(40, 350, .7)}
       ]
     },
     labrador: {
@@ -432,17 +405,12 @@
         {clip: 'scape-labrador-swainsons-thrush', every: [16, 34], ref: 16, reach: 420, gain: .6, where: inTrees(40, 300, .4)},
         {clip: 'scape-labrador-boreal-chickadee', every: [24, 55], ref: 10, reach: 250, gain: .5, where: inTrees(30, 220, .5)},
         {clip: 'scape-labrador-white-throated-sparrow-qc', every: [18, 42], ref: 16, reach: 420, gain: .55, where: inTrees(40, 320, .2)},
-        {clip: 'scape-labrador-floatplane-beaver', every: [200, 420], ref: 200, reach: 9000, gain: .6, moving: true, wet: .8, where: inSky([120, 450], [400, 2500], 10000, 50)},
         {clip: 'scape-labrador-black-flies', every: [30, 70], ref: 1.5, reach: 25, gain: .35, when: c => c.agl < 25,
-          where: c => ({x: c.ear.x + rand(-1.5, 1.5), y: c.ear.y + rand(-.5, .8), z: c.ear.z + rand(-1.5, 1.5)})},
-        {clip: 'scape-labrador-distant-thunder', every: [160, 360], ref: 2000, reach: 30000, gain: .35, wet: 1, where: c => ({x: c.ear.x + rand(-9000, 9000), y: 2500, z: c.ear.z - rand(7000, 11000)})}
+          where: c => ({x: c.ear.x + rand(-1.5, 1.5), y: c.ear.y + rand(-.5, .8), z: c.ear.z + rand(-1.5, 1.5)})}
       ]
     },
     moosehead: {
       events: [
-        {clip: 'scape-moosehead-floatplane', every: [160, 360], ref: 200, reach: 9000, gain: .6, moving: true, wet: .8, where: inSky([100, 400], [300, 2200], 10000, 50)},
-        {clip: 'scape-moosehead-katahdin-whistle', every: [220, 420], ref: 500, reach: 14000, gain: .55, wet: .9, where: onWater(2500, 8000, 8)},
-        {clip: 'scape-moosehead-outboard-fishing', every: [70, 160], ref: 40, reach: 3000, gain: .55, moving: true, where: acrossWater([200, 1500], 2200, 7)},
         {clip: 'scape-moosehead-ovenbird', every: [16, 36], ref: 16, reach: 420, gain: .55, where: inTrees(40, 300, .15)},
         {clip: 'scape-moosehead-black-throated-green', every: [20, 45], ref: 12, reach: 300, gain: .5, where: inTrees(40, 260, .8)},
         {clip: 'scape-moosehead-red-breasted-nuthatch', every: [24, 55], ref: 8, reach: 200, gain: .45, where: inTrees(30, 200, .7)},
@@ -635,7 +603,7 @@
           e.gain = w.gain * (i === 0 ? 1 : .7);
         });
       });
-      // Fixed loops (cowbells, harbour, dam outlet, town).
+      // Fixed loops at modeled structures (the Surry dam outlet).
       (spec.loops || []).forEach((l, k) => {
         const b = buffers.get(l.clip); if (!b) return;
         let entry = state.loops[k];
