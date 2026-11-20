@@ -177,9 +177,9 @@ window.addRegionalWildlife=function(T,scene,w){
     let launchHeight=4.8;
     launch={x:pick.bx,y:Math.max(pick.y,(w.clearance||w.height)(pick.bx,pick.bz))+launchHeight,z:pick.bz,
       yaw:Math.atan2(pick.bx-pick.x,pick.bz-pick.z),glance:0};
-    if(feedingFish){
-      // Survey the whole low pass before choosing its bearing. Keep successive
-      // feeding lies on the visible, right-hand side of the shoulder camera.
+    if(feedingFish||region==='canyon'){
+      // Survey the whole low pass. A short patch of open water can aim the
+      // eagle straight into the opposite canyon wall.
       let bestRun=-Infinity,course;
       for(let i=0;i<32;i++){
         const a=i*tau/32,dx=Math.cos(a),dz=Math.sin(a),rightX=-dz,rightZ=dx;
@@ -198,9 +198,10 @@ window.addRegionalWildlife=function(T,scene,w){
       }
       if(course){
         const {dx,dz,rightX,rightZ,bx,bz}=course;
-        launchHeight=2.65;
-        launch={x:bx,y:Math.max(pick.y,(w.clearance||w.height)(bx,bz))+launchHeight,z:bz,yaw:Math.atan2(-dx,-dz),glance:-19};
-        for(const d of [15,43,76,112,148]){
+        launchHeight=feedingFish?2.65:9;
+        launch={x:bx,y:Math.max(pick.y,(w.clearance||w.height)(bx,bz))+launchHeight,z:bz,yaw:Math.atan2(-dx,-dz),glance:feedingFish?-19:0};
+        // Keep feeding fish on the visible side of the right-shoulder camera.
+        if(feedingFish)for(const d of [15,43,76,112,148]){
           const drift=(d+29)/17.5;
           const x=pick.x+dx*d+rightX*3.1+2.4*drift,z=pick.z+dz*d+rightZ*3.1-1.25*drift;
           if(!Number.isFinite(waterAt(x,z)))continue;
