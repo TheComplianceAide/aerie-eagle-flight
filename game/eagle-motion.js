@@ -137,6 +137,37 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
   const headWorld = new THREE.Quaternion(), tmpQ = new THREE.Quaternion();
   const ahead = new THREE.Vector3(), headRollQ = new THREE.Quaternion(), FORWARD = new THREE.Vector3(0, 0, -1);
   let headRoll = 0;
+  // Idle scanning on the perch: quick head saccades (about 0.1 s) between
+  // fixations of one to three seconds, mostly over the ground and water,
+  // whenever the player is not steering the gaze.
+  const scan = {yaw: 0, pitch: 0, fromY: 0, fromP: 0, toY: 0, toP: 0, t: -1, dur: .12, next: rand(1, 3), gain: 0, quiet: 0, lastY: 0, lastP: 0};
+  const UP = new THREE.Vector3(0, 1, 0), SIDE = new THREE.Vector3(1, 0, 0), scanQ = new THREE.Quaternion();
+  function updateScan(time, step, perched, air, busy) {
+    const lookY = air.perchLook ?? 0, lookP = air.perchLookPitch ?? 0;
+    const steering = Math.abs(lookY - scan.lastY) + Math.abs(lookP - scan.lastP) > 1e-4;
+    scan.lastY = lookY; scan.lastP = lookP;
+    scan.quiet = steering ? 0 : scan.quiet + step;
+    const want = perched && scan.quiet > 1.5 && !busy ? 1 : 0;
+    scan.gain += (want - scan.gain) * (1 - Math.exp(-step / (want ? .5 : .15)));
+    if (want && scan.t < 0 && time >= scan.next) {
+      scan.fromY = scan.yaw; scan.fromP = scan.pitch;
+      scan.toY = clamp(.55 * gauss() - .25 * scan.yaw, -1, 1);
+      const r = Math.random();
+      scan.toP = r < .7 ? rand(-.45, -.05) : r < .85 ? rand(-.05, .05) : rand(.1, .3);
+      const span = Math.hypot(scan.toY - scan.fromY, scan.toP - scan.fromP);
+      scan.dur = .08 + .07 * span; scan.t = 0;
+      scan.next = time + scan.dur + (Math.random() < .2 ? rand(.25, .5) : rand(.7, 3.2));
+    }
+    if (scan.t >= 0) {
+      scan.t += step;
+      const u = clamp(scan.t / scan.dur, 0, 1), m = u * u * u * (10 - 15 * u + 6 * u * u);   // minimum jerk
+      scan.yaw = scan.fromY + (scan.toY - scan.fromY) * m; scan.pitch = scan.fromP + (scan.toP - scan.fromP) * m;
+      if (u >= 1) scan.t = -1;
+    }
+    if (scan.gain < 1e-3) return;
+    neck.quaternion.premultiply(scanQ.setFromAxisAngle(UP, scan.yaw * scan.gain));
+    neck.quaternion.multiply(scanQ.setFromAxisAngle(SIDE, scan.pitch * scan.gain));
+  }
   const stats = {springs: allSprings.length, oscillators: 8, blinks: 0, turbulence: 0, peakBend: 0, saturated: 0};
 
   // Channels eagle.js does not set every frame. They are restored to their
@@ -231,6 +262,7 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
     neck.parent.getWorldQuaternion(tmpQ);
     const stabilised = tmpQ.invert().multiply(headWorld);
     neck.quaternion.slerp(stabilised, .9 * freeFlight + .5 * folded);
+    updateScan(time, step, perched, air, peerT >= 0 || rouseT >= 0);
     // Raptors inspect the ground with one eye: looking down and to a side,
     // the head cocks so that eye faces the ground.
     neck.getWorldQuaternion(tmpQ);
