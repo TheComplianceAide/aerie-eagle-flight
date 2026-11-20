@@ -118,8 +118,10 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
   const controlNoise = noise3(.7);                                  // slow steering corrections while soaring
 
   // ---- eyes -------------------------------------------------------------------------
-  const eyes = [{t: -1, dur: .2, lid: 0, next: rand(1.5, 4)}, {t: -1, dur: .2, lid: 0, next: 0}];
-  eyes[1].next = eyes[0].next + rand(0, .03);
+  // t counts from the start of a blink; a negative t is the short lag of the
+  // second eye in a bilateral blink.
+  const eyes = [{active: false, t: 0, dur: .2, membrane: 0}, {active: false, t: 0, dur: .2, membrane: 0}];
+  let blinkAt = rand(1.5, 4);
   let lidBlinkAt = rand(20, 50), lidT = -1, saccadeCooldown = 0, drowsy = 0;
   const membraneCurve = u => u < .45 ? smooth(0, .45, u) : 1 - smooth(.45, 1, u); // close fast, open a little slower
 
@@ -215,7 +217,7 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
   Object.defineProperty(stats, 'air', {get: () => lastAir, enumerable: false});
   // Timers are absolute; a new flight may restart the clock, so re-arm them.
   function rearm(time) {
-    eyes[0].next = time + rand(1.5, 4); eyes[1].next = eyes[0].next + rand(0, .03); eyes.forEach(e => { e.t = -1; });
+    blinkAt = time + rand(1.5, 4); eyes.forEach(e => { e.active = false; e.membrane = 0; });
     lidBlinkAt = time + rand(20, 50); lidT = -1; saccadeCooldown = 0; drowsy = 0;
     rouseAt = time + rand(30, 70); peerAt = time + rand(8, 20); shakeAt = time + rand(20, 45); preenAt = time + rand(40, 80);
     rouseT = peerT = wagT = shakeT = preenT = -1; perchedFor = 0;
@@ -453,14 +455,18 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
     const saccade = headTurn > 2.6 && saccadeCooldown <= 0 && Math.random() < .4;
     if (saccade) saccadeCooldown = 1.2;
     const dive = smooth(26, 40, V) * freeFlight + .4 * (pose.tuck ?? 0) * freeFlight;
-    eyes.forEach((e, i) => {
-      if (e.t < 0 && (time >= e.next || saccade)) {
-        e.t = 0; e.dur = rand(.16, .24); e.next = time + rand(perched ? 2.5 : 3.5, perched ? 6 : 9);
-        if (i === 0) stats.blinks++;
-        if (Math.random() < .12) e.next = time + .35;                 // occasional double blink
-      }
+    // Most blinks close both membranes; about a third close only one eye
+    // (birds blink unilaterally as well as bilaterally).
+    if (!eyes[0].active && !eyes[1].active && (time >= blinkAt || saccade)) {
+      const r = Math.random(), which = r < .66 ? [0, 1] : r < .83 ? [0] : [1];
+      const dur = rand(.16, .24);
+      for (const i of which) { const e = eyes[i]; e.active = true; e.t = which.length > 1 && i === 1 ? -rand(0, .03) : 0; e.dur = dur * rand(.92, 1.08); }
+      blinkAt = Math.random() < .12 ? time + .35 : time + rand(perched ? 2.5 : 3.5, perched ? 6 : 9);   // occasional double blink
+      stats.blinks++;
+    }
+    eyes.forEach(e => {
       let m = 0;
-      if (e.t >= 0) { e.t += step; m = membraneCurve(clamp(e.t / e.dur, 0, 1)); if (e.t >= e.dur) e.t = -1; }
+      if (e.active) { e.t += step; if (e.t > 0) m = membraneCurve(clamp(e.t / e.dur, 0, 1)); if (e.t >= e.dur) e.active = false; }
       e.membrane = Math.max(m, .55 * dive);                            // half-drawn in a fast dive
     });
     // A long, quiet perch makes the eagle drowsy: the lower lids creep up and
@@ -482,7 +488,7 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
     const perchSlip = clamp(windLocal.x / 8, -1, 1) * folded;
     uniforms.featherSlip.value += (slip * clamp(q, 0, 2) * freeFlight + perchSlip - uniforms.featherSlip.value) * (1 - Math.exp(-8 * step));
     uniforms.featherFluff.value += (fluff - uniforms.featherFluff.value) * (1 - Math.exp(-10 * step));
-    stats.turbulence = turbulence; stats.wind = +windSpeed.toFixed(2); stats.headRoll = +headRoll.toFixed(3); stats.drowsy = +drowsy.toFixed(2); stats.bill = +jaw.open.toFixed(3);
+    stats.turbulence = turbulence; stats.wind = +windSpeed.toFixed(2); stats.headRoll = +headRoll.toFixed(3); stats.drowsy = +drowsy.toFixed(2); stats.bill = +jaw.open.toFixed(3); stats.membranes = [+eyes[0].membrane.toFixed(2), +eyes[1].membrane.toFixed(2)];
     stats.tailBend = tailSprings.reduce((a, s) => a + s.offset, 0) / tailSprings.length;
     stats.primaryBend = primarySprings.reduce((a, s) => a + s.offset, 0) / primarySprings.length;
   }
