@@ -1,5 +1,11 @@
 # Regional scenery asset inventory
 
+## Three-world public test
+
+Version 0.17.0 includes 624 authored regional specimen slots across 39 sheets. Mendenhall Glacier has 240, Moosehead Lake has 192, and Lake Winnipesaukee has 192. Each sheet has sixteen independently named cells. Mip levels, mesh detail levels, instances, and the four supplemental Mount Kineo survey models are excluded from those counts. The earlier inventory below describes the preceding game.
+
+A fresh world selection starts at Spruce and stone shoreline in Alaska, Wind across the reeds in Maine, and White-tailed deer above the Broads in New Hampshire. A saved departure link keeps its chosen launch. All twelve worlds remain accessible.
+
 The v0.16 starting point at revision `84d116e` supplies **252 verified asset assignments across twelve worlds** in the categories below. A source used in two worlds counts once in each regional library. The same source has one identity in the shared library. Completing ten times these audited starting categories would require **2,520 regional assignments**. The final target can grow when the world-specific geometry audit is complete.
 
 ## Verified starting inventory

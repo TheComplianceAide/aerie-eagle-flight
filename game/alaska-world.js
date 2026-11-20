@@ -429,11 +429,18 @@ class Water extends Mesh {
   }
   function elevation(x,z){
     const y=surveyElevation(x,z),p=channelAt(x,z);
-    if(!p)return shallowCove(x,z,y);
+    if(!p){const bank=shallowCove(x,z,y);return window.mendenhallCoveGround?.(x,z,bank)??bank;}
     const blend=THREE.MathUtils.smoothstep(p.distance,8,34);
     return THREE.MathUtils.lerp(p.bed+Math.max(0,p.distance-5)*.24,y,blend);
   }
   const height=(x,z)=>Math.max(0,elevation(x,z));
+  // The ridge-lift model uses slopes across 36–48 m. Preserve its broad
+  // landform near the lake independently of centimetre-scale bank and water
+  // stage reconstruction. Landing and collision still follow the solid mesh.
+  function windTerrainHeight(x,z){
+    if(x<=-170||x>=332||z<=1426||z>=1733)return height(x,z);
+    return Math.max(0,shallowCove(x,z,surveyElevation(x,z)));
+  }
   const loader=new THREE.TextureLoader();
   function map(file,wrap=false){const t=loader.load(file);t.anisotropy=12;if(wrap)t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;}
   const sun=new THREE.Vector3(-.67,.32,-.74).normalize();
@@ -468,8 +475,19 @@ class Water extends Mesh {
     }
     vec3 visitorShore(vec3 color,vec3 pos,vec3 normal,float range){
       vec2 uv=(pos.xz-vec2(-64.,1330.))/640.;
-      if(any(lessThan(uv,vec2(0.)))||any(greaterThan(uv,vec2(1.)))||range>700.)return color;
-      vec4 layers=texture2D(face,vec2(.5+.5*uv.x,.5*(1.-uv.y)));
+      if(range>700.)return color;
+      bool atlasCoverage=all(greaterThanEqual(uv,vec2(0.)))&&all(lessThanEqual(uv,vec2(1.)));
+      vec4 layers=atlasCoverage?texture2D(face,vec2(.5+.5*uv.x,.5*(1.-uv.y))):vec4(0.,0.,0.,1.);
+      // Hydro-flattened pixels in the older ortho once overlaid the actual
+      // low foreland. Give measured dry stone and gravel their local colours.
+      vec2 q=min(pos.xz-vec2(-170.,1426.),vec2(332.,1733.)-pos.xz);
+      float mapped=smoothstep(1.,22.,min(q.x,q.y));
+      float point=1.-smoothstep(.70,1.12,length((pos.xz-vec2(23.,1557.))/vec2(113.,105.)));
+      float gravel=mapped*(1.-smoothstep(1.2,3.6,pos.y))*.73;
+      float boss=mapped*point*(1.-smoothstep(4.9,8.1,pos.y));
+      layers.r=max(layers.r,boss*(.41+.31*(1.-normal.y)));
+      layers.g=max(layers.g,gravel*(.58+.22*normal.y));
+      layers.b=max(layers.b,mapped*(1.-smoothstep(.20,1.15,pos.y))*.68);
       float weight=max(layers.r,layers.g);
       if(weight<.002&&layers.a>.995)return color;
       // Two rotations sample actual fractures and rounded cobbles on different
@@ -732,11 +750,15 @@ class Water extends Mesh {
       const steps=fallsPatch?300:westCrest?300:icePatch?240:Math.max(Math.abs(x+600),Math.abs(z+600))<6250?120:75;
       if((x===0||x===-1200)&&z===1200){
         const bank=new THREE.ShaderMaterial({uniforms:{...material.uniforms,face:{value:shoreAtlas}},defines:{MENDENHALL_BANK:1},vertexShader:material.vertexShader,fragmentShader:material.fragmentShader});
-        if(x<0)patch(x,z,x+1200,z+1200,120,120,bank);
-        else for(let row=0;row<4;row++)for(let col=0;col<4;col++){
+        for(let row=0;row<4;row++)for(let col=0;col<4;col++){
           const west=x+col*300,north=z+row*300;
-          const divisions=col===0&&row===1?150:col===0&&row===0?60:30;
-          patch(west,north,west+300,north+300,divisions,divisions,bank);
+          const divisions=x<0?(col===3&&row===1?150:30):col===0&&row===1?150:col===0&&row===0?60:30;
+          if(x===0&&col===0&&row===1&&window.mendenhallCoveGround){
+            for(let a=0;a<2;a++)for(let b=0;b<2;b++){
+              const x0=west+150*a,z0=north+150*b,n=b===0?150:75;
+              patch(x0,z0,x0+150,z0+150,n,n,bank);
+            }
+          }else patch(west,north,west+300,north+300,divisions,divisions,bank);
         }
       }else patch(x,z,x+1200,z+1200,steps,steps,material);
     }
@@ -744,7 +766,7 @@ class Water extends Mesh {
   const edges=[-18000,-7200,7200,18000];
   for(let j=0;j<3;j++)for(let i=0;i<3;i++)if(i!==1||j!==1)
     patch(edges[i],edges[j],edges[i+1],edges[j+1],Math.ceil((edges[i+1]-edges[i])/30),Math.ceil((edges[j+1]-edges[j])/30));
-  const shore=survey.shore.map(([x,z])=>({x,z}));const outline=new THREE.Shape(survey.waterEdge.map(([x,z])=>new THREE.Vector2(x,-z)));
+  const shore=survey.shore.map(([x,z])=>({x,z}));const outline=new THREE.Shape((window.mendenhallCoveWaterOutline||survey.waterEdge).map(([x,z])=>new THREE.Vector2(x,-z)));
   const waters=map('waternormals.jpg',true);
   const lake=new Water(new THREE.ShapeGeometry(outline),{textureWidth:960,textureHeight:640,waterNormals:waters,sunDirection:sun,sunColor:0xffe9cd, waterColor:0x396c70,distortionScale:1.82,fog:true});
   lake.name="Lake surface";lake.rotation.x=-Math.PI/2;lake.position.y=.18;lake.material.uniforms.size.value=3.1;scene.add(lake);
@@ -1000,6 +1022,22 @@ class Water extends Mesh {
       const positions=new Float32Array(vertexCount*3),normals=new Int8Array(vertexCount*3),details=new Float32Array(vertexCount*3);
       for(let v=0;v<vertexCount;v++,offset+=12){
         const k=v*3;positions[k]=185+stream.getInt16(offset,true)/64;positions[k+1]=stream.getInt16(offset+2,true)/64;positions[k+2]=1610+stream.getInt16(offset+4,true)/64;
+        const x=positions[k],z=positions[k+2];
+        if(window.mendenhallCoveGround&&x>-170&&x<332&&z>1426&&z<1733){
+          // These older inferred features were draped over 5 m ground triangles.
+          // Carry their soles onto the half-metre lidar shore. The aligned
+          // exposures at this point are flatter than the previous reconstruction.
+          const ix=Math.floor(x/5)*5,iz=Math.floor(z/5)*5,u=(x-ix)/5,t=(z-iz)/5;
+          const old=u+t<1?surveyElevation(ix,iz)*(1-u-t)+surveyElevation(ix+5,iz)*u+surveyElevation(ix,iz+5)*t:
+            surveyElevation(ix+5,iz+5)*(u+t-1)+surveyElevation(ix,iz+5)*(1-u)+surveyElevation(ix+5,iz)*(1-t);
+          const rockType=stream.getUint8(offset+11);
+          let rise=positions[k+1]-old;
+          if(rockType===0&&x>=169&&x<=197&&z>=1530&&z<=1551){
+            const groove=(.5+.5*Math.cos(x*1.13-z*.72));
+            rise*=.23+.25*groove;
+          }
+          positions[k+1]=elevation(x,z)+rise;
+        }
         for(let axis=0;axis<3;axis++)normals[k+axis]=stream.getInt8(offset+6+axis);
         details[k]=stream.getUint8(offset+9)/213;details[k+1]=stream.getUint8(offset+10);details[k+2]=stream.getUint8(offset+11);
       }
@@ -1087,7 +1125,7 @@ class Water extends Mesh {
     mesh.onBeforeRender=(renderer,scene,camera)=>{material.uniforms.linearOutput.value=!!camera.userData.lakeReflection;};
   });
   const sunMask=map('alaska-tree-light.webp');
-  return {region:"alaska",localPerchStone,treeGrid:{cells,size:48,cell},waterfalls,forestLightSpan:14400,elevation,clearance,height,trees,sunMask,sunDirection:sun,skyTexture:skyMap,waterLevel:0,lakeLevel:0,lakePolygon:shore,altitudeOffset:18,spawn:lakeLaunch,
+  return {region:"alaska",localPerchStone,windTerrainHeight,treeGrid:{cells,size:48,cell},waterfalls,forestLightSpan:14400,elevation,clearance,height,trees,sunMask,sunDirection:sun,skyTexture:skyMap,waterLevel:0,lakeLevel:0,lakePolygon:shore,altitudeOffset:18,spawn:lakeLaunch,
     launches:{lake:lakeLaunch,ridge,shore:shoreLaunch,spruce:{x:173,y:26,z:1630,yaw:.38,lookDown:12},spray:sprayPass,spur:{x:612,y:68.4704,z:977,yaw:-.08159},alpine:{x:-2900,z:-2010,y:elevation(-2900,-2010)+58,yaw:-.28}},bounds:{minX:-6890,maxX:6890,minZ:-6890,maxZ:6890},
     landmarks:[{name:'West alpine crest',x:-2900,z:-2010},{name:'Upper crevasse field',x:1500,z:-4130},{name:'Blue Ice Passage',x:-116,z:-1010},{name:'Nugget Falls beach',x:473,z:927},{name:'Medial moraine',x:632,z:-2450},{name:'Mendenhall Glacier',x:40,z:-1400},{name:'Nugget Falls',x:518,z:658},{name:'Mendenhall Lake',x:-700,z:680},{name:'West Glacier Ridge',x:-860,z:-1890}],
     update(dt,time,player){updateTerrainLOD(player);updateLedges(player);updateShore(player);clock.value=time;lake.material.uniforms.time.value=time*.72;}

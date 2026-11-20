@@ -132,7 +132,7 @@
     const centers = [];
     const bounds = terrain.bounds;
     const sun = terrain.sunDirection;
-    const ground = terrain.height;
+    const ground = terrain.windTerrainHeight || terrain.height;
     const columnPoint = {};
     const landmarkCenters = new Set();
     let launchCenter = null, landmarksReady = false;

@@ -1,0 +1,21 @@
+MOUNT KINEO, MOOSEHEAD LAKE, MAINE
+
+The game loads four metre-scale GLBs. The east cliff and wave margin use the original world-space survey coordinates. A stitched triangular apron connects each measured surface to the native terrain. A full-resolution index and a boundary-preserving distance index share vertices. Two detached scan analogues sit in fitted dry positions on the wave margin. Flights, landing clearance and regional loose-rock placement query the upper surface triangles.
+
+East cliff. A 181 m long section of the eastern face of Mount Kineo reaches 183 m vertically. The major profile uses USGS land elevations. Small joints and sub-face relief are inferred, with up to 2 m horizontal offset from the sampled contour.
+
+Wave margin. A separate 41 m long exposed strip follows the 312.23 m lake surface. Its darker low band represents wet stone. The survey terrain and model edges meet exactly in model coordinates.
+
+Jointed block. A photographic scan supplies the form of a 1.12 m block. The base color is calibrated to the regional fine-grained rock. The original isolated stone was photographed elsewhere.
+
+Talus pocket. A 7.84 m wide photogrammetric group provides photographed contact shapes, chips and gravel anchored near the foot of the wall. The individual stones are inferred.
+
+## Geography and material provenance
+
+The Maine Geological Survey describes the origin, geology and cliff setting of Mount Kineo in Circular GFL-236 (Spigel, 2018). Maine's Moosehead regional management plan and the USGS Geologic Names record identify the erosion-resistant Kineo volcanic unit. Its fine blue-gray rhyolite guides the material palette. Some nearby rocks belong to different geological units. [Maine Geological Survey](https://digitalmaine.com/mgs_publications/556/) · [Moosehead regional geology](https://www.maine.gov/dacf/parks/get_involved/planning_and_acquisition/management_plans/docs/Moosehead_Plan_1997.pdf) · [USGS geologic unit](https://ngmdb.usgs.gov/Geolex/Units/Kineo_2320.html)
+
+The USGS 3DEP one-metre DEM tile USGS_1M_19_x44y507_ME_WesternMtns_B24 supplies the measured profile. Elevation sampling and both exported positions are NAD83 / UTM zone 19N. The files use glTF X east, Y up, Z south. Filtered and reconstructed surface details are recorded in each GLB. [Original USGS DEM](https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/ME_WesternMtns_B24/TIFF/USGS_1M_19_x44y507_ME_WesternMtns_B24.tif)
+
+Part of the **east cliff base-colour texture** derives from Jesse Lee Tucker's *Mount Kineo on Moosehead Lake*. A crop of the exposed cliff was rectified, locally balanced and mixed with photographed surface detail. The resulting base-colour image is licensed CC BY-SA 4.0. The Wikimedia source and license must travel with the derivative. Joseph Kelley and the Maine Geological Survey's *Mt Kineo cliff face* was also consulted for form and appearance; the Kelley photograph is reference material. [Tucker photograph](https://commons.wikimedia.org/wiki/File:Mount_Kineo_on_Moosehead_Lake.jpg) · [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) · [Kelley field photograph](https://digitalmaine.com/mgs_geologic_field_photos/14454/)
+
+Poly Haven contributes the following CC0 photographic analogues. Coastal Cliff 02 by Rob Tuytel supplies high-frequency surface structure. Rock Boulder Cracked by Dimitrios Savva and Dario Barresi provides a finer tangent normal and roughness. Dry River Pebbles by Amal Kumar contributes localized bank texture. Rock 09 by Jenelle van Heerden supplies the detached block geometry. Coast Land Rocks 02 by Rob Tuytel and Rico Cilliers supplies the talus-pocket scan. The original scan credit metadata is retained in source/polyhaven-info.json. [Coastal Cliff 02](https://polyhaven.com/a/coastal_cliff_02) · [Rock Boulder Cracked](https://polyhaven.com/a/rock_boulder_cracked) · [Dry River Pebbles](https://polyhaven.com/a/dry_river_pebbles) · [Rock 09](https://polyhaven.com/a/rock_09) · [Coast Land Rocks 02](https://polyhaven.com/a/coast_land_rocks_02) · [CC0 terms](https://polyhaven.com/license)

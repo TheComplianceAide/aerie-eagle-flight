@@ -1,0 +1,383 @@
+{
+ "alaska": [
+  [
+   "Mendenhall visitor coves",
+   "shore",
+   144,
+   1593,
+   135
+  ],
+  [
+   "Nugget beach",
+   "shore",
+   705,
+   745,
+   265
+  ],
+  [
+   "Glacier foreland",
+   "talus",
+   679,
+   1031,
+   320
+  ],
+  [
+   "East spur",
+   "outcrop",
+   658,
+   915,
+   250
+  ],
+  [
+   "Foreland rock point",
+   "outcrop",
+   31,
+   1565,
+   66
+  ]
+ ],
+ "swiss": [
+  [
+   "Western gravel beach",
+   "shore",
+   -657,
+   462,
+   145
+  ],
+  [
+   "Fründen wall talus",
+   "talus",
+   390,
+   859,
+   330
+  ],
+  [
+   "Eastern headwall",
+   "outcrop",
+   976,
+   287,
+   310
+  ]
+ ],
+ "canyon": [
+  [
+   "Sandstone shelves",
+   "outcrop",
+   -479,
+   -139,
+   118
+  ],
+  [
+   "Riverbank alcove",
+   "talus",
+   -526,
+   -289,
+   150
+  ],
+  [
+   "Horseshoe Bend lower benches",
+   "shore",
+   -456,
+   -88,
+   115
+  ],
+  [
+   "Glen Canyon rim",
+   "outcrop",
+   -1740,
+   544,
+   325
+  ]
+ ],
+ "moosehead": [
+  [
+   "Mount Kineo east wall",
+   "outcrop",
+   293,
+   -1155,
+   164
+  ],
+  [
+   "Kineo waterline",
+   "shore",
+   384,
+   -932,
+   177
+  ],
+  [
+   "Kineo talus apron",
+   "talus",
+   370,
+   -795,
+   194
+  ],
+  [
+   "Kineo Cove",
+   "shore",
+   341,
+   45,
+   150
+  ]
+ ],
+ "winnipesaukee": [
+  [
+   "Weirs stone point",
+   "shore",
+   -12519,
+   -3607,
+   260
+  ],
+  [
+   "Rattlesnake Island point",
+   "outcrop",
+   1155,
+   1598,
+   260
+  ],
+  [
+   "Alton Bay lower bank",
+   "shore",
+   5222,
+   12008,
+   214
+  ],
+  [
+   "Diamond Island shore",
+   "shore",
+   -1393,
+   842,
+   330
+  ],
+  [
+   "Rattlesnake glacial erratic field",
+   "talus",
+   1091,
+   1620,
+   202
+  ]
+ ],
+ "surry": [
+  [
+   "Dam reservoir armor",
+   "armor",
+   -803,
+   -2643,
+   238
+  ],
+  [
+   "Dam downstream armor",
+   "armor",
+   -797,
+   -2587,
+   246
+  ],
+  [
+   "Surry beach gravels",
+   "shore",
+   -1595,
+   -3366,
+   250
+  ],
+  [
+   "Ashuelot banks",
+   "stream",
+   -532,
+   -191,
+   204
+  ]
+ ],
+ "dixville": [
+  [
+   "Table Rock shoulder",
+   "outcrop",
+   26,
+   338,
+   126
+  ],
+  [
+   "Eastern schist teeth",
+   "talus",
+   122,
+   408,
+   104
+  ],
+  [
+   "Huntington Cascades ledges",
+   "outcrop",
+   1084,
+   1300,
+   126
+  ],
+  [
+   "Lake Gloriette shore",
+   "shore",
+   -129,
+   -82,
+   210
+  ],
+  [
+   "Baby Flume brook",
+   "stream",
+   1502,
+   871,
+   95
+  ],
+  [
+   "Huntington brook",
+   "stream",
+   1084,
+   1300,
+   105
+  ]
+ ],
+ "labrador": [
+  [
+   "South Camp shore",
+   "shore",
+   -54,
+   1790,
+   156
+  ],
+  [
+   "South narrows ledges",
+   "outcrop",
+   -90,
+   1710,
+   230
+  ],
+  [
+   "Island channel",
+   "shore",
+   285,
+   -1155,
+   260
+  ],
+  [
+   "Spruce lookout ledges",
+   "outcrop",
+   390,
+   1830,
+   135
+  ]
+ ],
+ "yosemite": [
+  [
+   "El Capitan rockfall fan",
+   "talus",
+   -1080,
+   321,
+   410
+  ],
+  [
+   "Cathedral Rocks apron",
+   "talus",
+   -886,
+   1840,
+   340
+  ],
+  [
+   "Bridalveil margin",
+   "outcrop",
+   -1880,
+   1709,
+   270
+  ],
+  [
+   "Merced margin",
+   "stream",
+   -855,
+   979,
+   183
+  ]
+ ],
+ "crater": [
+  [
+   "Cleetwood Cove waterline",
+   "shore",
+   2736,
+   -3495,
+   210
+  ],
+  [
+   "Cleetwood flow ledges",
+   "outcrop",
+   2595,
+   -3710,
+   260
+  ],
+  [
+   "Wizard Island lava edge",
+   "talus",
+   -1921,
+   800,
+   321
+  ],
+  [
+   "Watchman rim",
+   "outcrop",
+   -4861,
+   913,
+   308
+  ]
+ ],
+ "lofoten": [
+  [
+   "Hamnøy tidal rocks",
+   "shore",
+   4093,
+   2862,
+   240
+  ],
+  [
+   "Reine fjord headland",
+   "outcrop",
+   1960,
+   4220,
+   330
+  ],
+  [
+   "Helfjord talus",
+   "talus",
+   -1363,
+   -1702,
+   405
+  ],
+  [
+   "Reinefjorden strand",
+   "shore",
+   935,
+   2075,
+   305
+  ]
+ ],
+ "milford": [
+  [
+   "Stirling Falls waterline",
+   "shore",
+   -858,
+   -797,
+   280
+  ],
+  [
+   "Harrison Cove rock margin",
+   "shore",
+   1847,
+   194,
+   330
+  ],
+  [
+   "Bowen Falls wall foot",
+   "talus",
+   3232,
+   5526,
+   209
+  ],
+  [
+   "Mitre Peak lower spur",
+   "outcrop",
+   -2335,
+   1909,
+   365
+  ]
+ ]
+}

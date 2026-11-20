@@ -93,7 +93,10 @@
     const departures=Object.entries(w.launches).filter(([value])=>value!=='lookout');
     launch.replaceChildren(...departures.map(([value,label])=>new Option(label,value)),lowFlight);
     if (Object.hasOwn(w.launches,start)) launch.value = start;
-    else if(picker.value==='alaska') launch.value='spruce';
+    else {
+      const featured={alaska:'spruce',moosehead:'reeds',winnipesaukee:'game'}[picker.value];
+      if(featured)launch.value=featured;
+    }
     for (const button of list.children) button.setAttribute('aria-pressed', String(button.dataset.choice === picker.value));
     remember();
   }

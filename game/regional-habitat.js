@@ -36,6 +36,9 @@
   const larch=plant('European larch','larch',1.09,[1.12,1.13,.72]);
   const stonePine=plant('Swiss stone pine','pine',1.05,[.87,.99,.85]);
   const blackbrush=plant('Blackbrush','brush',1.15,[1.21,1.00,.72]);
+  const mormonTea=plant('Mormon tea','brush',1.04,[.86,.99,.74],.85);
+  const alpineWillow=plant('Alpine willow scrub','brush',1.09,[.88,1.02,.68],.58);
+  const bogTea=plant('Bog Labrador tea','heath',.95,[.85,1.05,.73],.53);
   const sage=plant('Sand sagebrush','heath',1.06,[1.02,1.13,.99]);
   const redSpruce=plant('Red spruce','spire',.87,[.91,1.00,.77]);
   const balsam=plant('Balsam fir','fir',.84,[.82,.96,.86]);
@@ -58,7 +61,8 @@
   const whitebark=plant('Whitebark pine','pine',1.13,[.97,1.02,.83],.77);
   const mountainBirch=plant('Downy birch','birch',1.09,[1.02,1.08,.73],.86);
   const willow=plant('Low willow','brush',1.03,[.93,1.07,.79],.48);
-  const heather=plant('Coastal heath','heath',.66,[1.11,.97,.75],.24);
+  const coastWillow=plant('Low coastal willow','brush',1.04,[.90,1.04,.77],.49);
+  const heather=plant('Coastal dwarf heath','heath',.66,[1.11,.97,.75],.24);
   const silverBeech=plant('Silver beech','layered',1.06,[.86,.98,.72]);
   const kamahi=plant('Kāmahi','oak',.98,[.94,1.04,.71]);
   const rimu=plant('Rimu','podocarp',.97,[.92,1.01,.83],1.09);
@@ -88,6 +92,36 @@
       return ix>=0&&iz>=0&&ix<n&&iz<n?cells[ix+n*iz]:0;
     };
   }
+  function mercedBank(){
+    // Keep the lower-valley cottonwoods beside the mapped river. Height
+    // above a single lake plane cannot describe Yosemite's sloping rivers.
+    const bins=new Map(),unit=128;
+    for(const [width,points] of window.aerieChannels||[]){
+      if(width<10)continue;
+      const half=width*.5,reach=half+65;
+      for(let i=1;i<points.length;i++){
+        const [ax,az]=points[i-1],[bx,bz]=points[i],dx=bx-ax,dz=bz-az;
+        const segment={ax,az,dx,dz,half,len:Math.max(.01,dx*dx+dz*dz)};
+        for(let j=Math.floor((Math.min(az,bz)-reach)/unit);j<=Math.floor((Math.max(az,bz)+reach)/unit);j++){
+          for(let k=Math.floor((Math.min(ax,bx)-reach)/unit);k<=Math.floor((Math.max(ax,bx)+reach)/unit);k++){
+            const key=k+','+j;
+            if(!bins.has(key))bins.set(key,[]);
+            bins.get(key).push(segment);
+          }
+        }
+      }
+    }
+    return (x,z)=>{
+      const segments=bins.get(Math.floor(x/unit)+','+Math.floor(z/unit));
+      if(!segments)return 0;
+      let nearest=Infinity;
+      for(const s of segments){
+        const t=clamp(((x-s.ax)*s.dx+(z-s.az)*s.dz)/s.len);
+        nearest=Math.min(nearest,Math.hypot(x-s.ax-t*s.dx,z-s.az-t*s.dz)-s.half);
+      }
+      return nearest>1.2?1-ramp(9,61,nearest):0;
+    };
+  }
   function newEngland(region,y,wet,needle,s){
     if(needle){
       if(region==='labrador')return wet||s<.65?blackSpruce:balsam;
@@ -106,9 +140,11 @@
   function localPlant(region,y,wet,needle,s,land){
     switch(region){
       case 'alaska':return needle?(s<.62?sitka:westernHemlock):s<.48?cottonwood:alder;
-      case 'swiss':return (y>1880&&s>.62)?stonePine:s<.52?spruce:larch;
-      case 'canyon':return s<.65?blackbrush:sage;
-      case 'lofoten':return land===LAND.tree&&y<310?mountainBirch:s<.34?willow:heather;
+      case 'swiss':return land===LAND.shrub&&y>1680?alpineWillow:
+        (y>1880&&s>.62)?stonePine:s<.52?spruce:larch;
+      case 'canyon':return s<.59?blackbrush:!wet&&s>.84?mormonTea:sage;
+      case 'lofoten':return land===LAND.tree&&y<310?mountainBirch:wet||s<.34?coastWillow:heather;
+      case 'labrador':return (land===LAND.marsh||land===LAND.shrub&&wet)?bogTea:newEngland(region,y,wet,needle,s);
       case 'milford':return y<430&&s<.19?rimu:s>.73&&y<590?kamahi:silverBeech;
       case 'yosemite':return needle?(y>2180||s>.84?whiteFir:s<.55?pondo:incense):wet&&s<.57?cottonwood:blackOak;
       case 'crater':return y>2200&&s<.72?whitebark:y>1910||s<.58?mountainHemlock:redFir;
@@ -131,6 +167,7 @@
     const region=world.region,[limit,usualHeight,stock]=climates[region]||climates.moosehead;
     const classify=openLand(region),elevation=world.elevation||world.height,offset=world.altitudeOffset||0;
     const bounds=world.bounds,level=world.waterLevel;
+    const bank=region==='yosemite'?mercedBank():()=>0;
     const water=(x,z,y)=>world.habitat?.wet?world.habitat.wet(x,z,y):Number.isFinite(level)&&y<level;
     function zone(x,z,knownCover){
       const land=classify(x,z),y=elevation(x,z),asl=y+offset;
@@ -139,12 +176,13 @@
       const treeLimit=limit+(shelter-.5)*(region==='lofoten'?65:115)-Math.max(0,slope-.54)*65;
       const alpine=ramp(treeLimit-110,treeLimit+68,asl);
       const shore=Number.isFinite(level)?y-level:Infinity;
-      const wet=land===LAND.marsh?1:shore>.05&&shore<8?(1-ramp(.6,8,shore))*(1-ramp(.05,.36,slope)):0;
+      const wet=land===LAND.marsh?1:Math.max(bank(x,z)*(1-ramp(.14,.51,slope)),
+        shore>.05&&shore<8?(1-ramp(.6,8,shore))*(1-ramp(.05,.36,slope)):0);
       const policy=knownCover??world.groundCover?.(x,z)??0;
       const ice=land===LAND.ice?1:0;
       const developed=land===LAND.built||land===LAND.crop?1:0;
       const rock=Math.max(land===LAND.bare?1:0,ramp(.72,1.45,slope));
-      const submerged=land===LAND.water||water(x,z,y);
+      const submerged=land===LAND.water||water(x,z,y)||(region==='yosemite'&&Number.isFinite(world.channelWater?.(x,z)));
       let cover=0;
       if(!submerged&&!ice&&!developed&&Number.isFinite(y)){
         const alpineMeadow=alpine>.42&&(land===LAND.grass||land===LAND.moss||land===LAND.shrub);
@@ -166,10 +204,17 @@
       if(y>limit+160&&land!==LAND.tree)return null;
       const source=tree.seed??seed??0;
       const s=source>=0&&source<=1?source:hash(Math.floor(x*4),Math.floor(z*4),source|0);
-      const wet=land===LAND.marsh||Number.isFinite(level)&&tree.y>level&&tree.y<level+7;
+      const wet=land===LAND.marsh||bank(x,z)>.23||Number.isFinite(level)&&tree.y>level&&tree.y<level+7;
       const needle=region==='alaska'&&land===LAND.shrub?false:
         typeof isFir==='boolean'?isFir:s<needleFraction(region,y,.54);
-      return localPlant(region,y,wet,needle,s,land);
+      const selected=localPlant(region,y,wet,needle,s,land);
+      // Measured tall crowns in a shoreline map pixel can overhang the adjacent
+      // low scrub. Keep the taller riparian / forest species on those roots.
+      if(region==='alaska'&&selected===alder&&tree.height>9)return cottonwood;
+      if(region==='swiss'&&selected===alpineWillow&&tree.height>4)return y>1880?stonePine:larch;
+      if(region==='labrador'&&selected===bogTea&&tree.height>3)return newEngland(region,y,true,needle,s);
+      if(region==='lofoten'&&selected.family==='shrub'&&tree.height>3.8)return mountainBirch;
+      return selected;
     }
     function fillCell(ix,iz,size,neighbors=[]){
       const patches=[],locations=new Map();
@@ -190,18 +235,27 @@
         if(x<ix*size||x>=outX||z<iz*size||z>=outZ||
           bounds&&(x<bounds.minX||x>bounds.maxX||z<bounds.minZ||z>bounds.maxZ))continue;
         const land=classify(x,z);
-        if(land!==LAND.tree&&land!==LAND.shrub&&!(region==='canyon'&&(land===LAND.grass||land===LAND.bare)))continue;
+        const alpineTurf=region==='swiss'&&(land===LAND.grass||land===LAND.moss);
+        const peatMargin=region==='labrador'&&(land===LAND.marsh||land===LAND.grass);
+        if(land!==LAND.tree&&land!==LAND.shrub&&!alpineTurf&&!peatMargin&&!(region==='canyon'&&(land===LAND.grass||land===LAND.bare)))continue;
         const s=hash(i,j,23),stand=patchField(x,z,163,97);
         if(s>stock*(.36+.90*stand))continue;
         // Only generate shrubs within shrub/grass classifications. A tiny
         // residual presence on canyon bare land also needs positive photo evidence.
         const q=zone(x,z);
         if(q.cover<=.035||q.submerged||q.developed||q.ice||q.slope>(region==='milford'?1.68:1.18))continue;
-        const scrub=region==='canyon'||land===LAND.shrub;
+        // WorldCover maps the Swiss ecotone as turf/moss; northern Québec's
+        // low bog edge often shares a tree-cover pixel with black spruce.
+        const willowPocket=alpineTurf&&Math.abs(q.elevation-q.treeLimit)<155&&q.slope<.69&&s<.27;
+        const teaPocket=region==='labrador'&&(land===LAND.tree||peatMargin)&&q.wet>.16&&q.slope<.22&&s<.31;
+        if(alpineTurf&&!willowPocket||peatMargin&&!teaPocket)continue;
+        const scrub=region==='canyon'||land===LAND.shrub||land===LAND.marsh||willowPocket||teaPocket;
         if(!scrub&&q.alpine>.84||land===LAND.bare&&(q.cover<.09||s>.045))continue;
         if(world.waterfalls?.inChute?.(x,z,2.3))continue;
         const fit=hash(i,j,43),stature=hash(i,j,47);
         let type=localPlant(region,q.elevation,q.wet>.38,fit<needleFraction(region,q.elevation,stand),hash(i,j,31),land);
+        if(willowPocket)type=alpineWillow;
+        else if(teaPocket)type=bogTea;
         if(scrub&&type.family!=='shrub'){
           // Recorded alpine/successional shrub cover supports brush rather than
           // a shortened full-size forest. Tree fern understory is modeled separately.

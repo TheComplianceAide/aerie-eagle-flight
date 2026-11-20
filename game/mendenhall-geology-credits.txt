@@ -19,3 +19,8 @@ https://polyhaven.com/a/gravelly_sand
 https://polyhaven.com/license
 
 The pilot contains 28 worn bedrock exposures, 98 jointed blocks and 845 small clasts. Shapes are reconstructed in three morphology families with distinct profiles, jointing, burial and face normals. The 15 spatial batches contain 44,345 triangles. Substantial surfaces use their rendered upper triangles for flight clearance. Smaller clasts share ground clearance. Habitat and local perch rendering retain their existing roots and footholds.
+
+The southeast waterline uses USGS Original Product Resolution AK_SouthEastLandslides_D22 tile 767733. The 0.5 m bare-earth lidar is resampled at 1 m in the original world coordinates. The local flight water plane is registered to the 18.73 m NAVD88 median measured along the existing shoreline across x 140–255, z 1520–1570. This aligns water stage across the two source dates. The survey replaces the coarse filled water mask only on low visitor-side ground. Rock forms placed over the lidar remain inferred.
+https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/OPR/Projects/AK_SouthEastLandslides_D22/AK_SELandslides_2_D22/TIFF/USGS_OPR_AK_SouthEastLandslides_D22_767733.tif
+
+A topographic lidar raster records the visible water surface in some offshore cells. In these cells centimetre-scale variations are not ground observations. The mapped open-water polygon and connectivity to verified dry terrain identify those returns. A short interpolated submerged slope represents the missing lake bed while preserving shore-connected bedrock and substantial real relief. It is not a bathymetric survey.

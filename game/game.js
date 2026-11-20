@@ -22,10 +22,12 @@
   window.addEventListener("worldchange",()=>{if(renderer||launchPending){disposeCanopy();location.reload();}});
   const keys = new Set(), found = new Set();
   let renderer, scene, camera, world, eagle, player, gaze, cameraTarget;
-  let gameVision,canopy;
+  let gameVision,canopy,geology,fieldScenery;
   function disposeCanopy(){
     canopy?.dispose();
-    canopy=null;
+    geology?.dispose();
+    fieldScenery?.dispose();
+    canopy=null;geology=null;fieldScenery=null;
   }
   window.addEventListener("pagehide",event=>{if(!event.persisted)disposeCanopy();});
   let updateLight,updateOptics, updateWeather,perching,perchRoute,perchMarker,windSoarer;
@@ -473,7 +475,7 @@
     manager.onLoad=()=>{priorLoad?.();if(failedAsset)fail(new Error("A scenery image could not be loaded."));else done();};
     manager.onProgress=(url,complete,total)=>{
       priorProgress?.(url,complete,total);
-      if(launchPending)el("fly").lastChild.textContent=" Opening range · "+Math.round(complete/total*100)+"%";
+      if(launchPending)el("fly").lastChild.textContent=complete===total?" Preparing flight scenery…":" Opening range · "+Math.round(complete/total*100)+"%";
     };
     manager.onError=url=>{failedAsset=true;priorError?.(url);};
     try {
@@ -484,11 +486,12 @@
       if(hydrography?.shore){
         world.shorelines=[hydrography.shore,...(hydrography.shoreHoles||[])].map(ring=>ring.map(([x,z])=>({x,z})));
       }
+      if(window.aerieRegionalRelease(region))geology=window.makeRegionalGeology(THREE,scene,world);
       const perchHabitat=window.makePerchHabitat(THREE,scene,world,region);
       world.habitat=perchHabitat;
       perchRoute=window.makePerchRoute(THREE,world,region);
       world.launches.lookout=perchRoute.approach;
-      world.flightClearance=(x,z,altitude)=>Math.max((world.clearance||world.height)(x,z),perchHabitat.clearance(x,z),canopy?.clearance?.(x,z,altitude)??-Infinity);
+      world.flightClearance=(x,z,altitude)=>Math.max((world.clearance||world.height)(x,z),perchHabitat.clearance(x,z),canopy?.clearance?.(x,z,altitude)??-Infinity,geology?.clearance?.(x,z)??-Infinity);
       world.windField=window.makeWindField(world,region);
       perching=window.makePerchFlight(THREE,world,perchHabitat,perchRoute);
       perchMarker=new THREE.Vector3();
@@ -501,7 +504,8 @@
       updateMist=window.addValleyMist?.(THREE,scene,world);
       eagle=makeEagle(THREE);scene.add(eagle.object);
       el("viewport").replaceChildren(renderer.domElement);resize();
-      loadPromise=Promise.all([assets,world.ready,eagle.ready]);
+      if(window.aerieRegionalRelease(region))world.regionalFieldScenery=fieldScenery=window.makeRegionalFieldScenery(THREE,scene,world);
+      loadPromise=Promise.all([assets,world.ready,eagle.ready,geology?.ready,fieldScenery?.ready]);
       await loadPromise;
       if(region==='milford'){
         const falls=world.landmarks.find(mark=>mark.name==='Bowen Falls'&&mark.falls);
@@ -896,6 +900,8 @@
     updateWeather(elapsed);
     world.update(dt,elapsed,player);updateLight?.(player,elapsed);updateMist?.(player,elapsed);updateOptics?.(player,elapsed);
     canopy?.update(player,elapsed);
+    geology?.update(player,elapsed);
+    fieldScenery?.update(player,elapsed);
     renderer.render(scene,camera);updatePerchHUD(s);gameVision.update(player,camera,elapsed);
     if(s.contact){showDialog("contact");return;}
     if(elapsed>=nextReadout){

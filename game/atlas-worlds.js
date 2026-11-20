@@ -507,6 +507,7 @@ class Water extends Mesh {
   }
   const tableHeight=dixville?window.dixvilleTableHeight:null;
   let ship=null;
+  const kineo=region==='moosehead'?window.kineoSurvey:null;
   function elevation(x,z,includeIslet=true){
     if(tableHeight&&x>=-256&&x<=256&&z>=128&&z<=512){
       const edge=Math.min(x+256,256-x,z-128,512-z);
@@ -515,7 +516,7 @@ class Water extends Mesh {
       return lerp(regionalElevation(x,z,includeIslet),measured,smoothstep(edge,0,8));
     }
     const base=regionalElevation(x,z,includeIslet);
-    if(!brookGrid||!insideBrook(x,z))return base;
+    if(!brookGrid||!insideBrook(x,z))return kineo?kineo.elevation(x,z,base):base;
     const dx=x-localDEM.x,dz=z-localDEM.z,h=localDEM.half;
     return lerp(sample(brookGrid,h,dx,dz),base,smoothstep(Math.max(Math.abs(dx),Math.abs(dz)),h-18,h));
   }
@@ -1069,6 +1070,19 @@ class Water extends Mesh {
   function patch(left,top,width,depth,nx,nz,localBed=false){
     // Cut the existing terrain around the high-resolution inset. The same
     // survey supplies the drawn rock, physical surface and waterfall rails.
+    if(kineo){
+      // Reserve the measured wall and wave margin. Their adjoining survey
+      // meets the local GLB at its exact contour vertices in native metres.
+      const right=left+width,bottom=top+depth;
+      for(const {rect:[xl,zt,xr,zb]} of kineo.areas){
+        const l=Math.max(left,xl),t=Math.max(top,zt),r=Math.min(right,xr),b=Math.min(bottom,zb);
+        if(l>=r||t>=b)continue;
+        for(const [ax,az,bx,bz] of [[left,top,right,t],[left,b,right,bottom],[left,t,l,b],[r,t,right,b]]){
+          if(ax<bx&&az<bz)patch(ax,az,bx-ax,bz-az,Math.max(1,Math.ceil(nx*(bx-ax)/width)),Math.max(1,Math.ceil(nz*(bz-az)/depth)),localBed);
+        }
+        return;
+      }
+    }
     if(localDEM&&!localBed){
       const {x,z,half}=localDEM,right=left+width,bottom=top+depth;
       const l=Math.max(left,x-half),t=Math.max(top,z-half),r=Math.min(right,x+half),b=Math.min(bottom,z+half);
@@ -1418,6 +1432,8 @@ class Water extends Mesh {
     bounds:{minX:-(settings.flightHalf||h)+90,maxX:(settings.flightHalf||h)-90+(region==='crater'?520:0),minZ:-(settings.flightHalf||h)+90,maxZ:(settings.flightHalf||h)-90},waterLevel:settings.water,lakeLevel:settings.water,
     skyTexture:skyMap,sunDirection:sun,sunMask,trees,firTrees,forestLightSpan:2*h,longForest:newEngland||region==='yosemite'||region==='labrador',useFirForest:firTrees.length>0,altitudeOffset:0,
     update(dt,t,player){clock.value=t;updateTable(player);shoreDetail?.update(player);updateWeather?.(t,player,world.windField);rainTrace?.(t,player,world.windField);updateHardwoods?.(player);if(water)water.material.uniforms.time.value=t*.65;}};
+  world.geologyGround=shoreFloor?(x,z)=>Math.max(shoreFloor.ground(x,z),shoreFloor(x,z)):null;
+  if(kineo){world.kineoTerrainMaterial=terrain;world.kineoBase=(x,z)=>regionalElevation(x,z,false);}
   if(region==='yosemite')world.talusFans=survey.talusFans;
   const rainTrace=window.makeRainTrace(THREE,scene,{world,terrain,water,cabin,survey,inLake,ground:(x,z)=>Math.max(shoreFloor?.ground(x,z)??elevation(x,z),shoreFloor?.(x,z)??-Infinity)});
   if(localDEM){

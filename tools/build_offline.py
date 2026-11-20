@@ -51,6 +51,8 @@ with NamedTemporaryFile('w',dir=output.parent,prefix='.Aerie-',delete=False) as 
         if p.suffix=='.js' and p.stat().st_size>64000:
             content=base64.b64encode(gzip.compress(p.read_bytes(),compresslevel=8,mtime=0)).decode()
             mime='text/javascript';encoding='gzip'
+        elif p.suffix=='.json':
+            content=base64.b64encode(p.read_bytes()).decode('ascii');mime='application/json';encoding='base64'
         elif p.suffix in {'.js','.txt'}:
             content=safe(p.read_text());mime='text/javascript' if p.suffix=='.js' else 'text/plain;charset=utf-8';encoding='text'
         elif p.suffix in {'.jpg','.jpeg','.png','.webp','.mp3','.m4a','.ogg','.wav','.opus','.bin','.glb'}:

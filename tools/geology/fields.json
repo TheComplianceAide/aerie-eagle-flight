@@ -1,0 +1,14 @@
+{
+ "alaska":{"bounds":[-1540,-950,1880,2260],"patches":33},
+ "swiss":{"bounds":[-2250,-1550,1960,1640],"patches":32},
+ "canyon":{"bounds":[-2530,-2570,1420,1510],"patches":32},
+ "moosehead":{"bounds":[-1080,-2650,670,160],"patches":23},
+ "winnipesaukee":{"bounds":[-13550,-6250,6740,12590],"patches":42},
+ "surry":{"bounds":[-1760,-4100,-440,-150],"patches":0},
+ "dixville":{"bounds":[-470,-310,1780,1390],"patches":27},
+ "labrador":{"bounds":[-2540,-1990,2680,2180],"patches":32},
+ "yosemite":{"bounds":[-3300,-2030,2920,2480],"patches":31},
+ "crater":{"bounds":[-5010,-4370,3530,3530],"patches":35},
+ "lofoten":{"bounds":[-2580,-2220,4420,3730],"patches":34},
+ "milford":{"bounds":[-3690,-1670,3830,5830],"patches":37}
+}
