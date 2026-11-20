@@ -1,8 +1,32 @@
 # Aerie
 
-Fly a bald eagle over real-world landscapes in a browser. Bank around Horseshoe Bend, ride rising air along an Alaskan icefield, or follow New Hampshire’s Ashuelot River into downtown Keene. The default camera rides over the eagle’s right shoulder. At dawn in Dixville Notch, fly over Lake Gloriette toward the Balsams or follow New Hampshire Route 26 below Table Rock. Each world has its own terrain, departure points, landmarks, and soundscape.
+Fly a bald eagle through twelve real-world landscapes, looking out over its right shoulder. Follow a waterfall down to a glacial lake, catch rising air off a sunlit ridge, or settle on a branch and listen to the forest. Steer with your mouse or one finger.
 
-[Play Aerie in your browser](https://aerie-valley-flight.randyb308826.chatgpt.site/) on a phone, tablet, or computer.
+**[Play Aerie in your browser](https://aerie-valley-flight.randyb308826.chatgpt.site/)** · [Download for offline play](https://github.com/TheComplianceAide/aerie-eagle-flight/releases/latest/download/Aerie.html)
+
+[![A bald eagle glides above Table Rock and the autumn forest of Dixville Notch under a peach-colored dawn sky](docs/media/table-rock-dawn.jpg)](https://aerie-valley-flight.randyb308826.chatgpt.site/#world=dixville&launch=dawn)
+
+*Dixville Notch, New Hampshire. The chase camera opens up the view over the eagle’s wings.* [Watch the glide](docs/media/dixville-glide.gif)
+
+## Choose a flight
+
+| Nugget Falls · Alaska | Lac Berté · Québec |
+| --- | --- |
+| [![In-game shoulder view banking past Nugget Falls and its forested rock ledges](docs/media/nugget-falls.gif)](https://aerie-valley-flight.randyb308826.chatgpt.site/#world=alaska&launch=spray) | [![In-game shoulder view banking over Lac Berté beneath a rainbow](docs/media/lac-berte-rainbow.gif)](https://aerie-valley-flight.randyb308826.chatgpt.site/#world=lac-berte&launch=rainbow) |
+| Fly close enough to see the wind carry spray off the ledges. [Fly the falls](https://aerie-valley-flight.randyb308826.chatgpt.site/#world=alaska&launch=spray) | Bank over the narrows as a sun shower breaks over the lake. [Fly the rainbow](https://aerie-valley-flight.randyb308826.chatgpt.site/#world=lac-berte&launch=rainbow) |
+
+[![Aerie’s world-selection menu with Moosehead Lake selected and Mount Kineo cliffs as the launch point](docs/media/world-menu.webp)](https://aerie-valley-flight.randyb308826.chatgpt.site/#world=moosehead&launch=lake)
+
+*Pick a world and a launch point. At Moosehead Lake, the Mount Kineo cliffs launch puts you above the water facing the headland.* [Open the flight menu](https://aerie-valley-flight.randyb308826.chatgpt.site/#world=moosehead&launch=lake)
+
+## How the world works
+
+- **Flight.** Each wing samples the wind independently, so a gust can lift one wingtip before the other. The eagle steadies its head through a bank, fans its tail to slow down and reaches feet-first for a perch.
+- **Terrain.** Three.js renders the landscape in WebGL. At Dixville’s Table Rock, lidar measurements shape the ground and treetops. At Moosehead, lake-depth surveys shape the underwater terrain. Regional canopy and ground cover stream into view as you fly. [Scenery and sources](docs/regional-scenery.md)
+- **Weather and water.** Moving clouds shade ridges and lakes. Gusts roughen patches of open water and blow fine spray sideways at Nugget Falls. Along a river, the current runs faster away from the banks.
+- **Sound.** Turn your head on a perch to place a birdcall in stereo. Glide behind the rock spur at Nugget Falls and the high hiss fades before the low rumble. Ten recorded bald-eagle phrases accompany takeoffs, climbs, glides and landings. [Field recording credits](game/field-audio-credits.txt)
+
+**Claude’s spatial-audio work** is available on the regional soundscapes development branch. Its 78 regional recordings cover all twelve worlds. The headphone mix places calls in three dimensions, delays distant sounds by their travel time and reflects echoes off cliffs. [Explore the audio branch](https://github.com/TheComplianceAide/aerie-eagle-flight/tree/audio/regional-soundscapes) · [Recording credits](https://github.com/TheComplianceAide/aerie-eagle-flight/blob/audio/regional-soundscapes/game/soundscape-credits.txt)
 
 ## Play locally
 
