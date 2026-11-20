@@ -8,7 +8,8 @@ window.makeGameVision = function(T,world,button,layer) {
   function startFlight(wildlifeDeparture){
     let preference=null;
     try{preference=localStorage.getItem('aerie:gameVision');}catch{}
-    setActive(preference===null?wildlifeDeparture:preference==='on');
+    const firstFlightDefault=wildlifeDeparture||matchMedia('(pointer: coarse)').matches;
+    setActive(preference===null?firstFlightDefault:preference==='on');
   }
   function toggle(){
     setActive(!active);
