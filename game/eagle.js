@@ -710,7 +710,7 @@ window.makeEagle = function makeEagle(THREE) {
   const blend=(flight,landing,amount)=>flight+(landing-flight)*amount;
   let phase = 0, effort = 0, tuck = 0, lastBank = 0, turnDemand = 0;
   let armSweep=0,handSweep=0,tailBrake=0,wingBrake=0,handBrake=0;
-  let previousHeading,perchPivot=0;
+  let previousHeading,previousFlight,perchPivot=0;
   const wrap = angle => Math.atan2(Math.sin(angle),Math.cos(angle));
   const lastPosition=new THREE.Vector3(),gazeOrigin=new THREE.Vector3();
   const localHead=new THREE.Quaternion(),worldHead=new THREE.Quaternion(),headAngles=new THREE.Euler(0,0,0,'YXZ');
@@ -814,8 +814,9 @@ window.makeEagle = function makeEagle(THREE) {
   function update(dt, time, flapping, pitch = 0, bank = 0, air = {}) {
     const step = clamp(dt, 0, .1);
     const approach = rate => 1 - Math.exp(-rate * step);
-    const reset=gazeTime<0||time<gazeTime||lastPosition.distanceToSquared(gazeOrigin.set(air.x??0,air.y??0,air.z??0))>
+    const reset=gazeTime<0||time<gazeTime||(step===0&&air!==previousFlight)||lastPosition.distanceToSquared(gazeOrigin.set(air.x??0,air.y??0,air.z??0))>
       Math.max(9,(air.airspeed??18)*step*3+4)**2;
+    previousFlight=air;
     if(reset){
       lastBank=bank;previousHeading=air.yaw??0;turnDemand=perchPivot=0;napeTwist.value.set(0,0);
       for(const wing of wings)wing.wristLoad=wing.tipLoad=0;
