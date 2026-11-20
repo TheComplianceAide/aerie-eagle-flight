@@ -332,7 +332,7 @@ window.makeEagle = function makeEagle(THREE) {
         float wave=sin(featherTime*6.8-position.z*30.+position.x*15.+aero.y*.43);
         float flutter=sin(featherTime*12.3+aero.y+position.x*28.);
         float gust=sin(featherTime*2.85-position.z*61.+position.x*17.);
-        float agitation=featherWind*(.25+.60*abs(sideLoad)*outerCovert)*(1.+1.7*featherTurb);
+        float agitation=featherWind*(.25+.60*abs(sideLoad)*outerCovert)*(1.+.4*featherTurb);
         float bend=aero.x*aero.z*(.45+.33*wave+.18*flutter+.21*gust)*agitation;
         float lifting=aero.x*(outerCovert*reverseFlow*(.008+.004*sin(featherTime*18.+aero.y))
           +caught*(.004+.005*aero.z/.003));
@@ -343,9 +343,9 @@ window.makeEagle = function makeEagle(THREE) {
         // uncorrelated ruffle; negative G and rousing float the whole plumage.
         float windward=max(0.,featherSlip*sign(position.x));
         float ruffle=featherTurb*sin(featherTime*23.+aero.y*3.1+position.x*41.)*sin(featherTime*7.3+position.z*53.);
-        lifting+=aero.x*(windward*(.006+.004*sin(featherTime*15.+aero.y))+abs(ruffle)*.0035+featherFluff*(.010+.004*aero.z/.003));
+        lifting+=aero.x*(windward*(.0025+.0015*sin(featherTime*15.+aero.y))+abs(ruffle)*.0016+featherFluff*(.0050+.0020*aero.z/.003));
         // Nape hackles: gusts riffle them, crossflow raises the windward side.
-        float hackleWind=featherTurb*(.0016+.0013*sin(featherTime*31.+aero.y*2.3+position.x*60.))+windward*.0022+featherFluff*.0024;
+        float hackleWind=featherTurb*(.0005+.0004*sin(featherTime*31.+aero.y*2.3+position.x*60.))+windward*.0008+featherFluff*.0010;
         transformed+=normal*(bend+lifting+hackle*(outside*.0016+abs(napeTwist.y)*.0012+hackleWind));
         transformed.z-=lifting*.31;
         transformed.x+=aero.x*aero.z*wave*.32*agitation+hackle*napeTwist.y*.0053;
