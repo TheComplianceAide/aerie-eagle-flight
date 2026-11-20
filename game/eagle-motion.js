@@ -57,6 +57,8 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
       this.head = new THREE.Vector3(); this.current = new THREE.Vector3(); this.prev = new THREE.Vector3();
       this.rest = new THREE.Quaternion(); this.ready = false; this.h = SUB; this.offset = 0;
       this.noise = noise3(opt.tau ?? .06);
+      // Aeroelastic washout: as a vane bends up its leading edge twists down.
+      this.washout = opt.washout ?? 0; this.sign = Math.sign(tail.x) || 1; this.twist = new THREE.Quaternion();
     }
     // force: acceleration on the tip in the bird's frame (m/s^2).
     // weight: 1 = fully simulated, 0 = animated pose only.
@@ -85,6 +87,10 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
       const shown = this.maxAngle * Math.tanh(angle / this.maxAngle) * weight;
       if (angle > 1e-6) q2.slerp(qI, 1 - shown / angle);
       b.quaternion.copy(this.rest).multiply(q2);
+      if (this.washout) {
+        const lift = Math.asin(clamp(to.y, -1, 1)) * (angle > 1e-6 ? shown / angle : 0);
+        b.quaternion.multiply(this.twist.setFromAxisAngle(this.axis, -this.sign * this.washout * lift));
+      }
       this.offset = angle;
     }
     reset() { this.ready = false; }
@@ -94,7 +100,7 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
   const tailSprings = tailRays.map(({ray, side}, i) => new SpringBone(ray, new THREE.Vector3(side * .03, 0, .30),
     {freq: 7 + 1.4 * hash(i), zeta: .16 + .05 * hash(i + 7), maxAngle: .30, tau: .07}));
   const primarySprings = wings.flatMap(w => w.fan.map((bone, i) => new SpringBone(bone, new THREE.Vector3(w.sign * .34, 0, .04 + .025 * i),
-    {freq: 12.5 - .5 * i + hash(i + w.sign * 13), zeta: .11 + .04 * hash(i + 3), maxAngle: .32, tau: .045})));
+    {freq: 12.5 - .5 * i + hash(i + w.sign * 13), zeta: .11 + .04 * hash(i + 3), maxAngle: .32, tau: .045, washout: .7 + .25 * (5 - i) / 5})));
   const alulaSprings = wings.map(w => new SpringBone(w.alula, new THREE.Vector3(w.sign * .08, 0, -.02), {freq: 11, zeta: .3, maxAngle: .35, tau: .05}));
   const allSprings = [...tailSprings, ...primarySprings, ...alulaSprings];
 
@@ -109,6 +115,7 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
   const heave = oscillator(1.6, .38), pitchOsc = oscillator(1.9, .42), rollOsc = oscillator(1.7, .4);
   const neckSink = oscillator(2.8, .45);                            // head settles into the shoulders under G
   const bodyNoise = noise3(.22);
+  const controlNoise = noise3(.7);                                  // slow steering corrections while soaring
 
   // ---- eyes -------------------------------------------------------------------------
   const eyes = [{t: -1, dur: .2, lid: 0, next: rand(1.5, 4)}, {t: -1, dur: .2, lid: 0, next: 0}];
@@ -198,6 +205,9 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
     const stabilised = tmpQ.invert().multiply(headWorld);
     neck.quaternion.slerp(stabilised, .9 * freeFlight + .5 * folded);
     neckBase.position.y -= clamp(h, -.03, .03) * .6 * freeFlight;
+    // The thorax pumps about 8 mm with each wingbeat while the head rides
+    // almost level, as in slow-motion footage of flapping eagles.
+    neckBase.position.y += .0068 * (pose.effort ?? 0) * Math.cos(air.phase ?? 0) * freeFlight;
     // Under G the neck shortens and the head sinks; at negative G it stretches.
     const gLoad = clamp(n - 1, -1.2, 2.5);
     neckBase.position.y += clamp(drive(neckSink, (-.0045 * Math.max(0, gLoad) + .003 * Math.max(0, -gLoad)) * freeFlight, step), -.014, .006);
@@ -217,8 +227,14 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
       w.shoulder.rotation.z += w.sign * -.06 * clamp(-g, 0, 1) * freeFlight;
     });
     // Tail spreads under load for extra lift, and cants against sideslip.
-    for (const {side, ray} of tailRays) ray.rotation.y += side * .06 * clamp(g, 0, 2) * freeFlight;
+    // Soaring is never still: the tail twists and opens and the hands trim
+    // continuously against the air, more so in rough air and between beats.
+    const ctl = stepNoise(controlNoise, step);
+    const activity = (.25 + 1.2 * turbulence) * freeFlight * (1 - .7 * (pose.effort ?? 0));
+    for (const {side, ray} of tailRays) ray.rotation.y += side * (.06 * clamp(g, 0, 2) * freeFlight + .03 * ctl.y * activity);
     rudder.rotation.y += -.25 * slip * freeFlight;
+    rudder.rotation.z += .035 * ctl.x * activity - .6 * clamp(rollJ, -.09, .09) * freeFlight;
+    for (const w of wings) w.wrist.rotation.y += .025 * ctl.z * activity;
 
     // ---- feather spring bones -----------------------------------------------------
     object.updateMatrixWorld(true);
@@ -248,7 +264,9 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
       // Wingbeat: air loads bend the primaries up through the downstroke and
       // let them trail and separate on the upstroke (slow-motion eagle footage).
       const beat = effort * Math.sin(phase - .35 - .08 * (k % 6)) * 230 * freeFlight;
-      force.copy(up).multiplyScalar(lift + flutter + beat).addScaledVector(down, gravity)
+      // Separated flow at high angle of attack curls the tips upward.
+      const curl = (pose.separation ?? 0) * (60 + 40 * (k % 6) / 5) * freeFlight;
+      force.copy(up).multiplyScalar(lift + flutter + beat + curl).addScaledVector(down, gravity)
         .addScaledVector(back, (20 * q + 30 * effort) * freeFlight)
         .addScaledVector(nz, (rough2 * 116 + windGust * 25) * (.5 + hash(k + 90)));
       s.update(step, force, 1 - .85 * folded);
