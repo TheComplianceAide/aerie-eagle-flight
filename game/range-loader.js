@@ -15,7 +15,7 @@
         tag.onload=resolve;
         tag.onerror=()=>reject(new Error('Unable to open '+name));
         const url=window.aerieAssetURL?.(name)||name;
-        tag.src=url===name&&location.protocol!=='file:'?url+'?v=0.26.1':url;
+        tag.src=url===name&&location.protocol!=='file:'?url+'?v=0.26.2':url;
         document.head.appendChild(tag);
       });
       loaded.set(name,request.catch(error=>{loaded.delete(name);throw error;}));
