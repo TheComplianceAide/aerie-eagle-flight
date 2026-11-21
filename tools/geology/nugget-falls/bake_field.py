@@ -248,7 +248,11 @@ def bake(cache, sentinel, game):
     fineTone = (gravelPhoto @ np.array([0.25, 0.59, 0.16], dtype="f"))[tuple(indices)]
     fineTone = blur(fineTone, 1.5)
     opticalDepth = np.clip(np.minimum(np.maximum(0, 0.18 - beachDEM), 0.087 * shoreDistance) + 0.018 * shoreDistance, 0, 4)
-    shoal = np.stack([fineTone, opticalDepth / 4, np.clip(shoreDistance/30, 0, 1)], axis=2)
+    # The old regional shoreline polygon predates this outwash surface.
+    # Match the lake shader's signed distance convention on both sides.
+    signedDistance = np.clip(shoreDistance - distance_transform_edt(dry), -56, 56)
+    signedCode = .5 + .5 * np.sign(signedDistance) * np.sqrt(np.abs(signedDistance) / 56)
+    shoal = np.stack([fineTone, opticalDepth / 4, signedCode], axis=2)
     Image.fromarray(np.uint8(np.clip(shoal*255+0.5,0,255))).save(game / "alaska-nugget-shoal.webp", lossless=True, method=6)
     # Extract local maxima across physically plausible crown widths. The same
     # treetop cannot be reintroduced by another scale in a dense stand.

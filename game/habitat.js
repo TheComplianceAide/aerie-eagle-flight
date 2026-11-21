@@ -93,12 +93,19 @@ window.addHabitat = function addHabitat(THREE,scene,world,region) {
     // The final two stations of Nugget Creek enter Mendenhall Lake here.
     // A spreading outflow distorts the glacial reflection and carries small
     // patches of entrained air away from the foot of the chute.
+    const outletRoute=mat.userData.nuggetLakeMargin?world.waterfalls?.routes.find(route=>route.name==='Nugget Falls'):null;
+    const mouth=outletRoute?.nodes.at(-1);
+    const upstream=mouth&&outletRoute.nodes.findLast(node=>mouth.travel-node.travel>22);
+    const jet=upstream?new THREE.Vector2(mouth.x-upstream.x,mouth.z-upstream.z).normalize():null;
+    const mouthXZ=jet?mouth.x.toFixed(2)+','+mouth.z.toFixed(2):'474.,680.';
+    const jetXZ=jet?jet.x.toFixed(4)+','+jet.y.toFixed(4):'-.866,.500';
+    const jetHalf=jet?(.39*mouth.width).toFixed(2):'8.';
     const riverMouth=glacial?`
-      vec2 delta=worldPosition.xz-vec2(474.,680.);
-      vec2 outflow=vec2(-.866,.500);
+      vec2 delta=worldPosition.xz-vec2(${mouthXZ});
+      vec2 outflow=vec2(${jetXZ});
       float runout=dot(delta,outflow),crossflow=dot(delta,vec2(-outflow.y,outflow.x));
       float plume=smoothstep(-18.,-3.,runout)*(1.-smoothstep(5.,59.,runout))
-                *(1.-smoothstep(.36,1.,abs(crossflow)/(8.+.26*max(0.,runout))));
+                *(1.-smoothstep(.36,1.,abs(crossflow)/(${jetHalf}+.26*max(0.,runout))));
       float entrained=0.;
       if(plume>.002){
         vec2 local=vec2(runout,crossflow);
@@ -164,7 +171,12 @@ window.addHabitat = function addHabitat(THREE,scene,world,region) {
         outgoingLight=mix(outgoingLight,mix(damp,through,flooded),nearShore);
       }
       ${glacial?'outgoingLight=mix(outgoingLight,vec3(.53,.63,.62),entrained*.45);':''}`;
-    mat.fragmentShader=shoreMotion+(glacial?window.mendenhallSedimentGLSL:'')+'\nuniform sampler2D pebbleBed,bedGrain,stoneShelf;\n'+mat.fragmentShader
+    let lakeShore=shoreMotion;
+    if(mat.userData.nuggetLakeMargin){
+      lakeShore='uniform sampler2D deltaShoal;\n'+shoreMotion.replace('vec3 marginAt(', 'vec3 nuggetRegionalMargin(')+mat.userData.nuggetLakeMargin;
+      mat.fragmentShader=mat.fragmentShader.replace('uniform sampler2D deltaShoal;', '');
+    }
+    mat.fragmentShader=lakeShore+(glacial?window.mendenhallSedimentGLSL:'')+'\nuniform sampler2D pebbleBed,bedGrain,stoneShelf;\n'+mat.fragmentShader
       .replace('vec3 surfaceNormal=normalize',optics+'\n          vec3 surfaceNormal=normalize')
       .replace('gl_FragColor = vec4( outgoingLight, alpha );',shallows+'\n          gl_FragColor = vec4( outgoingLight, alpha );');
   }
@@ -261,7 +273,12 @@ window.addHabitat = function addHabitat(THREE,scene,world,region) {
             }`:''}
         }
       `;
-      mat.fragmentShader=shoreMotion+(glacial?window.mendenhallSedimentGLSL:'')+(sw?'\nuniform sampler2D strandPhoto;':'')+'\nuniform sampler2D beachScan;\n'+mat.fragmentShader.replace(anchor,layers+anchor);
+      let lakeShore=shoreMotion;
+    if(mat.userData.nuggetLakeMargin){
+      lakeShore='uniform sampler2D deltaShoal;\n'+shoreMotion.replace('vec3 marginAt(', 'vec3 nuggetRegionalMargin(')+mat.userData.nuggetLakeMargin;
+      mat.fragmentShader=mat.fragmentShader.replace('uniform sampler2D deltaShoal;', '');
+    }
+    mat.fragmentShader=lakeShore+(glacial?window.mendenhallSedimentGLSL:'')+(sw?'\nuniform sampler2D strandPhoto;':'')+'\nuniform sampler2D beachScan;\n'+mat.fragmentShader.replace(anchor,layers+anchor);
     }
   }
   const tileMap=new Map();
