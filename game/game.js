@@ -416,7 +416,8 @@
       source.buffer=buffer;source.loop=true;
       source.connect(wind).connect(windLevel).connect(volume);
       source.connect(featherBand).connect(wingRush).connect(volume);
-      volume.connect(audio.destination);source.start();
+      // The shared soft knee is the last stage before the output (see aerieSoftKnee).
+      volume.connect(window.aerieSoftKnee?.(audio)?.input||audio.destination);source.start();
     }
     audio.resume().catch(()=>{});
   }

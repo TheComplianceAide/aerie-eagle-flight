@@ -324,7 +324,7 @@
     master.gain.value=0;
     // Peaks above 0.7 of full scale are rounded off, not clipped (see aerieSoftKnee).
     const knee=window.aerieSoftKnee?.(context);
-    if(knee){master.connect(knee.input);knee.output.connect(context.destination);}
+    if(knee)master.connect(knee.input);
     else master.connect(context.destination);
     const airBuffer=airStream(context),air=context.createGain(),shelf=context.createBiquadFilter();
     shelf.type='lowpass';shelf.frequency.value=600;air.gain.value=0;

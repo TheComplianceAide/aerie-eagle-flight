@@ -28,14 +28,17 @@ window.aerieWindMasking = (arrived, masker) => masker > 0 && arrived > 0 ? arriv
 // it. A WaveShaper only reads -1 to 1, so it is fed at half scale and its curve
 // covers -2 to 2.
 window.aerieSoftKnee = function aerieSoftKnee(context) {
+  // One knee for each audio context, already joined to the output: everything that would reach the
+  // output goes into its input, so nothing is added after it.
+  if (context.aerieKnee) return context.aerieKnee;
   const input = context.createGain(), shape = context.createWaveShaper(), points = 4097, curve = new Float32Array(points), knee = .7;
   for (let i = 0; i < points; i++) {
     const x = (i / (points - 1) * 2 - 1) * 2, a = Math.abs(x);
     curve[i] = Math.sign(x) * (a <= knee ? a : knee + (1 - knee) * Math.tanh((a - knee) / (1 - knee)));
   }
   input.gain.value = .5; shape.curve = curve; shape.oversample = '2x';
-  input.connect(shape);
-  return {input, output: shape, curve};
+  input.connect(shape); shape.connect(context.destination);
+  return context.aerieKnee = {input, output: shape, curve};
 };
 // A bed that never comes round again. A looped recording repeats itself
 // exactly: sixteen seconds of lapping water is the same sixteen seconds every
