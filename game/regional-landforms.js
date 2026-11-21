@@ -258,15 +258,15 @@
       return group;
     }
     const masked=new WeakSet();
-    function maskOriginal(material){
+    function maskOriginal(material,holeOverlap=0){
       if(masked.has(material))return;
       masked.add(material);
       // These three legacy worlds share one material across several adjoining
       // native tiles. Reserve only this measured rectangle; specialized overhangs
       // inside a declared hole retain their original geometry and lighting.
       const point=(spec.style==='alaska'?'p':'wp')+'.xz';
-      const bounds=(l,t,r,b)=>'all(greaterThanEqual('+point+',vec2('+l+'. ,'+t+'.)))&&all(lessThanEqual('+point+',vec2('+r+'. ,'+b+'.)))';
-      const test=bounds(...rect)+holes.map(h=>'&&!('+bounds(...h)+')').join('');
+      const bounds=(l,t,r,b)=>'all(greaterThanEqual('+point+',vec2('+l.toFixed(3)+','+t.toFixed(3)+')))&&all(lessThanEqual('+point+',vec2('+r.toFixed(3)+','+b.toFixed(3)+')))';
+      const test=bounds(...rect)+holes.map(([l,t,r,b])=>'&&!('+bounds(l-holeOverlap,t-holeOverlap,r+holeOverlap,b+holeOverlap)+')').join('');
       material.userData.terrainShadowCut=test.split(point).join('shadowGround.xz');
       material.fragmentShader=material.fragmentShader.replace(/void main\(\)\s*\{/,m=>m+'if('+test+')discard;');
       material.needsUpdate=true;
