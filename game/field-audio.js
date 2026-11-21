@@ -166,7 +166,7 @@
     tern:{idle:[15,40],alarm:flock},
     kittiwake:{idle:[12,30],alarm:{chance:.9,clips:[2,3],gap:[.5,2],bouts:2,rest:[8,16]}},
     oystercatcher:{idle:[40,110],alarm:flock},
-    raven:{idle:[120,360],alarm:{chance:.85,clips:[1,3],gap:[2,6],bouts:2,rest:[15,35]}},
+    raven:{idle:[120,360],alarm:{chance:.85,clips:[1,2],gap:[2,6],bouts:2,rest:[20,45]}},
     jay:{idle:[60,160],alarm:{chance:.9,clips:[2,3],gap:[1,3],bouts:2,rest:[10,25]}},
     nutcracker:{idle:[40,110],alarm:{chance:.7,clips:[1,2],gap:[1.5,4],bouts:2,rest:[12,30]}},
     chough:{idle:[25,70],alarm:{chance:.8,clips:[1,3],gap:[1,3],bouts:2,rest:[10,25]}},
@@ -596,7 +596,7 @@
       }
       // An animal crossing the eagle's field of view is an event in its own
       // right. The periodic cruising voice can otherwise be silent for 48s.
-      if(stage==='free'&&now>=nextWildlifeScan&&now>=lastEncounter+16&&now>=quietUntil){
+      if(stage==='free'&&now>=nextWildlifeScan&&now>=lastEncounter+45&&now>=quietUntil){
         nextWildlifeScan=now+.4;
         const fx=-Math.sin(s.yaw),fz=-Math.cos(s.yaw);
         const wildlife=world.wildlife?.nearby(s,88)||[];
@@ -628,7 +628,8 @@
           wildlifeUntil=Math.max(wildlifeUntil,now+buffers.get(id).duration+.3);
           nextPhrase.set(occasion,(index+1)%choices.length);pending=null;
           quietUntil=now+buffers.get(id).duration+2.8;
-          eagleDue=now+random(stage==='perched'?19:27,stage==='perched'?36:48);
+          // Bald eagles call from perches and at the nest; on the wing they are mostly silent.
+          eagleDue=now+random(stage==='perched'?40:90,stage==='perched'?100:240);
         }else eagleDue=now+.5;
       }
       // wildlifeUntil already covers the complete eagle phrase. Give a nearby
@@ -669,10 +670,12 @@
         let voiced=false;
         const answer=(id,near,manner,reach,gain,clip)=>{
           const state=alarms.get(id)||alarms.set(id,{seen:-Infinity,due:0,bouts:0,left:0,calls:false,x:0,z:0}).get(id);
+          // A new encounter: back after 20 seconds away, or a different group
+          // of animals (the nearest one jumps by more than 180 m).
           if(now-state.seen>20||Math.hypot(near.x-state.x,near.z-state.z)>180){
-            state.bouts=state.left=0;state.calls=Math.random()<manner.chance;state.due=now;state.x=near.x;state.z=near.z;
+            state.bouts=state.left=0;state.calls=Math.random()<manner.chance;state.due=now;
           }
-          state.seen=now;
+          state.seen=now;state.x=near.x;state.z=near.z;
           if(!state.calls||now<state.due||voiced)return;
           if(!state.left){
             if(state.bouts>=manner.bouts)return;

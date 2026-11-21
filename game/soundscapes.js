@@ -237,16 +237,21 @@
   // upwind ear (sideslip, bank) is louder and brighter; gusts arrive as
   // turbulent bursts; above ~26 m/s the contour feathers flutter (AM noise).
   function makeAirflow(context, destination) {
+    // The wind is a recording of air rushing over a cyclist's microphones on
+    // a fast descent, shaped and levelled by airspeed. Until it has loaded,
+    // shaped noise stands in for it.
     const fs = context.sampleRate, len = Math.floor(6 * fs), buf = context.createBuffer(2, len, fs);
+    let rms = .1, real = false;
     for (let ch = 0; ch < 2; ch++) {
       const d = buf.getChannelData(ch); let b0 = 0, b1 = 0, b2 = 0;
       for (let i = 0; i < len; i++) { // pink-ish (Kellet) noise
         const w = Math.random() * 2 - 1; b0 = .99765 * b0 + w * .099046; b1 = .963 * b1 + w * .2965164; b2 = .57 * b2 + w * 1.0526913;
         d[i] = (b0 + b1 + b2 + w * .1848) * .12;
       }
+      if (ch === 0) { let sum = 0; for (let i = 0; i < len; i++) sum += d[i] * d[i]; rms = Math.sqrt(sum / len); }
       for (let i = 0; i < 4096; i++) d[len - 4096 + i] = d[len - 4096 + i] * (1 - i / 4096) + d[i] * (i / 4096);
     }
-    const src = context.createBufferSource(); src.buffer = buf; src.loop = true;
+    let src = context.createBufferSource(); src.buffer = buf; src.loop = true;
     const split = context.createChannelSplitter(2), merge = context.createChannelMerger(2), out = context.createGain();
     out.gain.value = 0;
     const ears = [0, 1].map(i => {
@@ -264,20 +269,42 @@
     src.start(); lfo.start();
     let burst = 0;
     return {
+      get real() { return real; },
+      // Swap the stand-in noise for the recording once it has been decoded.
+      adopt(recording) {
+        if (real || !recording || recording.numberOfChannels < 2) return;
+        const d = recording.getChannelData(0); let sum = 0, n = 0;
+        for (let i = 0; i < d.length; i += 3) { sum += d[i] * d[i]; n++; }
+        const next = context.createBufferSource(); next.buffer = recording; next.loop = true;
+        next.connect(split); next.connect(band); next.start(0, Math.random() * recording.duration);
+        try { src.stop(); src.disconnect(); } catch (e) {}
+        src = next; rms = Math.sqrt(sum / n) || .1; real = true;
+      },
       update(s, gust, now) {
         const v = Math.max(0, (s.indicatedAirspeed ?? s.airspeed) || 0);
-        const level = clamp(Math.pow(v / 22, 2.4) * .42, 0, .9);
+        // Wind at the ears is the loudest thing in flight. Flow noise grows as
+        // about the sixth power of airspeed in sound power (measured on
+        // cyclists: 85 dBA at 6.7 m/s, 120 dBA at 27 m/s), so its amplitude
+        // follows v^2.6: a whisper at 8 m/s, level with a loud call close by
+        // at 15 m/s (about -22 dBFS), and held from 19 m/s so a dive cannot clip.
+        const level = .08 * Math.pow(clamp(v, 0, 19) / 15, 2.6) * (real ? 1 : 1.35) / (rms * .32 * .86);
+        // The recording was made at about cruising speed: slower air loses its
+        // hiss, faster air keeps all of it.
+        const reach = real ? clamp(1500 * Math.pow(2, (v - 8) / 3), 700, 12000) : 280 + 55 * v;
         const slip = clamp((s.yawSlip || 0) * 2.2 + (s.bank || 0) * .45, -1, 1);
         burst = burst * .9 + (Math.random() < (.02 + .08 * gust) ? rand(.3, .9) * gust : 0);
-        const turb = 1 + .55 * burst + .25 * (gust - .5);
+        // Each downstroke drives air past the head: the rush swells with it
+        // and falls back on the upstroke, in time with the wings on screen.
+        const swell = clamp(s.effort || 0, 0, 1.2) * Math.max(0, Math.sin((s.phase || 0) - .25)) ** 1.5;
+        const turb = (1 + .3 * burst + .15 * (gust - .5)) * (1 + 1.5 * swell);
         ears.forEach((e, i) => {
           const side = i === 0 ? -slip : slip; // positive: this ear faces the airflow
-          e.g.gain.setTargetAtTime(level * turb * (1 + .38 * side), now, .06);
-          e.lp.frequency.setTargetAtTime(280 + 55 * v * (1 + .3 * side) + 900 * burst, now, .08);
+          e.g.gain.setTargetAtTime(level * turb * (1 + .25 * side), now, .035);
+          e.lp.frequency.setTargetAtTime(reach * (1 + .3 * side) + 900 * burst + 260 * swell, now, .08);
         });
         const flap = smooth(26, 42, v);
-        flutter.gain.setTargetAtTime(.32 * flap, now, .1); // AM around this base: 0 to 2x
-        depth.gain.setTargetAtTime(.32 * flap, now, .1);
+        flutter.gain.setTargetAtTime(.16 * flap, now, .1); // AM around this base: 0 to 2x
+        depth.gain.setTargetAtTime(.16 * flap, now, .1);
         lfo.frequency.setTargetAtTime(20 + .35 * v, now, .2);
         band.frequency.setTargetAtTime(180 + 6 * v, now, .2);
         out.gain.setTargetAtTime(.32, now, .2);
@@ -319,6 +346,9 @@
   // ---- regional definitions -----------------------------------------------------
   // Events: clip, every [min,max] seconds, where(ctx) -> position or path,
   // gain at ref metres, reach in metres, optional when(ctx) condition.
+  // Intervals follow what is known of each sound by day: an ovenbird sings
+  // 0.5 to 1.7 songs a minute, a grouse drums every few minutes, a coyote
+  // seldom howls before dusk, and rock does not fall every other minute.
   const at = (re, dy = 0, jitter = 0) => c => {
     const p = landmark(c.world, re); if (!p) return null;
     const x = p.x + rand(-jitter, jitter), z = p.z + rand(-jitter, jitter);
@@ -381,10 +411,12 @@
   }
   // Wind noise at the ears, as a level comparable to a source's arriving level:
   // it grows steeply with airspeed, more in gusts and in the open, and falls
-  // away in the lee of terrain.
+  // away in the lee of terrain. At cruising speed it covers all but loud,
+  // close calls, as the wind does for anything that flies; a slow glide or a
+  // perch lets the world back in.
   function windMasker(airspeed, gust = .5, exposure = 1, lee = 0) {
     const open = clamp(exposure, 0, 1) * (1 - .8 * clamp(lee, 0, 1));
-    return .012 * Math.pow(clamp(airspeed / 17.5, 0, 3), 2.6) * (1 + .6 * clamp(gust, 0, 1) * (1 - .7 * clamp(lee, 0, 1))) * (.35 + .65 * open);
+    return .29 * Math.pow(clamp(airspeed / 17.5, 0, 3), 2.6) * (1 + .6 * clamp(gust, 0, 1) * (1 - .7 * clamp(lee, 0, 1))) * (.35 + .65 * open);
   }
   // A repeatable random stream for one world cell, so a post is always found in the same place.
   function seededRandom(a, b, c) {
@@ -402,6 +434,11 @@
 
   const nearEar = (r = 1.6) => c => ({x: c.ear.x + rand(-r, r), y: c.ear.y + rand(-.4, .7), z: c.ear.z + rand(-r, r)});
   const lowAndLeafy = c => c.agl < 18 && !c.overWater;
+  // Levels were set against real recordings of each kind of place (a minute
+  // from a perch in every world, compared band by band): the Sierra cicadas
+  // stood 20 dB above anything in a real Sierra valley at 8 kHz. Singers of
+  // the night (katydids, tree crickets, dusk crickets) keep quiet under a
+  // high sun.
   // Insect choruses: several emitters seeded in the right habitat around the
   // eagle (canopy for cicadas and katydids, grass for crickets and
   // grasshoppers), re-seeded as the bird moves on.
@@ -411,7 +448,7 @@
       water: [{clip: 'scape-alaska-meltwater', kind: 'stream', ref: 18, reach: 500, gain: .55, maxR: 350}],
       events: [
         // Calving at the terminus; booms carry across the lake with a delay.
-        {clip: ['scape-alaska-calving', 'scape-alaska-calving-alt'], every: [38, 95], ref: 450, reach: 9000, gain: .9, wet: .9,
+        {clip: ['scape-alaska-calving', 'scape-alaska-calving-alt'], every: [120, 320], ref: 450, reach: 9000, gain: .9, wet: .9,
           where: c => { const g = landmark(c.world, /Mendenhall Glacier/); const p = landmark(c.world, /Blue Ice/);
             if (!g) return null; const t = Math.random(); const x = (p ? p.x : g.x) + rand(-520, 520), z = (p ? p.z : g.z) + rand(-120, 160);
             return {x, y: (waterLevel(c.world) ?? 0) + rand(8, 40), z}; }},
@@ -426,12 +463,12 @@
       water: [{clip: 'scape-canyon-colorado-river', kind: 'river', ref: 20, reach: 900, gain: .7, maxR: 800, span: 140}],
       beds: [{clip: 'scape-canyon-canyon-wind', ref: 1, gain: c => .10 + .38 * c.exposure * (.6 + .5 * c.gust)}],
       choruses: [{clip: 'scape-canyon-apache-cicada', habitat: 'trees', count: 3, r: [25, 160], ref: 14, reach: 600, gain: .5},
-                 {clip: 'scape-canyon-desert-crickets', habitat: 'grass', count: 4, r: [15, 120], ref: 10, reach: 380, gain: .45}],
+                 {clip: 'scape-canyon-desert-crickets', night: true, habitat: 'grass', count: 4, r: [15, 120], ref: 10, reach: 380, gain: .45}],
       events: [
         {clip: 'scape-canyon-swifts', every: [9, 22], ref: 15, reach: 500, gain: .65, moving: true,
           where: c => { const path = passPath(c.ear, {offset: [20, 160], length: 420, speed: 28}); return {path: {...path, y: c.ear.y + rand(-40, 40)}}; }},
         {clip: 'scape-canyon-swallows', every: [16, 34], ref: 10, reach: 280, gain: .5, where: onCliff(40, 300)},
-        {clip: 'scape-canyon-rockfall', every: [70, 160], ref: 30, reach: 1400, gain: .7, where: onCliff(120, 700)}
+        {clip: 'scape-canyon-rockfall', every: [600, 1500], ref: 30, reach: 1400, gain: .7, where: onCliff(120, 700)}
       ]
     },
     swiss: {
@@ -441,20 +478,20 @@
       events: [
         {clip: 'scape-swiss-black-redstart', every: [16, 34], ref: 12, reach: 320, gain: .55, where: onCliff(40, 300)},
         {clip: 'scape-swiss-water-pipit', every: [18, 40], ref: 10, reach: 260, gain: .5, where: onGround(40, 250)},
-        {clip: 'scape-swiss-rockfall-alps', every: [110, 260], ref: 60, reach: 4000, gain: .7, wet: .9, where: onCliff(400, 1800)}
+        {clip: 'scape-swiss-rockfall-alps', every: [480, 1200], ref: 60, reach: 4000, gain: .7, wet: .9, where: onCliff(400, 1800)}
       ]
     },
     yosemite: {
       falls: {clip: 'scape-yosemite-yosemite-falls', ref: 150, reach: 6000, gain: .95},
       water: [{clip: 'scape-yosemite-merced-river', kind: 'river', ref: 28, reach: 1200, gain: .75, maxR: 900, span: 120}],
-      choruses: [{clip: 'scape-yosemite-sierra-cicada', habitat: 'trees', count: 3, r: [25, 170], ref: 12, reach: 500, gain: .45},
-                 {clip: 'scape-yosemite-dusk-crickets', habitat: 'grass', count: 4, r: [15, 120], ref: 10, reach: 380, gain: .4}],
+      choruses: [{clip: 'scape-yosemite-sierra-cicada', habitat: 'trees', count: 2, r: [25, 170], ref: 12, reach: 500, gain: .15},
+                 {clip: 'scape-yosemite-dusk-crickets', night: true, habitat: 'grass', count: 4, r: [15, 120], ref: 10, reach: 380, gain: .4}],
       events: [
-        {clip: 'scape-yosemite-coyote', every: [80, 200], ref: 90, reach: 3500, gain: .6, wet: .8, where: onGround(500, 1600)},
+        {clip: 'scape-yosemite-coyote', every: [600, 1500], ref: 90, reach: 3500, gain: .6, wet: .8, where: onGround(500, 1600)},
         {clip: 'scape-yosemite-brewers-blackbird', every: [16, 36], ref: 12, reach: 300, gain: .5, where: at(/El Capitan Meadow/, 1, 250)},
         {clip: 'scape-yosemite-steller-jay-yosemite', every: [26, 60], ref: 18, reach: 450, gain: .5, where: inTrees(50, 350, .7)},
         {clip: 'scape-yosemite-chipmunk', every: [45, 110], ref: 6, reach: 150, gain: .5, where: onGround(20, 120)},
-        {clip: 'scape-yosemite-rockfall-granite', every: [200, 420], ref: 120, reach: 6000, gain: .6, wet: 1, where: onCliff(600, 2500)}
+        {clip: 'scape-yosemite-rockfall-granite', every: [900, 2400], ref: 120, reach: 6000, gain: .6, wet: 1, where: onCliff(600, 2500)}
       ]
     },
     crater: {
@@ -470,7 +507,7 @@
       water: [{clip: 'scape-lofoten-waves-rocks', kind: 'shore', ref: 25, reach: 900, gain: .8, maxR: 700, span: 160}],
       events: [
         {clip: 'scape-lofoten-bumblebees', every: [25, 60], ref: 2.5, reach: 50, gain: .4, when: c => c.agl < 30, where: onGround(4, 25)},
-        {clip: 'scape-lofoten-white-tailed-eagle', every: [60, 140], ref: 40, reach: 1600, gain: .6, wet: .7, where: onCliff(200, 900)},
+        {clip: 'scape-lofoten-white-tailed-eagle', every: [300, 800], ref: 40, reach: 1600, gain: .6, wet: .7, where: onCliff(200, 900)},
         {clip: 'scape-lofoten-herring-gull', every: [14, 32], ref: 25, reach: 700, gain: .55, where: onWater(60, 500, 3)},
         {clip: 'scape-lofoten-arctic-tern-colony', every: [30, 70], ref: 30, reach: 800, gain: .55, where: onWater(100, 600, 4)}
       ]
@@ -492,8 +529,8 @@
       ]
     },
     winnipesaukee: {
-      choruses: [{clip: 'scape-winnipesaukee-snowy-tree-cricket', rate: 1.11 /* Dolbear's law: recorded at 21 C, sung at 23 C */, habitat: 'trees', count: 3, r: [15, 140], ref: 9, reach: 350, gain: .45},
-                 {clip: 'scape-winnipesaukee-true-katydid', habitat: 'trees', count: 3, r: [20, 160], ref: 12, reach: 450, gain: .45}],
+      choruses: [{clip: 'scape-winnipesaukee-snowy-tree-cricket', night: true, rate: 1.11 /* Dolbear's law: recorded at 21 C, sung at 23 C */, habitat: 'trees', count: 3, r: [15, 140], ref: 9, reach: 350, gain: .45},
+                 {clip: 'scape-winnipesaukee-true-katydid', night: true, habitat: 'trees', count: 3, r: [20, 160], ref: 12, reach: 450, gain: .45}],
       // Creaking boards and moored hulls at the modeled Weirs Beach and Alton Bay docks.
       loops: [{clip: 'scape-winnipesaukee-dock-creak', ref: 7, reach: 260, gain: .55, where: at(/Weirs Beach Boardwalk/, 1, 0)},
               {clip: 'scape-winnipesaukee-dock-creak', ref: 7, reach: 260, gain: .5, where: at(/Alton Bay Water Bandstand/, 1, 0)}],
@@ -509,10 +546,10 @@
       choruses: [{clip: 'scape-surry-dog-day-cicada', habitat: 'trees', count: 4, r: [20, 170], ref: 16, reach: 650, gain: .5},
                  {clip: 'scape-surry-meadow-katydid', habitat: 'grass', count: 3, r: [12, 110], ref: 8, reach: 300, gain: .4}],
       events: [
-        {clip: 'scape-surry-town-church-bell', repeat: [3, 7], spacing: 3.4, every: [140, 280], ref: 220, reach: 7000, gain: .6, wet: .7, where: c => ({x: 1860, y: ground(c.world, 1860, 4290) + 24, z: 4290})},
+        {clip: 'scape-surry-town-church-bell', repeat: [3, 7], spacing: 3.4, every: [900, 1800], ref: 220, reach: 7000, gain: .6, wet: .7, where: c => ({x: 1860, y: ground(c.world, 1860, 4290) + 24, z: 4290})},
         {clip: 'scape-surry-gray-catbird', every: [20, 45], ref: 12, reach: 300, gain: .5, where: inTrees(30, 220, .25)},
         {clip: 'scape-surry-song-sparrow', every: [16, 38], ref: 12, reach: 320, gain: .5, where: onGround(30, 250)},
-        {clip: 'scape-surry-gray-treefrog', every: [40, 90], ref: 12, reach: 280, gain: .45, where: inTrees(20, 200, .15)},
+        {clip: 'scape-surry-gray-treefrog', every: [120, 300], ref: 12, reach: 280, gain: .45, where: inTrees(20, 200, .15)},
         {clip: 'scape-winnipesaukee-chipmunk', every: [35, 80], ref: 6, reach: 150, gain: .45, where: onGround(20, 120)}
       ]
     },
@@ -521,9 +558,9 @@
       beds: [{clip: 'scape-dixville-dry-leaves', ref: 1, gain: c => (.06 + .22 * c.gust) * c.canopy}],
       events: [
         {clip: 'scape-dixville-white-throated-sparrow', every: [14, 30], ref: 16, reach: 420, gain: .6, where: inTrees(40, 300, .2)},
-        {clip: 'scape-dixville-ruffed-grouse-drum', every: [60, 140], ref: 25, reach: 700, gain: .55, where: onGround(80, 500)},
-        {clip: 'scape-dixville-canada-geese-migrating', every: [120, 280], ref: 60, reach: 2500, gain: .55, moving: true, where: inSky([150, 380], [50, 600], 3000, 18)},
-        {clip: 'scape-dixville-pileated-woodpecker', every: [50, 120], ref: 30, reach: 900, gain: .55, where: inTrees(80, 500, .6)},
+        {clip: 'scape-dixville-ruffed-grouse-drum', every: [180, 360], ref: 25, reach: 700, gain: .55, where: onGround(80, 500)},
+        {clip: 'scape-dixville-canada-geese-migrating', every: [400, 1000], ref: 60, reach: 2500, gain: .55, moving: true, where: inSky([150, 380], [50, 600], 3000, 18)},
+        {clip: 'scape-dixville-pileated-woodpecker', every: [150, 400], ref: 30, reach: 900, gain: .55, where: inTrees(80, 500, .6)},
         {clip: 'scape-dixville-blue-jay', every: [24, 55], ref: 20, reach: 500, gain: .55, where: inTrees(40, 350, .7)},
         // Eastern chipmunks are still above ground in late autumn, but call less.
         {clip: 'scape-winnipesaukee-chipmunk', every: [70, 160], ref: 6, reach: 150, gain: .42, where: onGround(20, 120)}
@@ -541,10 +578,10 @@
       ]
     },
     moosehead: {
-      choruses: [{clip: 'scape-moosehead-field-crickets', habitat: 'grass', count: 4, r: [15, 120], ref: 10, reach: 380, gain: .42}],
+      choruses: [{clip: 'scape-moosehead-field-crickets', habitat: 'grass', count: 4, r: [15, 120], ref: 10, reach: 380, gain: .3}],
       events: [
         {clip: 'scape-moosehead-mosquitoes', every: [18, 40], ref: 1.2, reach: 20, gain: .35, when: lowAndLeafy, where: nearEar()},
-        {clip: 'scape-moosehead-ovenbird', every: [16, 36], ref: 16, reach: 420, gain: .55, where: inTrees(40, 300, .15)},
+        {clip: 'scape-moosehead-ovenbird', every: [30, 70], ref: 16, reach: 420, gain: .55, where: inTrees(40, 300, .15)},
         {clip: 'scape-moosehead-black-throated-green', every: [20, 45], ref: 12, reach: 300, gain: .5, where: inTrees(40, 260, .8)},
         {clip: 'scape-moosehead-red-breasted-nuthatch', every: [24, 55], ref: 8, reach: 200, gain: .45, where: inTrees(30, 200, .7)},
         {clip: 'scape-winnipesaukee-chipmunk', every: [35, 80], ref: 6, reach: 150, gain: .45, where: onGround(20, 120)}
@@ -727,8 +764,11 @@
       engine.setRaptorHearing(on);
       const b = document.getElementById('earsToggle'); if (b) b.setAttribute('aria-pressed', String(on));
     }
+    // Small movement cues are synthesised, not recorded, so they belong to
+    // Eagle Ears only: with ordinary hearing nothing is played that was not
+    // recorded from the animal itself.
     function preyCues(now) {
-      const wl = world.wildlife; if (!wl?.nearby || now < nextCue) return;
+      const wl = world.wildlife; if (!eagleEars || !wl?.nearby || now < nextCue) return;
       nextCue = now + .3;
       rustles = rustles || [0, 1, 2, 3].map(() => synthRustle(context)); splash = splash || [0, 1, 2].map(() => synthSplash(context));
       const radius = eagleEars ? 170 : 70;
@@ -817,7 +857,8 @@
     // rattling); a landing adds a soft thump as the feet take the weight.
     let bodyNoise = null;
     function bodySound(d) {
-      if (!enabled || !d) return;
+      // Synthesised, so heard with Eagle Ears only (see preyCues).
+      if (!enabled || !d || !eagleEars) return;
       const now = context.currentTime, strength = clamp(d.strength ?? 1, 0, 1.5);
       if (!bodyNoise) {
         bodyNoise = context.createBuffer(1, Math.round(context.sampleRate * 1.5), context.sampleRate);
@@ -842,6 +883,30 @@
         osc.connect(og).connect(destination); osc.start(now); osc.stop(now + .22);
         osc.onended = () => { try { osc.disconnect(); og.disconnect(); } catch (e) {} };
       }
+    }
+    // The eagle's own wings. Each downstroke is heard twice over: the wind at
+    // the ears swells with it (see makeAirflow), and a recording of a bald
+    // eagle's wing stroke plays under it, clearest on a take-off or a slow
+    // climb where the wind does not cover it.
+    const strokes = ['eagle-wing-a', 'eagle-wing-b', 'eagle-wing-c'];
+    strokes.forEach(id => load(id));
+    load('wind-at-ears');
+    let strokeTurn = null, lastStroke = '';
+    function wingStroke(s, now) {
+      const turn = Math.floor(((s.phase || 0) - .25) / (2 * Math.PI)), began = strokeTurn !== null && turn > strokeTurn;
+      strokeTurn = turn;
+      const effort = clamp(s.effort || 0, 0, 1.2);
+      if (!began || effort < .2) return;
+      const ready = strokes.filter(id => id !== lastStroke && buffers.get(id)); if (!ready.length) return;
+      const id = lastStroke = pick(ready), v = (s.indicatedAirspeed ?? s.airspeed) || 0;
+      const src = context.createBufferSource(), g = context.createGain(), pan = context.createStereoPanner?.();
+      src.buffer = buffers.get(id); src.playbackRate.value = rand(.9, 1.1) * (.92 + .16 * effort);
+      // Loud on a take-off, half covered by the wind at cruising speed.
+      g.gain.value = .7 * effort * clamp(1.3 - v / 45, .55, 1) * (id === 'eagle-wing-c' ? .6 : 1) * rand(.8, 1.1);
+      src.connect(g);
+      if (pan) { pan.pan.value = rand(-.3, .3); g.connect(pan).connect(destination); } else g.connect(destination);
+      src.start(now);
+      src.onended = () => { for (const node of [src, g, pan]) try { node?.disconnect(); } catch (e) {} };
     }
     if (window.aerieBodySoundHandler) window.removeEventListener('aerie-eagle-body', window.aerieBodySoundHandler);
     window.aerieBodySoundHandler = e => bodySound(e.detail);
@@ -885,9 +950,11 @@
       }
       const gust = listenerWeather?.gust ?? extras.gust ?? .5;
       airflow = airflow || makeAirflow(context, destination);
+      if (!airflow.real && buffers.get('wind-at-ears')) airflow.adopt(buffers.get('wind-at-ears'));
       // Indicated airspeed already includes the air velocity relative to the
       // moving bird. The local pressure pulse adds independent ear turbulence.
       airflow.update(s, gust, now);
+      wingStroke(s, now);
       engine.setMasker(windMasker(s.airspeed || 0, gust, listenerWeather?.exposure ?? extras.open ?? extras.exposure ?? 1, lee(s)));
       const agl = Math.max(0, ear.y - ground(world, ear.x, ear.z));
       const elevationGain = extras.exposure ?? clamp(agl / 200, 0, 1);
@@ -955,9 +1022,11 @@
         else if (d > l.reach * 1.1 && entry.source) { entry.source.stop(1); entry.source = null; }
       });
       // Insect choruses seeded in habitat around the eagle.
+      const daylight = clamp(((world.sunDirection?.y ?? .4) - .05) / .2, 0, 1);
       (spec.choruses || []).forEach((ch, k) => {
         const b = buffers.get(ch.clip); if (!b) return;
         const entry = state.choruses[k] || (state.choruses[k] = []);
+        if (ch.night && daylight > .5) { entry.forEach(e => e.stop(2.5)); entry.length = 0; return; }
         for (let i = entry.length - 1; i >= 0; i--) {
           const e = entry[i];
           if (Math.hypot(e.x - ear.x, e.z - ear.z) > ch.r[1] * 1.8) { e.stop(2.5); entry.splice(i, 1); }
