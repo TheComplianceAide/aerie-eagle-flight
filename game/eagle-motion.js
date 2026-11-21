@@ -127,6 +127,7 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
   const flex = wings.map(() => ({arm: oscillator(2.1, .28), hand: oscillator(3.2, .22), noise: noise1(.18)}));
   const heave = oscillator(1.6, .38), pitchOsc = oscillator(1.9, .42), rollOsc = oscillator(1.7, .4);
   const neckSink = oscillator(2.8, .45);                            // head settles into the shoulders under G
+  const tailPump = oscillator(1.4, .35), tailPumpNoise = noise1(.35);   // balance on a windy perch
   const bodyNoise = noise3(.22);
   const controlNoise = noise3(.7);                                  // slow steering corrections while soaring
 
@@ -367,6 +368,12 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
       fluff = Math.max(fluff, env);
       if (k >= 1) { rouseT = -1; wagT = 0; }
     }
+    // On a windy perch the tail pumps to hold balance: down as a gust
+    // arrives, then small corrections while it blows.
+    if (folded > .5) {
+      const pump = drive(tailPump, .10 * gustFront * folded, step, stepNoise1(tailPumpNoise, step) * windGust * 3);
+      rudder.rotation.x += clamp(pump, -.12, .16);
+    }
     // Tail wag that settles the rectrices after the shake (about 7 Hz).
     if (wagT >= 0) {
       wagT += step;
@@ -458,7 +465,10 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
     // lift; a fast glide narrows the tail and closes the slots.
     const slowFlight = 1 - smooth(9.5, 16.5, V), fastFlight = smooth(24, 38, V),   // neutral at the 17.5 m/s cruise
        open = (1 - (pose.tuck ?? 0)) * freeFlight;
-    const tailSpeed = (.10 * slowFlight - .05 * fastFlight) * open, fingerSpeed = (.13 * slowFlight - .05 * fastFlight) * open;
+    // Circling in a thermal, the eagle opens both a little more to turn slowly.
+    const thermal = smooth(.6, 2.6, air.thermal ?? 0) * (1 - fastFlight);
+    const tailSpeed = (.10 * slowFlight + .05 * thermal - .05 * fastFlight) * open;
+    const fingerSpeed = (.13 * slowFlight + .07 * thermal - .05 * fastFlight) * open;
     for (const {side, ray} of tailRays) ray.rotation.y += side * (.06 * clamp(g, 0, 2) * freeFlight + .03 * ctl.y * activity + tailSpeed);
     for (const w of wings) w.fan.forEach((bone, i) => { bone.rotation.y += w.sign * (.5 - i / (w.fan.length - 1)) * fingerSpeed; });
     rudder.rotation.y += -.25 * slip * freeFlight;
