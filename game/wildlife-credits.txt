@@ -103,3 +103,7 @@ encoded in mono MP3 for spatial playback. They retain CC BY 4.0.
 https://creativecommons.org/licenses/by/4.0/
 Credits for all other bird, fish and amphibian materials are in credits.txt and
 field-audio-credits.txt.
+
+Ground tracks are drawn from each animal's actual travel. Split hoofprints, five-toed paw marks and the placement of hare forefeet and hind feet follow the National Park Service track references.
+https://www.nps.gov/articles/000/animaltracks.htm
+https://www.nps.gov/places/patterns-in-the-snow-exhibit.htm

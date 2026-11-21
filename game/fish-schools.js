@@ -35,7 +35,8 @@ window.makeFishSchools=function(region,waterAt,disturb){
         const x=home.x+r*Math.cos(a),z=home.z+r*Math.sin(a),level=waterAt(x,z);
         if(!Number.isFinite(level))continue;
         const length=size*(.88+random()*.24),depth=length*(.62+random()*.9),phase=random()*tau;
-        members.push({skin,x,z,y:level-depth,depth,level,length,heading:direction+random()*.25,pitch:0,bank:0,
+        const residentId=region+'/school/'+home.x.toFixed(2)+','+home.z.toFixed(2)+'/'+skin+'/'+k;
+        members.push({skin,residentId,x,z,y:level-depth,depth,level,length,heading:direction+random()*.25,pitch:0,bank:0,
           speed:cruise*length,phase,mode:0,effort:.3,seed:random()*tau,scare:0,lastSwirl:-Infinity,offsetX:x-home.x,offsetZ:z-home.z});
       }
       if(members.length)schools.push(school);
