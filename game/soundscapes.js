@@ -410,6 +410,7 @@
         {clip: 'scape-yosemite-coyote', every: [80, 200], ref: 90, reach: 3500, gain: .6, wet: .8, where: onGround(500, 1600)},
         {clip: 'scape-yosemite-brewers-blackbird', every: [16, 36], ref: 12, reach: 300, gain: .5, where: at(/El Capitan Meadow/, 1, 250)},
         {clip: 'scape-yosemite-steller-jay-yosemite', every: [26, 60], ref: 18, reach: 450, gain: .5, where: inTrees(50, 350, .7)},
+        {clip: 'scape-yosemite-chipmunk', every: [45, 110], ref: 6, reach: 150, gain: .5, where: onGround(20, 120)},
         {clip: 'scape-yosemite-rockfall-granite', every: [200, 420], ref: 120, reach: 6000, gain: .6, wet: 1, where: onCliff(600, 2500)}
       ]
     },
@@ -418,7 +419,8 @@
       beds: [{clip: 'scape-crater-rim-wind', ref: 1, gain: c => .08 + .36 * c.exposure * (.6 + .5 * c.gust)}],
       events: [
         {clip: 'scape-crater-grasshopper-crepitation', every: [9, 22], ref: 6, reach: 160, gain: .45, where: onGround(10, 90)},
-        {clip: 'scape-crater-canada-jay', every: [24, 55], ref: 15, reach: 380, gain: .5, where: inTrees(40, 260, .6)}
+        {clip: 'scape-crater-canada-jay', every: [24, 55], ref: 15, reach: 380, gain: .5, where: inTrees(40, 260, .6)},
+        {clip: 'scape-crater-chipmunk', every: [50, 120], ref: 6, reach: 150, gain: .3, where: onGround(20, 120)}
       ]
     },
     lofoten: {
@@ -907,9 +909,11 @@
     function tickEvents(now) {
       const ear = engine.ear;
       // Hoofed animals on the move. A looping source rides with each walking
-      // moose or deer near the eagle (the three nearest): brush and steps for
-      // a walk, quicker and louder when it bolts, wading where a moose stands
-      // in water. It stops when the animal stands still.
+      // moose or deer near the eagle (the three nearest): steps through leaf
+      // litter, quicker and louder when it bolts, lighter and quicker again
+      // for a deer (one recording of a heavy animal walking serves both).
+      // Where the animal is wading the litter gives way to a splash a stride.
+      // It all stops when the animal stands still.
       const walkers = [];
       for (const a of world.wildlife?.land?.drawn || []) {
         const kind = a.id === 'moose' ? 'moose' : /deer/.test(a.id || '') ? 'deer' : null;
@@ -922,17 +926,23 @@
       for (const {a, kind} of walkers) {
         let src = state.steps.get(a);
         if (!src) {
-          const id = kind === 'moose' && isWet(world, a.x, a.z) ? 'move-moose-wade' : 'move-' + kind;
-          for (const want of new Set([id, 'move-' + kind])) if (buffers.get(want) === undefined && !loading.has(want)) load(want);
-          const b = buffers.get(id) || buffers.get('move-' + kind);
+          if (buffers.get('move-moose') === undefined && !loading.has('move-moose')) load('move-moose');
+          const b = buffers.get('move-moose');
           if (!b) continue;
-          src = engine.loop(b, {x: a.x, y: a.feetY ?? a.y, z: a.z}, {gain: 0, ref: kind === 'moose' ? 9 : 6, reach: kind === 'moose' ? 190 : 130, wet: .3});
+          src = engine.loop(b, {x: a.x, y: a.feetY ?? a.y, z: a.z}, {label: 'move-' + kind, follows: true, gain: 0, ref: kind === 'moose' ? 9 : 6, reach: kind === 'moose' ? 190 : 130, wet: .3});
           if (!src) continue;
           state.steps.set(a, src);
         }
         src.x = a.x; src.y = a.feetY ?? a.y; src.z = a.z;
-        src.gain = (kind === 'moose' ? .8 : .6) * clamp((a.speed - .15) / .45, 0, 1.3);
-        src.source?.playbackRate.setTargetAtTime(clamp(.86 + .24 * a.speed, .9, 1.45), now, .3);
+        const wading = isWet(world, a.x, a.z), pace = clamp((a.speed - .15) / .45, 0, 1.3);
+        src.gain = wading ? 0 : (kind === 'moose' ? .8 : .45) * pace;
+        src.source?.playbackRate.setTargetAtTime(clamp(.86 + .24 * a.speed, .9, 1.45) * (kind === 'moose' ? 1 : 1.25), now, .3);
+        if (wading && now >= (src.nextSplash ?? 0)) {
+          src.nextSplash = now + rand(.75, 1.15) / clamp(.6 + .5 * a.speed, .7, 1.6);
+          splash = splash || [0, 1, 2].map(() => synthSplash(context));
+          engine.play(pick(splash), {x: a.x, y: a.feetY ?? a.y, z: a.z}, {label: 'wade-' + kind, follows: true, gain: (kind === 'moose' ? .5 : .32) * clamp(.5 + pace, .5, 1.5),
+            ref: kind === 'moose' ? 9 : 6, reach: kind === 'moose' ? 190 : 130, wet: .25, rate: (kind === 'moose' ? .62 : .85) * rand(.9, 1.12)});
+        }
       }
       // Moving sources follow their paths.
       for (const m of state.movers) {
