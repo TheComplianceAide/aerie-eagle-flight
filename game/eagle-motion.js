@@ -352,7 +352,7 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
       const k = clamp(airShakeT / .55, 0, 1), env = Math.sin(Math.PI * k);
       chest.rotation.z += .06 * env * Math.sin(airShakeT * 2 * Math.PI * 11);
       chest.rotation.y += .025 * env * Math.sin(airShakeT * 2 * Math.PI * 11 + 1.1);
-      fluff = Math.max(fluff, .6 * env);
+      fluff = Math.max(fluff, .45 * env);
       if (k >= 1) { airShakeT = -1; wagT = 0; }
     }
     // A tailwind at the perch lifts the back and nape feathers.
@@ -572,6 +572,7 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
     if (name === 'call') { const n = 150, e = new Float32Array(n); for (let i = 0; i < n; i++) e[i] = Math.max(0, Math.sin(i / 60 * 2 * Math.PI * 4.2)) * (i < 120 ? 1 : 0); jaw.pending = {envelope: e, rate: 60}; }
     if (name === 'rouse') rouseT = 0; else if (name === 'peer') { peerT = 0; peerAxis = 0; }
     else if (name === 'shake') shakeT = 0; else if (name === 'preen') { preenT = 0; preenDur = 3; preenSide = 1; }
+    else if (name === 'airshake') airShakeT = 0;
   }
   const api = {update, stats, setWindSource, setRainSource, trigger, tune, restoreUnanimated};
   window.aerieEagleMotionDebug = api;
