@@ -17,7 +17,7 @@
 //
 // usage: node tools/capture_directional_sound.mjs --output <dir> [--seconds 100]
 //          [--world moosehead] [--launch lake] [--route '[[x,z,altitude],...]']
-//          [--perch] [--keys '[[from,to,"Space"],...]'] [--game <game dir>] [--chrome <path>] [--no-wav]
+//          [--perch] [--keys '[[from,to,"Space"],...]'] [--script <file>] [--before <file>] [--game <game dir>] [--chrome <path>] [--no-wav]
 // With --keys the autopilot is off and the listed keys are held between the
 // given seconds of the recording (a take-off and climb, for instance).
 // With --perch the eagle lands on the launch's perch first and the recording
@@ -37,7 +37,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 const {values: options} = parseArgs({options: {
   output: {type: 'string'}, seconds: {type: 'string', default: '100'}, world: {type: 'string', default: 'moosehead'},
   launch: {type: 'string', default: 'lake'}, route: {type: 'string'}, game: {type: 'string'}, chrome: {type: 'string'}, 'no-wav': {type: 'boolean'},
-  perch: {type: 'boolean'}, keys: {type: 'string'}, script: {type: 'string'}
+  perch: {type: 'boolean'}, keys: {type: 'string'}, script: {type: 'string'}, before: {type: 'string'}
 }});
 if (!options.output) throw Error('Required argument: --output <directory>');
 const tools = path.dirname(fileURLToPath(import.meta.url));
@@ -99,14 +99,20 @@ const tap = `(() => {
       if (destination instanceof AudioDestinationNode) {
         const context = destination.context;
         if (!context.__tap) {
-          const node = context.__tap = context.createScriptProcessor(4096, 2, 2), sink = context.createGain();
+          // A worklet, not a ScriptProcessor: it runs with the audio, so a stalled page cannot drop or repeat a block.
+          const node = context.__tap = context.createGain(), sink = context.createGain();
           sink.gain.value = 0; capture.rate = context.sampleRate; capture.context = context;
-          node.onaudioprocess = event => {
-            if (!capture.on) return;
-            capture.left.push(new Float32Array(event.inputBuffer.getChannelData(0)));
-            capture.right.push(new Float32Array(event.inputBuffer.getChannelData(1)));
-          };
-          connect.call(node, sink); connect.call(sink, destination);
+          const code = "registerProcessor('aerie-tap', class extends AudioWorkletProcessor {" +
+            "constructor() { super(); this.l = new Float32Array(4096); this.r = new Float32Array(4096); this.n = 0; }" +
+            "process(inputs) { const a = inputs[0][0], b = inputs[0][1] || a, size = a ? a.length : 128;" +
+            "for (let i = 0; i < size; i++) { this.l[this.n] = a ? a[i] : 0; this.r[this.n] = b ? b[i] : 0;" +
+            "if (++this.n === 4096) { this.port.postMessage([this.l.slice(), this.r.slice()]); this.n = 0; } }" +
+            "return true; } });";
+          context.audioWorklet.addModule(URL.createObjectURL(new Blob([code], {type: 'application/javascript'}))).then(() => {
+            const worklet = new AudioWorkletNode(context, 'aerie-tap', {numberOfInputs: 1, numberOfOutputs: 1, channelCount: 2, channelCountMode: 'explicit', outputChannelCount: [2]});
+            worklet.port.onmessage = event => { if (capture.on) { capture.left.push(event.data[0]); capture.right.push(event.data[1]); } };
+            connect.call(node, worklet); connect.call(worklet, sink); connect.call(sink, destination); capture.ready = true;
+          });
         }
         connect.call(this, context.__tap);
       }
@@ -178,10 +184,12 @@ try {
   }
   await call('Runtime.enable'); await call('Page.enable');
   await call('Page.addScriptToEvaluateOnNewDocument', {source: tap});
+  // --before <file>: page JavaScript run before the game loads, for instrumentation.
+  if (options.before) await call('Page.addScriptToEvaluateOnNewDocument', {source: await fs.readFile(options.before, 'utf8')});
   await call('Page.navigate', {url: 'http://127.0.0.1:' + server.address().port + '/#world=' + options.world + '&launch=' + options.launch});
   await until(() => evaluate("document.readyState==='complete'&&typeof window.loadFlightRange==='function'"), 'loading the game');
   await evaluate("(()=>{document.body.classList.add('clearView');if(sound.title!=='Mute sound')sound.click();fly.click();})()");
-  await until(() => evaluate("app.dataset.mode==='flight'&&!!window.aerieSoundscapeDebug&&!!window.__capture.context"), 'starting the flight with sound');
+  await until(() => evaluate("app.dataset.mode==='flight'&&!!window.aerieSoundscapeDebug&&!!window.__capture.context&&!!window.__capture.ready"), 'starting the flight with sound');
   if (options.perch) {
     await evaluate("document.getElementById('perchAction')?.click()");
     await until(() => evaluate("app.dataset.perch==='perched'"), 'landing on the perch', 150000);
