@@ -550,8 +550,10 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
     // the head cocks so that eye faces the ground.
     neck.getWorldQuaternion(tmpQ);
     const lookDown = -Math.asin(clamp(ahead.copy(FORWARD).applyQuaternion(tmpQ).y, -1, 1));
-    ahead.copy(FORWARD).applyQuaternion(tmpQ.copy(neckBase.quaternion).multiply(neck.quaternion));
-    const turned = Math.atan2(ahead.x, -ahead.z);                    // + to the right of the breast
+    // Measured in the bird's own level frame: on an upright breast a downward look has almost no
+    // forward part in the breast's frame, and the smallest turn would read as a full one.
+    ahead.copy(FORWARD).applyQuaternion(tmpQ.copy(chest.quaternion).multiply(neckBase.quaternion).multiply(neck.quaternion));
+    const turned = Math.atan2(ahead.x, -ahead.z);                    // + to the right of the bird
     const wantRoll = Math.sign(turned) * .38 * smooth(.12, .55, lookDown) * smooth(.08, .4, Math.abs(turned));
     headRoll += (wantRoll - headRoll) * (1 - Math.exp(-step / .12));
     neck.quaternion.multiply(headRollQ.setFromAxisAngle(FORWARD, headRoll));

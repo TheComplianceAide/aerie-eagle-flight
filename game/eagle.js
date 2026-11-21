@@ -812,7 +812,8 @@ window.makeEagle = function makeEagle(THREE) {
     return moving?blend(foot.oldHeight,foot.height,smooth(.12,.88,stance.progress)):foot.height;
   }
   const tiltAngles=new THREE.Euler(),bodyTilt=new THREE.Quaternion(),levelFeet=new THREE.Quaternion(),bodyUp=new THREE.Vector3();
-  const tailClear={stance:null,heading:0,limit:0},tailRoot=new THREE.Vector3();
+  const tailClear={stance:null,heading:0,folded:0,limit:0},tailRoot=new THREE.Vector3();
+  const neckLean=new THREE.Quaternion(),sideAxis=new THREE.Vector3(1,0,0);
   const stepRotation=new THREE.Quaternion(),standingAxis=new THREE.Vector3(0,1,0),weightShift=new THREE.Vector3();
   const blend=(flight,landing,amount)=>flight+(landing-flight)*amount;
   let phase = 0, effort = 0, tuck = 0, lastBank = 0, turnDemand = 0;
@@ -915,21 +916,23 @@ window.makeEagle = function makeEagle(THREE) {
     worldHead.setFromEuler(headAngles.set(lockedPitch,lockedYaw,bank*.17,'YXZ'));
     headAngles.setFromQuaternion(localHead.multiply(worldHead),'YXZ');
     const flightYaw=clamp(headAngles.y,-1.33,1.33),flightNod=clamp(headAngles.x,s.gazeLanding?-1.19:-.72,.62),flightRoll=clamp(headAngles.z,-.98,.98);
-    // Perched, the head turns about the world's vertical however upright the
-    // breast sits, so it stays level as it swings round over a shoulder.
-    worldHead.setFromEuler(headAngles.set(s.perchLookPitch??0,clamp(s.perchLook??0,-1.42,1.42),0,'YXZ'));
-    headAngles.setFromQuaternion(localHead.copy(chest.quaternion).invert().multiply(worldHead),'YXZ');
-    const yaw=blend(flightYaw,clamp(headAngles.y,-1.6,1.6),fold);
-    const nod=blend(flightNod,clamp(headAngles.x,-1.45,.6),fold);
-    const roll=blend(flightRoll,clamp(headAngles.z,-1.25,1.25),fold);
+    // Perched, the head is aimed in the bird's level frame, not the frame of
+    // its upright breast: it turns about the world's vertical and nods about
+    // its own level axis, so it stays level over a shoulder and can look well
+    // down below the perch. The breast's pitch is taken back out where the
+    // bones are set, below.
+    const yaw=blend(flightYaw,clamp(s.perchLook??0,-1.42,1.42),fold);
+    const nod=blend(flightNod,clamp(s.perchLookPitch??0,-1,1.05),fold);
+    const roll=blend(flightRoll,0,fold);
     const settle=reset?1:1-Math.exp(-65*step),maxMotion=reset?Math.PI:8.6*step;
     neckPose.y+=clamp((yaw-neckPose.y)*settle,-maxMotion,maxMotion);
     neckPose.x+=clamp((nod-neckPose.x)*settle,-maxMotion,maxMotion);
     neckPose.z+=clamp((roll-neckPose.z)*settle,-maxMotion,maxMotion);
     // Share flexion along the cervical column. The upper nape turns with
     // the rigid cranium; the lower hackles stay in contact with the mantle.
-    neckBase.rotation.set(neckPose.x*.37,neckPose.y*.36,neckPose.z*.29,'YXZ');
-    neck.quaternion.copy(neckBase.quaternion).invert().multiply(neckOrientation.setFromEuler(neckPose));
+    const lean=fold*chest.rotation.x;
+    neckBase.rotation.set((neckPose.x-lean)*.37,neckPose.y*.36,neckPose.z*.29,'YXZ');
+    neck.quaternion.copy(neckBase.quaternion).invert().multiply(neckLean.setFromAxisAngle(sideAxis,-lean)).multiply(neckOrientation.setFromEuler(neckPose));
   }
   const motion=window.makeEagleMotion?.(THREE,{object,chest,neckBase,neck,rudder,tailRays,wings,feet:tuckedFeet,
     uniforms:{eyeLids,featherTurb,featherSlip,featherFluff}});
@@ -1124,8 +1127,9 @@ window.makeEagle = function makeEagle(THREE) {
     // On a thick limb the hanging tail still has to clear the wood behind the feet.
     const limb=air.perchOnRock?null:air.perchStep;
     if(limb?.supportAt&&folded>.6){
-      if(tailClear.stance!==limb||Math.abs(wrap(heading-tailClear.heading))>.04){
-        tailClear.stance=limb;tailClear.heading=heading;tailClear.limit=tailDownLimit;
+      // Searched again as the bird settles: the tail's root and the breast are still moving for a moment after touchdown.
+      if(tailClear.stance!==limb||Math.abs(wrap(heading-tailClear.heading))>.04||Math.abs(folded-tailClear.folded)>.05){
+        tailClear.stance=limb;tailClear.heading=heading;tailClear.folded=folded;tailClear.limit=tailDownLimit;
         rudder.getWorldPosition(tailRoot);
         const bx=Math.sin(heading),bz=Math.cos(heading);
         for(let down=tailDownLimit;down>.3;down-=.08){
