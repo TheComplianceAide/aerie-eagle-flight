@@ -30,7 +30,7 @@
       dixville:['waterfall-system.js','dixville-brooks.js','dixville-lidar.js','talus-data.js','rocks.js','architecture.js','dixville-landmarks.js'],
       labrador:['architecture.js','labrador-narrows-survey.js','labrador-narrows.js','labrador-camp-ground.js','labrador-cabin.js','labrador-weather.js'],
       acadia:['acadia-night.js','acadia-coast.js','acadia-ocean-path.js','acadia-sand-beach.js'],
-      lofoten:['lofoten-sea-mask.js','lofoten-reine-data.js','lofoten-reine.js','regional-waterfalls.js','falls-terrain-lofoten.js','waterfall-system.js','lofoten-hamnoy.js'],
+      lofoten:['lofoten-sea-mask.js','lofoten-reine-data.js','lofoten-reine.js','lofoten-reinevatnet-data.js','lofoten-reinevatnet.js','lofoten-reinebringen-surface.js','regional-waterfalls.js','falls-terrain-lofoten.js','waterfall-system.js','lofoten-hamnoy.js'],
       yosemite:['yosemite-meadow-field.js','yosemite-meadow.js','terrain-indices.js','waterfall-system.js','atlas-yosemite-crowns.js','talus-data.js','rocks.js'],
       moosehead:['moosehead-crowns.js','moosehead-shore-survey.js','moosehead-bank-growth.js','moosehead-uplands.js','kineo-terrain.js','regional-waterfalls.js','falls-terrain-moosehead.js','waterfall-system.js','architecture.js'],
       winnipesaukee:['regional-waterfalls.js','falls-terrain-winnipesaukee.js','waterfall-system.js','architecture.js','winnipesaukee-waterfront-data.js','winnipesaukee-waterfront.js','winnipesaukee-town-docks-data.js','survey-parked-cars.js','winnipesaukee-town-docks.js'],
@@ -42,7 +42,7 @@
     await Promise.all(assets.map(name=>name==='canopy-stream.js'
       ? Promise.all([open('close-tree-detail.js'),open('close-bark-material.js').catch(()=>{})]).then(()=>open(name)) : open(name)));
     const lakeBays=window.aerieLakeBankSites?.[region]||[];
-    const extraSurveys=region==='swiss'?[...lakeBays,'frunden']:region==='lofoten'?[...lakeBays,'korten','reine']:lakeBays;
+    const extraSurveys=region==='swiss'?[...lakeBays,'frunden']:region==='lofoten'?[...lakeBays,'korten','reine','reinebringen']:lakeBays;
     const secondarySurvey={lofoten:'hamnoy',swiss:'swisswest',yosemite:'yosemitesummits'}[region];
     await Promise.all([...extraSurveys.map(name=>window.aerieRegionalLandforms.prepare(name)),region==='acadia'?null:window.prepareRangeRelief(region),window.aerieRegionalLandforms.prepare(region),(region==='alaska'||region==='yosemite')?window.aerieTerrainIndices.prepare(region):null,secondarySurvey?window.aerieRegionalLandforms.prepare(secondarySurvey):null,region==='moosehead'?window.prepareMooseheadUplands():null]);
   };

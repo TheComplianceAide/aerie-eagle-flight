@@ -14,6 +14,7 @@
     moosehead:{name:'Mount Kineo',asset:'kineo',rock:'rhyolite',water:312.23,holes:[[236,-1260,344,-1040],[360,-964,416,-880]],
       source:'USGS 3DEP Western Mountains B24 and USDA NAIP, eastern and southern Mount Kineo, Maine'},
     lofoten:{name:'Olstinden · fjord-facing wall',asset:'lofoten',water:0,source:'Kartverket national terrain model and Copernicus Sentinel-2, Lofoten, Norway'},
+    reinebringen:{name:'Reinebringen, Reinevatnet and Hammarskaftet',asset:'reinebringen',water:0,holes:[[1432,3912,2600,4840]],source:'Kartverket 2 m DTM, Copernicus Sentinel-2 and Simo Räsänen’s Reinevågen rock photograph'},
     reine:{name:'Reine · stockfish harbour and church',asset:'reine',water:0,source:'Kartverket ground and surface models, OpenStreetMap contributors, Cappo80 (CC BY 4.0)'},
     korten:{name:'Korten · tidal skerries east of Hamnøy',asset:'korten',water:0,source:'Kartverket two-metre DTM and Copernicus Sentinel-2, 16 July 2025'},
     hamnoy:{name:'Hamnøy · fishing harbor and tidal ledges',asset:'hamnoy',water:0,source:'Kartverket national terrain model and Copernicus Sentinel-2 summer imagery, Moskenes, Norway'},
@@ -223,6 +224,7 @@
             rgb=mix(rgb,rgb*vec3(.94,.992,1.055)+vec3(.012,.019,.026)*iceGlance,glacialCover*.73);
             float irradiance=exposure*diffuse;`);
       }
+      if(spec.asset==='reinebringen')window.applyReinebringenSurface(material,localUV,texture);
       if(spec.asset==='reine'){
         const uv=localUV;
         material.fragmentShader=material.fragmentShader.replace('float skyView=occ.g,relief=',`
@@ -267,7 +269,7 @@
           }
           /* lake bank surface */`);
       }
-      if(spec.asset==='yosemite-summits'||spec.asset==='korten'||spec.asset==='reine'||(spec.lakeBank&&!hasDetail)){
+      if(spec.asset==='yosemite-summits'||spec.asset==='korten'||spec.asset==='reine'||spec.asset==='reinebringen'||(spec.lakeBank&&!hasDetail)){
         // The entire survey sits outside the valley's original aerial. Blend
         // the registered 2022 NAIP image at its edges with the true far region.
         material.fragmentShader=material.fragmentShader.replace(

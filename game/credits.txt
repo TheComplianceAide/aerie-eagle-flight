@@ -842,3 +842,10 @@ https://opendatacommons.org/licenses/odbl/1-0/
 https://commons.wikimedia.org/wiki/File:Reine_vista_dal_Reinebringen.JPG
 https://commons.wikimedia.org/wiki/File:Reine_Kirche_lub_2025-07-21_img01.jpg
 https://creativecommons.org/licenses/by/4.0/
+
+Reinebringen, Hammarskaftet and the elevated lake Reinevatnet, Moskenes, Lofoten. Elevation, lake limits, and canopy derived from the Norwegian DTM/DOM, © Kartverket, CC BY 4.0. Contains modified Copernicus Sentinel-2 data (16 July 2025). Adapted from two photographs by Simo Räsänen (Ximonic), 20 September 2015, “Marken V in Reine, Lofoten, Norway, 2015 September” and “Hammarskaftet at Reine, Lofoten, Norway, 2015 September”. The first supplied a repeating local rock material. Both supplied visible cliff detail, registered to roofs, the ridgeline and the terrain model, with daylight and autumn colour removed. The two resulting textures, reinebringen-obliques.webp and reinebringen-jointed-rock.webp, are CC BY-SA 3.0. Reinevatnet's surveyed surface is at 66.05 m. Its underwater grade is illustrative.
+https://www.kartverket.no/en/api-and-data/terms-of-use
+https://dataspace.copernicus.eu/terms-and-conditions
+https://commons.wikimedia.org/wiki/File:Marken_V_in_Reine,_Lofoten,_Norway,_2015_September.jpg
+https://commons.wikimedia.org/wiki/File:Hammarskaftet_at_Reine,_Lofoten,_Norway,_2015_September.jpg
+https://creativecommons.org/licenses/by-sa/3.0/
