@@ -1994,6 +1994,7 @@ class Water extends Mesh {
     landmarks.push({name:'Reine stockfish racks',x:2168,z:4360,approach:[2295,4334,2168,4360,24,0,10]});
     landmarks.push({name:'Olstinden',x:1570,z:1780,approach:[2570,2250,1570,1780,370,0,2]});
   }
+  if(roofHeight?.colony)landmarks=[...landmarks,roofHeight.colony.landmark];
   if(brook)landmarks=[...landmarks,{name:brook.name}];
   if(ship)landmarks=landmarks.map(mark=>mark.name===ship.mark.name?ship.mark:mark);
   if(footbridge)landmarks=[...landmarks,footbridge.landmark];
@@ -2055,7 +2056,13 @@ class Water extends Mesh {
   for(const coastalSurvey of [harborTerrain,easternSkerries,reineTerrain]){
     if(!coastalSurvey)continue;
     const harbor=coastalSurvey.add(THREE,scene,terrain,(x,z)=>regionalElevation(x,z,false),texture);
-    if(coastalSurvey===harborTerrain)window.fitHamnoyTidalWater(THREE,water,harbor);
+    if(coastalSurvey===harborTerrain){
+      window.fitHamnoyTidalWater(THREE,water,harbor);
+      // The lidar resolves the landing rock on the outer shore. Use its
+      // actual top for talon contact as the eagle follows the tide line.
+      world.surveyedPerchShelf={label:'Hamnøy tidal ledge',
+        height:harborTerrain.surfacePatch(3867,3146,117,(x,z)=>regionalElevation(x,z,false))};
+    }
     harbor.traverse(mesh=>{if(mesh.isMesh)shoreDetail.terrainEdges(mesh.geometry,false);});
   }
   if(kineo){world.kineoTerrainMaterial=terrain;world.kineoBase=(x,z)=>regionalElevation(x,z,false);}

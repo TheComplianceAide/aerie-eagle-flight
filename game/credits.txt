@@ -332,6 +332,10 @@ https://keenenh.gov/wp-content/uploads/2025/03/DowntownKeeneHistoricInventory-1.
 
 KEENE MAIN STREET PHOTOGRAPHIC TEXTURES
 
+Colony’s Block, 4–7 Central Square. The five photographic adaptations keene-colony-wall.webp, keene-colony-relief.webp, keene-colony-mansards.webp, keene-colony-slate.webp and keene-colony-neighbors.webp use “Colony Block Keene” by Ymblanter (2012-03-31), CC BY-SA 3.0. They are distributed under the same licence. Adaptations include perspective correction, branch repair, color adjustment, slate reconstruction and normal relief. See keene-colony-credits.txt for the complete credits, National Register references, direct photograph, and NH GRANIT elevation sources.
+https://commons.wikimedia.org/wiki/File:Colony_Block_Keene.jpg
+https://creativecommons.org/licenses/by-sa/3.0/
+
 These local textures use perspective-corrected crops of photographs of the actual buildings. The crops have been resized and color-balanced. Selected areas of the Colonial and Exchange fronts were repaired to reduce occlusions. The Exchange and marquee textures include cutout masks. The dates below describe the photographs.
 
 keene-front-colonial.webp — derivative licensed under CC BY-SA 4.0

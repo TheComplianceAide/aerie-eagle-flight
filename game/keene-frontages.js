@@ -34,7 +34,6 @@ window.makeKeeneFrontages=function(T,{layout,face,clearRoof}) {
     '1883.3,4446.1':[[1,17,'cream']],
     '1885.9,4460.3':[[.50,19,'red'],[1,18,'dark']],
     '1850.5,4344.1':[[.44,21,'sweet'],[1,20,'stage']],
-    '1938,4404.6':[[.32,22,'square'],[.70,null,'colony'],[1,null,'bank']],
     '1848.3,4403.1':[[.60,23,'pour'],[1,31,'chamberlain']],
     '1855.5,4421.7':[[.62,0,'ashuelot'],[1,null,'chamber']],
     '1957.6,4623.9':[[.32,24,'dark'],[.70,null,'stone'],[1,30,'red']],

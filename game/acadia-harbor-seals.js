@@ -228,7 +228,7 @@
         seed:1.37+i*2.24,behavior:'hauled out'};
     }).filter(Boolean);
     if(!actors.length)return null;
-    world.eggRockSealShelf=surface;
+    world.surveyedPerchShelf={label:'Egg Rock tidal ledge',height:surface};
     const swimmer={id:'harbor-seal',skin:'harbor-seal',name:'Harbor seal',kind:'Mammal',residentId:'acadia/egg-rock/channel/0',
       x:3981,y:0,z:-3865,length:1.62,heading:0,seed:3.28,coat:3,behavior:'surfacing'};
     const group=new T.Group();group.name='Egg Rock · harbor seal haul-out';
