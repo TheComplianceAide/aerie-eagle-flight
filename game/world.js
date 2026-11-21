@@ -448,8 +448,10 @@ class Water extends Mesh {
   const alpineVertex = `varying vec3 wp,norm;varying vec2 tileUv;
     void main(){wp=position;norm=normal;tileUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`;
   const fieldGround=texture('field-ground-scans.webp');
+  const wallPhotograph=texture(matchMedia('(pointer: coarse)').matches
+    ? 'oeschinen-east-limestone-mobile.webp' : 'oeschinen-east-limestone.webp');
   const alpineFragment = `${window.aerieFieldShader('swiss')}
-    uniform sampler2D groundScan;uniform sampler2D karstLight;uniform sampler2D photo,stone,normalMap,earth,sunMask,strata,strataNormal,surveyNormals;uniform vec3 sun;
+    uniform sampler2D wallPhotograph,groundScan;uniform sampler2D karstLight;uniform sampler2D photo,stone,normalMap,earth,sunMask,strata,strataNormal,surveyNormals;uniform vec3 sun;
     varying vec3 wp,norm;varying vec2 tileUv;
 
     // Sample a ninety-metre photographed turf and scree outcrop. The measured
@@ -533,6 +535,30 @@ class Water extends Mesh {
       float woodland=vegetation*(1.-smoothstep(230.,570.,wp.y));
       float meadow=(1.-rockMix)*(1.-snow)*smoothstep(.52,.91,n.y);
       rgb=regionalSoil(groundScan,wp,n,rgb,sun,d,woodland,1.-smoothstep(1.4,20.,abs(wp.y)),meadow);
+      // Register the field photography to the actual visible side of the eastern
+      // limestone wall. The packed ray range excludes hidden or outward-facing rock.
+      float wallCoverage=0.;
+      vec3 registeredWall=vec3(0.);
+      if(wp.x>150.&&wp.x<3900.&&wp.z> -1500.&&wp.z<2600.&&wp.y>2.&&n.y<.91){
+        vec3 ray=wp-vec3(-1104.492216,265.032841,350.411864);
+        float range=length(ray.xz),heading=degrees(atan(ray.x,-ray.z));
+        float u0=(heading-87.1353882)/229.6404732;
+        float u=u0/(1.-.00564685*u0*u0);
+        float row=267.4484402-6.9704107*degrees(ray.y/range)+(.00761974-.03737476*u)*u*1600.;
+        vec2 wallUv=vec2(((u+.5)*8192.-3100.)/2680.,1.-(row*5.12-420.)/1530.);
+        float edge=min(min(wallUv.x,wallUv.y),min(1.-wallUv.x,1.-wallUv.y));
+        if(edge>0.){
+          vec4 observed=texture2D(wallPhotograph,wallUv);
+          float facing=dot(n,normalize(-ray));
+          float photographedRange=(observed.a*255.-1.)*(7000./254.);
+          float visibility=smoothstep(0.,.048,edge)*smoothstep(.12,.64,facing);
+          visibility*=1.-smoothstep(42.,137.,abs(photographedRange-range));
+          float bareRock=smoothstep(.15,.62,rockMix)*(1.-smoothstep(.53,.84,n.y));
+          wallCoverage=visibility*bareRock*smoothstep(8.,40.,wp.y)*(1.-snow*.72)*(1.-vegetation*.28);
+          registeredWall=observed.rgb;
+          rgb=mix(rgb,registeredWall*(.92+.24*detail),wallCoverage*.91);
+        }
+      }
       lum=dot(rgb,vec3(.27,.60,.13));
       vec2 vd=(wp.xz+4000.)/8000.;
       float area=1.-smoothstep(.482,.500,max(abs(vd.x-.5),abs(vd.y-.5)));
@@ -558,6 +584,13 @@ class Water extends Mesh {
         float mica=max(dot(detailN,normalize(sun+normalize(cameraPosition-wp))),0.);
         rgb+=vec3(.09,.079,.066)*rockMix*exposure*pow(mica,23.)*smoothstep(.25,.71,detail);
       }
+      if(wallCoverage>.01){
+        // The field photo carries the metre-scale fracture pattern. The survey
+        // normal and current light determine warm ledges and blue shaded clefts.
+        float diffuseWall=clamp(.26+.74*dot(normalize(norm),sun),.08,1.);
+        vec3 wallLight=vec3(.63,.70,.83)*(.83+.17*skyView)+vec3(.66,.39,.18)*diffuseWall*mix(.49,1.,exposure);
+        rgb=mix(rgb,registeredWall*wallLight*(1.02+.06*detail),wallCoverage*.97);
+      }
       rgb+=vec3(.012,.019,.029)*(1.-exposure);
       float peak=max(rgb.r,max(rgb.g,rgb.b));
       if(peak>.74)rgb*= (.74+(peak-.74)/(1.+2.4*(peak-.74)))/peak;
@@ -565,7 +598,7 @@ class Water extends Mesh {
     }`;
   function terrainMaterial(photo) {
     return new THREE.ShaderMaterial({
-      uniforms:{groundScan:{value:fieldGround},karstLight:{value:karstLight},photo:{value:photo},stone:{value:stone},normalMap:{value:stoneNormal},earth:{value:earth},
+      uniforms:{wallPhotograph:{value:wallPhotograph},groundScan:{value:fieldGround},karstLight:{value:karstLight},photo:{value:photo},stone:{value:stone},normalMap:{value:stoneNormal},earth:{value:earth},
         sunMask:{value:visibility},strata:{value:strata},strataNormal:{value:strataNormal},surveyNormals:{value:surveyNormals},sun:{value:sun}},
       vertexShader:alpineVertex,fragmentShader:alpineFragment
     });

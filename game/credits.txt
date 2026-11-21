@@ -803,3 +803,8 @@ https://doi.org/10.1029/2017JF004455
 
 Mendenhall evening sky. Scythian Tombs (Pure Sky), photograph by Sergej Majboroda, sky preparation by Jarod Guest, Poly Haven, CC0. This atmospheric reference was photographed in Ukraine. The photographed solar azimuth and elevation were registered to the game lighting. Drifting cloud density is derived from the same photograph. The terrain and glacier are independently surveyed at Juneau.
 https://polyhaven.com/a/scythian_tombs_puresky
+
+Oeschinensee east wall field photographs. The desktop and mobile oeschinen-east-limestone textures adapt “Oeschinen Lake (Oeschinensee) panorama from above 140622” by Bob Tan (14 June 2022) and “Oeschinensee panorama view with turquoise water” by Deralpinbergsteiger (6 July 2022). Each original is licensed CC BY-SA 4.0. The photographs were cropped, exposure-balanced, registered with 709 matched image landmarks, blended across common exposed rock, and packed with a survey visibility channel. The derived textures and paired-image landmark table are also licensed CC BY-SA 4.0. Their in-game lighting is reconstructed. The underlying elevation survey has its separate swisstopo credit above.
+https://commons.wikimedia.org/wiki/File:Oeschinen_Lake_(Oeschinensee)_panorama_from_above_140622.jpg
+https://commons.wikimedia.org/wiki/File:Oeschinensee_panorama_view_with_turquoise_water.jpg
+https://creativecommons.org/licenses/by-sa/4.0/

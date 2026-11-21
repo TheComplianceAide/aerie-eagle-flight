@@ -25,3 +25,18 @@ The verified Python environment used NumPy 2.4.6, SciPy 1.17.1, Pillow 13.0.0, r
 The compressed XML is a 21 November 2026 extract of 103 building footprints, four road approaches and the bridge. It contains the original node coordinates and way IDs, with irrelevant features and contributor metadata removed. Both the extract and derived building and road tables are © OpenStreetMap contributors, available under the Open Database License 1.0. The bridge model uses the documented 60, 120 and 60 m spans. [OpenStreetMap bridge alignment](https://www.openstreetmap.org/way/75118310) · [OpenStreetMap contributors](https://www.openstreetmap.org/copyright) · [ODbL 1.0](https://opendatacommons.org/licenses/odbl/1-0/) · [Statens vegvesen bridge record](https://dokument.vegvesen.no/dokument/basis/fil/8561706)
 
 **Oeschinensee.** The 472 × 344 m western survey uses © Federal Office of Topography swisstopo, swissALTI3D 2025 (2 m) and SWISSIMAGE, LV95 E2621180–2621652 / N1149352–1149696. The modeled water elevation is 1,574.9 m. Dry gravel on the western fan is distinguished from the higher water stage in the orthophoto. The mesh has 8,799 triangles. Submerged bed material and depth are reconstructed. [swissALTI3D dataset](https://www.swisstopo.admin.ch/en/height-model-swissalti3d) · [SWISSIMAGE](https://www.swisstopo.admin.ch/en/orthoimage-swissimage) · [swisstopo terms](https://www.swisstopo.admin.ch/en/terms-of-use-free-geodata-and-geoservices)
+
+**Oeschinensee eastern limestone wall.** The field material uses two separately credited summer photographs. The first camera's skyline and central far shore were fitted to the game relief. The second photo was matched to the overlapping exposed face with 709 accepted image correspondences. A deterministic one-in-seven holdout had a 2.56 px median interpolation error on the 1,000 px-wide field photograph. The source files come from different positions, dates and times. Terrain outside the common view uses the first image or the original regional rock material. Each baked texel carries its camera range so an eagle flying behind a visible face does not see a projected forward face. This is a photographically registered surface texture on the surveyed geometry. Sub-pixel details and unseen surfaces are reconstructed.
+
+The two original photographs and the exported textures and paired-pixel table are CC BY-SA 4.0. Copyright Bob Tan and Deralpinbergsteiger. The in-game credits and both WebP files name the creators and link the sources and license. The two photographs were cropped, camera-registered, exposure balanced and blended. [Bob Tan, June 2022 panorama](https://commons.wikimedia.org/wiki/File:Oeschinen_Lake_(Oeschinensee)_panorama_from_above_140622.jpg) · [Deralpinbergsteiger, July 2022 shoreline](https://commons.wikimedia.org/wiki/File:Oeschinensee_panorama_view_with_turquoise_water.jpg) · [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)
+
+Run from the repository root with the dependencies listed above. The bake reads only the public images, the included correspondence table, and the existing game elevation fields. Its two outputs are `oeschinen-east-limestone.webp` (2100 × 1199) and `oeschinen-east-limestone-mobile.webp` (1050 × 600).
+
+```sh
+python tools/geology/field-sites/bake_oeschinen_wall.py --cache /path/to/cache --output /path/to/comparison
+```
+
+| Additional input | SHA-256 |
+| --- | --- |
+| `oeschinen-drone-june-2022.jpg` | `80dd8eac0aa10b27b1136036541377a241dadef923d0b56b94c5d55f6d9053c9` |
+| `oeschinen-shore-july-2022-3840.jpg` | `8c1650f6dee17742678fd6d55ed8f87c52d8ec759d543d0d71867795071abcfa` |
