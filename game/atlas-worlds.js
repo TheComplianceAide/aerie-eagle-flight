@@ -550,13 +550,15 @@ class Water extends Mesh {
   const reineWall=region==='lofoten'?window.aerieRegionalLandforms.get('reinebringen'):null;
   const reineTerrain=region==='lofoten'?window.aerieRegionalLandforms.get('reine'):null;
   const easternSkerries=region==='lofoten'?window.aerieRegionalLandforms.get('korten'):null;
+  const yosemiteFallsTerrain=region==='yosemite'?window.aerieRegionalLandforms.get('yosemitefalls'):null;
+  const fallsBoundary=yosemiteFallsTerrain?window.makeYosemiteFallsBoundary(THREE,yosemiteFallsTerrain.rect):null;
   const easternSummits=region==='yosemite'?window.aerieRegionalLandforms.get('yosemitesummits'):null;
   const craterAreas=region==='crater'?['watchman','cleetwood'].map(name=>window.aerieRegionalLandforms.get(name)):[];
   function craterAreaAt(x,z){return craterAreas.find(a=>x>a.rect[0]&&x<a.rect[2]&&z>a.rect[1]&&z<a.rect[3]);}
   const namedBays=window.aerieLakeBankSites?.[region]||[];
   const bankSurveys=namedBays.map(name=>window.aerieRegionalLandforms.get(name)).filter(Boolean);
   const cityPark=surry?window.keeneRiverPark:null;
-  const measuredTerrain=[landmarkTerrain,harborTerrain,easternSkerries,reineWall,reineTerrain,easternSummits,cityPark,...bankSurveys,...craterAreas].filter(Boolean);
+  const measuredTerrain=[landmarkTerrain,harborTerrain,easternSkerries,reineWall,reineTerrain,easternSummits,yosemiteFallsTerrain,cityPark,...bankSurveys,...craterAreas].filter(Boolean);
   function bayAt(x,z){
     for(const bank of bankSurveys){
       const [l,t,r,b]=bank.rect;
@@ -579,6 +581,7 @@ class Water extends Mesh {
     if(reineWall)base=reineWall.height(x,z,base);
     if(reineTerrain)base=reineTerrain.height(x,z,base);
     if(easternSkerries)base=easternSkerries.height(x,z,base);
+    if(yosemiteFallsTerrain)base=yosemiteFallsTerrain.height(x,z,fallsBoundary.corrected(x,z,base,regionalElevation));
     if(easternSummits)base=easternSummits.height(x,z,base);
     if(craterAreas.length){const site=craterAreaAt(x,z);if(site)base=site.height(x,z,base);}
     if(bankSurveys.length){const bank=bayAt(x,z);if(bank)base=bank.height(x,z,base);}
@@ -1510,6 +1513,7 @@ class Water extends Mesh {
       const dx=elevation(x-step,z)-elevation(x+step,z),dz=elevation(x,z-step)-elevation(x,z+step),inv=1/Math.hypot(dx,2*step,dz);
       n.setXYZ(i,dx*inv,2*step*inv,dz*inv);
     }
+    fallsBoundary?.observe(left,top,width,depth,nx,nz,grid);
     shoreDetail?.terrainEdges(grid,localBed);
     if(region==='yosemite'&&!localBed){
       const reduced=window.aerieTerrainIndices?.forGrid(region,left,top,nx,nz,grid);
@@ -1606,6 +1610,7 @@ class Water extends Mesh {
     map.wrapS=map.wrapT=THREE.RepeatWrapping;map.minFilter=THREE.LinearMipmapLinearFilter;
     map.magFilter=THREE.LinearFilter;map.generateMipmaps=true;map.needsUpdate=true;return map;
   }
+  fallsBoundary?.seal();
   const clock={value:0};let water=null,shoreFloor=null;
   const reinevatnet=reineWall?window.makeReinevatnet(THREE,scene,texture,skyMap,sun,clock):null;
   // A short advancing sheet and a longer damp interval share the same packet
@@ -1748,9 +1753,7 @@ class Water extends Mesh {
   }
   if(region==='yosemite'){
     chute('Bridalveil Fall',[[-1903,1825],[-1917,1803],[-1969,1744],[-1981,1730]],14);
-    chute('Yosemite Falls',[[2565,-2609],[2563,-2590],[2516,-2495],[2518,-2472]],21);
-    chute('Middle Cascades',[[2518,-2472],[2509,-2454],[2506,-2398],[2511,-2359],[2515,-2330],[2510,-2294],[2509,-2269],[2513,-2236],[2517,-2211],[2527,-2188],[2530,-2173],[2535,-2157],[2536,-2118],[2529,-2097],[2516,-2059],[2516,-2035]],8);
-    chute('Lower Yosemite Fall',[[2516,-2035],[2515,-2008],[2514,-1995],[2513,-1978],[2512,-1962],[2512,-1954],[2515,-1936]],13);
+    window.addYosemiteFalls(chute,waterfallViews);
   }
   if(dixville)for(const b of window.dixvilleBrooks){
     const width=b.name==='Baby Flume'?2.8:4.1;
@@ -2005,6 +2008,10 @@ class Water extends Mesh {
   for(const bank of bankSurveys)bank.add(THREE,scene,terrain,(x,z)=>regionalElevation(x,z,false),texture);
   const addLocalLandform=()=>landmarkTerrain.add(THREE,scene,terrain,(x,z)=>regionalElevation(x,z,false),texture);
   if(landmarkTerrain&&region!=='labrador')world.landformMesh=addLocalLandform();
+  if(yosemiteFallsTerrain){
+    const exterior=(x,z)=>fallsBoundary.corrected(x,z,regionalElevation(x,z,false),regionalElevation);
+    fallsBoundary.fit(yosemiteFallsTerrain.add(THREE,scene,terrain,exterior,texture));
+  }
   if(easternSummits)world.easternSummits=easternSummits.add(THREE,scene,terrain,(x,z)=>regionalElevation(x,z,false),texture);
   for(const area of craterAreas){
     const underlying=area.spec.asset==='watchman'?(x,z)=>landmarkTerrain.height(x,z,regionalElevation(x,z,false)):(x,z)=>regionalElevation(x,z,false);
@@ -2018,7 +2025,7 @@ class Water extends Mesh {
     harbor.traverse(mesh=>{if(mesh.isMesh)shoreDetail.terrainEdges(mesh.geometry,false);});
   }
   if(kineo){world.kineoTerrainMaterial=terrain;world.kineoBase=(x,z)=>regionalElevation(x,z,false);}
-  if(region==='yosemite'){world.talusFans=survey.talusFans;world.elCapitanMeadowCover=meadowField.cover;}
+  if(region==='yosemite'){world.ownsFallsWater=window.yosemiteFallsWater;world.talusFans=survey.talusFans;world.elCapitanMeadowCover=meadowField.cover;}
   const rainTrace=window.makeRainTrace(THREE,scene,{world,terrain,water,cabin,survey,inLake,ground:(x,z)=>Math.max(shoreFloor?.ground(x,z)??elevation(x,z),shoreFloor?.(x,z)??-Infinity)});
   if(landmarkTerrain&&region==='labrador'){
     // The camp's finite rain volume must be in the shader before the ortho

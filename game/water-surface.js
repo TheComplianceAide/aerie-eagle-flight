@@ -236,6 +236,9 @@
           const middle=(left+right)*(ordered===source ? .5 : -.5);
           centerX+=nx*middle;centerZ+=nz*middle;half=.5*(right-left);
         }
+        // The three named granite cataracts have a separate surveyed stream
+        // surface and a genuinely airborne column between each lip and pool.
+        const customReach=w.ownsFallsWater?.(centerX,centerZ)===true;
         const level=floor(centerX,centerZ)+.13;
         for(let j=0;j<7;j++){
           const f=j/3-1,px=centerX+nx*half*f,pz=centerZ+nz*half*f;
@@ -244,9 +247,9 @@
           positions.push(px,Math.max(level,floor(px,pz)+shoreClearance),pz);
           uv.push(f,run);grade.push(slope);sections.push(dx/dist,dz/dist,half,bend);
           viewStations.push(station);
-          if(i&&j){const k=base+j;indices.push(k-8,k-7,k,k-8,k,k-1);}
+          if(i&&j&&!customReach){const k=base+j;indices.push(k-8,k-7,k,k-8,k,k-1);}
         }
-        if(i){
+        if(i&&!customReach){
           const prev=previousCenter,segment=[prev[0],prev[1],centerX,centerZ,half,previousLevel,level];
           for(let cx=Math.floor((Math.min(centerX,prev[0])-half)/64);cx<=Math.floor((Math.max(centerX,prev[0])+half)/64);cx++)
             for(let cz=Math.floor((Math.min(centerZ,prev[1])-half)/64);cz<=Math.floor((Math.max(centerZ,prev[1])+half)/64);cz++){

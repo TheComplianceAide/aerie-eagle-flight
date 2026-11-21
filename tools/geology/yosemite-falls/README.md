@@ -1,0 +1,11 @@
+# Yosemite Falls and Yosemite Creek
+
+A 512 × 944 m parcel contains the lip of Upper Yosemite Fall, its landing, the Middle Cascades and the 98 m Lower Fall. Local x points east and z points south in UTM Zone 11N, with origin (268678 E, 4179436 N); vertical elevations use NAVD88 metres. The ground is the USGS October 2019 bare-earth lidar survey. The 60 cm summer 2022 USDA NAIP RGB and infrared distinguish granite, woodland and damp channel habitat. A 2 m field supplies flight and collision while adaptive triangles use the 1 m returns. Survey fringes meet actual drawn regional triangle edges.
+
+Run `python tools/geology/yosemite-falls/terrain.py CACHE game` from the repository root to create the two game assets. Python dependencies are NumPy, SciPy, Pillow with WebP support, rasterio/GDAL, pydelatin and requests. Only the required windows of the recorded government data are fetched. Geometry is reproducible from the permanent source paths. Encoded photograph bytes can vary by WebP version.
+
+The USGS National Hydrography Dataset line supplies the creek's mapped center. The site's open lips, landings, and middle rock steps were checked against the 1 m ground. In the game, water leaves each lip and accelerates vertically at 9.81 m/s². Coherent water breaks into irregular aerated streamers. The surrounding droplets advect in the live world wind, and the basin generates a low cloud of rebound spray. Nearby ordinary creek sections use the established ground-attached flow. The valley river mesh hands the fall section over to this site.
+
+The game represents active snowmelt as seen in the National Park Service photographs. NAIP was acquired in August when the falls may have different or minimal discharge. The selected width, initial water velocity, entrainment and droplet population are modeled; the source data do not measure that particular stage or momentary winds. Photographs are visual references and are not distributed in this package.
+
+[National Park Service waterfall descriptions and published heights](https://www.nps.gov/yose/planyourvisit/waterfalls.htm) · [Upper Fall from the Yosemite Falls Trail](https://www.nps.gov/yose/planyourvisit/yosemitefallstrail.htm) · [Lower Fall from the viewing area, NPS/C. Jacoby](https://www.nps.gov/places/000/yosemite-falls.htm)

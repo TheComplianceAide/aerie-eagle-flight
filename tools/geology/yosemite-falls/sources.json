@@ -1,0 +1,38 @@
+{
+  "dem": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_YosemiteNP_2019_D19/TIFF/USGS_1M_11_x27y419_CA_YosemiteNP_2019_D19.tif",
+  "hydro": "https://hydro.nationalmap.gov/arcgis/rest/services/nhd/MapServer/6/query?f=json&geometry=270678%2C4180686%2C271678%2C4182496&geometryType=esriGeometryEnvelope&inSR=32611&spatialRel=esriSpatialRelIntersects&where=1%3D1&outFields=%2A&returnGeometry=true&outSR=32611",
+  "imagery": [
+    {
+      "href": "https://naipeuwest.blob.core.windows.net/naip/v002/ca/2022/ca_060cm_2022/37119/m_3711912_sw_11_060_20220812.tif",
+      "date": "2022-08-12T16:00:00Z"
+    },
+    {
+      "href": "https://naipeuwest.blob.core.windows.net/naip/v002/ca/2022/ca_060cm_2022/37119/m_3711920_nw_11_060_20220806.tif",
+      "date": "2022-08-06T16:00:00Z"
+    }
+  ],
+  "origin": [
+    268678,
+    4179436
+  ],
+  "bounds": [
+    2000,
+    -3060,
+    3000,
+    -1250
+  ],
+  "siteBounds": [
+    2260,
+    -2712,
+    2772,
+    -1768
+  ],
+  "nationalParkReferences": [
+    "https://www.nps.gov/yose/planyourvisit/waterfalls.htm",
+    "https://www.nps.gov/yose/planyourvisit/yosemitefallstrail.htm",
+    "https://www.nps.gov/places/000/yosemite-falls.htm"
+  ],
+  "lidarCampaign": "USGS CA YosemiteNP 2019 D19, October 6\u201312 and 21\u201323, 2019",
+  "datum": "NAD83 UTM 11N published lidar; registered in EPSG:32611 and NAVD88 height. x increases east; z increases south.",
+  "licensing": "USGS 3DEP and NHD and USDA NAIP are U.S. government data. The NPS and NPS/C. Jacoby photographs were consulted for seasonal appearance, widths, and the distinction between upper and lower viewing positions."
+}

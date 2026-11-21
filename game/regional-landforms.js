@@ -21,6 +21,7 @@
     hamnoy:{name:'Hamnøy · fishing harbor and tidal ledges',asset:'hamnoy',water:0,source:'Kartverket national terrain model and Copernicus Sentinel-2 summer imagery, Moskenes, Norway'},
     milford:{name:'Rahotu Mitre Peak · crest and Sinbad wall',asset:'milford',water:0,source:'LINZ NZ 8m Digital Elevation Model (2012) and Southland 0.75m Rural Aerial Photos (2005–2011)'},
     labrador:{name:'Lac Berté · south narrows and camp headland',asset:'labrador',water:359,source:'Gouvernement du Québec MRNF 2022 lidar terrain and aerial imagery, Côte-Nord'},
+    yosemitefalls:{name:'Yosemite Falls · creek, lip and basin',asset:'yosemite-falls',source:'USGS 2019 Yosemite 1 m 3DEP and USDA August 2022 NAIP'},
     yosemite:{name:'El Capitan · Nose and southeast face',asset:'yosemite',source:'USGS 3DEP and USDA NAIP, Yosemite Valley, California'},
     yosemitesummits:{name:'Half Dome and Clouds Rest · upper Yosemite Valley',asset:'yosemite-summits',
       source:'USGS 3DEP 1/3-arcsecond DEM and USDA California 2022 60 cm NAIP, Yosemite National Park'},
