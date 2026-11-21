@@ -257,7 +257,8 @@
     let scape=null,scapeExtras={},scapeBeds=new Set();
     let eagleDue=0, birdDue=0, animalDue=0, birdIndex=0, animalIndex=0, wildlifeUntil=0;
     let alarmCheck=0;
-    const alarms=new Map(), alarmIds=[...profile.birds,...profile.animals].filter(id=>species[id]);
+    // Frogs fall silent when a predator comes near, so they keep to the rotation.
+    const alarms=new Map(), alarmIds=[...profile.birds,...profile.animals].filter(id=>species[id]&&!/frog|peeper/.test(id));
     const nextPhrase=new Map();
     let previousStage=null,pending=null,quietUntil=0,loonTake=0;
     let lastEncounter=-Infinity,nextWildlifeScan=0;
