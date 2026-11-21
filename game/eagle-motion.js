@@ -574,9 +574,18 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
     uniforms.featherSlip.value += (slip * clamp(q, 0, 2) * freeFlight + perchSlip - uniforms.featherSlip.value) * (1 - Math.exp(-8 * step));
     uniforms.featherFluff.value += (fluff * sleek - uniforms.featherFluff.value) * (1 - Math.exp(-10 * step));
     stats.turbulence = turbulence; stats.wind = +windSpeed.toFixed(2); stats.headRoll = +headRoll.toFixed(3); stats.drowsy = +drowsy.toFixed(2); stats.bill = +jaw.open.toFixed(3);
-    stats.acts = (rouseT >= 0 ? 1 : 0) | (peerT >= 0 ? 2 : 0) | (shakeT >= 0 ? 4 : 0) | (preenT >= 0 ? 8 : 0) | (wagT >= 0 ? 16 : 0) | (airShakeT >= 0 ? 32 : 0) | (jaw.env ? 64 : 0) | (scan.t >= 0 ? 128 : 0); stats.rain = +rain.toFixed(2); stats.wet = +wet.toFixed(2); stats.plumage = [+uniforms.featherTurb.value.toFixed(3), +uniforms.featherSlip.value.toFixed(3), +uniforms.featherFluff.value.toFixed(3)]; stats.membranes = [+eyes[0].membrane.toFixed(2), +eyes[1].membrane.toFixed(2)];
+    const before = stats.acts | 0;
+    stats.acts = (rouseT >= 0 ? 1 : 0) | (peerT >= 0 ? 2 : 0) | (shakeT >= 0 ? 4 : 0) | (preenT >= 0 ? 8 : 0) | (wagT >= 0 ? 16 : 0) | (airShakeT >= 0 ? 32 : 0) | (jaw.env ? 64 : 0) | (scan.t >= 0 ? 128 : 0);
+    // Tell the audio when the body does something audible: feathers rattle in
+    // a rouse or shake, and a landing has weight.
+    const began = stats.acts & ~before;
+    if (began & 1) announce('rouse', 1); if (began & 32) announce('airshake', 1); if (began & 4) announce('shake', 1);
+    if (began & 16) announce('wag', 1); if (justLanded) announce('land', 1); stats.rain = +rain.toFixed(2); stats.wet = +wet.toFixed(2); stats.plumage = [+uniforms.featherTurb.value.toFixed(3), +uniforms.featherSlip.value.toFixed(3), +uniforms.featherFluff.value.toFixed(3)]; stats.membranes = [+eyes[0].membrane.toFixed(2), +eyes[1].membrane.toFixed(2)];
     stats.tailBend = tailSprings.reduce((a, s) => a + s.offset, 0) / tailSprings.length;
     stats.primaryBend = primarySprings.reduce((a, s) => a + s.offset, 0) / primarySprings.length;
+  }
+  function announce(kind, strength) {
+    try { window.dispatchEvent(new CustomEvent('aerie-eagle-body', {detail: {kind, strength}})); } catch (e) {}
   }
   // The world's wind field, sampled at the perch: {sample(x, y, z, t, out)}.
   // Rain intensity (0 to 1) at a world position and time: (x, z, t) => number.
