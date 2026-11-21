@@ -4,6 +4,8 @@ Fly a bald eagle through twelve real-world landscapes, looking out over its righ
 
 **[Play Aerie in your browser](https://aerie-valley-flight.randyb308826.chatgpt.site/)** · [Download for offline play](https://github.com/TheComplianceAide/aerie-eagle-flight/releases/latest/download/Aerie.html)
 
+The source is public for noncommercial play, study, modification and sharing. Commercial use of protected Aerie material requires separate permission. [Licensing and asset credits](LICENSE.md)
+
 [![A bald eagle glides above Table Rock and the autumn forest of Dixville Notch under a peach-colored dawn sky](docs/media/table-rock-dawn.jpg)](https://aerie-valley-flight.randyb308826.chatgpt.site/#world=dixville&launch=dawn)
 
 *Dixville Notch, New Hampshire. The chase camera opens up the view over the eagle’s wings.* [Watch the glide](docs/media/dixville-glide.gif)

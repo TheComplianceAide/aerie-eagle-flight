@@ -1,5 +1,11 @@
 Aerie environment credits
 
+Project source and noncommercial reuse
+https://github.com/TheComplianceAide/aerie-eagle-flight/blob/main/LICENSE.md
+Original game code and tools: https://polyformproject.org/licenses/noncommercial/1.0.0
+Original artwork and writing: https://creativecommons.org/licenses/by-nc/4.0/
+The source notices below and in the regional credits govern the respective third-party materials.
+
 Oeschinensee and the Bernese Alps, Switzerland.
 Swiss federal survey sources: Federal Office of Topography swisstopo.
 SWISSIMAGE orthophotography is registered to swissALTI3D terrain in the LV95 coordinate system.
