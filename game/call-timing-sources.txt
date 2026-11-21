@@ -1,0 +1,839 @@
+AERIE CALL TIMING
+
+How often each animal in the game is heard, and what it does when the eagle
+comes close. The numbers are in game/field-audio.js (the timing table). Each
+entry below gives what the game uses, then what was found, in the researcher's
+own tags: [measured] a figure from a study, [described] a qualitative account,
+[derived] arithmetic on measured figures, [estimate] a rough figure where no
+measurement was found. Where nothing was found the game's value is a judgement
+and says so. Bald-eagle-specific call counts per flyover were found for no
+species; the eagle responses rest on accounts of behaviour toward eagles and
+other large raptors.
+
+COMMON LOON  (loon)
+Game: undisturbed, a bout every 300 to 800 s; at the eagle: calls on 70% of encounters, 1 recording a bout, up to 3 bouts 60 to 240 s apart.
+Undisturbed: [measured] Mennill 2014 (Waterbirds 37 sp1:26-36): 10 territorial
+  pairs, eastern Ontario, 25 Apr-28 May 2008-09, 6,720 recorder-hours. Per
+  territorial pair, DAYTIME (sunrise-sunset, about 14.5 h) totals: 9.3 wails,
+  4.8 yodels, 49.4 tremolos = about 63 loud calls per day. NIGHT (about 9.5
+  h): 166.8 wails, 36.5 yodels, 310.1 tremolos = about 513 calls. [derived by
+  me from those totals] day = about 4.4 loud calls/h per pair (wail 0.6/h,
+  yodel 0.3/h, tremolo 3.4/h); night = about 54 calls/h (wail 17.6/h, yodel
+  3.8/h, t...
+Raptors: [described by loon researchers; no controlled per-flyover counts]
+  Wail = low-intensity alarm, 'often given when eagles pass overhead or are
+  perched nearby' (National Loon Center). Tremolo = close-range alarm given
+  when adults or chicks are threatened by eagles, large aquatic vertebrates or
+  humans that come too close; also the only call given in flight. Males may
+  yodel when defending chicks. Loon Project (W. Piper, Wisconsin): loons
+  'often wail at them as they pass overhead'; a pair turned toward an eagle
+  that flew ...
+Confidence: high (diel rates, measured); medium (eagle response, qualitative researcher accounts)
+https://web2.uwindsor.ca/courses/biology/dmennill/pubs/2014WB26.pdf
+https://www.nationallooncenter.org/outdoorexhibit1/
+https://loonproject.org/2020/07/25/two-reasons-to-scream/
+
+CANADA GOOSE  (goose)
+Game: undisturbed, a bout every 60 to 180 s; at the eagle: calls on 100% of encounters, 3 to 5 recordings a bout, up to 2 bouts 14 to 28 s apart.
+Undisturbed: not found as a measured rate. [described] Loud honks, barks and
+  cackles, plus hisses in threat displays (All About Birds). Calling is
+  context-driven: heavy around take-off, landing, flight and spring
+  territorial encounters; a warning call from one goose alerts the flock
+  (Vassar sensory ecology summary of Whitford's work). [estimate]
+  grazing or loafing birds are quiet for minutes at a time with only soft
+  contact notes.
+Raptors: [measured, small Canada-type and Ross' geese, not large Canada geese]
+  McWilliams et al. 1994 (Wilson Bull. 106:272-288, California): eagle-caused
+  flock flushes ran 2.1-5.0 per day just after the geese arrived, falling to
+  0.4-0.7 per day later; 43-62% of flushes were at mid-day roosts; flocks over
+  3,000 were frequently flushed but less often attacked; large Great Basin
+  Canada geese were attacked less often than small geese. A flush was scored
+  when an eagle was flying in the area and the flock moved away from it.
+  [de...
+Confidence: medium (flush behaviour measured in related geese); low (vocal rate)
+https://www.allaboutbirds.org/guide/Canada_Goose/sounds
+https://archive.org/download/biostor-200568/biostor-200568.pdf
+https://pages.vassar.edu/sensoryecology/canada-goose-vocalizations/
+
+MALLARD  (mallard)
+Game: undisturbed, a bout every 90 to 240 s; at the eagle: calls on 80% of encounters, 1 to 2 recordings a bout, up to 1 bout.
+Undisturbed: [described] Only the female quacks. Decrescendo call = a series
+  of 2-10 quacks that start loud and get softer (All About Birds); typically
+  5-6 notes (Ducks Unlimited article 'Understanding Waterfowl: Science and
+  Duck Calling', summarising a Mississippi State study of 628 decrescendos
+  from 38 wild hens). 'Persistent quacking' = loud single quacks at about 2
+  per second in bouts lasting up to several minutes (Wildfowl 1990 paper on
+  persistent quacking, citing Abraham 1974), mainly by pre-laying females in
+  spring. Male...
+Raptors: [described] When bald eagles are present dabbling ducks spend
+  proportionally more time vigilant and form larger inshore flocks (Middleton,
+  Butler & Davidson 2018, Northwestern Naturalist 99). An observational note
+  surfaced by search (original scan not readable, so wording unverified):
+  dabbling ducks largely ignore eagles until a close approach, then take
+  flight; diving ducks and coots tend to stay on the water and dive. Adult
+  alarm-call counts: not found (All About Birds lists only the ducklings'
+  shrill alarm whist...
+Confidence: medium
+https://www.allaboutbirds.org/guide/Mallard/sounds
+https://wildfowl.wwt.org.uk/index.php/wildfowl/article/download/839/839
+https://bioone.org/journals/northwestern-naturalist/volume-99/issue-1/NWN16-21.1/Waterbirds-Alter-their-Distribution-and-Behavior-in-the-Presence-of/10.1898/NWN16-21.1.full
+
+AMERICAN BLACK DUCK  (black-duck)
+Game: undisturbed, a bout every 90 to 240 s; at the eagle: calls on 80% of encounters, 1 to 2 recordings a bout, up to 1 bout.
+Undisturbed: [described] Females give loud quacks and a six-syllable call that
+  falls in pitch (accent on the second syllable); males give raspy, reedy
+  calls and a flutelike whistle in courtship (All About Birds). Rate: not
+  found. [interpolated from mallard, a very close relative] treat as mallard:
+  occasional 5-6 note decrescendos, long quiet spells.
+Raptors: not found for this species. [interpolated from dabbling ducks
+  generally] more vigilance when eagles are around; flush when an eagle
+  approaches closely.
+Confidence: low
+https://www.allaboutbirds.org/guide/American_Black_Duck/sounds
+
+WOOD DUCK  (wood-duck)
+Game: undisturbed, a bout every 300 to 900 s; at the eagle: calls on 85% of encounters, 1 to 2 recordings a bout, up to 1 bout.
+Undisturbed: [described] Quiet unless disturbed. Male: thin, rising-and-
+  falling 'zeeting' whistle ('jeee'); female contact calls keep the pair
+  together in winter and spring (BirdNote). Rate: not found.
+Raptors: [described] Female gives a loud, repeated 'oo-eek, oo-eek' when
+  disturbed and taking flight (All About Birds); this is the flush call for
+  any disturbance. Eagle-specific data: not found.
+Confidence: low
+https://www.allaboutbirds.org/guide/Wood_Duck/sounds
+https://birdnote.org/node/12201
+
+COMMON MERGANSER  (merganser)
+Game: silent unless disturbed; at the eagle: calls on 40% of encounters, 1 recording a bout, up to 1 bout.
+Undisturbed: [described] 'Usually silent' (All About Birds). Females give a
+  high rapid 'cro cro cro' only to call ducklings from the nest; males give
+  bell-like or twanging calls only in courtship. Daytime rate when undisturbed
+  is effectively zero.
+Raptors: [described] Females give harsh 'gruk' calls when threatened by
+  predators; males give hoarse calls when alarmed (All About Birds). As a
+  diving duck it tends to stay on the water and dive when attacked. Counts and
+  eagle-specific data: not found.
+Confidence: medium (that it is normally silent); low (alarm detail)
+https://www.allaboutbirds.org/guide/Common_Merganser/sounds
+https://animaldiversity.org/accounts/Mergus_merganser/
+
+COMMON EIDER  (eider)
+Game: undisturbed, a bout every 90 to 240 s; at the eagle: calls on 50% of encounters, 1 to 2 recordings a bout, up to 1 bout.
+Undisturbed: [described] Males are vocal in the courtship season (late winter-
+  spring): soft cooing calls that carry far over calm water; females give a
+  low repeated 'gog-gog-gog' when feeding or answering displays (All About
+  Birds). Rate: not found. [estimate] outside courtship, rafts are
+  largely quiet.
+Raptors: [described] Harsh grating 'kor-korr-korr', probably an alarm call,
+  from both sexes (All About Birds). Creche-tending females watch the sky and
+  signal ducklings to dive when eagles approach (Maine coast natural-history
+  account); bald eagles attack adult eiders on the water (Great Duck Island
+  observations). In the Baltic, white-tailed eagle predation on incubating
+  females and ducklings reduced risk-taking and shifted breeding islands
+  (Mohring, Abo Akademi thesis). Call counts: not found.
+Confidence: low
+https://www.allaboutbirds.org/guide/Common_Eider/sounds
+https://www.pressherald.com/2022/06/16/intertiday-when-it-comes-to-this-marine-fowl-nature-is-a-fine-teacher/
+https://www.coa.edu/academics/islands/great-duck-island/seabirds-at-gdi/
+
+PARADISE SHELDUCK  (shelduck)
+Game: undisturbed, a bout every 60 to 150 s; at the eagle: calls on 100% of encounters, 2 to 4 recordings a bout, up to 3 bouts 8 to 18 s apart.
+Undisturbed: [described] Male: two-syllable goose-like honk ('zonk-zonk')
+  given when alarmed or in flight. Female: shriller, more rapid and more
+  persistent call ('zeek-zeek'), especially in flight (NZ Birds Online). Pairs
+  stay close and call in turn as they move about (Te Ara). Rate: not found.
+Raptors: [described] Alarmed pairs flee calling persistently, female most
+  prominent; parents use a broken-wing display against ground predators.
+  Response to harrier or falcon specifically: not found. (New Zealand has no
+  eagle; the swamp harrier is the usual aerial threat.)
+Confidence: low
+https://www.nzbirdsonline.org.nz/species/paradise-shelduck
+https://teara.govt.nz/en/natural-sounds/14628/male-and-female-paradise-shelduck
+
+GREAT BLUE HERON  (heron)
+Game: silent unless disturbed; at the eagle: calls on 70% of encounters, 1 recording a bout, up to 1 bout.
+Undisturbed: [described] Silent while foraging; calls are tied to disturbance
+  or to the nest ('roh-roh-roh' landing call when arriving at the nest) (All
+  About Birds). Rate away from the colony is effectively zero.
+Raptors: [described, with durations] Disturbance triggers clucking 'go-go-go'
+  calls building to a rapid 'frawnk' squawk that can last up to 20 s; a
+  directly threatened bird gives a screaming 'awk' lasting just over 2 s (All
+  About Birds). At colonies under bald eagle incursion herons 'start with a
+  chortle, and quickly move to really hideous screaming as the eagle swoops
+  in' (R. Vennesland, quoted); adults frequently flush from nests during eagle
+  attacks, and the response declines through the nesting season through
+  habituatio...
+Confidence: medium
+https://www.allaboutbirds.org/guide/Great_Blue_Heron/sounds
+https://www.sfu.ca/biology/wildberg/NewCWEPage/papers/VenneslandCJZ2010.pdf
+https://canadianfieldnaturalist.ca/index.php/cfn/article/download/1848/1966/8460
+
+BELTED KINGFISHER  (kingfisher)
+Game: undisturbed, a bout every 120 to 300 s; at the eagle: calls on 90% of encounters, 1 to 2 recordings a bout, up to 1 bout.
+Undisturbed: [measured, nest context only] Adults rattled on 92.7% of 109 nest
+  approaches and 56.2% of 105 nest departures (Wilson J. Ornithol. study, doi
+  10.1676/19-00099). [described] Strident mechanical rattle given 'in response
+  to the slightest disturbance' and in territorial disputes; usually heard as
+  the bird flies along the shore. Rattles per hour: not found.
+Raptors: [described] Rattles at any disturbance; screams (males add harsh
+  calls) when threatened (All About Birds); escapes predators such as hawks by
+  diving into the water (Pennsylvania Game Commission). Eagle-specific: not
+  found.
+Confidence: low
+https://www.allaboutbirds.org/guide/Belted_Kingfisher/sounds
+https://www.tandfonline.com/doi/abs/10.1676/19-00099
+https://www.pa.gov/agencies/pgc/wildlife/discover-pa-wildlife/kingfishers
+
+AMERICAN DIPPER  (dipper)
+Game: undisturbed, a bout every 60 to 180 s; at the eagle: calls on 40% of encounters, 1 recording a bout, up to 1 bout.
+Undisturbed: [described] Both sexes sing a loud burbling song audible over
+  rushing water; singing bouts may last up to 10 minutes; sings through much
+  of the year, vigorously from late winter (All About Birds; older Yosemite
+  account says perhaps more in winter than summer). Call: short burry 'jik'
+  ('zeet'), in bursts of 2-5, singly when bobbing on a rock or in a rapid
+  series in flight. Bouts per hour: not found.
+Raptors: not found.
+Confidence: low
+https://www.allaboutbirds.org/guide/American_Dipper/sounds
+https://nps.gov/parkhistory/online_books/grpo/birds174.htm
+
+COMMON GULL  (common-gull)
+Game: undisturbed, a bout every 30 to 90 s; at the eagle: calls on 100% of encounters, 2 to 4 recordings a bout, up to 3 bouts 6 to 14 s apart.
+Undisturbed: [described] Largely silent through the winter (BTO). At breeding
+  sites: high, scratchy, squealing 'ka', 'kyew', 'kia' calls and a display
+  long call (All About Birds account of the North American sister form, Short-
+  billed/Mew Gull). Rate: not found.
+Raptors: [described from annotated recordings, no counts] 'Kia / kiaa-kiaa'
+  alarm calls; recordings exist of alarm calling at an osprey, of calls given
+  in response to a white-tailed eagle over a loose colony, and of adults
+  mobbing at a colony edge (xeno-canto / Macaulay Library notes).
+Confidence: low
+https://bto.org/understanding-birds/birdfacts/common-gull
+https://www.allaboutbirds.org/guide/Short-billed_Gull/sounds
+https://xeno-canto.org/species/Larus-canus
+
+ARCTIC TERN  (tern)
+Game: undisturbed, a bout every 15 to 40 s; at the eagle: calls on 100% of encounters, 2 to 4 recordings a bout, up to 3 bouts 6 to 14 s apart.
+Undisturbed: [described] Colonies are noisy throughout the day in the breeding
+  season; high-pitched 'kip' when foraging or leaving the colony (All About
+  Birds). Per-bird rate: not found.
+Raptors: [described; graded response measured for gull predators] Alarmed
+  birds give a shrill, grating scream. Colony response is graded: no response,
+  then alarm calling with birds flying up from nests, then chasing and
+  attacking (Condor 102:301-306, mixed Arctic/Common Tern colony). Aerial
+  predators (gulls, falcons) provoke fierce mobbing by hundreds of birds
+  (Greenland colony study); 'dreads' (sudden mass upflights, often false
+  alarms) also occur. For a related tern, about 25 adult Aleutian Terns
+  pursued and dive-bombed a...
+Confidence: medium (mobbing behaviour); low (timing)
+https://www.allaboutbirds.org/guide/Arctic_Tern/sounds
+https://sora.unm.edu/sites/default/files/journals/condor/v102n02/p0301-p0306.pdf
+https://pub.dof.dk/artikler/689/download/doft-101-2007-73-78-thorshanes-og-odinshanes-respons-paa-alarmer-i-en-havternekoloni
+
+BLACK-LEGGED KITTIWAKE  (kittiwake)
+Game: undisturbed, a bout every 12 to 30 s; at the eagle: calls on 90% of encounters, 2 to 3 recordings a bout, up to 2 bouts 8 to 16 s apart.
+Undisturbed: [described] A nasal, repeated 'kittiwake' is the most commonly
+  heard call on the breeding grounds, plus short nasal calls between mates and
+  to chicks (All About Birds). Rate: not found. [estimate] an occupied
+  cliff is a continuous chorus; birds at sea are quiet.
+Raptors: [described; escape response scored in a thesis] Eagle overflights
+  make adults leave nests in mass panic flights; the escape response (empty
+  nests) was stronger when white-tailed eagles were present (Hornoya, UiT
+  thesis); USGS documents bald eagles disturbing nesting kittiwakes; rising
+  eagle numbers sped up the loss of an exposed colony at Rost, Norway (42-year
+  study). No distinct alarm call is described. Flush duration and time to
+  return: not found.
+Confidence: medium (flush behaviour); low (timing)
+https://www.allaboutbirds.org/guide/Black-legged_Kittiwake/sounds
+https://munin.uit.no/handle/10037/23665
+https://seapop.no/en/2023/01/white-tailed-eagles-increase-the-pressure-on-norwegian-seabird-populations/
+
+EURASIAN OYSTERCATCHER  (oystercatcher)
+Game: undisturbed, a bout every 40 to 110 s; at the eagle: calls on 100% of encounters, 2 to 4 recordings a bout, up to 3 bouts 6 to 14 s apart.
+Undisturbed: [described] 'An obvious and noisy' wader with a distinctive loud
+  piping call; group piping displays (one annotated recording about 1 min
+  long). Rate: not found.
+Raptors: [described] Attacks aerial predators such as ravens in the air near
+  the nest; the pair calls repeatedly to draw a threat away (Wikipedia,
+  cited). Annotated alarm recordings run from about 20 s to over 3 min.
+  Raptor-specific counts: not found.
+Confidence: low
+https://en.wikipedia.org/wiki/Eurasian_oystercatcher
+https://www.xeno-canto.org/species/Haematopus-ostralegus
+
+COMMON RAVEN  (raven)
+Game: undisturbed, a bout every 120 to 360 s; at the eagle: calls on 85% of encounters, 1 to 3 recordings a bout, up to 2 bouts 15 to 35 s apart.
+Undisturbed: not found as a rate. [described] Very varied repertoire (up to 33
+  call categories); the usual call is a deep gurgling croak (All About Birds).
+  [estimate] a territorial pair gives a few croaks every few minutes,
+  often in flight, with long silent gaps.
+Raptors: [described] 'Short, repeated, shrill calls when chasing predators or
+  trespassers' and deep rasping calls when the nest is disturbed (All About
+  Birds). Ravens readily mob and chase eagles: groups pursue passing golden
+  eagles at Hawk Mountain; a group mobbed a golden eagle that had caught a
+  raven for about 5 min (J. Raptor Res. 16:134-136).
+Confidence: medium (mobs eagles, qualitative); low (rate)
+https://www.allaboutbirds.org/guide/Common_Raven/sounds
+https://sora.unm.edu/sites/default/files/journals/jrr/v016n04/p00134-p00136.pdf
+https://hawkmountain.org/blog/on-the-mountain/raven-games-and-eagle-skies
+
+STELLER'S JAY  (jay)
+Game: undisturbed, a bout every 60 to 160 s; at the eagle: calls on 90% of encounters, 2 to 3 recordings a bout, up to 2 bouts 10 to 25 s apart.
+Undisturbed: [described] Loud, repeated 'shook shook shook shook' given year-
+  round in flight, perched and in aggressive encounters; also guttural notes,
+  a harsh nasal growl, mimicry of hawks; quiet whisper song in courtship (All
+  About Birds). Rate: not found.
+Raptors: [measured single observation plus experiments] 'Wah' is the mobbing
+  call: 13 s after a perched Cooper's Hawk called, one jay gave a 'wah';
+  within 7 s, 5-6 jays were mobbing the hawk in a chorus of 'wahs' (Ficken, J.
+  Field Ornithol. 60:52-55). 'Wah-wah-wah' calls are loud, harsh, wide-band
+  and are given to a stationary (perched) raptor; jays change alarm-call
+  structure with raptor species and with whether they saw or heard it
+  (Billings et al., Dryad data). For songbirds generally a raptor in flight
+  draws high 'seet'...
+Confidence: medium
+https://www.allaboutbirds.org/guide/Stellers_Jay/sounds
+https://sora.unm.edu/sites/default/files/journals/jfo/v060n01/p0052-p0055.pdf
+https://www.allaboutbirds.org/news/look-out-the-backyard-bird-alarm-call-network/
+
+CLARK'S NUTCRACKER  (nutcracker)
+Game: undisturbed, a bout every 40 to 110 s; at the eagle: calls on 70% of encounters, 1 to 2 recordings a bout, up to 2 bouts 12 to 30 s apart.
+Undisturbed: [described] No true song. Grating, metallic 'kraak' contact calls
+  'given frequently'; small flocks call back and forth with far-carrying
+  rolling calls (All About Birds). Rate: not found.
+Raptors: [described] 'Squalls when disturbed'. Raptor-specific: not found.
+Confidence: low
+https://www.allaboutbirds.org/guide/Clarks_Nutcracker/sounds
+
+ALPINE CHOUGH  (chough)
+Game: undisturbed, a bout every 25 to 70 s; at the eagle: calls on 80% of encounters, 1 to 3 recordings a bout, up to 2 bouts 10 to 25 s apart.
+Undisturbed: [described] Rippling 'preep' and whistled 'sweeeooo' calls; quiet
+  warbles and squeaks from resting or feeding birds; always forages in groups,
+  so calling is flock contact (Wikipedia, citing standard handbooks). Rate:
+  not found.
+Raptors: [described] A rolling 'churr' alarm call. Golden eagle and peregrine
+  are listed predators; what a flock does when one passes is not described in
+  the sources consulted.
+Confidence: low
+https://en.wikipedia.org/wiki/Alpine_chough
+https://www.xeno-canto.org/species/pyrrhocorax-graculus
+
+KEA  (kea)
+Game: undisturbed, a bout every 70 to 180 s; at the eagle: calls on 60% of encounters, 1 to 2 recordings a bout, up to 1 bout.
+Undisturbed: [measured repertoire, not rate] 2,884 calls from wild kea fell
+  into 7 types: chatter, mew, screech, screech-trill, trill, warble, whistle;
+  the screech ('kee-aa', a long loud descending cry) is the most common, the
+  default reply to other calls and the long-distance contact call; many quiet
+  contact calls (Schwing et al. 2012; NZ Birds Online). Rate: not found.
+Raptors: [described] The trill is the alarm call in wild kea (study of kea at
+  nests, 2020). Response to NZ falcon specifically: not found.
+Confidence: low
+https://ir.canterbury.ac.nz/handle/10092/9765
+https://www.nzbirdsonline.org.nz/species/kea
+https://bou.org.uk/blog-jo-the-call-of-the-kea/
+
+PEREGRINE FALCON  (peregrine)
+Game: silent unless disturbed; at the eagle: calls on 90% of encounters, 2 to 3 recordings a bout, up to 3 bouts 6 to 15 s apart.
+Undisturbed: [described] Calls mainly at the nest cliff in the breeding
+  season; otherwise generally silent. Rate: not found.
+Raptors: [described; one documented case] Alarm is a long series of harsh
+  'kak, kak, kak' notes (cacking), given in alarm and nest defence (All About
+  Birds). Pairs attack birds much larger than themselves near the eyrie: a
+  female left the nest, stooped at a golden eagle and struck it in the head or
+  neck, and the eagle dropped inert (Hays 1987, J. Raptor Res. 21:67). Bald-
+  eagle-specific account and trigger distance: not found.
+Confidence: medium
+https://www.allaboutbirds.org/guide/Peregrine_Falcon/sounds
+https://sora.unm.edu/sites/default/files/journals/jrr/v021n02/p00067-p00067.pdf
+
+TUI  (tui)
+Game: undisturbed, a bout every 30 to 70 s; at the eagle: calls on 60% of encounters, 1 to 2 recordings a bout, up to 1 bout.
+Undisturbed: [described] 'Usually very vocal': a loud, complicated mix of
+  tuneful notes with coughs, grunts and wheezes (NZ Birds Online). Rate: not
+  found.
+Raptors: [described] 'In flight, tui maintain contact with each other and
+  harass raptors with a repetitive scream' (NZ Birds Online), i.e. it actively
+  mobs raptors while screaming. Counts: not found.
+Confidence: medium (mobbing scream, qualitative); low (rate)
+https://www.nzbirdsonline.org.nz/species/tui
+
+AMERICAN RED SQUIRREL  (juneau-red-squirrel)
+Game: undisturbed, a bout every 400 to 800 s; at the eagle: calls on 80% of encounters, 3 to 5 recordings a bout, up to 1 bout.
+Undisturbed: [measured] Siracusa et al. 2019 (Animal Behaviour 151:29-42,
+  Kluane, Yukon): 0.71 +/- 0.03 territorial rattles per 7-min focal watch
+  (range 0-6) = one rattle every 9.8 min; autonomous recorders 07:00-13:00
+  gave 33.96 +/- 0.72 rattles per 6 h (range 3-123) = one every 9.8 min after
+  error correction. In neighbourhoods of long-familiar neighbours the rate
+  drops about threefold. (A stricter instantaneous-sampling protocol gave one
+  per 27 min.) Rattling is most intense in the autumn caching season.
+Raptors: [measured] Digweed (PhD thesis, Univ. Lethbridge 2009; Digweed &
+  Rendall 2009, Anim. Behav. 78): on meeting a predator the squirrel climbs to
+  a safe height, stamps, tail-flicks and calls in an extended bout: mean 65 s,
+  up to 11 min, 'hundreds of calls', sometimes continuing well after the
+  predator has left. Every bout mixes tonal 'seet' calls and 'seet-bark' calls
+  whatever the predator class; seets dominate the first 10 s and seet-barks
+  take over by 20-30 s. (Greene & Meagher 1998 had reported seets for aerial
+  and ...
+Confidence: high
+https://www.cs.mun.ca/~dwilson/download/siracusa-et-al-2019.pdf
+https://opus.uleth.ca/bitstreams/cf436114-36dd-4e9c-977b-6fdd9c022605/download
+https://roam.macewan.ca/islandora/object/gm:167
+
+DOUGLAS SQUIRREL  (douglas-squirrel)
+Game: undisturbed, a bout every 400 to 800 s; at the eagle: calls on 80% of encounters, 3 to 5 recordings a bout, up to 1 bout.
+Undisturbed: [described] Very vocal: calls range from a low 'chir' or 'burr'
+  to an explosive 'bauf, bauf, bauf'; five common call types shared with the
+  red squirrel, four of them for territory advertisement and aggression (Smith
+  1978, J. Mammal. 59:793-808); territorial rattle heard most in autumn. Rate:
+  not found. [interpolated from red squirrel, same genus] about one rattle per
+  10 min.
+Raptors: [described] Alarm = chatters or chucks followed by high-pitched
+  whines; goshawks and large owls are the main aerial predators (NPS). Not
+  quantified. [interpolated from red squirrel] bouts of the order of a minute,
+  occasionally many minutes.
+Confidence: low
+https://www.nps.gov/articles/000/douglas-s-squirrel.htm
+https://animaldiversity.org/accounts/Tamiasciurus_douglasii/
+https://scilit.com/publications/6122a2ba4d6de49960c9921a35b4dad5
+
+ALPINE MARMOT  (alpine-marmot)
+Game: silent unless disturbed; at the eagle: calls on 90% of encounters, 1 recording a bout, up to 1 bout.
+Undisturbed: [described] Silent while foraging; the whistle is an alarm signal
+  only. Active roughly April-September; hibernation can start in October and
+  last up to nine months at altitude.
+Raptors: [measured, from abstract] Blumstein & Arnold 1995 (Ethology
+  100:1-13): marmots were more likely to give a SINGLE-note whistle as their
+  first or only call to an aerial stimulus and MULTIPLE-note calls when first
+  calling to a terrestrial stimulus, with exceptions (humans drew every kind
+  of response); the number and rate of whistles track the caller's risk.
+  Colony members look up or run for burrows. Golden eagle is the main aerial
+  predator. [described, popular] one long whistle for an eagle, a series for a
+  fox.
+Confidence: medium
+https://acnpsearch.tweb-dev.unibo.it/singlejournalindex/27883585
+https://www.marmotburrow.ucla.edu/alpine.html
+https://en.wikipedia.org/wiki/Alpine_marmot
+
+AMERICAN PIKA  (american-pika)
+Game: undisturbed, a bout every 90 to 240 s; at the eagle: calls on 70% of encounters, 1 to 2 recordings a bout, up to 1 bout.
+Undisturbed: [described] Two call types: the short call (alarm, and
+  territorial warning to intruders) and the long call or 'song' (adult males
+  in the breeding season, both sexes in autumn). Short-call rates were
+  measured by Smith, Nagy & Millar 2016 (W. N. Am. Nat. 76(4)) and found
+  similar at low and high sites, but I could not extract the numbers: not
+  found.
+Raptors: [measured, from abstract; terrestrial predators] Ivins & Smith 1983
+  (Behav. Ecol. Sociobiol. 13:277-285): adults short-called more often and for
+  longer when predators were present than in other contexts, and called less
+  at weasels (which can follow them into the talus) than at martens. Golden
+  eagles, hawks and ravens are listed predators, but a raptor-specific calling
+  account for this species was not found. In the plateau pika (a different
+  species) one-syllable alarm calls of 0.1-0.3 s are given to approaching
+  rapt...
+Confidence: low
+https://experts.azregents.edu/en/publications/responses-of-pikas-ochotona-princeps-lagomorpha-to-naturally-occu/
+https://animaldiversity.org/accounts/Ochotona_princeps/
+https://research.fs.usda.gov/treesearch/53600
+
+DOMESTIC SHEEP  (norwegian-sheep)
+Game: undisturbed, a bout every 120 to 360 s; does not call at the eagle.
+Undisturbed: [described] 'Fairly quiet animals'. Low-pitched bleats (mouth
+  closed) are close-contact calls from ewe to lamb; high-pitched bleats (mouth
+  open) are given when ewe and lamb are separated; bleating is highest in the
+  first 3 h after birth and drops sharply by 24 h. Bleats per hour on
+  undisturbed pasture: not found.
+Raptors: not found.
+Confidence: low
+https://kids.frontiersin.org/articles/10.3389/frym.2022.703514
+https://pmc.ncbi.nlm.nih.gov/articles/PMC1691449
+
+NEW ZEALAND FUR SEAL  (nz-fur-seal)
+Game: undisturbed, a bout every 30 to 90 s; does not call at the eagle.
+Undisturbed: [described] At colonies males bark or whimper and give guttural,
+  low-intensity and full threat calls plus a submissive call; females growl
+  and give a high-pitched wailing pup-attraction call, answered by pups;
+  mother and pup calls are individually distinctive (Stirling & Warneke 1971;
+  Page et al. 2002). Rates: not found.
+Raptors: not found (no response expected).
+Confidence: low
+https://seamap.env.duke.edu/species/180631/html
+https://www.publish.csiro.au/ZO/ZO9710227
+https://ecite.utas.edu.au/25187
+
+RED-EYED VIREO  (vireo)
+Game: undisturbed, a bout every 6 to 20 s; does not call at the eagle.
+Undisturbed: [measured, single famous count] On 27 May 1952 L. de Kiriline
+  Lawrence counted 22,197 songs from one unmated male in the 14 h from before
+  dawn to evening, with singing during 10 of those hours (All About Birds).
+  [derived] about 37 song phrases per minute while singing, about 26 per
+  minute averaged over the whole day. Sings almost all day, including the mid-
+  afternoon lull; 'sometimes more than 20,000 per day'. Each male has 30+
+  phrase types.
+Raptors: not found.
+Confidence: high (measured, but an unmated male at peak season = upper end)
+https://www.allaboutbirds.org/guide/Red-eyed_Vireo/overview
+https://www.allaboutbirds.org/guide/Red-eyed_Vireo/sounds
+
+HERMIT THRUSH  (thrush)
+Game: undisturbed, a bout every 15 to 40 s; does not call at the eagle.
+Undisturbed: [measured structure] Song = introductory whistle 0.24-0.29 s plus
+  a flutey remainder 0.77-0.90 s, about 1.0-1.2 s in all (Rivers & Kroodsma
+  2000, J. Field Ornithol. 71:467-471); 'about 1.5 s' per All About Birds.
+  Each male has 6-12 song types, never repeats the same type twice in a row,
+  cycles the repertoire in about 20 songs; continuous sequences of 30-350
+  songs were recorded; no obvious morning/evening difference. Songs per
+  minute: an older comparative study (Stein 1956, Auk 73:176-192) gives 6-8
+  songs/min for th...
+Raptors: [described] Most frequent call is a low 'tchup'; gives a high
+  waxwing-like 'eeee' when in danger (All About Birds). Eagle-specific: not
+  found.
+Confidence: medium (structure, measured); low (rate)
+https://fael.forestry.oregonstate.edu/sites/default/files/2000_Rivers%20and%20Kroodsma_JFO.pdf
+https://www.allaboutbirds.org/guide/Hermit_Thrush/sounds
+https://sora.unm.edu/sites/default/files/journals/auk/v073n02/p0176-p0192.pdf
+
+AMERICAN ROBIN  (robin)
+Game: undisturbed, a bout every 20 to 50 s; does not call at the eagle.
+Undisturbed: [described] Song: a string of about 10 clear whistled phrases
+  from a few repeated syllables at a steady rhythm, then a pause, then again;
+  faster at dawn (All About Birds). Average song is under a dozen phrases and
+  a few seconds long, but robins sometimes sing for minutes without a break
+  (BirdNote). [single-recording estimate by Journey North] 8 units in 22 s,
+  about 1,300 per hour (about 22 phrases/min) in steady song.
+Raptors: [described] Sharp 'yeep' / 'peek' alarm; mumbled 'cuck/tuk'. A very
+  high, thin 'seee' is given when a hawk is flying overhead; other songbirds
+  recognise it and freeze, sometimes for many minutes (Journey North). Eagle-
+  specific: not found.
+Confidence: medium
+https://www.allaboutbirds.org/guide/American_Robin/sounds
+https://journeynorth.org/tm/robin/Dictionary.html
+https://birdnote.org/node/13029
+
+NEW ZEALAND BELLBIRD  (bellbird)
+Game: undisturbed, a bout every 25 to 60 s; does not call at the eagle.
+Undisturbed: [described] Song of ringing notes, varying by region; the famous
+  bell-like chorus is heard mostly at dawn and dusk where birds are dense (NZ
+  Birds Online). Rate: not found.
+Raptors: [described] Alarm call is a rapidly repeated harsh 'yeng'. Response
+  to falcon or harrier specifically: not found.
+Confidence: low
+https://www.nzbirdsonline.org.nz/species/bellbird
+
+ROCK WREN  (rock-wren)
+Game: undisturbed, a bout every 30 to 80 s; does not call at the eagle.
+Undisturbed: [measured pattern, not rate] Repertoire of 100 or more song
+  types; themes are rarely repeated in succession but may recur 4-5 times
+  within a burst of 10-15 songs (Kroodsma 1975, Condor 77:294-303). Song =
+  repeated dry, burry phrases, each phrase type on a different pitch. Songs
+  per minute: not found.
+Raptors: not found. Common call is a burry 'tick-ear'.
+Confidence: low
+https://sora.unm.edu/sites/default/files/journals/condor/v077n03/p0294-p0303.pdf
+https://www.allaboutbirds.org/guide/Rock_Wren/sounds
+
+BLACK-CAPPED CHICKADEE  (chickadee)
+Game: undisturbed, a bout every 40 to 100 s; does not call at the eagle.
+Undisturbed: [described] 'Fee-bee' song about 1 s, 2-3 whistled notes, sung
+  mostly in late winter-spring and at dawn, by males in relative isolation;
+  'chick-a-dee' call is the year-round flock contact and mobbing call. Songs
+  or calls per minute: not found.
+Raptors: [measured] Templeton, Greene & Davis 2005 (Science 308:1934-1937):
+  over 5,000 mobbing calls recorded to 15 live perched predators (13 raptors).
+  The number of 'dee' notes and the number of calls rise as the predator gets
+  SMALLER: small agile raptors (pygmy-owl, kestrel) drew the most calls,
+  typically 5-15 extra dees and up to 23; large raptors (great horned owl,
+  great gray owl) drew few. Eagles were not tested; as very large raptors they
+  would sit at the weak-response end [my inference]. Flying raptors draw a
+  soft, ...
+Confidence: high (alarm system); low (baseline rate)
+https://www.washington.edu/news/2005/06/23/chickadees-alarm-calls-carry-information-about-size-threat-of-predator/
+https://www.allaboutbirds.org/guide/Black-capped_Chickadee/sounds
+https://research-portal.st-andrews.ac.uk/en/publications/allometry-of-alarm-calls-black-capped-chickadees-encode-informati/
+
+MOUNTAIN CHICKADEE  (mountain-chickadee)
+Game: undisturbed, a bout every 40 to 100 s; does not call at the eagle.
+Undisturbed: [described] Whistled 'fee-bee' type song heard mainly in summer;
+  'chick-a-dee' call used for flock contact, while singing, chasing rivals and
+  mobbing (All About Birds). Rate: not found.
+Raptors: [described] Uses the chick-a-dee call when mobbing predators. Detail
+  not found; [interpolated from black-capped chickadee] expect more dees for
+  small raptors, little for very large ones.
+Confidence: low
+https://www.allaboutbirds.org/guide/Mountain_Chickadee/sounds
+
+ACORN WOODPECKER  (acorn-woodpecker)
+Game: undisturbed, a bout every 35 to 90 s; does not call at the eagle.
+Undisturbed: [described] Loud squeaky 'waka-waka-waka' used to greet group
+  members, in boundary disputes and in squabbles; also trills, harsh repeated
+  notes and chatters; groups are noisy through the day around the granary (All
+  About Birds). Rate: not found.
+Raptors: [described] A group member is always on watch at the granary. A
+  specific hawk alarm call is not described in the sources consulted: not
+  found.
+Confidence: low
+https://www.allaboutbirds.org/guide/Acorn_Woodpecker/sounds
+https://www.allaboutbirds.org/guide/Acorn_Woodpecker/overview
+
+GOLDEN-CROWNED KINGLET  (kinglet)
+Game: undisturbed, a bout every 45 to 110 s; does not call at the eagle.
+Undisturbed: [described] Song: ascending, accelerating series of up to 14 very
+  high 'tsee' notes lasting up to 3 s, sometimes ending in a tumbling warble.
+  Call: thin 'tsee' notes, usually 2-3 in a row, 'frequently given while
+  foraging' (All About Birds). Rate: not found.
+Raptors: [described] Both sexes sing when predators are nearby (All About
+  Birds). Otherwise not found.
+Confidence: low
+https://www.allaboutbirds.org/guide/Golden-crowned_Kinglet/sounds
+
+DARK-EYED JUNCO  (junco)
+Game: undisturbed, a bout every 40 to 100 s; does not call at the eagle.
+Undisturbed: [described] Song is an even trill lasting up to 2 s, 7-23 notes,
+  audible several hundred feet; a quieter varied song carries about 40 ft (All
+  About Birds). Songs per minute: not found.
+Raptors: [described] High, fast twitter of 6-19 notes when flushed or
+  fighting; 'chip' notes. Raptor-specific: not found.
+Confidence: medium (structure); low (rate)
+https://www.allaboutbirds.org/guide/Dark-eyed_Junco/sounds
+
+DUNNOCK  (dunnock)
+Game: undisturbed, a bout every 40 to 100 s; does not call at the eagle.
+Undisturbed: [described] Thin, squeaky warble lasting 2-4 s per verse (about 3
+  s), 'repeated frequently', especially in early spring (wildlife trust
+  accounts). Songs per minute: not found.
+Raptors: not found.
+Confidence: low
+https://sussexwildlifetrust.org.uk/news/dunnock-bird-song-and-calls
+https://www.bto.org/understanding-birds/birdfacts/dunnock
+
+NEW ZEALAND FANTAIL  (fantail)
+Game: undisturbed, a bout every 40 to 100 s; does not call at the eagle.
+Undisturbed: [described] 'Quite vocal' except in particularly cold weather;
+  regular 'cheep' calls while foraging; song a rhythmic chattering 'tweeta-
+  tweeta-tweeta', heard all year, most in the breeding season (August-March)
+  (NZ Birds Online). Rate: not found.
+Raptors: [described] 'Cheep' calls when alarmed; harsh chattering when chasing
+  intruders. Raptor-specific: not found.
+Confidence: low
+https://www.nzbirdsonline.org.nz/species/new-zealand-fantail
+
+TOMTIT  (tomtit)
+Game: undisturbed, a bout every 45 to 110 s; does not call at the eagle.
+Undisturbed: [described with numbers] Male full song lasts 2-3 s and is given
+  all year except during the moult (February-April); both sexes give short
+  'seet' / 'zet' / 'swee' contact calls year-round, usually singly but up to 5
+  in quick succession; a 'downscale' series of descending chuck notes (NZ
+  Birds Online). Songs per minute: not found.
+Raptors: not found.
+Confidence: low
+https://www.nzbirdsonline.org.nz/species/tomtit
+
+CANYON WREN  (canyon-wren)
+Game: undisturbed, a bout every 45 to 120 s; does not call at the eagle.
+Undisturbed: [measured pattern, not rate] Males use about 5 song types, each a
+  descending cascade of notes, sometimes ending in up to 7 harsh notes; a type
+  is repeated on average 4.6 times per bout, with breaks between bouts
+  (Benedict et al. 2013, Condor 115:874). Sings most regularly in spring and
+  summer, occasionally in winter. Song length in seconds and songs per minute:
+  not found.
+Raptors: not found.
+Confidence: low
+https://academic.oup.com/condor/article/115/4/874/5152841
+https://www.allaboutbirds.org/guide/Canyon_Wren/sounds
+
+ALPINE ACCENTOR  (accentor)
+Game: undisturbed, a bout every 45 to 120 s; does not call at the eagle.
+Undisturbed: [described] Song resembles the dunnock's but is more musical:
+  high thin whistles, trills and warbles, given from a boulder or in display
+  flight; call a rolling 'truririp'. Rate and duration: not found.
+Raptors: not found.
+Confidence: low
+https://en.wikipedia.org/wiki/Alpine_accentor
+https://www.birdforum.net/opus/Prunella_collaris
+
+MEADOW PIPIT  (pipit)
+Game: undisturbed, a bout every 45 to 110 s; does not call at the eagle.
+Undisturbed: [described] Simple repetitive song given in a short song flight,
+  accelerating and then slowing as the bird parachutes down (Wikipedia; Wild
+  Echoes). Thin calls when flushed. Song-flight duration and rate: not found.
+Raptors: not found (an alarm note is given when disturbed at the nest, per a
+  recording annotation).
+Confidence: low
+https://en.wikipedia.org/wiki/Meadow_pipit
+https://wildechoes.org/species/pipits-and-wagtails/meadow-pipit
+
+WHITE WAGTAIL  (wagtail)
+Game: undisturbed, a bout every 60 to 150 s; does not call at the eagle.
+Undisturbed: [described] Sharp two-note 'chissick' call, typically in flight;
+  the song is a simple twitter with little territorial role (Wikipedia). Rate:
+  not found.
+Raptors: not found in the sources consulted.
+Confidence: low
+https://en.wikipedia.org/wiki/White_wagtail
+
+MOUNTAIN BLUEBIRD  (bluebird)
+Game: undisturbed, a bout every 90 to 240 s; does not call at the eagle.
+Undisturbed: [described] Loud, emphatic robin-like song at dawn, often in
+  flight; by day the male gives a soft repetitive warble 'that can go on for
+  minutes'; soft nasal 'tew' / 'peu' calls (All About Birds). Rate: not found.
+Raptors: [described] High-pitched 'tink' signals alarm; snaps its bill when
+  diving at nest intruders. Raptor-specific: not found.
+Confidence: low
+https://www.allaboutbirds.org/guide/Mountain_Bluebird/sounds
+
+COMMON POORWILL  (poorwill)
+Game: undisturbed, a bout every 40 to 100 s; never by day; does not call at the eagle.
+Undisturbed: [described; moonlight effect measured] Nocturnal. Males give a
+  repeated whistled 'poor-will(ip)' from dusk to dawn on warm nights in the
+  breeding season (March-August in the south, late May-September in the
+  north); calling activity rises strongly with moonlight and is not affected
+  by artificial light (J. Field Ornithol. 94(3) art. 16). SILENT BY DAY
+  (roosts motionless on the ground). Calls per minute: not found (the 'about
+  one per second' figure belongs to the whip-poor-will, a different species).
+Raptors: [described] Disturbed birds growl, bark and hiss; a bird flushed at
+  the nest gapes and hisses. No daytime vocal response to a raptor is
+  described.
+Confidence: medium (night-only pattern); low (rate)
+https://www.allaboutbirds.org/guide/Common_Poorwill/sounds
+https://journal.afonet.org/vol94/iss3/art16/
+https://en.wikipedia.org/wiki/Common_poorwill
+
+GREEN FROG  (maine-green-frog)
+Game: undisturbed, a bout every 14 to 30 s; does not call at the eagle.
+Undisturbed: [measured] An undisturbed male calls on average once every 18 s
+  (about 3.3 calls/min) (Jenssen & Preston 1968, Herpetologica). Each
+  advertisement note is about 0.07-0.43 s (Herrick et al. 2018, J. Herpetol.
+  52:176); green frogs place their calls in the gaps between bullfrog calls.
+Raptors: [measured for disturbance by playback] the first reaction to a
+  disturbance was an extended period of silence (Jenssen & Preston 1968).
+  Predator-specific: not found.
+Confidence: medium
+https://www.faculty.biol.vt.edu/jenssen/pdfMS/1968_herpetologica_green_frog_call.pdf
+https://bioone.org/journals/journal-of-herpetology/volume-52/issue-2/17-049/Noisy-Neighbors--Acoustic-Interference-and-Vocal-Interactions-between-Two/10.1670/17-049.full
+
+AMERICAN BULLFROG  (nh-bullfrog)
+Game: undisturbed, a bout every 20 to 45 s; 6 times rarer in full daylight; does not call at the eagle.
+Undisturbed: [measured] Advertisement call = 1-12 notes (croaks); note length
+  averages about 550 ms (370-970 ms across nine males), inter-note interval
+  about 530 ms. Calling rate is low: intercall intervals of 16-36 s reported
+  for some choruses; in the recorded choruses intervals peaked below 1 s
+  (neighbours answering) and at 5-12 s. Recordings were made 21:00-24:00
+  (bullfrog chorus study, J. Acoust. Soc. Am. 2010, PMC2865710). Mainly a
+  night caller in late spring and summer, but calls are 'made during the day
+  and at night' (Ca...
+Raptors: not found. [described generally, popular source] a frog chorus goes
+  silent within seconds when a predator such as a heron, a light or movement
+  appears, and resumes later; no measured latency.
+Confidence: medium
+https://pmc.ncbi.nlm.nih.gov/articles/PMC2865710
+https://californiaherps.com/frogs/pages/l.catesbeianus.sounds.html
+
+SPRING PEEPER  (nh-spring-peeper)
+Game: undisturbed, a bout every 4 to 12 s; 8 times rarer in full daylight; does not call at the eagle.
+Undisturbed: [measured / cited] Each male normally peeps about 15-25 times per
+  minute from evening through the night (Lovett 2013); other accounts give
+  20-90 per minute, or 3,000-4,000 per hour (50-67/min) on warm nights; up to
+  13,500 calls per night (Zimmitti 1999). Temperature explains 63% of the
+  variance in calling activity (Wells et al. 1996). Neighbours alternate, the
+  follower starting 40-70 ms after the leader ends. Calls by day as well as
+  night early in the season when it is warm and wet; March-June in the north.
+Raptors: not found (choruses hush on close disturbance; no measured latency).
+Confidence: medium
+https://en.wikipedia.org/wiki/Spring_peeper
+https://northernwoodlands.org/outside_story/article/hearing_a_peep
+https://caryinstitute.org/sites/default/files/public/reprints/lovett_2013_ne_naturalist.pdf
+
+CANYON TREEFROG  (canyon-treefrog)
+Game: undisturbed, a bout every 10 to 30 s; 6 times rarer in full daylight; does not call at the eagle.
+Undisturbed: [measured] Advertisement call 0.884 +/- 0.182 s long; inter-call
+  interval 1.59 +/- 0.473 s; pulse rate 24.8 +/- 4.9 per second (Rodriguez-
+  Tejeda et al. 2014, PeerJ 2:e420, supplementary data). [derived] about 24
+  calls/min if 1.59 s is the silent gap (about 38/min if it is onset to
+  onset). Call features vary geographically. Time of day and daytime calling:
+  not found.
+Raptors: not found.
+Confidence: medium
+https://peerj.com/articles/420
+https://dfzljdn9uc3pi.cloudfront.net/2014/420/1/Rodrguez-Tejeda_et_al_supplementary_information.doc
+
+MOOSE (COW)  (moose)
+Game: undisturbed, a bout every 900 to 2400 s; does not call at the eagle.
+Undisturbed: [described, hunting/outdoor sources only; no peer-reviewed rate]
+  Cows are silent for most of the year. In the rut (mid-September to late
+  October) a receptive cow gives a long nasal moan or wail; reported lengths
+  run from about 5 s to 10 s, exceptionally 15 s. Natural calls per hour: not
+  found (hunters imitate it every 10-30 minutes, which is technique, not
+  observed cow behaviour).
+Raptors: not found (no response expected).
+Confidence: low
+https://www.fieldandstream.com/hunting/what-sound-does-moose-make/
+https://www.outdoorlife.com/calls-to-lure-bull-moose-how-and-when-to-duplicate-odd-sounds-moose-make
+
+WHITE-TAILED DEER  (white-tailed-deer)
+Game: undisturbed, a bout every 900 to 2400 s; does not call at the eagle.
+Undisturbed: [described] Normally silent. Twelve vocalisations described
+  (Atkeson, Marchinton & Miller 1988, Am. Midl. Nat.), mostly soft grunts and
+  bleats at close range; in intense agonistic encounters 1-4 rapid snorts are
+  added to the grunt.
+Raptors: not found (no response expected from adults). The alert-snort is a
+  response to ground threats; anecdotal recording notes give about 4-6 snorts
+  in an alarm bout as the deer retreats.
+Confidence: low
+https://sportingroad.com/wp-content/uploads/2024/12/Atkeson-VocalizationsWhitetailedDeer-1988.pdf
+https://macaulaylibrary.org/asset/49603
+
+RED DEER  (red-deer)
+Game: undisturbed, a bout every 240 to 900 s; does not call at the eagle.
+Undisturbed: [measured] Rut only (late September-October; peak in the first
+  two weeks of October). Automated recording for 5 min of every hour round the
+  clock across five Russian populations: mean roaring activity over the rut
+  ranged from 4-15 calls/h in quiet populations to 319-377 calls/h in dense
+  ones; time-of-day effects differ between rut phases; calling is by day and
+  night (Rusin, Volodin et al. 2021; Volodin et al. 2016, Russian J.
+  Theriol.). Roars come in bouts: a natural three-roar bout lasts 6-7 s; stags
+  answered a ri...
+Raptors: not found (no response expected).
+Confidence: medium
+https://zmmu.msu.ru/rjt/articles/ther20_1_044-058.pdf
+https://www.kmkjournals.com/upload/PDF/RJT/15/ther15_2_091_099.pdf
+https://pmc.ncbi.nlm.nih.gov/articles/PMC1564087
+
+ALPINE IBEX  (alpine-ibex)
+Game: undisturbed, a bout every 900 to 2400 s; at the eagle: calls on 80% of encounters, 1 to 2 recordings a bout, up to 1 bout.
+Undisturbed: [described] Quiet. Females and kids bleat to each other; rut is
+  December-January. Rate: not found.
+Raptors: [described] Adults give short, sharp whistles, mostly as alarm,
+  singly or in quick succession; golden eagles may take kids; the group moves
+  to steep rock and overhangs (Wikipedia, cited). Counts: not found.
+Confidence: low
+https://en.wikipedia.org/wiki/Alpine_ibex
+
+DESERT BIGHORN SHEEP  (desert-bighorn)
+Game: undisturbed, a bout every 600 to 1800 s; does not call at the eagle.
+Undisturbed: [described] 'Bighorn sheep rarely vocalize': ewes and lambs bleat
+  when looking for each other (lamb bleat, ewe guttural 'ba-aa'); rams snort
+  loudly in the rut (California DFW; NPS). Rate effectively zero for a resting
+  band.
+Raptors: [described] A cough, snort or 'blow' when alarmed. Golden eagle is a
+  listed predator (of lambs); a specific response to one overhead is not
+  described.
+Confidence: low
+https://wildlife.ca.gov/Conservation/Mammals/Bighorn-Sheep/Desert/Peninsular/Behavior
+https://www.nps.gov/jotr/learn/nature/bighorn.htm
+
+EURASIAN OTTER  (eurasian-otter)
+Game: undisturbed, a bout every 240 to 600 s; does not call at the eagle.
+Undisturbed: [described, captive study] Whistle is the contact call, given in
+  very long sequences over long distances, chiefly between mother and cubs;
+  also chirps, twitters and a chittering threat (Gnoli & Prigioni captive
+  study abstract; otter repertoire review). Wild animals are mostly nocturnal
+  or crepuscular and solitary, so rarely heard. Rate: not found.
+Raptors: not found.
+Confidence: low
+https://bioacoustics.info/article/acoustic-communication-and-related-behaviour-captive-european-otters-lutra-lutra-abstract
+https://www.wildlifeonline.me.uk/animals/species/european-otter
+
+HEAD TURNS OF THE PERCHED EAGLE
+Timed from frame counts of a perched bald eagle in U.S. Fish and Wildlife
+Service footage (public domain): a turn of 60 to 70 degrees takes 0.23 to 0.30 s,
+and the head then holds still for 0.6 to 2.1 s.
+https://commons.wikimedia.org/wiki/File:Bald_Eagle_(Haliaeetus_leucocephalus)_in_USA.webm

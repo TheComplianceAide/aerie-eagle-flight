@@ -126,6 +126,73 @@
     'american-pika':['rock',115,.62],'alpine-marmot':['meadow',230,.77],'norwegian-sheep':['meadow',145,.66],
     'golden-mantled-squirrel':['meadow',90,.64],'juneau-red-squirrel':['tree',95,.68],'douglas-squirrel':['tree',110,.69]
   });
+  // How often each animal is heard. One entry per kind of animal:
+  //   idle   seconds between its undisturbed call bouts, for those in earshot;
+  //          left out for animals that are silent unless disturbed
+  //   night  how much rarer those bouts are in full daylight (Infinity: never
+  //          by day), for animals that call from dusk to dawn
+  //   alarm  what it does when the eagle comes close; left out for animals
+  //          that do not call at an eagle (songbirds and frogs go quiet instead)
+  //     chance  that it calls at all on a given encounter
+  //     clips   recordings in one bout [fewest, most]
+  //     gap     seconds from the end of one recording to the start of the
+  //             next; negative where a flock calls over itself
+  //     bouts   bouts before it gives up: dives, hides, flies off or settles
+  //     rest    seconds between bouts
+  //     range   metres at which it reacts (otherwise 45% of its audible range, 40 to 130 m)
+  // The figures come from field studies where one exists and from species
+  // accounts otherwise; game/call-timing-sources.txt lists them one by one.
+  const flock={chance:1,clips:[2,4],gap:[.5,2.5],bouts:3,rest:[6,14]};
+  const duck={idle:[90,240],alarm:{chance:.8,clips:[1,2],gap:[1.5,4],bouts:1,rest:[30,60]}};
+  const squirrel={idle:[400,800],alarm:{chance:.8,clips:[3,5],gap:[5,12],bouts:1,rest:[60,120]}};
+  const timing={
+    // A loon pair gives 4.4 loud calls an hour by day (Mennill 2014); with an
+    // eagle about, a wail or tremolo as it passes and one every few minutes after.
+    loon:{idle:[300,800],alarm:{chance:.7,clips:[1,1],gap:[4,9],bouts:3,rest:[60,240]}},
+    goose:{idle:[60,180],alarm:{chance:1,clips:[3,5],gap:[-3.4,-2.2],bouts:2,rest:[14,28],range:160}},
+    mallard:duck,'black-duck':duck,
+    'wood-duck':{idle:[300,900],alarm:{chance:.85,clips:[1,2],gap:[1,3],bouts:1,rest:[30,60]}},
+    merganser:{alarm:{chance:.4,clips:[1,1],gap:[2,4],bouts:1,rest:[60,120]}},
+    eider:{idle:[90,240],alarm:{chance:.5,clips:[1,2],gap:[2,5],bouts:1,rest:[30,60]}},
+    shelduck:{idle:[60,150],alarm:{chance:1,clips:[2,4],gap:[1,3],bouts:3,rest:[8,18]}},
+    heron:{alarm:{chance:.7,clips:[1,1],gap:[2,4],bouts:1,rest:[60,120]}},
+    kingfisher:{idle:[120,300],alarm:{chance:.9,clips:[1,2],gap:[2,5],bouts:1,rest:[30,60]}},
+    dipper:{idle:[60,180],alarm:{chance:.4,clips:[1,1],gap:[2,4],bouts:1,rest:[30,60]}},
+    'common-gull':{idle:[30,90],alarm:flock},
+    tern:{idle:[15,40],alarm:flock},
+    kittiwake:{idle:[12,30],alarm:{chance:.9,clips:[2,3],gap:[.5,2],bouts:2,rest:[8,16]}},
+    oystercatcher:{idle:[40,110],alarm:flock},
+    raven:{idle:[120,360],alarm:{chance:.85,clips:[1,3],gap:[2,6],bouts:2,rest:[15,35]}},
+    jay:{idle:[60,160],alarm:{chance:.9,clips:[2,3],gap:[1,3],bouts:2,rest:[10,25]}},
+    nutcracker:{idle:[40,110],alarm:{chance:.7,clips:[1,2],gap:[1.5,4],bouts:2,rest:[12,30]}},
+    chough:{idle:[25,70],alarm:{chance:.8,clips:[1,3],gap:[1,3],bouts:2,rest:[10,25]}},
+    kea:{idle:[70,180],alarm:{chance:.6,clips:[1,2],gap:[2,5],bouts:1,rest:[30,60]}},
+    peregrine:{alarm:{chance:.9,clips:[2,3],gap:[1,3],bouts:3,rest:[6,15]}},
+    tui:{idle:[30,70],alarm:{chance:.6,clips:[1,2],gap:[2,4],bouts:1,rest:[30,60]}},
+    // A red squirrel rattles once in 9.8 minutes (Siracusa et al. 2019) and
+    // scolds a predator for about a minute (Digweed and Rendall 2009).
+    'juneau-red-squirrel':squirrel,'douglas-squirrel':squirrel,
+    'alpine-marmot':{alarm:{chance:.9,clips:[1,1],gap:[1,3],bouts:1,rest:[60,120]}},
+    'american-pika':{idle:[90,240],alarm:{chance:.7,clips:[1,2],gap:[3,8],bouts:1,rest:[40,90]}},
+    'norwegian-sheep':{idle:[120,360]},'nz-fur-seal':{idle:[30,90]},
+    // Songbirds, by their song rates: a red-eyed vireo sings some 37 phrases
+    // a minute, a hermit thrush 6 to 8 songs. They fall silent near the eagle.
+    vireo:{idle:[6,20]},thrush:{idle:[15,40]},robin:{idle:[20,50]},bellbird:{idle:[25,60]},'rock-wren':{idle:[30,80]},
+    chickadee:{idle:[40,100]},'mountain-chickadee':{idle:[40,100]},'acorn-woodpecker':{idle:[35,90]},
+    kinglet:{idle:[45,110]},junco:{idle:[40,100]},dunnock:{idle:[40,100]},fantail:{idle:[40,100]},tomtit:{idle:[45,110]},
+    'canyon-wren':{idle:[45,120]},accentor:{idle:[45,120]},pipit:{idle:[45,110]},wagtail:{idle:[60,150]},bluebird:{idle:[90,240]},
+    poorwill:{idle:[40,100],night:Infinity},
+    // Frogs: a green frog calls once in 18 s by day or night; bullfrogs,
+    // peepers and treefrogs are mostly heard from dusk.
+    'maine-green-frog':{idle:[14,30]},'nh-bullfrog':{idle:[20,45],night:6},'nh-spring-peeper':{idle:[4,12],night:8},
+    'canyon-treefrog':{idle:[10,30],night:6},
+    // Large mammals, by the name of their recording. Most are silent outside
+    // the rut; an ibex whistles at an eagle, which takes its kids.
+    moose:{idle:[900,2400]},'white-tailed-deer':{idle:[900,2400]},'red-deer':{idle:[240,900]},
+    'alpine-ibex':{idle:[900,2400],alarm:{chance:.8,clips:[1,2],gap:[2,5],bouts:1,rest:[60,120],range:120}},
+    'desert-bighorn':{idle:[600,1800]},'eurasian-otter':{idle:[240,600]}
+  };
+  const timingOf=id=>timing[birds[id]?.[0]]||timing[id]||{idle:[60,150]};
   const phrases={
     departure:['eagle-yellowstone','eagle-peale-long'],
     encounter:['eagle-peale-long','eagle-lake-series','eagle-yellowstone'],
@@ -237,14 +304,13 @@
     if(kind==='water'&&shore)return anchor(shore.x,waterY+.4,shore.z);
     return null;
   }
-  window.aerieFauna={scenes,species,birds,sizes,sourceSite,nearestShore};
+  window.aerieFauna={scenes,species,birds,sizes,sourceSite,nearestShore,timing,timingOf};
   window.makeFieldAudio=function makeFieldAudio(context,region){
     const profile=scenes[region];
     // The white-tailed deer recording peaks 11 dB below the others; its level makes that up.
     const calls={moose:[134,.81],'white-tailed-deer':[97,2.3],'red-deer':[185,.84],
       'alpine-ibex':[170,.74],'desert-bighorn':[125,.70],'eurasian-otter':[115,.66]};
     const localMammals=(window.aerieLandWildlife?.regions[region]?.animals||[]).filter(id=>calls[id]);
-    let mammalDue=0;
     if(!profile)throw new Error('Missing wildlife profile for '+region);
     const master=context.createGain();
     master.gain.value=0;
@@ -257,14 +323,18 @@
     let enabled=false, generation=0, tick=0, started=false;
     // Regional 3D soundscape (soundscapes.js): created once the world exists.
     let scape=null,scapeExtras={},scapeBeds=new Set();
-    let eagleDue=0, birdDue=0, animalDue=0, birdIndex=0, animalIndex=0, wildlifeUntil=0;
+    let eagleDue=0, wildlifeUntil=0, idleTurn=0;
+    // Each kind of animal keeps its own time: when its next undisturbed bout is due.
+    const idleIds=[...profile.birds,...profile.animals].filter(id=>species[id]),idleDue=new Map(),mammalDue=new Map();
+    const between=([a,b])=>random(a,b);
     let alarmCheck=0;
     // Species-appropriate quiet. Frogs and small songbirds fall silent when a
     // raptor is close: they keep to the ordinary rotation and say nothing
-    // while the eagle is inside their hush radius. Waterfowl, corvids, jays,
-    // chickadees, kingfishers, herons, loons and squirrels call out instead.
-    const hushOf=id=>/frog|peeper/.test(id)?60:/accentor|wagtail|wren|bluebird|junco|robin|pipit|bellbird|vireo|kinglet|thrush|dunnock|tomtit|fantail|apapane|poorwill/.test(id)?35:0;
-    const alarms=new Map(), alarmIds=[...profile.birds,...profile.animals].filter(id=>species[id]&&!hushOf(id));
+    // while the eagle is inside their hush radius; chickadees give a thin
+    // 'seet' and freeze for a raptor on the wing. Waterfowl, corvids, jays,
+    // kingfishers, herons, loons and squirrels call out instead.
+    const hushOf=id=>/frog|peeper/.test(id)?60:/accentor|wagtail|wren|bluebird|junco|robin|pipit|bellbird|vireo|kinglet|thrush|dunnock|tomtit|fantail|apapane|poorwill|chickadee/.test(id)?35:0;
+    const alarms=new Map(), alarmIds=idleIds.filter(id=>timingOf(id).alarm&&!hushOf(id));
     const nextPhrase=new Map();
     let previousStage=null,pending=null,quietUntil=0,loonTake=0;
     let lastEncounter=-Infinity,nextWildlifeScan=0;
@@ -333,10 +403,13 @@
       if(profile.birds.includes('loon-moosehead'))load('maine-loon-reply');
       for(const id of [...profile.birds,...profile.animals,...playerCalls])load(id);
       for(const id of localMammals)load('land-'+id);
-      mammalDue=now+(started?2.3:.63);
       previousStage=null;pending=null;quietUntil=now;
       eagleDue=now+(started?random(14,24):random(3.9,5.4));
-      birdDue=now+random(1.0,2.5);animalDue=now+random(7.5,11);wildlifeUntil=now;
+      // Every animal starts somewhere in its own cycle, so a flight does not open with a chorus.
+      idleDue.clear();mammalDue.clear();alarms.clear();
+      for(const id of idleIds)idleDue.set(id,timingOf(id).idle?now+random(.04,1)*between(timingOf(id).idle):Infinity);
+      for(const id of localMammals)mammalDue.set(id,timingOf(id).idle?now+random(.1,1)*between(timingOf(id).idle):Infinity);
+      wildlifeUntil=now;
       started=true;tick=0;
     }
     const actorIds=new WeakMap();let actorCount=0;
@@ -552,52 +625,71 @@
       }
       // wildlifeUntil already covers the complete eagle phrase. Give a nearby
       // mammal its turn before an ambient bird starts during the eagle's rest.
-      if(localMammals.length&&now>=mammalDue&&now>=wildlifeUntil){
-        mammalDue=now+1.3;
-        for(const id of localMammals){
-          const [reach,gain]=calls[id],actor=world.wildlife?.land?.caller(id,s,reach);
-          if(!actor)continue;
-          const anchor={x:actor.x,y:actor.y,z:actor.z,actor,reach,gain};
-          if(voice('land-'+id,gain,0,11500,anchor)){
-            wildlifeUntil=now+buffers.get('land-'+id).duration+.5;
-            mammalDue=now+random(34,63);break;
-          }
+      // Animals of the dusk and the night call seldom, or not at all, under a high sun.
+      const daylight=clamp(((world.sunDirection?.y??.4)-.05)/.2,0,1);
+      const pause=id=>{const manner=timingOf(id);return between(manner.idle)*(daylight>0&&manner.night?1+(manner.night-1)*daylight:1);};
+      for(const id of localMammals){
+        if(now<wildlifeUntil||now<mammalDue.get(id))continue;
+        const [reach,gain]=calls[id],actor=world.wildlife?.land?.caller(id,s,reach);
+        if(!actor){mammalDue.set(id,now+random(2,5));continue;}
+        const anchor={x:actor.x,y:actor.y,z:actor.z,actor,reach,gain};
+        if(voice('land-'+id,gain,0,11500,anchor)){
+          wildlifeUntil=now+buffers.get('land-'+id).duration+.5;
+          mammalDue.set(id,now+pause(id));
+        }else mammalDue.set(id,now+random(2,5));
+      }
+      // Undisturbed calling. One animal is considered each frame, in turn: if
+      // its bout is due and one of its kind is in earshot, it calls and its
+      // own clock starts again. An animal the eagle is beside is left to the
+      // alarm below: it is watching the eagle, not singing.
+      if(now>=wildlifeUntil&&idleIds.length){
+        const id=idleIds[idleTurn++%idleIds.length],wary=alarms.get(id);
+        if(now>=idleDue.get(id)&&pause(id)<1e6&&!(wary&&now-wary.seen<8)){
+          const call=callWildlife([id],0,s,world,lastShore,waterY,agl);
+          idleDue.set(id,now+(call?pause(id):random(2,5)));
+          if(call)wildlifeUntil=now+call.duration+.6;
         }
       }
-      if(now>=wildlifeUntil&&now>=animalDue){
-        const call=callWildlife(profile.animals,animalIndex,s,world,lastShore,waterY,agl);
-        animalDue=now+(call?random(24,43):2.3);
-        if(call){animalIndex=call.index;wildlifeUntil=now+call.duration+.6;}
-      }
-      if(now>=wildlifeUntil&&now>=birdDue){
-        const call=callWildlife(profile.birds,birdIndex,s,world,lastShore,waterY,agl);
-        birdDue=now+(call?random(8,17):1.3);
-        if(call){birdIndex=call.index;wildlifeUntil=now+call.duration+.6;}
-      }
-      // Approach alarm. Birds and small mammals call out when the eagle comes
-      // close, without waiting for their usual turn: within about half their
-      // audible range the nearest one calls at once and repeats while the
-      // eagle stays near. Geese honk over one another as it passes a flock.
-      // After a quarter of a minute beside the same animals they settle to an
-      // occasional call.
+      // Approach alarm. An animal that calls at an eagle does so as it comes
+      // close, without waiting for its usual turn, in the way of its kind: a
+      // flock of geese honks over itself and settles, a loon gives a tremolo
+      // or two and dives, a marmot whistles once and is gone. Each encounter
+      // is decided afresh; a new encounter begins after 20 seconds away or
+      // with animals well apart from the last ones.
       if(now>=alarmCheck){
         alarmCheck=now+.3;
         let voiced=false;
-        for(const id of alarmIds){
-          const [,reach,gain]=species[id],goose=birds[id]?.[0]==='goose',range=goose?160:clamp(reach*.45,40,130);
-          const near=world.wildlife?.nearest(id,s,range);
-          if(!near)continue;
-          const state=alarms.get(id)||alarms.set(id,{seen:-Infinity,began:-Infinity,due:0}).get(id);
-          if(now-state.seen>6)state.began=now;
+        const answer=(id,near,manner,reach,gain,clip)=>{
+          const state=alarms.get(id)||alarms.set(id,{seen:-Infinity,due:0,bouts:0,left:0,calls:false,x:0,z:0}).get(id);
+          if(now-state.seen>20||Math.hypot(near.x-state.x,near.z-state.z)>180){
+            state.bouts=state.left=0;state.calls=Math.random()<manner.chance;state.due=now;state.x=near.x;state.z=near.z;
+          }
           state.seen=now;
-          if(now<state.due||voiced)continue;
+          if(!state.calls||now<state.due||voiced)return;
+          if(!state.left){
+            if(state.bouts>=manner.bouts)return;
+            state.bouts++;state.left=Math.round(between(manner.clips));
+          }
+          const range=manner.range??clamp(reach*.45,40,130);
           const d=Math.hypot(s.x-near.x,s.y-near.y,s.z-near.z),close=1-clamp((d-.2*range)/(.8*range),0,1);
-          const settled=now-state.began>15,length=buffers.get(id)?.duration||2;
-          if(voice(id,gain*(settled?.5:.62+.38*close),0,14000,{...near,reach,gain})){
-            state.due=now+(goose?(settled?random(6,11):random(1.9,3.3)-1.2*close):length+(settled?random(8,14):random(1.2,3.5)));
+          const length=buffers.get(clip)?.duration||2;
+          if(voice(clip,gain*(.62+.38*close),0,14000,{...near,reach,gain})){
+            state.left--;
+            state.due=now+(state.left?Math.max(.8,length+between(manner.gap)):length+between(manner.rest));
             wildlifeUntil=Math.max(wildlifeUntil,now+Math.min(length,1.4)+.2);
             voiced=true;
           }
+        };
+        for(const id of alarmIds){
+          const [,reach,gain]=species[id],manner=timingOf(id).alarm;
+          const near=world.wildlife?.nearest(id,s,manner.range??clamp(reach*.45,40,130));
+          if(near)answer(id,near,manner,reach,gain,id);
+        }
+        for(const id of localMammals){
+          const manner=timingOf(id).alarm;
+          if(!manner)continue;
+          const [reach,gain]=calls[id],actor=world.wildlife?.land?.caller(id,s,manner.range??120);
+          if(actor)answer(id,{x:actor.x,y:actor.y,z:actor.z,actor},manner,reach,gain,'land-'+id);
         }
       }
     }
