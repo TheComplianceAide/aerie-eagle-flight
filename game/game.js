@@ -300,7 +300,9 @@
       // Keep lifting area while pitching over from a slow glide. Sweep the
       // hand progressively as gravity builds airspeed and dynamic pressure.
       const diveSweep=.16+.84*smooth(10.5,22,s.airspeed);
-      const diveDemand=clamp(-s.climb,0,1)*diveSweep*(1-s.effort)*(flaring?0:1)*(1-brake);
+      // A dive asked for more steeply than the ground allows is still a dive:
+      // the hand stays swept through the stoop and opens as the pullout begins.
+      const diveDemand=clamp(-s.climb,0,1)*diveSweep*(1-s.effort)*(1-groundFlare)*(1-brake);
       s.tuck+=(diveDemand-s.tuck)*easing(diveDemand>s.tuck?2.0:4.8,dt);
       const efficientSpan=.96-.065*smooth(15,27,s.airspeed);
       const recoveryFlex=.085*s.effort*Math.max(0,-Math.sin(s.phase));
