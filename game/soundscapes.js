@@ -324,11 +324,15 @@
     const x = p.x + rand(-jitter, jitter), z = p.z + rand(-jitter, jitter);
     return {x, y: ground(c.world, x, z) + dy, z};
   };
-  const onWater = (r0, r1, dy = .6) => c => {
+  // Placements marked stable name a habitat. Their callers keep fixed posts
+  // in the world (see stablePost), so a bird heard on the approach is the
+  // same bird, in the same tree, on the way back.
+  const stable = fn => { fn.stable = true; return fn; };
+  const onWater = (r0, r1, dy = .6) => stable(c => {
     const p = randomWaterNear(c.world, c.ear.x, c.ear.z, r0, r1); if (!p) return null;
     return {x: p.x, y: (waterLevel(c.world) ?? ground(c.world, p.x, p.z)) + dy, z: p.z};
-  };
-  const onCliff = (r0, r1) => c => steepNear(c.world, c.ear.x, c.ear.z, r0, r1);
+  });
+  const onCliff = (r0, r1) => stable(c => steepNear(c.world, c.ear.x, c.ear.z, r0, r1));
   const inSky = (above, offset, length, speed) => c => {
     const path = passPath(c.ear, {offset, length, speed});
     const y = Math.max(c.ear.y, ground(c.world, c.ear.x, c.ear.z)) + rand(above[0], above[1]);
@@ -341,21 +345,60 @@
     return {path: {ax: p.x - dx * length / 2, az: p.z - dz * length / 2, bx: p.x + dx * length / 2, bz: p.z + dz * length / 2, speed, y}};
   };
   const fixed = (x, y, z) => c => ({x, y: y ?? ground(c.world, x, z) + 2, z});
-  const inTrees = (r0, r1, frac = .6) => c => {
+  const inTrees = (r0, r1, frac = .6) => stable(c => {
     for (let i = 0; i < 20; i++) {
       const a = Math.random() * Math.PI * 2, r = rand(r0, r1), x = c.ear.x + Math.cos(a) * r, z = c.ear.z + Math.sin(a) * r;
       const t = c.world.habitat?.nearestTree?.(x, z, 40);
       if (t) return {x: t.x, y: t.y + t.height * frac, z: t.z};
     }
     return null;
-  };
-  const onGround = (r0, r1) => c => {
+  });
+  const onGround = (r0, r1) => stable(c => {
     for (let i = 0; i < 20; i++) {
       const a = Math.random() * Math.PI * 2, r = rand(r0, r1), x = c.ear.x + Math.cos(a) * r, z = c.ear.z + Math.sin(a) * r;
       if (!isWet(c.world, x, z)) return {x, y: ground(c.world, x, z) + .5, z};
     }
     return null;
-  };
+  });
+
+  // ---- directional logic shared with the checks ---------------------------------
+  // Songbirds and frogs fall silent when a raptor is close; jays, chickadees,
+  // squirrels, waterfowl and corvids do not (they scold or sound the alarm).
+  function hushRadius(name) {
+    if (/frog|peeper|toad/.test(name)) return 60;
+    if (/sparrow|thrush|veery|vireo|warbler|ovenbird|wren|kinglet|catbird|junco|robin|pipit|dunnock|accentor|wagtail|bluebird|bellbird|tomtit|fantail|black-throated|apapane|poorwill|grouse/.test(name)) return 45;
+    return 0;
+  }
+  // How deep the eagle sits in the wind shadow of terrain: 0 in the open, 1 in
+  // deep lee. The skyline is measured upwind from the eagle's own height, so
+  // the rock that shelters a bird low against its face does nothing for one
+  // above the summit.
+  function leeShelter(world, x, y, z) {
+    const wind = world.windField?.direction; if (!wind) return 0;
+    let skyline = -1;
+    for (const r of [45, 110, 220, 400, 650]) skyline = Math.max(skyline, (ground(world, x - wind.x * r, z - wind.z * r) - y) / r);
+    return smooth(.03, .42, skyline);
+  }
+  // Wind noise at the ears, as a level comparable to a source's arriving level:
+  // it grows steeply with airspeed, more in gusts and in the open, and falls
+  // away in the lee of terrain.
+  function windMasker(airspeed, gust = .5, exposure = 1, lee = 0) {
+    const open = clamp(exposure, 0, 1) * (1 - .8 * clamp(lee, 0, 1));
+    return .012 * Math.pow(clamp(airspeed / 17.5, 0, 3), 2.6) * (1 + .6 * clamp(gust, 0, 1) * (1 - .7 * clamp(lee, 0, 1))) * (.35 + .65 * open);
+  }
+  // A repeatable random stream for one world cell, so a post is always found in the same place.
+  function seededRandom(a, b, c) {
+    let h = (Math.imul(a + 374761393, 668265263) ^ Math.imul(b + 1274126177, 2246822519) ^ Math.imul(c + 3266489917, 3266489917)) >>> 0;
+    return () => { h = (Math.imul(h ^ (h >>> 15), 2246822519) + 374761393) >>> 0; h ^= h >>> 13; return (((Math.imul(h, 3266489917) >>> 0) ^ (h >>> 16)) >>> 0) / 4294967296; };
+  }
+  const POST_CELL = 160;      // metres; one post per caller kind per cell
+  function postFor(where, index, ix, iz, context) {
+    const centre = {x: (ix + .5) * POST_CELL, y: context.ear.y, z: (iz + .5) * POST_CELL};
+    const random = Math.random;
+    Math.random = seededRandom(index, ix, iz);
+    try { return where(Object.assign({}, context, {ear: centre})); } finally { Math.random = random; }
+  }
+  window.aerieSoundLogic = {hushRadius, windMasker, leeShelter, postFor, POST_CELL};
 
   const nearEar = (r = 1.6) => c => ({x: c.ear.x + rand(-r, r), y: c.ear.y + rand(-.4, .7), z: c.ear.z + rand(-r, r)});
   const lowAndLeafy = c => c.agl < 18 && !c.overWater;
@@ -597,7 +640,8 @@
       return null;
     }
     let enabled = false;
-    const state = {falls: new Map(), water: [], beds: [], loops: [], choruses: [], movers: new Set(), steps: new Map(), rain: null, due: new Map()};
+    const state = {falls: new Map(), water: [], beds: [], loops: [], choruses: [], movers: new Set(), steps: new Map(), rain: null, due: new Map(),
+      posts: new Map(), singers: new Map(), voices: new Set()};
     const rainTex = {};
     function rainTexture(surface, density) {
       const key = surface + density;
@@ -611,6 +655,8 @@
       for (const c of state.choruses) c.forEach(e => e.stop(.4));
       for (const m of state.movers) m.source.stop(.3);
       for (const src of state.steps.values()) src.stop(.3);
+      for (const v of state.voices) v.source.stop?.(.3);
+      state.voices.clear();
       if (state.rain) state.rain.emitters.forEach(s => s.stop(.4));
       state.falls.clear(); state.water = []; state.beds = []; state.loops = []; state.choruses = []; state.movers.clear(); state.steps.clear(); state.rain = null;
     }
@@ -811,6 +857,7 @@
       // Indicated airspeed already includes the air velocity relative to the
       // moving bird. The local pressure pulse adds independent ear turbulence.
       airflow.update(s, gust, now);
+      engine.setMasker(windMasker(s.airspeed || 0, gust, listenerWeather?.exposure ?? extras.open ?? extras.exposure ?? 1, lee(s)));
       const agl = Math.max(0, ear.y - ground(world, ear.x, ear.z));
       const elevationGain = extras.exposure ?? clamp(agl / 200, 0, 1);
       const exposure = listenerWeather ? listenerWeather.exposure * (.34 + .66 * elevationGain) : elevationGain;
@@ -834,7 +881,7 @@
         for (const {p, i} of ranked) if (!state.falls.has(i)) {
           const y = (p.y ?? ground(world, p.x, p.z)) + Math.min(14, 3 + .2 * (p.drop || 20));
           const size = clamp(.55 + (p.drop || 40) / 160 + (p.width || 10) / 80, .5, 1.25);
-          state.falls.set(i, engine.loop(fallsClip, {x: p.x, y, z: p.z}, {gain: fallsSpec.gain * size, ref: fallsSpec.ref * size, reach: fallsSpec.reach, wet: .6, echo: true, rate: clamp(1.08 - (p.drop || 40) / 900, .9, 1.08)}));
+          state.falls.set(i, engine.loop(fallsClip, {x: p.x, y, z: p.z}, {label: 'falls', gain: fallsSpec.gain * size, ref: fallsSpec.ref * size, reach: fallsSpec.reach, wet: .6, echo: true, rate: clamp(1.08 - (p.drop || 40) / 900, .9, 1.08)}));
         }
       }
       // Rivers, streams and rocky shores: three emitters on the nearest water.
@@ -862,7 +909,7 @@
         let entry = state.loops[k];
         if (!entry) { const pos = l.where({...ctx}); if (!pos) return; entry = state.loops[k] = {pos}; }
         const d = Math.hypot(entry.pos.x - ear.x, entry.pos.z - ear.z);
-        if (d < l.reach && !entry.source) entry.source = engine.loop(b, entry.pos, {gain: l.gain, ref: l.ref, reach: l.reach, wet: .5});
+        if (d < l.reach && !entry.source) entry.source = engine.loop(b, entry.pos, {label: l.clip, gain: l.gain, ref: l.ref, reach: l.reach, wet: .5});
         else if (d > l.reach * 1.1 && entry.source) { entry.source.stop(1); entry.source = null; }
       });
       // Insect choruses seeded in habitat around the eagle.
@@ -875,7 +922,7 @@
         }
         if (entry.length < ch.count && Math.random() < .5) {
           const site = chorusSite(ch.habitat, ch.r[0], ch.r[1]);
-          if (site) entry.push(engine.loop(b, site, {gain: ch.gain * rand(.7, 1.15), ref: ch.ref, reach: ch.reach, wet: .3, rate: (ch.rate || 1) * rand(.97, 1.03)}));
+          if (site) entry.push(engine.loop(b, site, {label: ch.clip, gain: ch.gain * rand(.7, 1.15), ref: ch.ref, reach: ch.reach, wet: .3, rate: (ch.rate || 1) * rand(.97, 1.03)}));
         }
       });
       // Diffuse beds driven by local conditions.
@@ -917,8 +964,45 @@
       }
       tickEvents(now);
     }
+    // Callers placed by habitat keep fixed posts: one per caller kind in each
+    // 160 m cell of the world, found once by a repeatable search and remembered.
+    // A bird sings in bouts: the one heard last goes on from the same post
+    // while the eagle stays in earshot, now and then answered by a neighbour,
+    // and a new singer is one of the nearest. No post inside its hush radius
+    // is used.
+    function stablePost(e, index, hush) {
+      const ear = engine.ear, ix0 = Math.floor(ear.x / POST_CELL), iz0 = Math.floor(ear.z / POST_CELL), near = [];
+      const singer = state.singers.get(index);
+      for (let ix = ix0 - 2; ix <= ix0 + 2; ix++) for (let iz = iz0 - 2; iz <= iz0 + 2; iz++) {
+        const key = index + ':' + ix + ':' + iz;
+        let post = state.posts.get(key);
+        if (post === undefined) {
+          if (state.posts.size > 1500) state.posts.clear();
+          post = postFor(e.where, index, ix, iz, ctx) || null;
+          if (post) post.key = key;
+          state.posts.set(key, post);
+        }
+        if (!post) continue;
+        const d = Math.hypot(post.x - ear.x, post.y - ear.y, post.z - ear.z);
+        if (d > hush && d < e.reach * (singer?.key === key ? 1 : .9)) near.push({post, d});
+      }
+      if (!near.length) return null;
+      near.sort((a, b) => a.d - b.d);
+      const going = singer && singer.left > 0 && near.find(n => n.post.key === singer.key);
+      if (going && Math.random() < .8) { singer.left--; return going.post; }
+      const u = Math.random(), chosen = near[Math.min(near.length - 1, u < .6 ? 0 : u < .85 ? 1 : 2)];
+      // A neighbour answering does not end the bout; otherwise this bird takes over.
+      if (!going) state.singers.set(index, {key: chosen.post.key, left: 3 + Math.floor(Math.random() * 5)});
+      return chosen.post;
+    }
     function tickEvents(now) {
       const ear = engine.ear;
+      // A songbird or frog stops mid-phrase if the eagle closes within its hush radius.
+      for (const v of state.voices) {
+        const s0 = v.source;
+        if (!s0.alive || now > (s0.endsAt ?? 0)) { state.voices.delete(v); continue; }
+        if (Math.hypot(s0.x - ear.x, s0.y - ear.y, s0.z - ear.z) < v.hush) { s0.stop(.35); state.voices.delete(v); }
+      }
       // The licensed ground recording is a heavy animal walking through
       // dry foliage. Stop it at the bank as well as when the moose is still.
       const walkers = [];
@@ -936,7 +1020,7 @@
           if (!buffers.has(id) && !loading.has(id)) load(id);
           const b = buffers.get(id);
           if (!b) continue;
-          src = engine.loop(b, {x: a.x, y: a.feetY ?? a.y, z: a.z}, {gain: 0, ref: 9, reach: 190, wet: .3});
+          src = engine.loop(b, {x: a.x, y: a.feetY ?? a.y, z: a.z}, {label: id, gain: 0, ref: 9, reach: 190, wet: .3});
           if (!src) continue;
           state.steps.set(a, src);
         }
@@ -958,7 +1042,8 @@
         if (e.when && !e.when(ctx)) return;
         const clip = Array.isArray(e.clip) ? pick(e.clip.filter(id => buffers.get(id))) : e.clip;
         const b = clip && buffers.get(clip); if (!b) return;
-        const where = e.where(ctx); if (!where) return;
+        const hush = hushRadius(clip);
+        const where = e.where.stable ? stablePost(e, i, hush) : e.where(ctx); if (!where) return;
         if (where.path) {
           const p = where.path;
           const src = engine.loop(b, {x: p.ax, y: p.y, z: p.az}, {gain: 0, ref: e.ref, reach: e.reach, wet: e.wet ?? .5});
@@ -966,11 +1051,35 @@
         } else {
           if (Math.hypot(where.x - ear.x, where.y - ear.y, where.z - ear.z) > e.reach) return;
           const strikes = e.repeat ? Math.round(rand(e.repeat[0], e.repeat[1])) : 1;
-          for (let k = 0; k < strikes; k++)
-            engine.play(b, where, {gain: e.gain, ref: e.ref, reach: e.reach, wet: e.wet ?? .45, rate: e.repeat ? 1 : rand(.985, 1.015), when: k * (e.spacing || 0), echo: e.ref >= 20});
+          for (let k = 0; k < strikes; k++) {
+            const source = engine.play(b, where, {gain: e.gain, ref: e.ref, reach: e.reach, wet: e.wet ?? .45, rate: e.repeat ? 1 : rand(.985, 1.015), when: k * (e.spacing || 0), echo: e.ref >= 20, label: clip,
+              id: where.key ? clip + ' post ' + where.key.split(':').slice(1).join(',') : ''});
+            quiet(source, hush);
+          }
         }
       });
     }
-    return {engine, setEnabled, update, load, buffers, adopt, setEagleEars, get eagleEars() { return eagleEars; }};
+    // Wind shadow at the eagle, sampled five times a second and eased so the
+    // wind falls away over about a second as the bird slips behind a rock.
+    const shelter = {value: 0, target: 0, next: 0, at: 0};
+    function lee(s) {
+      const now = context.currentTime;
+      if (now >= shelter.next) { shelter.target = leeShelter(world, s.x, s.y, s.z); shelter.next = now + .2; }
+      const dt = clamp(now - shelter.at, 0, .5); shelter.at = now;
+      shelter.value += (shelter.target - shelter.value) * (1 - Math.exp(-dt / .9));
+      return shelter.value;
+    }
+    // A voice that should stop if the eagle comes within `radius` metres of it.
+    function quiet(source, radius) { if (source && radius > 0) state.voices.add({source, hush: radius}); }
+    // Every live positioned source: what it is, which individual (a fixed post,
+    // a fixed site or a visible animal it follows), where it is, how much
+    // terrain shades it, the level arriving at the ears and the level left
+    // after wind masking. For checks and captures; nothing in the game reads it.
+    function trace() {
+      return [...engine.sources].filter(s => s.alive && s.label).map(s => ({label: s.label, id: s.id || s.label + ' at ' + Math.round(s.x) + ',' + Math.round(s.z), follows: s.follows,
+        x: +s.x.toFixed(1), y: +s.y.toFixed(1), z: +s.z.toFixed(1),
+        distance: Math.round(s.distance || 0), shield: +(s.shield || 0).toFixed(2), arrived: +(s.arrived || 0).toFixed(4), heard: +(s.heard || 0).toFixed(4)}));
+    }
+    return {engine, setEnabled, update, load, buffers, adopt, setEagleEars, get eagleEars() { return eagleEars; }, trace, lee, hush: quiet, get shelter() { return shelter.value; }, get posts() { return state.posts; }};
   };
 })();
