@@ -178,6 +178,7 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
   // ---- wind at the perch ------------------------------------------------------------
   let windSource = null, windAt = -1;
   const windSample = {}, wind = new THREE.Vector3(), windMean = new THREE.Vector3(), windLocal = new THREE.Vector3();
+  let gustFront = 0;
 
   // ---- state --------------------------------------------------------------------------
   let lowL = 0, lowR = 0, lowN = 1, fastL = 0, fastR = 0, fastN = 1, turbulence = 0, rouseT = -1, rouseAt = rand(30, 70);
@@ -228,6 +229,7 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
   const stats = {springs: allSprings.length, oscillators: 8, blinks: 0, turbulence: 0, peakBend: 0, saturated: 0};
   let lastAir = null, lastTime = -Infinity;
   Object.defineProperty(stats, 'air', {get: () => lastAir, enumerable: false});
+  Object.defineProperty(stats, 'windSample', {get: () => windSample, enumerable: false});
   // Timers are absolute; a new flight may restart the clock, so re-arm them.
   function rearm(time) {
     blinkAt = time + rand(1.5, 4); eyes.forEach(e => { e.active = false; e.membrane = 0; });
@@ -286,12 +288,15 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
       wind.set((windSample.windX ?? 0) + (windSample.eddyX ?? 0), 0, (windSample.windZ ?? 0) + (windSample.eddyZ ?? 0));
       if (!Number.isFinite(wind.x) || !Number.isFinite(wind.z)) wind.set(0, 0, 0);
     }
-    if (folded <= .05) wind.set(0, 0, 0);
+    if (folded <= .05) { wind.set(0, 0, 0); windSample.gust = 0; }
     windMean.lerp(wind, 1 - Math.exp(-step / .6));
     object.getWorldQuaternion(tmpQ);
     windLocal.copy(windMean).applyQuaternion(tmpQ.invert());         // +z = from ahead to behind (wind on the face)
     const windSpeed = windLocal.length() * folded;
-    const windGust = clamp(wind.distanceTo(windMean) / 4, 0, 1) * folded;
+    // The field's own gust strength marks each passing gust front (0 in
+    // sheltered air, about 0.8 in a strong front).
+    gustFront += (clamp(windSample.gust ?? 0, 0, 1) - gustFront) * (1 - Math.exp(-step / .25));
+    const windGust = clamp(wind.distanceTo(windMean) / 4 + 1.1 * gustFront, 0, 1) * folded;
 
     // ---- body response to vertical gusts, head held in space ----------------------
     neck.getWorldQuaternion(headWorld);
@@ -322,6 +327,8 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
     let fluff = clamp((1 - n) * .3, 0, .3) * freeFlight;             // negative G floats the plumage
     // A tailwind at the perch lifts the back and nape feathers.
     fluff = Math.max(fluff, clamp(-windLocal.z / 7, 0, 1) * folded * (.5 + .5 * windGust));
+    // Each gust front lifts the plumage for a moment as it passes the perch.
+    fluff = Math.max(fluff, .3 * windGust * (.75 + .25 * Math.sin(time * 6.1)));
     if (rouseT >= 0) {
       rouseT += step;
       const k = clamp(rouseT / .9, 0, 1), env = Math.sin(Math.PI * k);
@@ -512,10 +519,10 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
     uniforms.eyeLids.value.set(eyes[0].membrane, eyes[1].membrane, lid, lid);
 
     // ---- plumage uniforms -------------------------------------------------------------
-    const perchRuffle = clamp(windSpeed / 9, 0, 1) * (.35 + .65 * windGust);
+    const perchRuffle = clamp(windSpeed / 6, 0, 1) * (.25 + .75 * windGust);
     // Capped well below the measured turbulence: from the shoulder camera a few
     // millimetres of lift already reads as bristling.
-    uniforms.featherTurb.value += (clamp(turbulence + buffet, 0, .55) * freeFlight + .6 * perchRuffle - uniforms.featherTurb.value) * (1 - Math.exp(-6 * step));
+    uniforms.featherTurb.value += (clamp(turbulence + buffet, 0, .55) * freeFlight + .8 * perchRuffle - uniforms.featherTurb.value) * (1 - Math.exp(-6 * step));
     const perchSlip = clamp(windLocal.x / 8, -1, 1) * folded;
     uniforms.featherSlip.value += (slip * clamp(q, 0, 2) * freeFlight + perchSlip - uniforms.featherSlip.value) * (1 - Math.exp(-8 * step));
     uniforms.featherFluff.value += (fluff - uniforms.featherFluff.value) * (1 - Math.exp(-10 * step));
