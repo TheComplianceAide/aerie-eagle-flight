@@ -854,18 +854,21 @@ window.makeEagle = function makeEagle(THREE) {
       lockedYaw=fromYaw+shiftYaw*fraction;lockedPitch=fromPitch+shiftPitch*fraction;
       if(time>=shiftStart+shiftTime)shiftStart=-1;
     }
-    for(let i=0;i<3&&!looking&&!tracking&&fold<.98;i++){
-      const subject=i===2;
+    // 0 the selected perch, 1 the attention chosen by eagle-motion.js (a perch,
+    // animal or landmark, held through a bank for as long as the neck can
+    // reach), 2 an arrival landmark, 3 a passing animal on a quiet glide.
+    for(let i=0;i<4&&!looking&&!tracking&&fold<.98;i++){
+      const subject=i===3,intent=i===1;
       if(subject&&(Math.abs(turn)>.06||focus>.28||fold>.05||Math.abs(s.climb??0)>.13))continue;
-      const aim=i===0?s.gazeTarget:i===1?s.gazeLandmark:s.gazeSubject;
+      const aim=i===0?s.gazeTarget:intent?s.gazeIntent:i===2?s.gazeLandmark:s.gazeSubject;
       if(!aim||!Number.isFinite(aim.x)||!Number.isFinite(aim.y)||!Number.isFinite(aim.z))continue;
       const offsetX=aim.x-gazeOrigin.x,offsetZ=aim.z-gazeOrigin.z,distance=Math.hypot(offsetX,offsetZ);
       const bearing=Math.atan2(-offsetX,-offsetZ);
       const offset=wrap(bearing-heading),elevation=Math.atan2(aim.y-gazeOrigin.y,distance);
       const landing=i===0&&s.gazeLanding,hold=lastAim===aim;
-      const range=landing?Infinity:i===1?1800:130,arc=landing?1.38:i===1?1.12:.84;
+      const range=landing||intent?Infinity:i===2?1800:130,arc=landing?1.38:intent?1.28:i===2?1.12:.84;
       tracking=distance>.24&&distance<range*(hold?1.14:1)&&Math.abs(offset)<arc+(hold?.075:0)
-        &&(landing||(Math.abs(elevation-path)<.68&&turn*offset<.28));
+        &&(landing||intent||(Math.abs(elevation-path)<.68&&turn*offset<.28));
       if(tracking){
         desiredYaw=bearing;desiredPitch=elevation;lastAim=aim;watchingSubject=subject;
         scanEnds=0;scanAt=time+2.4;
@@ -917,7 +920,7 @@ window.makeEagle = function makeEagle(THREE) {
     neckBase.rotation.set(neckPose.x*.37,neckPose.y*.36,neckPose.z*.29,'YXZ');
     neck.quaternion.copy(neckBase.quaternion).invert().multiply(neckOrientation.setFromEuler(neckPose));
   }
-  const motion=window.makeEagleMotion?.(THREE,{object,chest,neckBase,neck,rudder,tailRays,wings,
+  const motion=window.makeEagleMotion?.(THREE,{object,chest,neckBase,neck,rudder,tailRays,wings,feet:tuckedFeet,
     uniforms:{eyeLids,featherTurb,featherSlip,featherFluff}});
   function update(dt, time, flapping, pitch = 0, bank = 0, air = {}) {
     const step = clamp(dt, 0, .1);
@@ -925,6 +928,8 @@ window.makeEagle = function makeEagle(THREE) {
     const reset=gazeTime<0||time<gazeTime||(step===0&&air!==previousFlight)||lastPosition.distanceToSquared(gazeOrigin.set(air.x??0,air.y??0,air.z??0))>
       Math.max(9,(air.airspeed??18)*step*3+4)**2;
     previousFlight=air;
+    // Choose what the eagle is attending to before the head is posed.
+    motion?.attend?.(step,time,air,bank);
     if(reset){
       lastBank=bank;previousHeading=air.yaw??0;turnDemand=perchPivot=0;napeTwist.value.set(0,0);
       for(const wing of wings)wing.wristLoad=wing.tipLoad=0;

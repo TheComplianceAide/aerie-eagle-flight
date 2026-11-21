@@ -39,6 +39,7 @@
 // checks frame-rate independence, drift, blink rate and the bill hinge.
 window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
   const {object, chest, neckBase, neck, rudder, tailRays, wings, uniforms} = parts;
+  const feet = parts.feet || [];
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const smooth = (a, b, v) => { const t = clamp((v - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
   const rand = (a, b) => a + (b - a) * Math.random();
@@ -232,6 +233,110 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
     neck.quaternion.premultiply(scanQ.setFromAxisAngle(UP, scan.yaw * scan.gain));
     neck.quaternion.multiply(scanQ.setFromAxisAngle(SIDE, scan.pitch * scan.gain));
   }
+  // ---- intent: attention on something real -------------------------------------------
+  // The eagle attends to one real thing at a time: the perch the player has
+  // chosen, an animal it can see, or a named landmark ahead. attend() runs
+  // before eagle.js poses the bird and publishes the target as air.gazeIntent;
+  // updateGaze turns the head to it with its own saccade timing and keeps it
+  // there through a bank for as long as the neck can reach. update() then lets
+  // the body follow the head: the tail rolls toward the target, the near hand
+  // trims back, and the feet come ready when the eagle closes on something
+  // below it. Nothing here steers, and the player's own look always wins.
+  let intentWorld = null;
+  const intent = {target: null, aim: null, kind: '', name: '', until: 0, bearing: 0, distance: 0, below: 0,
+    side: 0, weight: 0, tail: 0, wing: 0, feet: 0, nextPick: 0, suppressUntil: 0, lastLandmark: -Infinity, sightAt: 0};
+  const intentCooldown = new Map();          // what was attended -> when it may be attended again
+  const here = {x: 0, y: 0, z: 0};
+  // A landmark is itself terrain, so only the first three quarters of the way
+  // to it need to be clear; an animal must be visible all the way.
+  function sightline(to, upTo = 1) {
+    const floor = intentWorld?.clearance || intentWorld?.height;
+    if (!floor) return true;
+    for (let i = 1; i <= 8; i++) {
+      const t = i / 9;
+      if (t > upTo) break;
+      if (floor(here.x + (to.x - here.x) * t, here.z + (to.z - here.z) * t) > here.y + (to.y - here.y) * t + .04) return false;
+    }
+    return true;
+  }
+  function release(time) {
+    if (intent.target) intentCooldown.set(intent.target.source, time);      // when it was let go
+    intent.target = null; intent.aim = null; intent.kind = intent.name = '';
+  }
+  function take(time, target, hold) {
+    intent.target = target; intent.kind = target.kind; intent.name = target.name || target.kind;
+    // A perch keeps its own object so the head does not re-acquire it when
+    // eagle.js hands tracking between its landing gaze and this hold.
+    intent.aim = target.kind === 'perch' ? target.source : {x: target.source.x, y: target.y ?? target.source.y, z: target.source.z};
+    intent.until = time + hold; intent.sightAt = time + .5;
+    try { window.dispatchEvent(new CustomEvent('aerie-eagle-intent', {detail: {kind: intent.kind, name: intent.name}})); } catch (e) {}
+  }
+  function attend(step, time, air, bank = 0) {
+    const flying = (air.perchFold ?? 0) < .2 && Number.isFinite(air.x);
+    here.x = air.x ?? 0; here.y = air.y ?? 0; here.z = air.z ?? 0;
+    const heading = (air.yaw ?? 0) + (air.yawSlip ?? 0);
+    const measure = p => {
+      const dx = p.x - here.x, dz = p.z - here.z, b = Math.atan2(-dx, -dz) - heading;
+      intent.distance = Math.hypot(dx, dz); intent.below = here.y - p.y;
+      return Math.atan2(Math.sin(b), Math.cos(b));                   // + to the left of the heading
+    };
+    if (Math.abs(air.gazeLook ?? 0) > .02) intent.suppressUntil = time + 1.5;   // the player is looking for themselves
+    const t = intent.target;
+    if (t) {
+      if (t.kind !== 'perch') { intent.aim.x = t.source.x; intent.aim.z = t.source.z; intent.aim.y = t.y ?? t.source.y; }
+      intent.bearing = measure(intent.aim);
+      // Never let go in the middle of a bank: that is when the hold matters.
+      if (Math.abs(bank) > .22 || Math.abs(air.gazeTurn ?? 0) > .06) intent.until = Math.max(intent.until, time + .7);
+      let lost = !flying || time < intent.suppressUntil || time > intent.until || Math.abs(intent.bearing) > 1.3
+        || intent.distance > t.range * 1.15 || (t.kind === 'perch' && air.gazeTarget !== t.source);
+      if (!lost && t.kind !== 'perch' && time >= intent.sightAt) { intent.sightAt = time + .5; lost = !sightline(intent.aim, t.kind === 'landmark' ? .75 : 1); }
+      if (lost) release(time);
+    }
+    // A bank is itself a statement of intent: the eagle looks to what lies on
+    // the inside of the turn, even something it looked at a few seconds ago.
+    const banking = Math.abs(bank) > .22 || Math.abs(air.gazeTurn ?? 0) > .06, inside = Math.sign(bank || -(air.gazeTurn ?? 0));
+    const rested = (source, rest) => time - (intentCooldown.get(source) ?? -Infinity) > (banking ? 4 : rest);
+    const favour = bearing => banking && bearing * inside > 0 ? 1.8 : 1;
+    if (!intent.target && flying && time >= intent.suppressUntil && time >= intent.nextPick) {
+      intent.nextPick = time + .3;
+      const perch = air.gazeTarget;
+      if (perch && Number.isFinite(perch.x) && Number.isFinite(perch.y) && Number.isFinite(perch.z)) {
+        if (Math.abs(measure(perch)) < 1.2) take(time, {kind: 'perch', source: perch, range: Infinity, name: 'perch'}, Infinity);
+      } else {
+        let best = null, bestScore = 0;
+        for (const a of intentWorld?.wildlife?.nearby?.(here, 120) || []) {
+          const source = a.actor || a;
+          if (!rested(source, 18)) continue;
+          const bearing = measure(a), off = Math.abs(bearing);
+          if (off > .95 || intent.distance < 4) continue;
+          const size = source.length || source.height || .35, score = favour(bearing) * size * (1.2 - off) / (intent.distance + 8);
+          if (score > bestScore) { best = {kind: 'animal', source, range: 130, name: a.name}; bestScore = score; }
+        }
+        if (best && sightline(best.source)) take(time, best, rand(3, 6));
+        else if (banking || time - intent.lastLandmark > 8) {
+          best = null; bestScore = 0;
+          const floor = intentWorld?.clearance || intentWorld?.height;
+          for (const place of intentWorld?.landmarks || []) {
+            if (!Number.isFinite(place.x) || !Number.isFinite(place.z) || !rested(place, 25)) continue;
+            const y = (Number.isFinite(place.y) ? place.y : floor ? floor(place.x, place.z) : here.y) + 6;
+            const bearing = measure({x: place.x, y, z: place.z}), off = Math.abs(bearing);
+            if (off > 1.1 || intent.distance < 70 || intent.distance > 2600) continue;
+            const score = favour(bearing) * (1.25 - off) / (intent.distance + 250);
+            if (score > bestScore) { best = {kind: 'landmark', source: place, y, range: 3000, name: place.name}; bestScore = score; }
+          }
+          if (best && sightline({x: best.source.x, y: best.y, z: best.source.z}, .75)) {
+            intent.lastLandmark = time;
+            take(time, best, rand(2.4, 4.4) * (bestScore > .0012 ? 1.4 : 1));
+          }
+        }
+      }
+      if (intent.target) intent.bearing = measure(intent.aim);
+    }
+    air.gazeIntent = intent.aim;
+  }
+  // Rest pose of the tucked feet, which eagle.js builds once and never moves.
+  const feetRest = feet.map(f => ({y: f.position.y, z: f.position.z, rx: f.rotation.x}));
+
   const stats = {springs: allSprings.length, oscillators: 8, blinks: 0, turbulence: 0, peakBend: 0, saturated: 0};
   let lastAir = null, lastTime = -Infinity;
   Object.defineProperty(stats, 'air', {get: () => lastAir, enumerable: false});
@@ -243,6 +348,8 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
     rouseAt = time + rand(60, 150); peerAt = time + rand(8, 20); shakeAt = time + rand(20, 45); preenAt = time + rand(40, 80);
     rouseT = peerT = wagT = shakeT = preenT = airShakeT = -1; perchedFor = 0; settleWagAt = -1;
     rain = rainTarget = wet = 0; rainAt = -1; rainShakeAt = dryShakeAt = Infinity;
+    intent.target = intent.aim = null; intent.kind = intent.name = ''; intent.weight = intent.tail = intent.wing = intent.feet = intent.side = 0;
+    intent.nextPick = intent.suppressUntil = 0; intent.lastLandmark = -Infinity; intentCooldown.clear();
     scan.t = -1; scan.next = time + rand(1, 3); scan.gain = 0; scan.quiet = 0; scan.yaw = scan.pitch = 0;
   }
 
@@ -254,6 +361,7 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
     neckBase.position.copy(neckRest);
     chest.rotation.y = chestRestY; chest.rotation.z = chestRestZ;
     wings.forEach((w, i) => { w.alula.rotation.x = alulaRestX[i]; });
+    feet.forEach((f, i) => { f.position.y = feetRest[i].y; f.position.z = feetRest[i].z; f.rotation.x = feetRest[i].rx; });
   }
   // Debug multipliers for isolating each layer in tests.
   const tune = {tail: 1, primaries: 1, body: 1, posture: 1};
@@ -479,6 +587,34 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
     rudder.rotation.z += (.035 * ctl.x * activity - .6 * clamp(rollJ, -.07, .07) * freeFlight) * tune.posture;
     for (const w of wings) w.wrist.rotation.y += .025 * ctl.z * activity;
 
+    // ---- intent: the body follows the head ----------------------------------------------
+    const attending = intent.target && freeFlight > .5 ? 1 : 0;
+    intent.weight += (attending - intent.weight) * (1 - Math.exp(-step / .12));
+    intent.tail += (intent.weight - intent.tail) * (1 - Math.exp(-step / .28));       // the tail answers the head
+    intent.wing += (intent.tail - intent.wing) * (1 - Math.exp(-step / .4));          // then the near hand trims
+    if (attending) intent.side += (clamp(intent.bearing / .45, -1, 1) - intent.side) * (1 - Math.exp(-step / .2));
+    const toward = intent.side * (1 - .5 * clamp(Math.abs(air.bank ?? 0), 0, 1));     // less to add once already banked
+    // The tail rolls toward what the eagle is watching and opens on that side.
+    rudder.rotation.z += .06 * toward * intent.tail * freeFlight;
+    for (const {side, ray} of tailRays) ray.rotation.y += side * (.012 + .03 * Math.max(0, -side * toward)) * intent.tail * freeFlight;
+    // The hand nearest the target sweeps back a little and its tip lowers,
+    // opening the sightline past the wing.
+    for (const w of wings) {
+      const near = Math.max(0, -w.sign * toward) * intent.wing * freeFlight;
+      w.wrist.rotation.y += -w.sign * .04 * near;
+      w.shoulder.rotation.z += -w.sign * .018 * near;
+    }
+    // Closing on an animal below, the tucked feet come ready: the tarsi swing
+    // down and the toes open. A perch landing is posed by eagle.js itself.
+    const closing = attending && intent.kind === 'animal' && intent.distance < 30 && intent.below > 1 && (air.verticalSpeed ?? 0) < -.4 ? 1 : 0;
+    intent.feet += (closing - intent.feet) * (1 - Math.exp(-step / (closing ? .25 : .5)));
+    if (intent.feet > .002) feet.forEach((f, i) => {
+      const toe = f.name === 'Curled toe';
+      f.rotation.x = feetRest[i].rx + (toe ? .42 : .5) * intent.feet;
+      f.position.y = feetRest[i].y - (toe ? .020 : .012) * intent.feet;
+      f.position.z = feetRest[i].z - (toe ? .012 : .004) * intent.feet;
+    });
+
     // ---- feather spring bones -----------------------------------------------------
     object.updateMatrixWorld(true);
     toRoot.copy(object.matrixWorld).invert();
@@ -574,9 +710,19 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
     uniforms.featherSlip.value += (slip * clamp(q, 0, 2) * freeFlight + perchSlip - uniforms.featherSlip.value) * (1 - Math.exp(-8 * step));
     uniforms.featherFluff.value += (fluff * sleek - uniforms.featherFluff.value) * (1 - Math.exp(-10 * step));
     stats.turbulence = turbulence; stats.wind = +windSpeed.toFixed(2); stats.headRoll = +headRoll.toFixed(3); stats.drowsy = +drowsy.toFixed(2); stats.bill = +jaw.open.toFixed(3);
-    stats.acts = (rouseT >= 0 ? 1 : 0) | (peerT >= 0 ? 2 : 0) | (shakeT >= 0 ? 4 : 0) | (preenT >= 0 ? 8 : 0) | (wagT >= 0 ? 16 : 0) | (airShakeT >= 0 ? 32 : 0) | (jaw.env ? 64 : 0) | (scan.t >= 0 ? 128 : 0); stats.rain = +rain.toFixed(2); stats.wet = +wet.toFixed(2); stats.plumage = [+uniforms.featherTurb.value.toFixed(3), +uniforms.featherSlip.value.toFixed(3), +uniforms.featherFluff.value.toFixed(3)]; stats.membranes = [+eyes[0].membrane.toFixed(2), +eyes[1].membrane.toFixed(2)];
+    stats.intent = {kind: intent.kind, name: intent.name, weight: +intent.weight.toFixed(2), bearing: +intent.bearing.toFixed(2), side: +intent.side.toFixed(2), feet: +intent.feet.toFixed(2)};
+    const before = stats.acts | 0;
+    stats.acts = (rouseT >= 0 ? 1 : 0) | (peerT >= 0 ? 2 : 0) | (shakeT >= 0 ? 4 : 0) | (preenT >= 0 ? 8 : 0) | (wagT >= 0 ? 16 : 0) | (airShakeT >= 0 ? 32 : 0) | (jaw.env ? 64 : 0) | (scan.t >= 0 ? 128 : 0);
+    // Tell the audio when the body does something audible: feathers rattle in
+    // a rouse or shake, and a landing has weight.
+    const began = stats.acts & ~before;
+    if (began & 1) announce('rouse', 1); if (began & 32) announce('airshake', 1); if (began & 4) announce('shake', 1);
+    if (began & 16) announce('wag', 1); if (justLanded) announce('land', 1); stats.rain = +rain.toFixed(2); stats.wet = +wet.toFixed(2); stats.plumage = [+uniforms.featherTurb.value.toFixed(3), +uniforms.featherSlip.value.toFixed(3), +uniforms.featherFluff.value.toFixed(3)]; stats.membranes = [+eyes[0].membrane.toFixed(2), +eyes[1].membrane.toFixed(2)];
     stats.tailBend = tailSprings.reduce((a, s) => a + s.offset, 0) / tailSprings.length;
     stats.primaryBend = primarySprings.reduce((a, s) => a + s.offset, 0) / primarySprings.length;
+  }
+  function announce(kind, strength) {
+    try { window.dispatchEvent(new CustomEvent('aerie-eagle-body', {detail: {kind, strength}})); } catch (e) {}
   }
   // The world's wind field, sampled at the perch: {sample(x, y, z, t, out)}.
   // Rain intensity (0 to 1) at a world position and time: (x, z, t) => number.
@@ -589,7 +735,13 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
     else if (name === 'shake') shakeT = 0; else if (name === 'preen') { preenT = 0; preenDur = 3; preenSide = 1; }
     else if (name === 'airshake') airShakeT = 0;
   }
-  const api = {update, stats, setWindSource, setRainSource, trigger, tune, restoreUnanimated};
+  // Read access to the world for attention: landmarks, wildlife.nearby() and a
+  // terrain floor for sightlines. Also adopts its wind field.
+  function setWorld(world) {
+    intentWorld = world || null; intent.target = intent.aim = null; intentCooldown.clear();
+    if (world?.windField) setWindSource(world.windField);
+  }
+  const api = {update, attend, stats, setWorld, setWindSource, setRainSource, trigger, tune, restoreUnanimated, get intent() { return stats.intent; }, get world() { return intentWorld; }, get attention() { return intent; }};
   window.aerieEagleMotionDebug = api;
   return api;
 };

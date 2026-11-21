@@ -734,6 +734,41 @@
       });
     }
     installControls();
+    // ---- the eagle's own body ---------------------------------------------------
+    // eagle-motion.js announces rouses, shakes, tail wags and landings. Each is a
+    // short burst of band-passed noise shaped by the shake's own rhythm (feathers
+    // rattling); a landing adds a soft thump as the feet take the weight.
+    let bodyNoise = null;
+    function bodySound(d) {
+      if (!enabled || !d) return;
+      const now = context.currentTime, strength = clamp(d.strength ?? 1, 0, 1.5);
+      if (!bodyNoise) {
+        bodyNoise = context.createBuffer(1, Math.round(context.sampleRate * 1.5), context.sampleRate);
+        const x = bodyNoise.getChannelData(0); for (let i = 0; i < x.length; i++) x[i] = Math.random() * 2 - 1;
+      }
+      // duration (s), shake rate (Hz), band centre (Hz), Q, level
+      const [dur, rate, f, q, level] = {rouse: [.9, 9, 3400, .7, .16], airshake: [.55, 11, 3000, .7, .14], shake: [.38, 9, 4800, 1, .06],
+        wag: [.45, 7, 2600, .8, .045], land: [.5, 14, 1800, .6, .12]}[d.kind] || [.3, 8, 3000, .8, .03];
+      const src = context.createBufferSource(), hp = context.createBiquadFilter(), band = context.createBiquadFilter(), g = context.createGain();
+      src.buffer = bodyNoise; src.loop = true; hp.type = 'highpass'; hp.frequency.value = 700;
+      band.type = 'bandpass'; band.frequency.value = f; band.Q.value = q; g.gain.value = 0;
+      src.connect(hp).connect(band).connect(g).connect(destination);
+      const n = Math.ceil(dur * 120), curve = new Float32Array(n);
+      for (let i = 0; i < n; i++) { const u = i / (n - 1); curve[i] = level * strength * Math.sin(Math.PI * u) ** .8 * (.35 + .65 * Math.sin(Math.PI * rate * u * dur) ** 2); }
+      g.gain.setValueCurveAtTime(curve, now, dur);
+      src.start(now, Math.random()); src.stop(now + dur + .05);
+      src.onended = () => { for (const node of [src, hp, band, g]) try { node.disconnect(); } catch (e) {} };
+      if (d.kind === 'land') {
+        const osc = context.createOscillator(), og = context.createGain();
+        osc.frequency.setValueAtTime(95, now); osc.frequency.exponentialRampToValueAtTime(52, now + .16);
+        og.gain.setValueAtTime(.22 * strength, now); og.gain.exponentialRampToValueAtTime(.0005, now + .2);
+        osc.connect(og).connect(destination); osc.start(now); osc.stop(now + .22);
+        osc.onended = () => { try { osc.disconnect(); og.disconnect(); } catch (e) {} };
+      }
+    }
+    if (window.aerieBodySoundHandler) window.removeEventListener('aerie-eagle-body', window.aerieBodySoundHandler);
+    window.aerieBodySoundHandler = e => bodySound(e.detail);
+    window.addEventListener('aerie-eagle-body', window.aerieBodySoundHandler);
     function strike(storm, t) {
       // Search the rain bank for a cell 1.5-12 km away.
       for (let i = 0; i < 60; i++) {
