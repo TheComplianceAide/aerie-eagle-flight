@@ -744,7 +744,9 @@ class Water extends Mesh {
       const inv=1/Math.hypot(dx,6,dz);normal.set([dx*inv,6*inv,dz*inv],k*3);
 
     }
-    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(vertices,3));g.setAttribute('normal',new THREE.BufferAttribute(normal,3));g.setIndex(gridIndex(nx,nz,1));g.computeBoundingSphere();const mesh=new THREE.Mesh(g,material);scene.add(mesh);
+    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(vertices,3));g.setAttribute('normal',new THREE.BufferAttribute(normal,3));g.setIndex(gridIndex(nx,nz,1));g.computeBoundingSphere();const mesh=new THREE.Mesh(g,material);
+    mesh.userData.terrainCaster=true;
+    scene.add(mesh);
     g.computeBoundingBox();
     terrainLods.push({mesh,nx,nz,x0,z0,x1,z1,pitch:1,relief:g.boundingBox.max.y-g.boundingBox.min.y});
   }
@@ -927,7 +929,9 @@ class Water extends Mesh {
       ice*=mix(vec3(.68,.81,.91),vec3(1.12,1.04,.95),smoothstep(-.4,.7,light));ice+=.115*pow(max(0.,dot(reflect(-sun,norm),normalize(cameraPosition-p))),19.);
       float detail=texture2D(grain,st*9.).r;ice*=.96+.07*detail;
       gl_FragColor=vec4(mix(ice,vec3(.61,.68,.73),1.-exp(-distance(cameraPosition,p)*.000043)),1.);}`});
-  cg.computeBoundingSphere();const seracs=new THREE.Mesh(cg,crystalMaterial);seracs.name='Blue ice seracs and passage';scene.add(seracs);
+  cg.computeBoundingSphere();const seracs=new THREE.Mesh(cg,crystalMaterial);
+  seracs.userData.terrainCaster=true;
+  seracs.name='Blue ice seracs and passage';scene.add(seracs);
 
   // Use photogrammetric rock scans along positive-relief bedrock features extracted from the stereo survey.
   // The near and distant forms of each stone share the same root, silhouette axis, and collision surface.

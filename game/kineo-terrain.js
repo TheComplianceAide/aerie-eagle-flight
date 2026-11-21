@@ -82,7 +82,9 @@
       }
       const g=new T.BufferGeometry();g.setAttribute('position',new T.BufferAttribute(pos,3));g.setIndex(new T.BufferAttribute(ix,1));
       g.computeVertexNormals();g.computeBoundingSphere();
-      const mesh=new T.Mesh(g,world.kineoTerrainMaterial);mesh.name='Mount Kineo adjoining measured terrain';group.add(mesh);shells.push(mesh);
+      const mesh=new T.Mesh(g,world.kineoTerrainMaterial);
+      mesh.userData.terrainCaster=true;
+      mesh.name='Mount Kineo adjoining measured terrain';group.add(mesh);shells.push(mesh);
     }
     const lodReply=await fetch(file('kineo-lod.bin'));if(!lodReply.ok)throw new Error('Kineo distance geometry unavailable');
     const data=await lodReply.arrayBuffer(),sizes=new DataView(data),lods=[];let start=4;
@@ -90,6 +92,7 @@
     const records=[...origins,{file:'kineo-jointed-block.glb'},{file:'kineo-talus-pocket.glb'}];
     const models=await Promise.all(records.map(async (rec,idx)=>{
       const mesh=await readGLB(T,file(rec.file)),name=rec.file.slice(0,-4);
+      mesh.userData.terrainCaster=true;
       mesh.name=name;mesh.userData.aerieRegional={model:name,lod:'near'};mesh.userData.nearIndex=mesh.geometry.index;mesh.userData.farIndex=lods[idx];
       if(rec.position){mesh.position.fromArray(rec.position);matchSurveyLight(T,mesh,world,rec.position);}
       else {
@@ -174,6 +177,7 @@
       if(m.material.isShaderMaterial)lowMaterial.uniforms=m.material.uniforms;
       const low=new T.Mesh(lowGeometry,lowMaterial);
       low.position.copy(m.position);low.quaternion.copy(m.quaternion);low.name=m.name+' distant';
+      low.userData.terrainReceiver=true;
       low.userData.aerieRegional={model:m.name,lod:'far'};group.add(low);
       for(const [lod,mat] of [m.material,lowMaterial].entries()){
         mat.customProgramCacheKey=()=>'kineo-survey-'+m.name+'-'+lod;

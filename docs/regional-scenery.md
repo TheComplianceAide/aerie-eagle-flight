@@ -25,6 +25,6 @@ ESA WorldCover 2021 v200 provides the land-cover classes. The game uses a map cl
 | Yosemite Valley | Ponderosa pine, white fir and incense cedar near open granite |
 | Crater Lake | Mountain hemlock and subalpine conifers on volcanic ground |
 | Lofoten | Low birch, heath, coastal grass and exposed rock |
-| Milford Sound | Silver beech, kāmahi, rimu and a fern understory in wet forest |
+| Acadia National Park | Red spruce, balsam fir and paper birch on the wooded Atlantic headlands. Heath covers exposed granite, with ferns and alder in sheltered pockets. |
 
 Close trees share geometry and textures across cells. The game renders distant representations at lower cost and retains the original forest while detailed assets stream. A touch device uses a smaller close radius, lower instance budgets and a smaller shadow target. The regional land-cover payload loads only when its world is selected.

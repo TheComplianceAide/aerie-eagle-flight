@@ -1,6 +1,6 @@
 // A destination's elevation surveys and textures are opened when the player takes flight.
 (() => {
-  const base = ['eagle-motion.js','eagle.js','terrain-bounce.js','flight-light.js','terrain-acoustics.js','field-audio.js','perch-flight.js','perch-habitat.js','plant-models.js','regional-habitat.js','regional-growth.js','regional-geology.js','regional-field-scenery.js','regional-forest.js','canopy-stream.js','understory.js','wildlife-models.js','fauna-shapes.js','land-models.js','land-wildlife.js','fish-schools.js','wildlife.js','game-vision.js','scenic-flights.js','range-relief.js','water-surface.js','wind-field.js','wind-water.js','wind-soarer.js','moving-weather.js','sky-optics.js','valley-mist.js','omnitone.min.js','spatial-audio.js','soundscapes.js'];
+  const base = ['eagle-motion.js','eagle.js','terrain-bounce.js','terrain-shadows.js','flight-light.js','terrain-acoustics.js','field-audio.js','perch-flight.js','perch-habitat.js','plant-models.js','regional-habitat.js','regional-growth.js','regional-geology.js','regional-field-scenery.js','regional-forest.js','canopy-stream.js','understory.js','wildlife-models.js','fauna-shapes.js','land-models.js','land-wildlife.js','fish-schools.js','wildlife.js','game-vision.js','scenic-flights.js','range-relief.js','water-surface.js','wind-field.js','wind-water.js','wind-soarer.js','moving-weather.js','sky-optics.js','valley-mist.js','omnitone.min.js','spatial-audio.js','soundscapes.js'];
   const trees = ['fir-data.js','forest.js'];
   const scripts = {
     alaska: ['alaska-cove.js','alaska-sediment.js','waterfall-system.js','alaska-survey.js','alaska-world.js','talus-data.js','habitat.js',...trees],
@@ -15,7 +15,7 @@
         tag.onload=resolve;
         tag.onerror=()=>reject(new Error('Unable to open '+name));
         const url=window.aerieAssetURL?.(name)||name;
-        tag.src=url===name&&location.protocol!=='file:'?url+'?v=0.20.3':url;
+        tag.src=url===name&&location.protocol!=='file:'?url+'?v=0.20.4':url;
         document.head.appendChild(tag);
       });
       loaded.set(name,request.catch(error=>{loaded.delete(name);throw error;}));
@@ -29,7 +29,7 @@
       crater:['regional-waterfalls.js','falls-terrain-crater.js','waterfall-system.js','crater-bathymetry.js','crater-weather.js','crater-phantom-ship.js'],
       dixville:['waterfall-system.js','dixville-brooks.js','dixville-lidar.js','talus-data.js','rocks.js','architecture.js','dixville-landmarks.js'],
       labrador:['architecture.js','labrador-camp-ground.js','labrador-cabin.js','labrador-weather.js'],
-      milford:['waterfall-system.js'],
+      acadia:['acadia-night.js','acadia-coast.js'],
       lofoten:['regional-waterfalls.js','falls-terrain-lofoten.js','waterfall-system.js'],
       yosemite:['waterfall-system.js','atlas-yosemite-crowns.js','talus-data.js','rocks.js'],
       moosehead:['moosehead-crowns.js','moosehead-shore-survey.js','moosehead-bank-growth.js','moosehead-uplands.js','kineo-terrain.js','regional-waterfalls.js','falls-terrain-moosehead.js','waterfall-system.js','architecture.js'],
@@ -41,6 +41,6 @@
     const assets=[...streams,...base,'wildlife-tracks.js','regional-landforms.js','habitat-data/'+region+'.js',...files,...surveyDetail];
     await Promise.all(assets.map(name=>name==='canopy-stream.js'
       ? Promise.all([open('close-tree-detail.js'),open('close-bark-material.js').catch(()=>{})]).then(()=>open(name)) : open(name)));
-    await Promise.all([window.prepareRangeRelief(region),window.aerieRegionalLandforms.prepare(region),region==='moosehead'?window.prepareMooseheadUplands():null]);
+    await Promise.all([region==='acadia'?null:window.prepareRangeRelief(region),window.aerieRegionalLandforms.prepare(region),region==='moosehead'?window.prepareMooseheadUplands():null]);
   };
 })();

@@ -2,6 +2,8 @@
 // the player's plumage photograph; its orbit and altitude are in world metres.
 window.makeWindSoarer = function makeWindSoarer(T, scene, world, field) {
   const region = world.region;
+  // This bird marks a solar thermal. The clear Acadia night has ridge lift only.
+  if (region === 'acadia') return {reset() {}, update() {}};
   const harrier = region === 'milford';
   const golden = region === 'swiss' || region === 'canyon';
   const seaEagle = region === 'lofoten';

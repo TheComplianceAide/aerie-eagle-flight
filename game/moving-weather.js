@@ -3,6 +3,7 @@
 window.makeMovingWeather = async function makeMovingWeather(THREE, scene, world) {
   // Layer height in survey coordinates, pattern span, cloud threshold, shadow
   // strength, upper-wind multiplier, and elongation across the prevailing wind.
+  if(world.region==='acadia')return ()=>{}; // A clear summer night with visible stars.
   const profiles = {
     dixville:      [1710, 4070, .63, .36, 2.1, .86],
     labrador:      [1390, 4350, .49, .44, 2.45, .78],
@@ -20,17 +21,18 @@ window.makeMovingWeather = async function makeMovingWeather(THREE, scene, world)
   const [height, span, threshold, strength, upperWind, width] = profiles[world.region] ||
     [(world.waterLevel ?? world.spawn.y) + 1600, 4400, .49, .43, 2.5, .85];
   const field = world.windField;
-  const photographedDeck = world.region === 'moosehead';
-  const texture = photographedDeck ? world.skyTexture : await new THREE.TextureLoader().loadAsync('cloud-field.png');
-  if (!photographedDeck) texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  const photographedDeck = !!world.cloudDensityMap;
+  const texture = await new THREE.TextureLoader().loadAsync(world.cloudDensityMap || 'cloud-field.png');
+  texture.wrapS = THREE.RepeatWrapping;
+  if (!photographedDeck) texture.wrapT = THREE.RepeatWrapping;
   const uniforms = {
     cloudField: {value:texture}, cloudHeight: {value:height}, cloudSpan: {value:span},
     cloudThreshold: {value:threshold}, cloudStrength: {value:strength}, cloudWidth: {value:width},
     cloudSun: {value:world.sunDirection}, cloudDirection: {value:new THREE.Vector2(field.direction.x,field.direction.z)},
     cloudTravel: {value:0}, cloudSeed: {value:new THREE.Vector2(.19*field.phase,.37*field.phase)}
   };
-  // At Moosehead, the lake and flight cameras look into a photographed cloud
-  // deck. Ground and water sample that same deck along the solar ray.
+  // The colored panorama and its ungraded cloud-density map move together.
+  // Amber light in clear air must still let sunlight reach the water and shore.
   const deckCoordinates = photographedDeck ? `
     uniform vec3 cloudAnchor;
     vec3 deckDirection(vec2 p) {
@@ -46,15 +48,15 @@ window.makeMovingWeather = async function makeMovingWeather(THREE, scene, world)
     vec2 deckUV(vec3 ray) {
       return vec2(.5+atan(ray.z,ray.x)*.15915494,.5+asin(clamp(ray.y,-1.,1.))*.31830989);
     }
-    vec3 deckLight(vec2 p) {
+    vec3 deckSample(sampler2D panorama,vec2 p) {
       // Exchange wind-advected cloud fields over many minutes. Both samples
       // coincide continuously at each wrap, including on hours-long flights.
       const float span=13800.;
       float phase=mod(cloudTravel/span,1.);
       vec2 a=p-cloudDirection*(phase*span);
       vec2 b=a+cloudDirection*span;
-      return mix(texture2D(cloudField,deckUV(deckDirection(a))).rgb,
-                 texture2D(cloudField,deckUV(deckDirection(b))).rgb,smoothstep(.20,.90,phase));
+      return mix(texture2D(panorama,deckUV(deckDirection(a))).rgb,
+                 texture2D(panorama,deckUV(deckDirection(b))).rgb,smoothstep(.20,.90,phase));
     }
   ` : '';
   if (photographedDeck) {
@@ -68,9 +70,7 @@ window.makeMovingWeather = async function makeMovingWeather(THREE, scene, world)
     ${deckCoordinates}
     float cloudDensity(vec2 p){
       ${photographedDeck ? `
-      vec3 sky=deckLight(p);
-      // White and grey cloud have much less blue chroma than the open sky.
-      return smoothstep(.36,.91,(sky.r+.75*sky.g)/(1.75*max(.015,sky.b)));
+      return deckSample(cloudField,p).r;
       ` : `
       vec2 crosswind=vec2(-cloudDirection.y,cloudDirection.x);
       vec2 coord=vec2(dot(p,cloudDirection)-cloudTravel,dot(p,crosswind)*cloudWidth)/cloudSpan;
@@ -169,7 +169,7 @@ window.makeMovingWeather = async function makeMovingWeather(THREE, scene, world)
                 vec2 intersection=cameraPosition.xz+d.xz*below/max(.004,d.y);
                 float horizon=smoothstep(.004,.056,d.y);
                 float glare=1.-smoothstep(.984,.998,dot(d,cloudSun));
-                upper=mix(upper,deckLight(intersection),horizon*glare);
+                upper=mix(upper,deckSample(map,intersection),horizon*glare);
               }
               gl_FragColor=vec4(upper,1.);`);
           } else {

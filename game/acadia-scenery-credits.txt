@@ -1,0 +1,44 @@
+ACADIA NATIONAL PARK — OCEAN PATH, MOUNT DESERT ISLAND
+
+Land elevations. U.S. Geological Survey, National Map 3D Elevation Program
+(3DEP), public domain U.S. Government work. Local east/up/south coordinates
+use WGS84 / UTM zone 19N (EPSG:32619), with origin at easting 564651 m,
+northing 4907768 m. The 2.9 km square around Ocean Path is sampled at 2 m,
+the 6.656 km square around the eastern shore at 6.5 m, and the 32 km
+background at 50 m. Heights are quantized in 0.25 m steps for rendering.
+The submerged seabed is a modeled surface, recessed from the wet side of
+the DEM for rendering through the water. It is not a hydrographic chart.
+Coastal slope normals are sampled from an additional one-metre USGS 3DEP
+export across the near cliffs. Geological surface texture is rendered on
+these slopes from the shared game cliff material. Moonlight and terrain
+occlusion are computed in game coordinates.
+https://www.usgs.gov/3d-elevation-program/about-3dep-products-services
+https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer
+
+Aerial color. USDA National Agriculture Imagery Program imagery supplied by
+the USGS National Map; U.S. Government public-domain source imagery.
+Daytime orthophotographs are mapped to the surveyed ground and lit at night
+by the game. Exports provide 1 m/pixel along Ocean Path, 1.625 m/pixel near
+the coast, and approximately 10.4 m/pixel in the background. A small missing
+blue-channel area in the close export uses the registered wider orthophoto.
+https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer
+https://www.fsa.usda.gov/resources/programs/national-agriculture-imagery-program
+
+Habitat. Contains modified Copernicus Sentinel data (2021) processed by the
+ESA WorldCover consortium. ESA WorldCover 2021 v200 10 m, CC BY 4.0. The
+N42 W069 source tile was reprojected into UTM zone 19N and the published
+land classes were run-length encoded. Trees and animals are game models.
+https://esa-worldcover.org/en/data-access
+https://doi.org/10.5281/zenodo.7254221
+https://creativecommons.org/licenses/by/4.0/
+
+Landmarks. USGS Geographic Names Information System feature coordinates,
+layers 5 and 7, provide named anchors for Otter Cliff, Sand Beach, Great
+Head, Otter Point, Gorham Mountain and The Beehive. The Thunder Hole flight
+targets the visible inlet in the aerial image rather than the offshore
+point registered to the hydrographic feature. Launch positions and wildlife
+are arranged for the simulation. National Park Service, Hike Ocean Path,
+and the park driving directions verify the order of the named locations.
+https://carto.nationalmap.gov/arcgis/rest/services/geonames/MapServer
+https://www.nps.gov/thingstodo/hike-ocean-path-trail.htm
+https://www.nps.gov/acad/planyourvisit/directions.htm

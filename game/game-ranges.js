@@ -9,7 +9,7 @@
     crater: {title:'Black-tailed deer on the rim', anchor:[-4540,1245], course:198, rise:0, animals:['black-tailed-deer']},
     yosemite: {title:'Mule deer in El Capitan Meadow', anchor:[-823.4657,981.8304], course:180, rise:0, animals:['mule-deer']},
     lofoten: {title:'Otter on the tide line', anchor:[970.5377,2100.0616], course:216, rise:-2.25, animals:['eurasian-otter']},
-    milford: {title:'Red deer at the forest edge', anchor:[2374.4715,3447.9992], course:270, rise:0, animals:['red-deer']},
+    acadia: {title:'White-tailed deer above Newport Cove', anchor:[140,-1035], animals:['white-tailed-deer','snowshoe-hare']},
     moosehead: {title:'Moose at the lake edge', anchor:[-1082.9789,-2276.9122], course:207, rise:0, animals:['moose','snowshoe-hare','white-tailed-deer']},
     dixville: {title:'Moose in the notch', anchor:[-320.72905,-242.78546], course:207, rise:0, animals:['moose','snowshoe-hare','white-tailed-deer']},
     labrador: {title:'Moose in the spruce narrows', anchor:[384.798,1849.3513], course:234, rise:0, animals:['moose','snowshoe-hare']},

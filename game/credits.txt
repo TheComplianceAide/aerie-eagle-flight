@@ -784,3 +784,5 @@ https://creativecommons.org/licenses/by/4.0/
 Kineo's cliff crest and headland follow the actual Maine terrain. Meter-scale broken joint planes, undercuts, weathering geometry, individual ledge shrubs and wetting are artistic reconstructions. Rob Tuytel's Coastal Cliff 02 scan, Poly Haven CC0, supplies photographic surface grain. Its source site is outside Mount Kineo. The older east cliff and shoreline model sources and their separate image licenses are documented in geology-data/kineo-credits.txt.
 https://polyhaven.com/a/coastal_cliff_02
 https://creativecommons.org/publicdomain/zero/1.0/
+
+Three regional skies use reprojected, color-graded CC0 photographs from Poly Haven: Industrial Sunset 02 (Pure Sky) at Moosehead Lake, Kloppenheim 06 (Pure Sky) at Lake Winnipesaukee, and Belfast Sunset (Pure Sky) at Reinefjorden. Each moving cloud-density map is derived from the same photograph as its sky. The light and weather are artistic interpretations.

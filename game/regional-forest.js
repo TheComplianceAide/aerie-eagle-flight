@@ -86,6 +86,7 @@
             float airborne=smoothstep(120.,950.,range);
             vec3 register=landTone*(.72+.40*clamp(leafY/.22,.4,1.6));
             color=mix(color,register,airborne*(.53+.30*smoothstep(650.,${reach}.,range))*smoothstep(.025,.13,photoY));`:''}
+          ${world.region==='acadia'?'color=mix(color,vec3(dot(color,vec3(.22,.67,.11))),.48)*vec3(.36,.44,.55);':''}
           float veil=min(.25,range*.000074);
           gl_FragColor=vec4(mix(color,haze,veil),1.);
         }`});

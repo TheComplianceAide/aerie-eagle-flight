@@ -373,7 +373,9 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
       [depthAt(north+width,left,left+width,'z'),steps*(steps+1),1]
     ];
     for(const [depth,first,stride] of edges)if(depth)joinEdge(mat,pos,normal,uv,first,stride,steps,depth);
-    geo.computeBoundingSphere();scene.add(new THREE.Mesh(geo,mat));
+    geo.computeBoundingSphere();const tile=new THREE.Mesh(geo,mat);
+    tile.userData.terrainCaster=true;
+    scene.add(tile);
   }
   const horizon=material('canyon-horizon.webp');
   for(let j=0;j<8;j++)for(let i=0;i<8;i++){
@@ -395,7 +397,9 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
     geo.setAttribute('position',new THREE.Float32BufferAttribute(data.p,3));
     geo.setAttribute('normal',new THREE.Float32BufferAttribute(data.n,3));
     geo.setAttribute('uv',new THREE.Float32BufferAttribute(data.uv,2));geo.setIndex(data.ix);
-    joins.add(new THREE.Mesh(geo,mat));
+    const seam=new THREE.Mesh(geo,mat);
+    seam.userData.terrainCaster=true;
+    joins.add(seam);
   }
   scene.add(joins);
   // The immediate basin is drawn as two triangles per height-field cell.
@@ -466,7 +470,9 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
     }
     const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
     geo.setAttribute('cavity',new THREE.Float32BufferAttribute(cavities,1));geo.setIndex(indices);geo.computeVertexNormals();
-    const mesh=new THREE.Mesh(geo,outcropMaterial);scene.add(mesh);
+    const mesh=new THREE.Mesh(geo,outcropMaterial);
+    mesh.userData.terrainCaster=true;
+    scene.add(mesh);
     for(let t=0;t<indices.length;t+=3){
       const a=indices[t]*3,b=indices[t+1]*3,c=indices[t+2]*3;
       const ax=vertices[a],az=vertices[a+2],bx=vertices[b],bz=vertices[b+2],cx=vertices[c],cz=vertices[c+2];

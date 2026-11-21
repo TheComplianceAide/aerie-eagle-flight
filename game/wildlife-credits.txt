@@ -136,3 +136,15 @@ field-audio-credits.txt.
 Ground tracks are drawn from each animal's actual travel. Split hoofprints, five-toed paw marks and the placement of hare forefeet and hind feet follow the National Park Service track references.
 https://www.nps.gov/articles/000/animaltracks.htm
 https://www.nps.gov/places/patterns-in-the-snow-exhibit.htm
+
+Acadia National Park, Maine — late-summer Atlantic shore and spruce woods
+Common eiders feed and paddle in Newport Cove. Harbor seals rest on low coastal ledges. White-tailed deer and snowshoe hares live on wooded slopes. Barred owls hunt at night. The existing saithe model represents Atlantic pollock (Pollachius virens), the same species on both sides of the North Atlantic.
+Acadia National Park species accounts: https://www.nps.gov/acad/learn/nature/marine-wildlife.htm
+https://www.nps.gov/acad/learn/nature/mammals.htm
+https://www.nps.gov/acad/learn/nature/owls.htm
+https://www.fisheries.noaa.gov/species/atlantic-pollock
+
+fauna-acadia-barred-owl.webp — “Barred owl perched on a branch in the spring,” Candy Chambers / U.S. Fish and Wildlife Service, Great River National Wildlife Refuge, 29 April 2015. Public domain. Subject isolated and used to texture the cutout body and animated wings.
+https://www.fws.gov/media/barred-owl-perched-branch-spring
+fauna-acadia-harbor-seal.webp — NOAA Fisheries, harbor seal species illustration. NOAA credit. United States Government work. Isolated species artwork mirrored and contoured into the body of a hauled-out harbor seal.
+https://www.fisheries.noaa.gov/species/harbor-seal

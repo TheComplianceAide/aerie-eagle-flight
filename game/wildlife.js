@@ -2,11 +2,11 @@
 // so returning to a cove restores the same flock composition and identities.
 window.addRegionalWildlife=function(T,scene,w){
   const region=w.region,{birds,sizes,species,scenes}=window.aerieFauna,profile=scenes[region];
-  const ground=w.elevation||w.height,h=w.habitat,models=window.makeWildlifeModels(T,scene);
+  const ground=w.elevation||w.height,h=w.habitat,models=window.makeWildlifeModels(T,scene,region);
   const land=window.makeLandWildlife(T,scene,w);
   const feedingFish={dixville:'brook-trout',moosehead:'atlantic-salmon',labrador:'brook-trout'}[region];
   const stations={alaska:[-424,-476],swiss:[-613,437],canyon:[-322,-32],yosemite:[-728,1256],
-    crater:[-3209,1679],lofoten:[923,2104],milford:[2371,3244],
+    crater:[-3209,1679],lofoten:[923,2104],acadia:[636,-789],
     winnipesaukee:[1210,1854],moosehead:[648,-662],surry:[-1142,-3101]};
   const tau=2*Math.PI,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const sCurve=f=>{f=clamp(f,0,1);return f*f*(3-2*f);};
@@ -46,14 +46,14 @@ window.addRegionalWildlife=function(T,scene,w){
   const ripples=window.makeFishRipples(T,scene,w,waterAt);
   const fish=window.makeFishSchools(region,waterAt,ripples.emit),sites=new Map(),dormantSites=new Map();
   const social={
-    loon:[1,2],goose:[5,15],nene:[2,5],mallard:[3,12],'black-duck':[2,8],'wood-duck':[2,6],
+    'barred-owl':[1,1],'harbor-seal':[1,2],loon:[1,2],goose:[5,15],nene:[2,5],mallard:[3,12],'black-duck':[2,8],'wood-duck':[2,6],
     merganser:[2,7],eider:[5,22],shelduck:[2,4],heron:[1,1],kingfisher:[1,1],dipper:[1,2],
     kittiwake:[4,18],'common-gull':[2,9],tern:[2,8],oystercatcher:[2,5],shearwater:[2,9],
     raven:[1,3],peregrine:[1,1],kea:[2,6],chough:[4,16],chickadee:[3,8],'mountain-chickadee':[3,8],
     kinglet:[2,6],nuthatch:[2,7],junco:[3,10],nutcracker:[2,6],'acorn-woodpecker':[3,8],
     'norwegian-sheep':[4,10],'nz-fur-seal':[2,7],'hawaiian-monk-seal':[1,2],'alpine-marmot':[2,5]
   };
-  const bodySizes={'juneau-red-squirrel':.32,'douglas-squirrel':.31,'golden-mantled-squirrel':.27,'american-pika':.18,
+  const bodySizes={'harbor-seal':1.51,'juneau-red-squirrel':.32,'douglas-squirrel':.31,'golden-mantled-squirrel':.27,'american-pika':.18,
     'alpine-marmot':.57,'norwegian-sheep':1.25,'nz-fur-seal':1.57,'hawaiian-monk-seal':2.1,
     'maine-green-frog':.084,'nh-bullfrog':.15,'nh-spring-peeper':.032,'canyon-treefrog':.049};
   function placeGroup(site,id,random,groundGeese=false){
@@ -62,7 +62,7 @@ window.addRegionalWildlife=function(T,scene,w){
     const goose=skin==='goose'||skin==='nene',seabird=['shearwater','kittiwake','tern','common-gull'].includes(skin);
     const origin=site.water||site,angle=random()*tau;
     const distance=aquatic?(skin==='loon'?27:2.5+random()*3):20+random()*36;
-    const x=origin.x+Math.cos(angle)*distance,z=origin.z+Math.sin(angle)*distance;
+    const x=site.anchor?.x??origin.x+Math.cos(angle)*distance,z=site.anchor?.z??origin.z+Math.sin(angle)*distance;
     let base,tree;
     if(aquatic){if(!site.water)return;base=findWater(x,z,12)||site.water;}
     else if(onTree){
@@ -74,6 +74,7 @@ window.addRegionalWildlife=function(T,scene,w){
       base=findDry(x,z,105)||((seabird||skin==='heron')?site.water:null);
     }else base=findDry(x,z,site.curated?150:65,goose||hab==='meadow');
     if(!base)return;
+    if(skin==='harbor-seal'&&(base.y>w.waterLevel+3.5||Math.hypot(base.x-site.water.x,base.z-site.water.z)>40))return;
     if(skin==='norwegian-sheep'&&(base.y<.4||base.y>330))return;
     if(skin==='alpine-marmot'&&base.y+(w.altitudeOffset||0)<1550)return;
     if(skin==='hawaiian-monk-seal'&&!w.landmarks.some(p=>/beach/i.test(p.name)&&Math.hypot(p.x-base.x,p.z-base.z)<700))return;
@@ -155,6 +156,15 @@ window.addRegionalWildlife=function(T,scene,w){
       }
     }
     resident=makeSite('shallows',pick.x,pick.z,true);
+    if(region==='acadia'){
+      // A low intertidal haul-out on Boulder Beach and a hunting perch at the
+      // wooded rim of Newport Cove both sit outside the open-water eider raft.
+      for(const [key,id,x,z] of [['boulder-ledge','harbor-seal',-84,490],['newport-spruce','acadia-barred-owl',151,-1034]]){
+        const site={key,x,z,anchor:{x,z},water:id==='harbor-seal'?findWater(x,z,36):null,curated:true,flocks:[],schools:[]};
+        placeGroup(site,id,randomAt(x,z));
+        if(site.flocks.length)sites.set(key,site);
+      }
+    }
     // The beach, high native forest and reservoir are different habitats.
     // Give absent forest birds an actual crown in their elevation band.
     const absent=profile.birds.filter(id=>!resident.flocks.some(f=>f.id===id)&&/tree/i.test(birds[id][1]));
@@ -181,10 +191,8 @@ window.addRegionalWildlife=function(T,scene,w){
       const z=launch.z-Math.cos(launch.yaw)*d+wind.windZ*d/15;
       return !Number.isFinite(waterAt(x,z))||clearance(x,z)>launch.y-1.5;
     });
-    // The Merced bends below the shallows. At Milford a setback inland from
-    // the resident shelducks would put the eagle in the fjord wall. Start on
-    // the surveyed water and cross the resident site on the open side.
-    const shoreStart={yosemite:[-704.04,1237.95,12],milford:[2376,3244,9]}[region];
+    // Start over the surveyed Merced bend and cross the resident shallows on their open side.
+    const shoreStart={yosemite:[-704.04,1237.95,12]}[region];
     if(shoreStart&&Number.isFinite(waterAt(shoreStart[0],shoreStart[1]))){
       const [x,z,height]=shoreStart,dx=pick.x-x,dz=pick.z-z,length=Math.hypot(dx,dz);
       const alongX=dx/length,alongZ=dz/length,sideX=-alongZ,sideZ=alongX;
@@ -242,7 +250,7 @@ window.addRegionalWildlife=function(T,scene,w){
         }
       }
     }
-    const shallows={moosehead:'Wildlife shallows · Salmon rise',labrador:'Wildlife shallows · Brook trout'}[region]||'Wildlife shallows';
+    const shallows={acadia:'Common eiders in Newport Cove',moosehead:'Wildlife shallows · Salmon rise',labrador:'Wildlife shallows · Brook trout'}[region]||'Wildlife shallows';
     w.landmarks.push({name:shallows,x:pick.x,z:pick.z,discoveryRadius:72,
       approach:[launch.x,launch.z,launch.x-30*Math.sin(launch.yaw),launch.z-30*Math.cos(launch.yaw),launchHeight,launch.glance]});
   }
@@ -308,6 +316,7 @@ window.addRegionalWildlife=function(T,scene,w){
       y+=peak*mix*(.65+.35*Math.sin(theta*.5));
       y=Math.max(y,floor+mix*(.7+L));bank=-mix*Math.atan2(.58*R*(tau/f.period)**2,9.81);
       pitch=behavior==='takeoff'?.18:behavior==='landing'?.14:.03*Math.cos(theta);
+      if(f.skin==='barred-owl')pitch-=1.04*mix;
     }
     a.x=x;a.y=y;a.z=z;a.heading=heading;a.bank=bank;a.pitch=pitch;
     a.mode=mix>.025?1:swim?-1:0;a.behavior=behavior;
@@ -333,7 +342,7 @@ window.addRegionalWildlife=function(T,scene,w){
   // A rising fish is visible at the disturbance; the deeper school is concealed.
   const visibleSubjects=[],rendered=[];
   const names={
-    goose:'Canada goose',mallard:'Mallard',raven:'Common raven',dipper:'American dipper',accentor:'Alpine accentor',
+    'barred-owl':'Barred owl','harbor-seal':'Harbor seal',goose:'Canada goose',mallard:'Mallard',raven:'Common raven',dipper:'American dipper',accentor:'Alpine accentor',
     wagtail:'White wagtail',peregrine:'Peregrine falcon','rock-wren':'Rock wren',merganser:'Common merganser',
     'mountain-chickadee':'Mountain chickadee','acorn-woodpecker':'Acorn woodpecker',bluebird:'Mountain bluebird',junco:'Dark-eyed junco',
     robin:'American robin',eider:'Common eider','common-gull':'Common gull',tern:'Arctic tern',tui:'Tūī',tomtit:'Tomtit',
@@ -346,7 +355,7 @@ window.addRegionalWildlife=function(T,scene,w){
     'nz-fur-seal':'New Zealand fur seal','nh-bullfrog':'American bullfrog','maine-green-frog':'Green frog','nh-spring-peeper':'Spring peeper',
     'canyon-treefrog':'Canyon treefrog',sockeye:'Sockeye salmon','dolly-varden':'Dolly Varden','lake-trout':'Lake trout',
     rainbow:'Rainbow trout','brown-trout':'Brown trout',carp:'Common carp',kokanee:'Kokanee salmon',spotty:'Spotty wrasse',
-    'blue-cod':'New Zealand blue cod',saithe:'Saithe','atlantic-cod':'Atlantic cod',smallmouth:'Smallmouth bass',
+    'blue-cod':'New Zealand blue cod',saithe:region==='acadia'?'Atlantic pollock':'Saithe','atlantic-cod':'Atlantic cod',smallmouth:'Smallmouth bass',
     'atlantic-salmon':'Landlocked Atlantic salmon','yellow-perch':'Yellow perch','brook-trout':'Brook trout'
   };
   function nearby(p,maxDistance=400){

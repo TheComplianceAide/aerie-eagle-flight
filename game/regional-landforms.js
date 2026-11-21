@@ -164,7 +164,9 @@
         geometry.setAttribute('normal',new T.BufferAttribute(norm,3));
         geometry.setAttribute('landformExposure',new T.BufferAttribute(ex,4,true));
         geometry.setIndex(new T.BufferAttribute(part.triangles,1));geometry.computeBoundingSphere();
-        const mesh=new T.Mesh(geometry,material);mesh.name=spec.name+' · terrain section';
+        const mesh=new T.Mesh(geometry,material);
+        mesh.userData.terrainCaster=true;
+        mesh.name=spec.name+' · terrain section';
         if(material.uniforms.linearOutput){
           mesh.onBeforeRender=(renderer,scene,camera)=>{
             material.uniforms.linearOutput.value=!!camera.userData.lakeReflection;
@@ -186,6 +188,7 @@
       const point=(spec.style==='alaska'?'p':'wp')+'.xz';
       const bounds=(l,t,r,b)=>'all(greaterThanEqual('+point+',vec2('+l+'. ,'+t+'.)))&&all(lessThanEqual('+point+',vec2('+r+'. ,'+b+'.)))';
       const test=bounds(...rect)+holes.map(h=>'&&!('+bounds(...h)+')').join('');
+      material.userData.terrainShadowCut=test.split(point).join('shadowGround.xz');
       material.fragmentShader=material.fragmentShader.replace(/void main\(\)\s*\{/,m=>m+'if('+test+')discard;');
       material.needsUpdate=true;
     }

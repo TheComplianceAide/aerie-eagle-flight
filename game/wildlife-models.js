@@ -1,6 +1,6 @@
 // Two contoured skins enclose each body. Wings and tail deform in body space,
 // before the instance's bank, pitch, heading and world translation are applied.
-window.makeWildlifeModels=function(T,scene){
+window.makeWildlifeModels=function(T,scene,region){
   const textures={};
   for(const kind of ['birds','fish']){
     const tex=new T.TextureLoader().load('fauna-'+kind+'.webp');
@@ -79,7 +79,7 @@ window.makeWildlifeModels=function(T,scene){
         color=mix(vec3(.13,.30,.29),color+vec3(.29,.32,.33)*scaleFlash,transmission);
         float fresnel=.025+.975*pow(1.-incidence,5.);
         alpha=(1.-fresnel)*(.76+.22*transmission)*smoothstep(.018,.16,incidence);}
-      gl_FragColor=vec4(color,alpha);}`;
+      gl_FragColor=vec4(color*${region==='acadia'?'vec3(.32,.42,.57)':'vec3(1.)'},alpha);}`;
   function batchFor(key){
     if(batches.has(key))return batches.get(key);
     const [kind,aspect,rect,encoded,skinFile]=window.faunaShapes[key],fish=kind==='fish';

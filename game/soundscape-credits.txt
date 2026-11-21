@@ -443,3 +443,23 @@ hrir-eagle: rigid-sphere head model (Duda & Martens 1998) with a 4 cm radius and
 Eagle Ears hearing curve follows diurnal raptor audiograms (Dooling 1980; Dooling, Lohr & Dent 2000): most sensitive near 1-4 kHz, falling above about 6 kHz.
 World reverberation: ir-*.m4a simulated with pyroomacoustics (MIT) by tools/acoustics/make_irs.py.
 Air absorption: ISO 9613-1. Live air: Open-Meteo forecast API (CC BY 4.0), NOAA GFS/HRRR for US worlds; https://open-meteo.com/
+
+ACADIA — OCEAN PATH AT NIGHT
+scape-acadia-cove.m4a — “Mt. Desert Island.wav,” be-steele, Freesound. Small waves breaking on a rocky beach near Southwest Harbor, Mount Desert Island, Maine, in midsummer. This nearby coast recording supplies the wash in Newport Cove and the smaller return flow outside Thunder Hole. Excerpt, spatial mono mix, high-pass and loop edit. CC0 1.0.
+https://freesound.org/people/be-steele/sounds/128239/
+
+scape-acadia-ledge.m4a — “Ocean Surf Along the Coast of Maine,” be-steele, Freesound. Waves breaking on a granite ledge on Bailey Island in Casco Bay, Maine. Excerpt, high-pass and loop edit for the Otter Cliff surf. CC0 1.0.
+https://freesound.org/people/be-steele/sounds/362414/
+
+scape-acadia-chamber.m4a — A second excerpt of the same Bailey Island recording, with short damped echoes and low-frequency emphasis to suggest the pressure pulse in Thunder Hole. The modeled chamber triggers the recording as each sufficiently strong surge enters the notch.
+https://www.nps.gov/places/axs_215.htm
+
+scape-acadia-cobbles.m4a — “Vagues et vent, galets qui roulent-cap-bon-ami,” MarleneAyni, Freesound. Waves tumbling beach stones at Cap-Bon-Ami, Forillon National Park, Gaspé, Québec. A localized excerpt at Boulder Beach; mono mix, high-pass and loop edit. CC0 1.0.
+https://freesound.org/people/MarleneAyni/sounds/731699/
+
+scape-acadia-spruce.m4a — “Wind in Pine Trees, Soft Rustle, Slaley Forest, ORTF Stereo,” Hear_it_use_it, Freesound. Sitka spruce and Scots pine at Slaley Forest, Northumberland, England. Excerpt, mono mix, filtered and looped, representing wind in Acadia's coastal evergreen stands. CC BY 4.0.
+https://freesound.org/people/Hear_it_use_it/sounds/849627/
+https://creativecommons.org/licenses/by/4.0/
+CC0 dedication for the three surf sources: https://creativecommons.org/publicdomain/zero/1.0/
+
+The existing field cricket recording credited under Moosehead plays from dry forest margins. Otter Cliff, Sand Beach and Boulder Beach have fixed coastal sound sources. Straight-line distance, altitude, wind masking and terrain shielding affect the sound reaching the eagle.

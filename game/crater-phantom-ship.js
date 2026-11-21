@@ -53,7 +53,9 @@ window.makePhantomShip=function makePhantomShip(T,scene,texture,level){
       vec3 faceNormal=normalize(cross(dFdx(-vViewPosition),dFdy(-vViewPosition)));
       normal=normalize(mix(normal,faceNormal,.38*cliff)+mat3(viewMatrix)*grain*.90*cliff);`);
   };
-  const mesh=new T.Mesh(geometry,stone);mesh.name='Phantom Ship · surveyed andesite spires';
+  const mesh=new T.Mesh(geometry,stone);
+  mesh.userData.terrainCaster=true;
+  mesh.name='Phantom Ship · surveyed andesite spires';
   mesh.receiveShadow=true;scene.add(mesh);
   const trees=data.trees.map(([x,z,height,width],i)=>({x,z,y:surface(x,z),height,width,seed:(i*.61803)%1,species:4}));
   // From the strait off the south shore, the broadside view separates the

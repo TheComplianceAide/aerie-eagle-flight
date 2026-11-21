@@ -22,8 +22,9 @@
   window.addEventListener("worldchange",()=>{if(renderer||launchPending){disposeCanopy();location.reload();}});
   const keys = new Set(), found = new Set();
   let renderer, scene, camera, world, eagle, player, gaze, cameraTarget;
-  let gameVision,canopy,geology,fieldScenery;
+  let gameVision,canopy,geology,fieldScenery,terrainShadows;
   function disposeCanopy(){
+    terrainShadows?.dispose();terrainShadows=null;
     canopy?.dispose();
     geology?.dispose();
     fieldScenery?.dispose();
@@ -515,6 +516,7 @@
       perchMarker=new THREE.Vector3();
       if(factory)updateHabitat=addHabitat(THREE,scene,world,region);
       window.addFlightWater(THREE,scene,world);
+      if(region==='acadia')window.addAcadiaCoast(THREE,scene,world);
       updateUnderstory=window.addUnderstory(THREE,scene,world);
       gameVision=window.makeGameVision(THREE,world,el("visionToggle"),el("gameVision"));
       if(region==="swiss"||region==="canyon"||region==="yosemite"||region==="dixville") updateTalus=window.addTalus?.(THREE,scene,world);
@@ -530,16 +532,15 @@
       world.canopyStream=canopy=window.makeCanopyStream(THREE,renderer,scene,world);
       loadPromise=Promise.all([assets,world.ready,eagle.ready,geology.ready,fieldScenery.ready]);
       await loadPromise;
-      if(region==='milford'){
-        const falls=world.landmarks.find(mark=>mark.name==='Bowen Falls'&&mark.falls);
-        if(falls)world.launches.ridge=window.aerieScenicFlight.approach(world,falls);
-      }
       window.addReadableWindWater(THREE,scene,world);
       windSoarer=window.makeWindSoarer(THREE,scene,world,world.windField);
       updateLight=window.makeFlightLight(THREE,renderer,scene,world,eagle);
       if(region==="surry")window.lightKeeneStreet(THREE,renderer,scene,world,eagle.object);
       updateWeather=await window.makeMovingWeather(THREE,scene,world);
       updateOptics=window.addAtmosphericOptics(THREE,scene,world);
+      if(region==='acadia')window.lightAcadiaNight(THREE,scene,world);
+      terrainShadows=window.makeTerrainShadows(THREE,renderer,scene,world);
+      await window.prepareWaterfallPrograms(THREE,renderer,scene,camera);
       const departingCanopy=canopy;
       departingCanopy.ready?.then(()=>departingCanopy.warmApproachPrograms?.(camera));
       if(launchPicker.value==='canopy'&&canopy.ready){
@@ -935,6 +936,7 @@
     canopy?.update(player,elapsed,camera.position,camera);
     geology?.update(player,elapsed);
     fieldScenery?.update(player,elapsed);
+    terrainShadows?.update(player);
     renderer.render(scene,camera);updatePerchHUD(s);gameVision.update(player,camera,elapsed);
     if(s.contact){showDialog("contact");return;}
     if(elapsed>=nextReadout){

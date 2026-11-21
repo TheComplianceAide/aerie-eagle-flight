@@ -187,7 +187,7 @@
     // Relative loading of the authored weather. Saltwater fjords and the
     // approaching caldera squall carry more surface stress than Keene's fog.
     const frontGain=({alaska:1.10,swiss:.99,canyon:.88,dixville:.94,labrador:1.03,
-      moosehead:1,winnipesaukee:.90,surry:.69,yosemite:.84,crater:1.16,milford:1.08,lofoten:1.20})[region]??1;
+      acadia:1.03,moosehead:1,winnipesaukee:.90,surry:.69,yosemite:.84,crater:1.16,milford:1.08,lofoten:1.20})[region]??1;
     const advection = (4.7 + 1.0*Math.cos(phase))*frontGain;
     const start = terrain.spawn;
     const origin = start ? {x:start.x-205*Math.sin(start.yaw||0),z:start.z-205*Math.cos(start.yaw||0)} : {x:0,z:0};
@@ -379,7 +379,7 @@
       out.ridge = clamp((slopeX*out.windX+slopeZ*out.windZ)*1.45,-1.1,3.5)*Math.exp(-agl/175);
       out.thermal = 0;
       const aboveSurface = smooth(4,48,agl);
-      if (aboveSurface>0) for (const center of centers) {
+      if (region!=='acadia' && aboveSurface>0) for (const center of centers) {
         const height = y-center.y;
         if (height<=5 || height>=1550) continue;
         core(center,y,t,columnPoint);

@@ -1,0 +1,53 @@
+<!doctype html><meta charset="utf-8"><title>Terrain sunlight checks</title>
+<script src="../game/three.min.js"></script><script src="../game/terrain-shadows.js"></script>
+<pre id="report">Running sunlight checks…</pre><script>
+(() => {
+  const T=THREE,results=[];
+  function check(label,condition){if(!condition)throw Error(label);results.push(label);}
+  function exercise(api,fullMaterial){
+    const canvas=document.createElement('canvas'),gl=canvas.getContext(api);
+    if(!gl){results.push(api+' unavailable');return;}
+    const r=new T.WebGLRenderer({canvas,context:gl});
+    r.setSize(256,256,false);
+    const scene=new T.Scene(),eye=new T.PerspectiveCamera(46,1,.1,30000);
+    eye.position.set(0,340,.01);eye.lookAt(0,0,0);eye.updateMatrixWorld();
+    const ground=new T.PlaneGeometry(320,320,96,96);ground.rotateX(-Math.PI/2);
+    // Exercise the alternate shader used by a material at its fragment sampler limit.
+    const count=r.capabilities.maxTextures;
+    const surface=fullMaterial?new T.ShaderMaterial({
+      vertexShader:'void main(){gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+      fragmentShader:'uniform sampler2D '+Array.from({length:count},(_,i)=>'layer'+i).join(',')+'; void main(){gl_FragColor=vec4(1.);}'
+    }):new T.MeshBasicMaterial({color:0xffffff});
+    const floor=new T.Mesh(ground,surface);
+    const cliff=new T.Mesh(new T.BoxGeometry(12,80,160),new T.MeshBasicMaterial());
+    cliff.position.y=40;floor.userData.terrainCaster=cliff.userData.terrainCaster=true;
+    scene.add(floor,cliff);
+    const world={bounds:{minX:-9000,maxX:9000,minZ:-9000,maxZ:9000},
+      elevation:()=>0,sunDirection:new T.Vector3(1,.7,0).normalize()};
+    const effect=makeTerrainShadows(T,r,scene,world),near=new T.Vector3();
+    function read(x){
+      const p=new T.Vector3(x,.02,0).project(eye),rgb=new Uint8Array(4);
+      gl.readPixels(Math.floor((p.x*.5+.5)*256),Math.floor((p.y*.5+.5)*256),1,1,gl.RGBA,gl.UNSIGNED_BYTE,rgb);
+      return rgb[0];
+    }
+    const label=api+(fullMaterial?' full fragment stage':' standard material');
+    function direction(anchor,sunward,expected){
+      effect.update(anchor);r.render(scene,eye);
+      const lit=read(sunward),shaded=read(-sunward);
+      check(label+' '+expected+' lit '+lit+', shade '+shaded,lit>235&&shaded<210&&lit-shaded>45);
+    }
+    direction(near,57,'near');
+    effect.update(new T.Vector3(12,18,20));check(label+' reused the atlas',effect.stats.drawings===2);
+    direction(new T.Vector3(8000,0,0),57,'regional');
+    world.sunDirection.x*=-1;direction(near,-57,'reversed sunlight');
+    check(label+' GPU clean',gl.getError()===gl.NO_ERROR);
+    effect.dispose();ground.dispose();cliff.geometry.dispose();surface.dispose();cliff.material.dispose();r.dispose();
+    gl.getExtension('WEBGL_lose_context')?.loseContext();
+  }
+  try{
+    exercise('webgl2',false);exercise('webgl2',true);exercise('webgl',false);exercise('webgl',true);
+    report.dataset.result='pass';
+  }catch(error){report.dataset.result='fail';results.push(error.stack);}
+  report.textContent=results.join('\n');
+})();
+</script>

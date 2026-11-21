@@ -19,6 +19,8 @@ Fly a bald eagle through twelve real-world landscapes, looking out over its righ
 
 *Pick a world and a launch point. At Moosehead Lake, the Mount Kineo cliffs launch puts you above the water facing the headland.* [Open the flight menu](https://aerie-valley-flight.randyb308826.chatgpt.site/#world=moosehead&launch=lake)
 
+[Fly Acadia at night](https://aerie-valley-flight.randyb308826.chatgpt.site/#world=acadia&launch=lake). Start at Otter Cliff under the Milky Way, turn into Thunder Hole for the surf, or follow Sand Beach toward Great Head.
+
 ## How the world works
 
 - **Flight.** Each wing samples the wind independently, so a gust can lift one wingtip before the other. The eagle steadies its head through a bank, fans its tail to slow down and reaches feet-first for a perch.
@@ -26,11 +28,13 @@ Fly a bald eagle through twelve real-world landscapes, looking out over its righ
 - **Weather and water.** Moving clouds shade ridges and lakes. Gusts roughen patches of open water and blow fine spray sideways at Nugget Falls. Along a river, the current runs faster away from the banks.
 - **Sound.** Turn your head on a perch to place a birdcall in stereo. Glide behind the rock spur at Nugget Falls and the high hiss fades before the low rumble. Ten recorded bald-eagle phrases accompany takeoffs, climbs, glides and landings. [Field recording credits](game/field-audio-credits.txt)
 
-**Regional soundscapes.** 80 regional recordings cover all twelve worlds. The headphone mix places calls in three dimensions, delays distant sounds by their travel time and reflects echoes off cliffs. Air absorption follows the day’s temperature and humidity at each real location, and pressing **L** or tapping **Eagle Ears** filters the mix toward a raptor’s hearing. Each animal keeps its own time, taken from field studies where one exists: a loon pair gives about four loud calls an hour by day, a red squirrel rattles once in ten minutes, a vireo sings again and again. Fly close and each answers in the way of its kind: geese honk over one another and settle, a loon wails once, a marmot whistles and is gone, and songbirds and frogs fall silent. Moose and deer can be heard walking through leaf litter, and ibex, bighorn, otters and western chipmunks have voices of their own. [Recording credits](game/soundscape-credits.txt) · [Call timing and its sources](game/call-timing-sources.txt)
+**Regional soundscapes.** Each world has a regional soundscape. In Acadia, surf follows the rocky shore, and barred owls call from the spruce woods. The headphone mix places calls in three dimensions, delays distant sounds by their travel time and reflects echoes off cliffs. Air absorption follows the day’s temperature and humidity at each real location, and pressing **L** or tapping **Eagle Ears** filters the mix toward a raptor’s hearing. Each animal keeps its own time, taken from field studies where one exists: a loon pair gives about four loud calls an hour by day, a red squirrel rattles once in ten minutes, a vireo sings again and again. Fly close and each answers in the way of its kind: geese honk over one another and settle, a loon wails once, a marmot whistles and is gone, and songbirds and frogs fall silent. Moose and deer can be heard walking through leaf litter, and ibex, bighorn, otters and western chipmunks have voices of their own. [Recording credits](game/soundscape-credits.txt) · [Call timing and its sources](game/call-timing-sources.txt)
 
 ## Play locally
 
 [Download the offline game](https://github.com/TheComplianceAide/aerie-eagle-flight/releases/latest/download/Aerie.html) and open it in Chrome. Choose a world and select **Take flight**.
+
+Gameplay videos use native 1920 × 1080 per view in every world. In side-by-side comparisons, each view retains its full 1920 × 1080 frame.
 
 ## Run from source
 
@@ -96,7 +100,7 @@ Cloud banks drift across all twelve ranges. Their shadows follow the ridges, for
 
 ## Waterfall flights
 
-Take the **Nugget Falls spray pass** in Alaska to see the water separate into streams, blow sideways in gusts and send ripples across Mendenhall Lake. At **Bowen Falls** in Milford Sound, fly down beside the curtain to see its spray drift into the fjord. Use **Explore** for Plaikni Falls, Falls of Song, Beaver Brook Falls, Cold Stream Falls and Rostadforsen. Each follows the local streambed down to its receiving water. [Regional waterfall surveys](game/regional-waterfalls-credits.txt)
+Take the **Nugget Falls spray pass** in Alaska to see the water separate into streams, blow sideways in gusts and send ripples across Mendenhall Lake. At **Thunder Hole** in Acadia, follow the night surf into the granite inlet. Use **Explore** for Plaikni Falls, Falls of Song, Beaver Brook Falls, Cold Stream Falls and Rostadforsen. Each follows the local streambed down to its receiving water. [Regional waterfall surveys](game/regional-waterfalls-credits.txt)
 
 ## Try the world physics
 
@@ -111,9 +115,11 @@ Take the **Nugget Falls spray pass** in Alaska to see the water separate into st
 
 ## Scenery and credits
 
+Mountains, canyon walls and surveyed rock faces cast shadows in the direction of each world's sunlight. The same terrain shadow reaches the water surface and follows the flight from the distant ridges to a low shoreline pass.
+
 Forests and ground cover continue between landmarks in every world. A twelve-cell lidar inset follows the ground and crowns at Table Rock. Other woodland fills use regional land cover and representative plant specimens. [Flight study, regional coverage and source photographs](docs/regional-scenery.md)
 
-The playable worlds include Oeschinen Lake, Mendenhall Glacier, Horseshoe Bend, Yosemite Valley, Crater Lake, Lofoten, Milford Sound, Lake Winnipesaukee, Moosehead Lake, Surry Mountain Dam with Keene, Lac Berté in Québec, and Dixville Notch at dawn in New Hampshire.
+The playable worlds include Oeschinen Lake, Mendenhall Glacier, Horseshoe Bend, Yosemite Valley, Crater Lake, Lofoten, Acadia National Park at night, Lake Winnipesaukee, Moosehead Lake, Surry Mountain Dam with Keene, Lac Berté in Québec, and Dixville Notch at dawn in New Hampshire.
 
 Low passes reveal wind-bent photographed grasses, shrubs, and ferns. Position and head direction shape the stereo field of recorded birds near crowns, shores, and rocky ground. Exposed ridges and higher flight carry a stronger wind. Ten bald-eagle phrases from six field recordings accompany takeoffs, climbing, soaring, shoreline flight, and perching. The seven Yellowstone excerpts include the three recordings on the park’s bald-eagle page. Headphones make the direction of individual calls easiest to hear.
 
