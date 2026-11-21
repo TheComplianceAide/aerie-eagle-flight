@@ -257,8 +257,12 @@
     let scape=null,scapeExtras={},scapeBeds=new Set();
     let eagleDue=0, birdDue=0, animalDue=0, birdIndex=0, animalIndex=0, wildlifeUntil=0;
     let alarmCheck=0;
-    // Frogs fall silent when a predator comes near, so they keep to the rotation.
-    const alarms=new Map(), alarmIds=[...profile.birds,...profile.animals].filter(id=>species[id]&&!/frog|peeper/.test(id));
+    // Species-appropriate quiet. Frogs and small songbirds fall silent when a
+    // raptor is close: they keep to the ordinary rotation and say nothing
+    // while the eagle is inside their hush radius. Waterfowl, corvids, jays,
+    // chickadees, kingfishers, herons, loons and squirrels call out instead.
+    const hushOf=id=>/frog|peeper/.test(id)?60:/accentor|wagtail|wren|bluebird|junco|robin|pipit|bellbird|vireo|kinglet|thrush|dunnock|tomtit|fantail|apapane|poorwill/.test(id)?35:0;
+    const alarms=new Map(), alarmIds=[...profile.birds,...profile.animals].filter(id=>species[id]&&!hushOf(id));
     const nextPhrase=new Map();
     let previousStage=null,pending=null,quietUntil=0,loonTake=0;
     let lastEncounter=-Infinity,nextWildlifeScan=0;
@@ -333,13 +337,16 @@
       birdDue=now+random(1.0,2.5);animalDue=now+random(7.5,11);wildlifeUntil=now;
       started=true;tick=0;
     }
+    const actorIds=new WeakMap();let actorCount=0;
     function voice(id,gain,pan,cutoff,anchor=null){
       const buffer=buffers.get(id);
       if(!buffer)return false;
       if(anchor&&scape?.engine){
         // Delay, Doppler, ISO air absorption, terrain shading and the world's
         // simulated reverberation are applied by the spatial engine.
-        const s=scape.engine.play(buffer,{x:anchor.x,y:anchor.y,z:anchor.z},{gain:gain*1.1,ref:clamp(anchor.reach*.18,12,95),
+        // The voice belongs to one individual: the visible animal it follows, or a fixed site.
+        const who=anchor.actor?id+' animal '+(actorIds.get(anchor.actor)??(actorIds.set(anchor.actor,++actorCount),actorCount)):id+' site '+Math.round(anchor.x)+','+Math.round(anchor.z);
+        const s=scape.engine.play(buffer,{x:anchor.x,y:anchor.y,z:anchor.z},{label:id,id:who,follows:!!anchor.actor,gain:gain*1.1,ref:clamp(anchor.reach*.18,12,95),
           reach:anchor.reach*1.3,wet:.42,echo:anchor.reach>=220,rate:random(.982,1.015)});
         if(s&&anchor.actor)s.onUpdate=()=>{s.x=anchor.actor.x;s.y=anchor.actor.y;s.z=anchor.actor.z;};
         return !!s;
@@ -361,7 +368,7 @@
         const a=visible?{...visible,reach,gain}:sourceSite(id,s,world,shore,waterY);
         if(!a)continue;
         const d=Math.hypot(s.x-a.x,s.y-a.y,s.z-a.z);
-        if(d>reach*.94)continue;
+        if(d>reach*.94||d<hushOf(id))continue;
         const signal=gain*(1-clamp((d/reach-.54)/.46,0,1));
         const clip=id==='loon-moosehead'&&loonTake%2&&buffers.has('maine-loon-reply')?'maine-loon-reply':id;
         if(voice(clip,signal,0,14000,a)){
@@ -453,10 +460,12 @@
       const canopy=tree?attenuation(Math.hypot(s.x-tree.x,s.y-tree.y-tree.height*.63,s.z-tree.z),30):0;
       const land=world.elevation||world.height,here=land(s.x,s.z);
       const ridge=clamp((here-(land(s.x-90,s.z-42)+land(s.x+74,s.z-53)+land(s.x+21,s.z+99))/3-3)/37,0,1);
-      const exposure=clamp((agl-12)/190+.51*ridge*(1-.63*canopy),0,1);
+      // The wind drops in the lee of a rock face: its own sound falls away
+      // and what it was masking comes through.
+      const open=clamp((agl-12)/190+.51*ridge*(1-.63*canopy),0,1),exposure=open*(1-.7*(scape?.lee?.(s)??0));
       const gust=world.windField?.sample(s.x,s.y,s.z,s.elapsed||0,gustSample)?.gust??window.aerieWind(s.x,s.z,s.elapsed||0);
       const speed=clamp((s.airspeed||0)/32,0,1.3);
-      scapeExtras={exposure,gust,canopy,shore:lastShore};
+      scapeExtras={exposure,open,gust,canopy,shore:lastShore};
       air.gain.setTargetAtTime((.045+.12*speed+.63*exposure)*(.70+.37*gust)*(1-.46*canopy)*(window.aerieWindTrim??1),now,.55);
       shelf.frequency.setTargetAtTime(550+1320*speed+2850*exposure+530*gust,now,.55);
       for(const shot of shots){
