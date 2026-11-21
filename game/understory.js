@@ -363,7 +363,7 @@
       if(tiles.has(key))return tiles.get(key);
       let seed=(Math.imul(ix,374761393)^Math.imul(iz,668265263))>>>0;
       const rand=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
-      const result=[];tiles.set(key,result);
+      const result=[];
       const bank=bankPatches.get(key),water=world.waterLevel;
       if(bank&&Number.isFinite(water)){
         // Use a separate sequence so reeds do not rearrange established plants.
@@ -412,7 +412,12 @@
           }else result.push([x,y-.025,z,baseHeights[kind]*scale*(.57+rand()*.93),rand()*6.283,rand(),kind,records[kind].span]);
         }
       }
-      return result;
+      // The summer-drying El Capitan opening carries actual sedges and grass
+      // rather than the valley floor's fallback shade ferns. Filter after the
+      // seeded sequence, preserving every neighboring woodland placement.
+      const plants=world.elCapitanMeadowCover?result.filter(p=>world.elCapitanMeadowCover(p[0],p[2])<.65||p[6]===7):result;
+      tiles.set(key,plants);
+      return plants;
     }
     function put(g,p,full=false){
       const i=g.instanceCount;if(i>=g.attributes.trait.count)return false;

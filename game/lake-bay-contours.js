@@ -2,7 +2,7 @@
 // provides a measured wet/dry boundary. Both aircraft contact and lake
 // triangulation consume the same corrected chart.
 window.aerieLakeBankSites={
-  moosehead:['spencer','lily'],
+  moosehead:['spencer','lily','rockwood'],
   winnipesaukee:['meredith','wolfeboro','hesky','diamond','sleepers']
 };
 window.refineLakeBays=function(region,survey){
@@ -21,5 +21,6 @@ window.refineLakeBays=function(region,survey){
       ring.splice(0,end);
     }
   }
+  if(region==='moosehead')window.fitRockwoodLanding(survey);
   survey.baysMapped=true;
 };

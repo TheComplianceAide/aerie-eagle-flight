@@ -114,6 +114,9 @@
         shader=shader.replace('vec3 shore=texture2D(shoreField,basin).rgb;', `
           vec4 shore=texture2D(shoreField,basin);
           float harborSwell=clamp((shore.a*255.-128.)/127.,0.,1.);`)
+          // The copper skylight still illuminates the deep fjord behind a ridge.
+          // Apply the sun mask fully to glints and the lit fraction of the shallow bed.
+          .replace('body*mix(.70,1.,visibleSun)', 'body*(1.-(1.-visibleSun)*daylight*(.016+.284*shallow))')
           .replace('float coast=shoreExposure,', 'float coast=shoreExposure*mix(.11,1.,harborSwell),')
           .replace('float incident=mix(', 'float incident=mix(.035,1.,harborSwell*harborSwell)*mix(')
           .replace('float white=oceanSurf*', 'float white=oceanSurf*harborSwell*harborSwell*')

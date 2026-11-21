@@ -5,6 +5,7 @@ window.makeLakeHabitat=function(T,scene,region,elevation,waterLevel){
     ...r,mask:decode(r.coverage),crowns:new Int16Array(decode(r.trees).buffer)
   }));
   const port=region==='winnipesaukee'?window.makeWinniTownDocks?.(T,scene,elevation,waterLevel):null;
+  const landing=region==='moosehead'?window.makeRockwoodLanding(T,scene,elevation,waterLevel):null;
   const roofCells=new Map(),cellSize=40;
   const cell=(x,z)=>Math.floor(x/cellSize)*65536+Math.floor(z/cellSize);
   function contains(p,x,z){
@@ -16,7 +17,7 @@ window.makeLakeHabitat=function(T,scene,region,elevation,waterLevel){
     return inside;
   }
   function roofHeight(x,z){
-    let h=port?.supportHeight(x,z)??-Infinity;
+    let h=(port||landing)?.supportHeight(x,z)??-Infinity;
     for(const r of roofCells.get(cell(x,z))||[]){
       if(contains(r.p,x,z))h=Math.max(h,roofY(r,x,z));
     }
@@ -25,6 +26,7 @@ window.makeLakeHabitat=function(T,scene,region,elevation,waterLevel){
   function cross(r,x,z){return -(x-r.center[0])*r.axis[1]+(z-r.center[1])*r.axis[0];}
   function roofY(r,x,z){if(r.measuredHeight)return r.measuredHeight(x,z);return r.base+r.eave+r.rise*Math.max(0,1-Math.abs(cross(r,x,z))/r.halfWidth);}
   function ownsTree(x,z){
+    if(landing?.ownsTree(x,z))return true;
     for(const site of sites){
       const i=Math.floor((x-site.center[0]+site.half)/16),j=Math.floor((z-site.center[1]+site.half)/16);
       if(i>=0&&j>=0&&i<site.cols&&j<site.cols){
@@ -35,6 +37,7 @@ window.makeLakeHabitat=function(T,scene,region,elevation,waterLevel){
     return false;
   }
   function plantCrowns(plant){
+    landing?.plantCrowns(plant);
     for(const site of sites){
       const a=site.crowns;
       for(let i=0;i<a.length;i+=5){
@@ -166,5 +169,5 @@ window.makeLakeHabitat=function(T,scene,region,elevation,waterLevel){
     return Number.isFinite(roofHeight(x,z))||box.filter(([a,b])=>Number.isFinite(roofHeight(a,b))).length>1;
   }
   port?.finish();
-  return {roofHeight,plantCrowns,ownsTree,supersedes,updateBoats:port?.updateBoats,managedGround:port?.managedGround};
+  return {roofHeight,plantCrowns,ownsTree,supersedes,updateBoats:(port||landing)?.updateBoats,managedGround:(port||landing)?.managedGround};
 };

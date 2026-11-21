@@ -1,0 +1,40 @@
+{
+  "origin": [
+    454517,
+    4081578
+  ],
+  "region": "EPSG:32612",
+  "geo": [
+    -111.51836444259503,
+    36.87871171135343,
+    -111.5140740644987,
+    36.88265143003301
+  ],
+  "NAIP": [
+    {
+      "source": "https://naipeuwest.blob.core.windows.net/naip/v002/az/2023/az_030cm_2023/36111/m_3611104_se_12_030_20230714_20240104.tif",
+      "id": "az_m_3611104_se_12_030_20230714_20240104",
+      "date": "2023-07-14T16:00:00Z"
+    }
+  ],
+  "tnm": "https://tnmaccess.nationalmap.gov/api/v1/products?datasets=Digital+Elevation+Model+%28DEM%29+1+meter&bbox=-111.51836444259503%2C36.87871171135343%2C-111.5140740644987%2C36.88265143003301&max=40",
+  "dem": [
+    "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/AZ_NorthEast_D23/TIFF/USGS_1M_12_x45y409_AZ_NorthEast_D23.tif"
+  ],
+  "site": "https://www.nps.gov/places/hsb.htm",
+  "geologyPhotograph": "https://npgallery.nps.gov/AssetDetail/aa4e55ce-aa2c-4c77-96da-08872c5e2c6d",
+  "geologyPhotographDate": "2017-10-30",
+  "lidarAcquisition": [
+    "2023-05-28",
+    "2023-09-16"
+  ],
+  "verticalDatum": "NAVD88",
+  "metresSubtractedFromGround": 950,
+  "licensing": "U.S. government 3DEP bare earth and USDA NAIP imagery. NPGallery marks the existing Brent and Dawn Davis field image public domain with full granting rights.",
+  "surfaceBoundsLocal": [
+    -624,
+    -232,
+    -388,
+    8
+  ]
+}

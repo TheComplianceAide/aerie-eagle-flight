@@ -834,3 +834,27 @@ https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer
 https://granit24a.sr.unh.edu/image/rest/services/ImageServices/NH_2021_2022_6in_RGB/ImageServer
 https://keeneparks.recdesk.com/Community/Facility/Detail?facilityId=73
 https://keenenh.gov/wp-content/uploads/2025/03/2020_Keene_SpringFinalSet-High-part1.pdf
+
+Reine church and fishing village at 67.93369° N, 13.08821° E, Moskenes. Bare terrain and surface returns © Kartverket, National elevation model DTM/DOM, one-metre export in EPSG:25833, CC BY 4.0. OpenStreetMap geometry © OpenStreetMap contributors, ODbL 1.0. The shipped derivative footprint, wharf and fish-flake database remains ODbL. The source extract and rebuild are supplied under tools/geology/field-sites. Adapted from Reine vista dal Reinebringen (Cappo80, August 2022, CC BY 4.0): terrain colour and some roofs projected from the viewpoint with occlusion repair. Adapted from Reine Kirche lub 2025-07-21 img01 (Lukas Beck, July 2025, CC BY 4.0): rectified, exposure-balanced belfry and nave textures. Ordinary windows, summer-rack construction and siding away from the two photos are modelled.
+https://www.kartverket.no/en/api-and-data/terms-of-use
+https://www.openstreetmap.org/copyright
+https://opendatacommons.org/licenses/odbl/1-0/
+https://commons.wikimedia.org/wiki/File:Reine_vista_dal_Reinebringen.JPG
+https://commons.wikimedia.org/wiki/File:Reine_Kirche_lub_2025-07-21_img01.jpg
+https://creativecommons.org/licenses/by/4.0/
+
+Reinebringen, Hammarskaftet and the elevated lake Reinevatnet, Moskenes, Lofoten. Elevation, lake limits, and canopy derived from the Norwegian DTM/DOM, © Kartverket, CC BY 4.0. Contains modified Copernicus Sentinel-2 data (16 July 2025). Adapted from two photographs by Simo Räsänen (Ximonic), 20 September 2015, “Marken V in Reine, Lofoten, Norway, 2015 September” and “Hammarskaftet at Reine, Lofoten, Norway, 2015 September”. The first supplied a repeating local rock material. Both supplied visible cliff detail, registered to roofs, the ridgeline and the terrain model, with daylight and autumn colour removed. The two resulting textures, reinebringen-obliques.webp and reinebringen-jointed-rock.webp, are CC BY-SA 3.0. Reinevatnet's surveyed surface is at 66.05 m. Its underwater grade is illustrative.
+https://www.kartverket.no/en/api-and-data/terms-of-use
+https://dataspace.copernicus.eu/terms-and-conditions
+https://commons.wikimedia.org/wiki/File:Marken_V_in_Reine,_Lofoten,_Norway,_2015_September.jpg
+https://commons.wikimedia.org/wiki/File:Hammarskaftet_at_Reine,_Lofoten,_Norway,_2015_September.jpg
+https://creativecommons.org/licenses/by-sa/3.0/
+
+Oregon · The Watchman observation station and Cleetwood Cove
+USGS 3DEP, USDA NAIP, Oregon DOGAMI 2010 lidar distributed by NOAA Digital Coast, and National Park Service trail centerlines. The northern littoral shelf uses James V. Gardner and Peter Dartnell, USGS Digital Data Series 72. National Park Service photographs supply Cascade masonry, andesite, the museum facade and interpretive-sign detail. The Watchman Cultural Landscape Inventory and National Register nomination document the observation room, catwalk and museum wing. The Cleetwood scene follows the photographed temporary float and failed concrete-block wharf before rehabilitation. Local rock faces, course joints, trail-support timber and window details are reconstructed.
+https://www.nps.gov/articles/400006.htm
+https://npgallery.nps.gov/AssetDetail/NRIS/88002626
+https://www.nps.gov/crla/planyourvisit/cleetwood-cove-trail-and-marina-rehabilitation.htm
+https://doi.org/10.3133/ds72
+https://mapservices.nps.gov/arcgis/rest/services/NationalDatasets/NPS_Public_Trails/FeatureServer/0
+See tools/geology/crater-rim/sources.json for the exact elevation, imagery, returns and photograph records.

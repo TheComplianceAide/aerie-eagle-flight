@@ -142,6 +142,7 @@ window.addTalus = function addTalus(THREE, scene, world) {
     dummy.position.set(x,h+.06,z);
     dummy.quaternion.copy(orientation);dummy.rotateY(turn);
     dummy.scale.set(size*.58,size*.58,size*.51);dummy.updateMatrix();
+    if(arid&&size>.55&&world.surveyedShelf?.(x,z))return;
     const rock={x,z,y:h,height:height*stretch,size,variant,matrix,color,shadow:dummy.matrix.clone()};
     const key=gridKey(Math.floor(x/gridSize),Math.floor(z/gridSize));
     let cell=cells.get(key);if(!cell){cell=[];cells.set(key,cell);}cell.push(rock);

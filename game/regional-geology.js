@@ -329,6 +329,11 @@
             .replace('#include <map_fragment>','#include <map_fragment>\ndiffuseColor.rgb *= mix(vec3(1.),vec3(.49,.55,.59),mineralWetness);')
             .replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor = mix(roughnessFactor,.36,mineralWetness);');
         };
+        if(world.lightLooseSandstone){
+          const surface=material.onBeforeCompile;
+          material.customProgramCacheKey=()=>'canyon-mineral-exposure';
+          material.onBeforeCompile=shader=>{surface(shader);world.lightLooseSandstone(shader);};
+        }
         materials.push(material);
         const lodMaterials=[material];
         if(permanent){
@@ -351,6 +356,7 @@
         const models=readModels(T,bytes),members=seed(T,world,api.regions,sheet,profile),groups=new Map();
         const small=sheet.kind==='pebbles'||sheet.kind==='beach';const span=permanent?(small?55:115):small?16:60;
         for(const e of members){
+          if(world.elCapitanMeadowCover?.(e.x,e.z)>.63||!small&&world.surveyedShelf?.(e.x,e.z))continue;
           entries.push(e);
           const binSize=e.fixedShore?112:span;
           const tile=(e.fixedShore?'shore:':'')+Math.floor(e.x/binSize)+':'+Math.floor(e.z/binSize);
