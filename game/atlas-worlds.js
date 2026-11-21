@@ -697,6 +697,7 @@ class Water extends Mesh {
         vec3 direct=vec3(${twilight?twilight.beam.join(','):'1.25,.98,.69'})*(.14+1.02*incidence)*sunlit;
         ambient*=mix(vec3(1.),vec3(.74,.87,1.02),desert*(1.-.63*skyView));
         c=pow(max(c,vec3(0.)),vec3(2.2))*(ambient+direct)*(1.+(.32+.42*desert)*relief);
+        /* lake bank surface */
         /* canopy transmission */
         float dep=1.-exp(-d*(.000032-.000007*temperate));
         vec3 aerialHaze=haze*mix(vec3(.79,.86,1.0),vec3(1.12,1.01,.88),.5+.5*dot(normalize(wp-cameraPosition),sun));
@@ -1818,6 +1819,11 @@ class Water extends Mesh {
   }
   for(const [key,tuple] of Object.entries(waterfront?.launches||settings.extraLaunches||{}))launches[key]=start(tuple);
   let landmarks=waterfront?[...survey.landmarks.filter(mark=>!waterfront.landmarks.some(local=>local.name===mark.name)),...waterfront.landmarks]:survey.landmarks;
+  if(region==='winnipesaukee'&&window.winniTownDocks){
+    landmarks=[...landmarks,...Object.values(window.winniTownDocks).map(s=>({
+      name:s.name,x:s.landmark[0],z:s.landmark[1],approach:s.approach
+    }))];
+  }
   if(dixville)landmarks=[...landmarks,{name:'Mount Gloriette',x:-1150,z:1512,approach:[-540,930,-1150,1512,164,0,4]}];
   if(acadia){
     // Glide downhill beside the viewing steps. The chasm and its foam are
@@ -1839,7 +1845,7 @@ class Water extends Mesh {
     landmarks.push({name:'Rainbow overlook',x:rainbow[0],z:rainbow[1],approach:rainbow});
   }
   function blockVegetationAt(x,z,y=elevation(x,z)){
-    if(waterfront&&window.makeWinnipesaukeeWaterfront.openCampLanding(x,z))return true;
+    if(bankHabitat?.managedGround?.(x,z)||waterfront&&window.makeWinnipesaukeeWaterfront.openCampLanding(x,z))return true;
     return !!((acadia&&window.thunderHoleBareLedge(x,z))||resort?.inClearing(x,z)||cabin?.inClearing(x,z)||wetGround(x,z,y,.45)||dam?.onDam(x,z)||
       Number.isFinite(roofHeight?.(x,z))||Number.isFinite(waterfrontHeight?.(x,z)));
   }
@@ -1850,10 +1856,11 @@ class Water extends Mesh {
   const world={region,treeGrid:{cells,size:50,cell},waterfalls,height,elevation,clearance,spawn,launches,landmarks,groundCover,blockVegetationAt,coverHalf:h,cityTerrainMaterial:surry?terrain:null,
     bounds:{minX:-(settings.flightHalf||h)+90,maxX:(settings.flightHalf||h)-90+(region==='crater'?520:0),minZ:-(settings.flightHalf||h)+90,maxZ:(settings.flightHalf||h)-90},waterLevel:settings.water,lakeLevel:settings.water,
     skyTexture:skyMap,cloudDensityMap:!acadia&&twilight&&twilight.sky+'-cloud.webp',sunDirection:sun,sunMask,trees,firTrees,forestLightSpan:2*h,longForest:newEngland||region==='yosemite'||region==='labrador',useFirForest:firTrees.length>0,altitudeOffset:0,
-    update(dt,t,player){clock.value=t;updateDistantTerrain(player);updateTable(player);shoreDetail?.update(player);bankGrowth?.update(player);updateUplandWoods?.(player);updateWeather?.(t,player,world.windField);rainTrace?.(t,player,world.windField);updateHardwoods?.(player);if(water)water.material.uniforms.time.value=t*.65;}};
+    update(dt,t,player){clock.value=t;bankHabitat?.updateBoats?.(t,player,world.windField);updateDistantTerrain(player);updateTable(player);shoreDetail?.update(player);bankGrowth?.update(player);updateUplandWoods?.(player);updateWeather?.(t,player,world.windField);rainTrace?.(t,player,world.windField);updateHardwoods?.(player);if(water)water.material.uniforms.time.value=t*.65;}};
   if(!survey.shore?.length&&shoreDetail)world.fieldBankAt=shoreDetail.closestBank;
   if(dam){world.riverSurfaceAt=dam.riverHeight;world.surryArmorPerch=dam.armorPerch;}
-  if(resort)world.openRoadAt=resort.openRoadAt;
+  const openRoad=resort?.openRoadAt||bankHabitat?.managedGround;
+  if(openRoad)world.openRoadAt=openRoad;
   if(waterfront||bankHabitat||resort)world.blocksInfillTree=(x,z)=>
     bankHabitat?.ownsTree(x,z)||waterfront?.blocksInfillTree(x,z)||world.openRoadAt?.(x,z);
   world.geologyGround=shoreFloor?(x,z)=>Math.max(shoreFloor.ground(x,z),shoreFloor(x,z)):null;

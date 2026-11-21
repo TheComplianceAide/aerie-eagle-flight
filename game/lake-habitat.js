@@ -4,6 +4,7 @@ window.makeLakeHabitat=function(T,scene,region,elevation,waterLevel){
   const sites=Object.values(window.aerieLakeHabitatData[region]).map(r=>({
     ...r,mask:decode(r.coverage),crowns:new Int16Array(decode(r.trees).buffer)
   }));
+  const port=region==='winnipesaukee'?window.makeWinniTownDocks?.(T,scene,elevation,waterLevel):null;
   const roofCells=new Map(),cellSize=40;
   const cell=(x,z)=>Math.floor(x/cellSize)*65536+Math.floor(z/cellSize);
   function contains(p,x,z){
@@ -15,14 +16,14 @@ window.makeLakeHabitat=function(T,scene,region,elevation,waterLevel){
     return inside;
   }
   function roofHeight(x,z){
-    let h=-Infinity;
+    let h=port?.supportHeight(x,z)??-Infinity;
     for(const r of roofCells.get(cell(x,z))||[]){
       if(contains(r.p,x,z))h=Math.max(h,roofY(r,x,z));
     }
     return h;
   }
   function cross(r,x,z){return -(x-r.center[0])*r.axis[1]+(z-r.center[1])*r.axis[0];}
-  function roofY(r,x,z){return r.base+r.eave+r.rise*Math.max(0,1-Math.abs(cross(r,x,z))/r.halfWidth);}
+  function roofY(r,x,z){if(r.measuredHeight)return r.measuredHeight(x,z);return r.base+r.eave+r.rise*Math.max(0,1-Math.abs(cross(r,x,z))/r.halfWidth);}
   function ownsTree(x,z){
     for(const site of sites){
       const i=Math.floor((x-site.center[0]+site.half)/16),j=Math.floor((z-site.center[1]+site.half)/16);
@@ -70,6 +71,7 @@ window.makeLakeHabitat=function(T,scene,region,elevation,waterLevel){
     const altitude=p.map(([x,z])=>elevation(x,z));
     const ground=altitude.slice().sort((a,b)=>a-b);
     roof.base=Math.max(waterLevel+.17,ground[Math.round((ground.length-1)*.8)]);
+    port?.registerRoof(roof);
     const sill=roof.base+.12,foot=Math.min(...altitude)-.42;
     const xs=p.map(q=>q[0]),zs=p.map(q=>q[1]);
     for(let i=Math.floor(Math.min(...xs)/cellSize);i<=Math.floor(Math.max(...xs)/cellSize);i++)
@@ -93,6 +95,7 @@ window.makeLakeHabitat=function(T,scene,region,elevation,waterLevel){
       const b=p[(i+1)%p.length],length=Math.max(.001,runs[i]);
       return [-(b[1]-a[1])/length,(b[0]-a[0])/length];
     });
+    const frontage=port?.decorateRoof(roof);
     const eaves=p.map(([x,z],i)=>{
       const a=edgeNormals[(i+p.length-1)%p.length],b=edgeNormals[i];
       const miter=(metal?.18:.31)/Math.max(.45,1+a[0]*b[0]+a[1]*b[1]);
@@ -102,23 +105,29 @@ window.makeLakeHabitat=function(T,scene,region,elevation,waterLevel){
       const a=p[i],b=p[(i+1)%p.length],l=runs[i];if(l<.15)continue;
       const aa=[a[0],sill,a[1]],bb=[b[0],sill,b[1]];
       face(tile,3,mortar,[[a[0],foot,a[1]],[b[0],foot,b[1]],bb,aa],[[0,0],[l/2,0],[l/2,(sill-foot)/2],[0,(sill-foot)/2]]);
-      const fa=cross(roof,...a),fb=cross(roof,...b),breaks=[a];
-      if(fa*fb<0){const t=fa/(fa-fb);breaks.push([a[0]+t*(b[0]-a[0]),a[1]+t*(b[1]-a[1])]);}
-      breaks.push(b);
-      const v=eaves[i],w=eaves[(i+1)%p.length],outside=[a,b,w,v];
-      face(tile,roofMaterial,tint,outside.map(rim),outside.map(roofUV));
-      const rv=rim(v),rw=rim(w);
-      face(tile,0,siding,[rv,rw,[rw[0],rw[1]-.145,rw[2]],[rv[0],rv[1]-.145,rv[2]]],
-        [[0,1],[l/4,1],[l/4,.95],[0,.95]]);
-      for(let j=1;j<breaks.length;j++){
-        const q=breaks[j-1],r=breaks[j],u0=Math.hypot(q[0]-a[0],q[1]-a[1])/4,u1=Math.hypot(r[0]-a[0],r[1]-a[1])/4;
+      const fa=cross(roof,...a),fb=cross(roof,...b),cuts=[0,1];
+      if(roof.measuredHeight){
+        const segments=Math.ceil(l/1.35);
+        for(let j=1;j<segments;j++)cuts.push(j/segments);
+      }else if(fa*fb<0)cuts.push(fa/(fa-fb));
+      cuts.sort((u,v)=>u-v);
+      const blend=(from,to,f)=>[from[0]+(to[0]-from[0])*f,from[1]+(to[1]-from[1])*f];
+      for(let j=1;j<cuts.length;j++){
+        const start=cuts[j-1],end=cuts[j],q=blend(a,b,start),r=blend(a,b,end),u0=l*start/4,u1=l*end/4;
+        const v=blend(eaves[i],eaves[(i+1)%p.length],start),w=blend(eaves[i],eaves[(i+1)%p.length],end);
+        const outside=[q,r,w,v],rv=rim(v),rw=rim(w);
+        face(tile,roofMaterial,tint,outside.map(rim),outside.map(roofUV));
+        face(tile,0,siding,[rv,rw,[rw[0],rw[1]-.145,rw[2]],[rv[0],rv[1]-.145,rv[2]]],
+          [[u0,1],[u1,1],[u1,.95],[u0,.95]]);
         face(tile,0,siding,[[q[0],sill,q[1]],[r[0],sill,r[1]],rim(r),rim(q)],[[u0,0],[u1,0],[u1,(roofY(roof,...r)-sill)/3.2],[u0,(roofY(roof,...q)-sill)/3.2]]);
       }
     }
     for(const sign of [-1,1]){
       const poly=clip(roof,sign);if(poly.length<3)continue;
       for(const triangle of T.ShapeUtils.triangulateShape(poly.map(q=>new T.Vector2(...q)),[])){
-        const pts=triangle.slice().reverse().map(k=>poly[k]);face(tile,roofMaterial,tint,pts.map(rim),pts.map(roofUV));
+        const pts=triangle.slice().reverse().map(k=>poly[k]);
+        if(port?.roofPlate(roof,pts,pts.map(rim)))continue;
+        face(tile,roofMaterial,tint,pts.map(rim),pts.map(roofUV));
       }
     }
     detail(cx,cz,(box,sash)=>{
@@ -126,7 +135,8 @@ window.makeLakeHabitat=function(T,scene,region,elevation,waterLevel){
       let area=0;for(let i=0;i<p.length;i++){const a=p[i],b=p[(i+1)%p.length];area+=a[0]*b[1]-b[0]*a[1];}
       const side=area>0?1:-1,floors=Math.max(1,Math.min(3,Math.round(roof.eave/3.0)));
       for(let i=0;i<p.length;i++){
-        const a=p[i],b=p[(i+1)%p.length],l=runs[i];if(l<2.5)continue;
+        const a=p[i],b=p[(i+1)%p.length],l=runs[i];
+        if(l<2.5||frontage===i)continue;
         const ux=(b[0]-a[0])/l,uz=(b[1]-a[1])/l,nx=side*uz,nz=-side*ux,trim=0xd8d9cd;
         const dx=-side*ux,dz=-side*uz;
         const on=(t,off)=>[a[0]+t*(b[0]-a[0])+nx*off,a[1]+t*(b[1]-a[1])+nz*off];
@@ -155,5 +165,6 @@ window.makeLakeHabitat=function(T,scene,region,elevation,waterLevel){
     const x=box.reduce((s,q)=>s+q[0],0)/4,z=box.reduce((s,q)=>s+q[1],0)/4;
     return Number.isFinite(roofHeight(x,z))||box.filter(([a,b])=>Number.isFinite(roofHeight(a,b))).length>1;
   }
-  return {roofHeight,plantCrowns,ownsTree,supersedes};
+  port?.finish();
+  return {roofHeight,plantCrowns,ownsTree,supersedes,updateBoats:port?.updateBoats,managedGround:port?.managedGround};
 };

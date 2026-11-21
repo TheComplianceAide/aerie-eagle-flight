@@ -108,3 +108,18 @@ https://gis.maine.gov/image/rest/services/NAIP/orthoNaip2018/ImageServer
 The building footprint database is © Microsoft Corporation. The complete derived building records (building polygons, roof orientation, dimensions and sampled colors) are available under ODbL 1.0 in the buildings arrays of lake-habitat-moosehead.js and lake-habitat-winnipesaukee.js. The accompanying fitting tools describe how the source records were selected and modified.
 https://github.com/microsoft/USBuildingFootprints
 https://opendatacommons.org/licenses/odbl/1-0/
+
+Wolfeboro and Meredith municipal landings, New Hampshire
+University of New Hampshire GRANIT and the State of New Hampshire. Spring 2021–2022 statewide six-inch orthophotography from the NH GRANIT ImageServer. Cropped and registered in UTM 19N for frontages, street surfaces, roof colours, quays, parking and park paths. Ground elevation and forest/roof returns use USGS 3DEP as described above.
+https://granit.unh.edu/
+https://granit24a.sr.unh.edu/image/rest/services/ImageServices/NH_2021_2022_6in_RGB/ImageServer
+Matthew Hill (Fletcher), “Wolfeboro Docks”, 2 July 2015, CC BY 4.0. The Avery Building front, adjacent lakeside diner front and roof sign were cropped, rectified and combined into wolfeboro-waterfront-fronts.webp. These adapted photographic elements retain CC BY 4.0.
+https://commons.wikimedia.org/wiki/File:Wolfeboro_Docks.jpg
+https://creativecommons.org/licenses/by/4.0/
+Town road and park coverage derives from © OpenStreetMap contributors and is available under ODbL 1.0. Dated clipped geometries and IDs are distributed in tools/geology/town-docks/street-cover.json. Atlas piers and reference locations also credit the map contributors.
+https://www.openstreetmap.org/copyright
+https://opendatacommons.org/licenses/odbl/1-0/
+Town of Wolfeboro, Cate Park; Town of Meredith, Hesky Park; Civilworks New England, Wolfeboro Docks. Municipal photographs and the dock reconstruction plan informed the free-standing granite wall, park shelters, piles and timber deck construction.
+https://wolfeboro.recdesk.com/Community/Facility/Detail?facilityId=13
+https://meredithnh.gov/408/Hesky-Park
+https://origin.secure.website/wscfus/10410152/31565562/wolfeboro-docks.pdf

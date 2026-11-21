@@ -55,19 +55,19 @@
   },
   "wolfeboro": {
     "height": {
-      "sha256": "2650bbd6974fc2de31c51ba92304b985e77e7fe075fa4818f856e46476e43cbc",
-      "url": "https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer/exportImage?bbox=320452.0%2C4826237.0%2C322254.0%2C4828039.0&bboxSR=32619&imageSR=32619&size=901%2C901&f=image&format=tiff&interpolation=RSP_BilinearInterpolation&pixelType=F32&renderingRule=%7B%22rasterFunction%22%3A%22None%22%7D",
+      "sha256": "c30e436ed4a950991eabf79f581b5ab04e51317af3d872d05bc7210f1b938085",
+      "url": "https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer/exportImage?bbox=320252.0%2C4826202.0%2C322454.0%2C4828404.0&bboxSR=32619&imageSR=32619&size=1101%2C1101&f=image&format=tiff&interpolation=RSP_BilinearInterpolation&pixelType=F32&renderingRule=%7B%22rasterFunction%22%3A%22None%22%7D",
       "grid": [
-        901,
-        901
+        1101,
+        1101
       ]
     },
     "photo": {
-      "sha256": "11bab369ff6cb4b9ada20c34d3c6dad1c69cafb591b141485ff483bbaff3ced1",
-      "url": "https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer/exportImage?bbox=320453%2C4826238%2C322253%2C4828038&bboxSR=32619&imageSR=32619&size=1800%2C1800&f=image&format=tiff&interpolation=RSP_BilinearInterpolation&pixelType=U8&bandIds=0%2C1%2C2%2C3&renderingRule=%7B%22rasterFunction%22%3A%22None%22%7D",
+      "sha256": "2aa2761e9f4ce2aa94161fb5ac5717521910db5c97828266af84e34ff248db3c",
+      "url": "https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer/exportImage?bbox=320253%2C4826203%2C322453%2C4828403&bboxSR=32619&imageSR=32619&size=2200%2C2200&f=image&format=tiff&interpolation=RSP_BilinearInterpolation&pixelType=U8&bandIds=0%2C1%2C2%2C3&renderingRule=%7B%22rasterFunction%22%3A%22None%22%7D",
       "grid": [
-        1800,
-        1800
+        2200,
+        2200
       ]
     }
   },
@@ -104,6 +104,24 @@
       "grid": [
         1300,
         1300
+      ]
+    }
+  },
+  "hesky": {
+    "height": {
+      "sha256": "18620ed2f6bcf69fa513f2336650e7d646bb60ebc416588505351de7d9cb23d0",
+      "url": "https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer/exportImage?bbox=298062.0%2C4836272.0%2C299024.0%2C4837234.0&bboxSR=32619&imageSR=32619&size=481%2C481&f=image&format=tiff&interpolation=RSP_BilinearInterpolation&pixelType=F32&renderingRule=%7B%22rasterFunction%22%3A%22None%22%7D",
+      "grid": [
+        481,
+        481
+      ]
+    },
+    "photo": {
+      "sha256": "de85f01e819223635023bd27bc10da7efe55c01736aaaaf869e688f4a13367e4",
+      "url": "https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer/exportImage?bbox=298063%2C4836273%2C299023%2C4837233&bboxSR=32619&imageSR=32619&size=960%2C960&f=image&format=tiff&interpolation=RSP_BilinearInterpolation&pixelType=U8&bandIds=0%2C1%2C2%2C3&renderingRule=%7B%22rasterFunction%22%3A%22None%22%7D",
+      "grid": [
+        960,
+        960
       ]
     }
   }

@@ -1,0 +1,23 @@
+{
+  "cate-park.jpg": {
+    "source": "https://granit24a.sr.unh.edu/image/rest/services/ImageServices/NH_2021_2022_6in_RGB/ImageServer/exportImage?bbox=320993%2C4827733%2C321493%2C4828233&bboxSR=32619&imageSR=32619&size=2500%2C2500&format=jpg&compressionQuality=96&f=image&interpolation=RSP_BilinearInterpolation",
+    "cx": 7200,
+    "cz": -180,
+    "half": 250,
+    "px": 2500,
+    "sha256": "8708b62cb01e845b0a20711c00e2828500407123092a9570bca3ab4736a50507"
+  },
+  "hesky-waterfront.jpg": {
+    "source": "https://granit24a.sr.unh.edu/image/rest/services/ImageServices/NH_2021_2022_6in_RGB/ImageServer/exportImage?bbox=298133%2C4836373%2C298893%2C4837133&bboxSR=32619&imageSR=32619&size=3200%2C3200&format=jpg&compressionQuality=96&f=image&interpolation=RSP_BilinearInterpolation",
+    "cx": -15530,
+    "cz": -8950,
+    "half": 380,
+    "px": 3200,
+    "sha256": "49cc3f961ea775498bf9d05c9708c46ab2603214e0c1917f9f81dd5b5a01f05b"
+  },
+  "wolfeboro-fletcher2015.jpg": {
+    "source": "https://commons.wikimedia.org/wiki/Special:FilePath/Wolfeboro_Docks.jpg",
+    "sha256": "d741284c444a02be77d86cbcb24fc0f807ba0ddd97c29f9130260eebae06c440",
+    "attribution": "Matthew Hill (Fletcher), Wolfeboro Docks (2015), CC BY 4.0"
+  }
+}

@@ -1,8 +1,9 @@
-"""Fit the water polygon, exposed shore and forest floor to the six actual lake sites."""
+"""Fit the water polygon, exposed shore and forest floor to the measured lake sites."""
 
 import argparse, json, math, sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from municipal_quays import fit_quay
 import numpy as np
 import rasterio
 from affine import Affine
@@ -212,6 +213,7 @@ def bake(game, out, destination, report):
         wetness = np.clip((nir - threshold) / 24 + 0.017 * (nir - 0.67 * blue), 0, 1)
         land = gaussian_filter(wetness, 1.2)
         changes, evidence = refine(rings, l, t, L, land)
+        fit_quay(name, rings, changes)
         patches.setdefault(w, []).extend(changes)
         details[name] = evidence
         # Use the corrected polygon both for the shoreline triangles and the water

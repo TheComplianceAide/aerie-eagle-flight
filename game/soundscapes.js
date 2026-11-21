@@ -533,7 +533,9 @@
                  {clip: 'scape-winnipesaukee-true-katydid', night: true, habitat: 'trees', count: 3, r: [20, 160], ref: 12, reach: 450, gain: .45}],
       // Creaking boards and moored hulls at the modeled Weirs Beach and Alton Bay docks.
       loops: [{clip: 'scape-winnipesaukee-dock-creak', ref: 7, reach: 260, gain: .55, where: at(/Weirs Beach Boardwalk/, 1, 0)},
-              {clip: 'scape-winnipesaukee-dock-creak', ref: 7, reach: 260, gain: .5, where: at(/Alton Bay Water Bandstand/, 1, 0)}],
+              {clip: 'scape-winnipesaukee-dock-creak', ref: 7, reach: 260, gain: .5, where: at(/Alton Bay Water Bandstand/, 1, 0)},
+              {clip: 'scape-winnipesaukee-dock-creak', ref: 7, reach: 180, gain: .42, where: at(/Cate Park town docks/, 1, 0)},
+              {clip: 'scape-winnipesaukee-dock-creak', ref: 7, reach: 180, gain: .42, where: at(/Hesky Park town docks/, 1, 0)}],
       events: [
         {clip: 'scape-winnipesaukee-veery', every: [18, 40], ref: 15, reach: 400, gain: .55, where: inTrees(40, 300, .2)},
         {clip: 'scape-winnipesaukee-wood-thrush', every: [20, 45], ref: 18, reach: 450, gain: .55, where: inTrees(40, 300, .4)},

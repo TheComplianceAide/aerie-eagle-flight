@@ -6,6 +6,7 @@
     lily:{name:'Lily Bay · measured bank',asset:'lily',lakeBank:true,source:'USGS 3DEP lidar and hydrography, USDA NAIP four-band bank survey'},
     spencer:{name:'Spencer Bay · measured bank',asset:'spencer',lakeBank:true,source:'USGS 3DEP lidar and hydrography, USDA NAIP four-band bank survey'},
     meredith:{name:'Meredith Bay · measured bank',asset:'meredith',lakeBank:true,source:'USGS 3DEP lidar and hydrography, USDA NAIP four-band bank survey'},
+    hesky:{name:'Hesky Park and the town landing',asset:'hesky',lakeBank:true,source:'USGS 3DEP / USDA NAIP and NH GRANIT waterfront survey'},
     wolfeboro:{name:'Wolfeboro Bay · measured bank',asset:'wolfeboro',lakeBank:true,source:'USGS 3DEP lidar and hydrography, USDA NAIP four-band bank survey'},
     diamond:{name:'Diamond Island · measured bank',asset:'diamond',lakeBank:true,source:'USGS 3DEP lidar and hydrography, USDA NAIP four-band bank survey'},
     sleepers:{name:'Sleepers Island · measured bank',asset:'sleepers',lakeBank:true,source:'USGS 3DEP lidar and hydrography, USDA NAIP four-band bank survey'},
@@ -228,13 +229,31 @@
       }
       if(spec.lakeBank){
         const sampler=hasDetail?'detailOrtho':'aerial';
-        material.fragmentShader=material.fragmentShader.replace('/* canopy transmission */',`
+        material.fragmentShader=material.fragmentShader.replace('/* lake bank surface */',`
           // The mapped crown-top horizon is sampled toward this lake's sun.
           // Open gravel, lawns and forest gaps retain their sky illumination.
           float bankLight=texture2D(${sampler},${localUV}).a;
           float shelter=mix(1.,.45+.55*bankLight,landformHorizon.w);
           c*=shelter;
-          /* canopy transmission */`);
+          /* lake bank surface */`);
+      }
+      const municipal=spec.lakeBank&&window.winniTownDocks?.[spec.asset]?.publicGround;
+      if(municipal){
+        const [x0,z0,x1,z1]=municipal.bounds,number=x=>Number(x).toFixed(2);
+        // The two town sites are outside the Weirs inset. Its sampler is
+        // idle on these meshes, including in the reflected camera.
+        material.uniforms.waterfront0={value:texture(spec.asset+'-town-ground.webp')};
+        material.fragmentShader=material.fragmentShader.replace('/* lake bank surface */',`
+          vec2 streetUV=(xz-vec2(${number(x0)},${number(z0)}))/vec2(${number(x1-x0)},${number(z1-z0)});
+          vec2 streetEdge=min(streetUV,1.-streetUV)*vec2(${number(x1-x0)},${number(z1-z0)});
+          float streetCover=smoothstep(0.,10.,min(streetEdge.x,streetEdge.y))*smoothstep(shoreLevel-.16,shoreLevel+.12,wp.y);
+          if(streetCover>.001){
+            vec3 streetColor=texture2D(waterfront0,vec2(streetUV.x,1.-streetUV.y)).rgb;
+            vec3 streetLight=(ambient+direct)*(.95+.05*skyView);
+            vec3 streetSurface=pow(max(streetColor,vec3(0.)),vec3(2.2))*streetLight*mix(1.,shelter,.46);
+            c=mix(c,streetSurface,streetCover*.98);
+          }
+          /* lake bank surface */`);
       }
       if(spec.asset==='yosemite-summits'||(spec.lakeBank&&!hasDetail)){
         // The entire survey sits outside the valley's original aerial. Blend

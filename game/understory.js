@@ -373,6 +373,7 @@
           const along=(grow()-.5)*(reedMarsh?4.3:4.8);
           const x=bank[n]+(reedMarsh?cross*bank[n+2]-along*bank[n+3]:cross);
           const z=bank[n+1]+(reedMarsh?cross*bank[n+3]+along*bank[n+2]:along);
+          if(world.openRoadAt?.(x,z,.62))continue;
           const surveyed=survey(x,z),bed=world.height(x,z);
           if(bed>water+1.25||surveyed<water-1.0||surveyed>water+1.35)continue;
           if(Math.hypot(world.height(x+1,z)-bed,world.height(x,z+1)-bed)>.47)continue;

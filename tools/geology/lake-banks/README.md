@@ -1,6 +1,6 @@
 # Moosehead and Winnipesaukee shoreline surveys
 
-Lily Bay, Spencer Bay, Meredith Bay, Wolfeboro Bay, Diamond Island and Sleepers Island use two-metre bare-earth elevation samples and registered one-metre four-band aerial imagery. The six rectangles cover 15.74 square kilometres. The wet/dry fits cover 19.13 kilometres of mapped shore. The regional chart remains the common boundary for visible water, bank wavelets and flight contact.
+Lily Bay, Spencer Bay, Meredith Bay, Wolfeboro Bay, Hesky Park, Diamond Island and Sleepers Island use two-metre bare-earth elevation samples and registered one-metre four-band aerial imagery. The seven rectangles cover 18.26 square kilometres. The wet/dry fits follow 22.74 kilometres of mapped shore. At Wolfeboro and Hesky Park the granite quay edges are registered against six-inch state photography. The regional chart remains the common boundary for visible water, bank wavelets and flight contact.
 
 The fitter samples the near-infrared transition across the chart, rejects weak or reversed transitions, and preserves the chart endpoints where it rejoins the broader lake. The bed beneath the water is modeled from the bank slope. The lake stage is fixed. The terrain illumination field uses the sun direction of each game's lake.
 
