@@ -1518,7 +1518,7 @@ class Water extends Mesh {
     }
     fallsBoundary?.observe(left,top,width,depth,nx,nz,grid);
     shoreDetail?.terrainEdges(grid,localBed);
-    if(region==='yosemite'&&!localBed){
+    if(window.aerieTerrainIndices&&!localBed){
       const reduced=window.aerieTerrainIndices?.forGrid(region,left,top,nx,nz,grid);
       if(reduced)distantTiles.push({left,top,right:left+width,bottom:top+depth,grid,native:grid.index,reduced});
     }

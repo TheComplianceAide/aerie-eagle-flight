@@ -15,6 +15,10 @@ window.bakeTerrainIndexField=(scene,region)=>{
     const spacing=(p[nx*3]-p[0])/nx;
     const error=spacing>=24?3:spacing>=8?1.25:.60;
     const distance=Math.ceil(1600*error);
+    // Keep every original slope crossing the physical waterline. Entirely
+    // flat underwater runs can still collapse without moving their contour.
+    const water=mesh.material.uniforms.shoreLevel?.value;
+    const shore=['crater','moosehead','winnipesaukee'].includes(region)&&Number.isFinite(water);
     const field=new Uint8Array(Math.ceil(count/8));let indices=0;
     layouts.squares(0,0,nx,nz,(ox,oz,size)=>{
       const w=size+1;
@@ -29,6 +33,10 @@ window.bakeTerrainIndexField=(scene,region)=>{
         const u=n[m]-.5*(n[a]+n[b]),v=n[m+1]-.5*(n[a+1]+n[b+1]),s=n[m+2]-.5*(n[a+2]+n[b+2]);
         const middle=mx+mz*w;
         errors[middle]=Math.max(errors[middle],12*Math.sqrt(u*u+v*v+s*s));
+        if(shore){
+          const lo=Math.min(p[a+1],p[b+1],p[m+1]),hi=Math.max(p[a+1],p[b+1],p[m+1]);
+          if(lo<water+error && hi>water-error && hi-lo>.002)errors[middle]=Infinity;
+        }
       }
       tile.update();
       for(let j=0;j<w;j++)for(let i=0;i<w;i++)if(errors[i+j*w]>error){

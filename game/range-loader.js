@@ -36,6 +36,7 @@
       winnipesaukee:['regional-waterfalls.js','falls-terrain-winnipesaukee.js','waterfall-system.js','architecture.js','winnipesaukee-waterfront-data.js','winnipesaukee-waterfront.js','winnipesaukee-town-docks-data.js','survey-parked-cars.js','winnipesaukee-town-docks.js'],
       surry:['regional-waterfalls.js','falls-terrain-surry.js','waterfall-system.js','architecture.js','keene-weather.js','keene-river-park.js','surry-dam.js','keene-city-data.js','keene-frontages.js','survey-parked-cars.js','keene-streetscape.js','keene-city.js','keene-light.js']
     }[region]||[];
+    if(lakes||region==='crater')surveyDetail.push('terrain-indices.js');
     if(['surry','dixville','yosemite','lofoten'].includes(region))surveyDetail.push('regional-field-fixtures.js');
     const streams=region==='yosemite'?['river-'+region+'.js']:[];
     const assets=[...streams,...base,'wildlife-tracks.js','regional-landforms.js','habitat-data/'+region+'.js',...files,...surveyDetail];
@@ -44,6 +45,6 @@
     const lakeBays=window.aerieLakeBankSites?.[region]||[];
     const extraSurveys=region==='acadia'?['eggrock','bakerisland']:region==='yosemite'?['yosemitefalls']:region==='crater'?['watchman','cleetwood']:region==='swiss'?[...lakeBays,'frunden']:region==='lofoten'?[...lakeBays,'korten','reine','reinebringen']:lakeBays;
     const secondarySurvey={canyon:'canyonshelves',lofoten:'hamnoy',swiss:'swisswest',yosemite:'yosemitesummits'}[region];
-    await Promise.all([...extraSurveys.map(name=>window.aerieRegionalLandforms.prepare(name)),region==='acadia'?window.prepareAcadiaStationCrowns():window.prepareRangeRelief(region),window.aerieRegionalLandforms.prepare(region),(region==='alaska'||region==='yosemite')?window.aerieTerrainIndices.prepare(region):null,secondarySurvey?window.aerieRegionalLandforms.prepare(secondarySurvey):null,region==='moosehead'?window.prepareMooseheadUplands():null]);
+    await Promise.all([...extraSurveys.map(name=>window.aerieRegionalLandforms.prepare(name)),region==='acadia'?window.prepareAcadiaStationCrowns():window.prepareRangeRelief(region),window.aerieRegionalLandforms.prepare(region),(lakes||['alaska','yosemite','crater'].includes(region))?window.aerieTerrainIndices.prepare(region):null,secondarySurvey?window.aerieRegionalLandforms.prepare(secondarySurvey):null,region==='moosehead'?window.prepareMooseheadUplands():null]);
   };
 })();
