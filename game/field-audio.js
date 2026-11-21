@@ -322,7 +322,10 @@
     if(!profile)throw new Error('Missing wildlife profile for '+region);
     const master=context.createGain();
     master.gain.value=0;
-    master.connect(context.destination);
+    // Peaks above 0.7 of full scale are rounded off, not clipped (see aerieSoftKnee).
+    const knee=window.aerieSoftKnee?.(context);
+    if(knee){master.connect(knee.input);knee.output.connect(context.destination);}
+    else master.connect(context.destination);
     const airBuffer=airStream(context),air=context.createGain(),shelf=context.createBiquadFilter();
     shelf.type='lowpass';shelf.frequency.value=600;air.gain.value=0;
     shelf.connect(air).connect(master);let windSource=null;
