@@ -2,6 +2,7 @@
   "use strict";
   const el = id => document.getElementById(id);
   const app = el("app"), modal = document.querySelector(".modal");
+  const graphicsRecovery=el("graphicsRecovery");
   const launchPicker=el("launchPoint");
   launchPicker.addEventListener("change",()=>{app.dataset.departure=launchPicker.value;});
   app.dataset.departure=launchPicker.value;
@@ -42,6 +43,7 @@
   let glance=0, arrivalGlance=0, arrivalLookDown=0, glanceTime=0;
   let cameraYaw, cameraPath, cameraBank, cameraFov, loadPromise, launchPending=false;
   let last = performance.now(), started = false, paused = false, touchFlap = false, pointerBrake = false;
+  let graphicsLost=false;
   let audio, wind, wingRush, windLevel, volume, fieldAudio, previousFocus, windKneed=false;
   let soundOn=true;
   try { soundOn=localStorage.getItem("aerie:sound")!=="off"; } catch {}
@@ -433,7 +435,7 @@
   }
   function syncAudio(){
     if(!audio)return;
-    const audible=soundOn&&started&&!paused;
+    const audible=soundOn&&started&&!paused&&!graphicsLost;
     if(audible && !fieldAudio)fieldAudio=window.makeFieldAudio?.(audio,world.region);
     // The shared soft knee is the last stage before the output (see aerieSoftKnee). It is
     // not loaded yet when the audio is first prepared, so the wind joins it here.
@@ -480,11 +482,35 @@
     if(retry)el("fly").click();
   };
   el("end").onclick=()=>{started=false;app.dataset.mode="title";closeDialog();el("fly").focus();};
+  graphicsRecovery.addEventListener("cancel",event=>event.preventDefault());
+  el("reloadGraphics").onclick=()=>location.reload();
+  function recoverGraphics(canvas){
+    canvas.addEventListener("webglcontextlost",event=>{
+      if(canvas!==renderer?.domElement)return;
+      event.preventDefault();
+      graphicsLost=true;resetInput();syncAudio();
+      updateLight?.releaseReflection?.();
+      if(!graphicsRecovery.open)graphicsRecovery.showModal();
+    });
+    canvas.addEventListener("webglcontextrestored",()=>{
+      if(canvas!==renderer?.domElement||!graphicsLost)return;
+      // Refill generated GPU targets after Three has restored its own state.
+      try {
+        updateLight?.restoreReflection?.();
+        canopy?.invalidateShadows();
+      } catch(error) {
+        console.warn("Could not restore flight lighting",error);
+        return;
+      }
+      last=performance.now();graphicsLost=false;graphicsRecovery.close();syncAudio();
+    });
+  }
   async function init() {
     if (world && eagle && loadPromise) return loadPromise;
     const region=el("worldPicker")?.value||"swiss";
     await loadFlightRange(region);
     renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:"high-performance"});
+    recoverGraphics(renderer.domElement);
     renderer.setPixelRatio(Math.min(devicePixelRatio,pixelRatioLimit));renderer.outputColorSpace=THREE.SRGBColorSpace;
     renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.03;
     scene=new THREE.Scene();camera=new THREE.PerspectiveCamera(76,1,.035,["winnipesaukee","moosehead","surry"].includes(region)?83000:49000);
@@ -561,6 +587,7 @@
     } catch(error) {
       disposeCanopy();
       loadPromise=null;world=null;eagle=null;renderer.dispose();renderer=null;
+      if(graphicsLost){graphicsLost=false;graphicsRecovery.close();}
       throw error;
     } finally {
       manager.onLoad=priorLoad;manager.onProgress=priorProgress;manager.onError=priorError;
@@ -652,6 +679,7 @@
   }
   const flightCodes=["KeyW","KeyA","KeyS","KeyD","KeyQ","KeyE","KeyB","ArrowLeft","ArrowRight","ArrowUp","ArrowDown","Space"];
   window.addEventListener("keydown",event=>{
+    if(graphicsLost)return;
     if(started&&!paused&&!event.repeat){
       if(event.code==="KeyV"){event.preventDefault();gameVision.toggle();return;}
       if(event.code==="KeyP"){event.preventDefault();choosePerch();return;}
@@ -874,6 +902,7 @@
     }
   }
   function advance(dt) {
+    if(graphicsLost)return;
     const held=(a,b)=>Number(keys.has(a)||keys.has(b));
     const stick=pointer.input;
     const input={
@@ -969,7 +998,7 @@
   function frame(now){
     requestAnimationFrame(frame);
     const realDt=Math.max(0,(now-last)/1000);last=now;
-    if(!started || paused)return;
+    if(!started || paused || graphicsLost)return;
     // Preserve input response on high-density displays. Wait for a sustained
     // sample before reducing the framebuffer, and recover resolution slowly.
     frameSeconds+=Math.min(realDt,.4);frameCount++;
