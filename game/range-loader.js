@@ -30,7 +30,7 @@
       dixville:['waterfall-system.js','dixville-brooks.js','dixville-lidar.js','talus-data.js','rocks.js','architecture.js','dixville-landmarks.js'],
       labrador:['architecture.js','labrador-narrows-survey.js','labrador-narrows.js','labrador-camp-ground.js','labrador-cabin.js','labrador-weather.js'],
       acadia:['acadia-night.js','acadia-coast.js','acadia-ocean-path.js','acadia-sand-beach.js'],
-      lofoten:['lofoten-sea-mask.js','lofoten-reine-data.js','lofoten-reine.js','lofoten-reinevatnet-data.js','lofoten-reinevatnet.js','lofoten-reinebringen-surface.js','regional-waterfalls.js','falls-terrain-lofoten.js','waterfall-system.js','lofoten-hamnoy.js'],
+      lofoten:['lofoten-sea-mask.js','lofoten-reine-data.js','lofoten-reine.js','lofoten-reinewest-data.js','lofoten-marken.js','lofoten-reinevatnet-data.js','lofoten-reinevatnet.js','lofoten-reinebringen-surface.js','regional-waterfalls.js','falls-terrain-lofoten.js','waterfall-system.js','lofoten-hamnoy.js'],
       yosemite:['yosemite-meadow-field.js','yosemite-meadow.js','terrain-indices.js','waterfall-system.js','atlas-yosemite-crowns.js','talus-data.js','rocks.js'],
       moosehead:['moosehead-rockwood-data.js','survey-parked-cars.js','moosehead-rockwood.js','moosehead-crowns.js','moosehead-shore-survey.js','moosehead-bank-growth.js','moosehead-uplands.js','kineo-terrain.js','regional-waterfalls.js','falls-terrain-moosehead.js','waterfall-system.js','architecture.js'],
       winnipesaukee:['regional-waterfalls.js','falls-terrain-winnipesaukee.js','waterfall-system.js','architecture.js','winnipesaukee-waterfront-data.js','winnipesaukee-waterfront.js','winnipesaukee-town-docks-data.js','survey-parked-cars.js','winnipesaukee-town-docks.js'],

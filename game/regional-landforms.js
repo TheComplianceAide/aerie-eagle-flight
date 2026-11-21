@@ -304,6 +304,19 @@
           c=mix(c,photographed,landformHorizon.w*(.77+.21*surfaced)*smoothstep(.35,.85,normal.y));
           float skyView=occ.g,relief=`);
       }
+      if(spec.asset==='reine'||spec.asset==='reinebringen'){
+        material.uniforms.westQuaySurface={value:texture('reine-west-surface.webp')};
+        material.fragmentShader='uniform sampler2D westQuaySurface;\n'+material.fragmentShader.replace('float skyView=occ.g,relief=',`
+          // The harbor survey distinguishes quay aprons and roads from semi-natural heath.
+          // The shady south shoulder carries willow and damp grass at the roots of the lidar crowns.
+          vec2 quayUv=(wp.xz-vec2(1110.,3750.))/vec2(690.,1100.);
+          vec4 quayAlbedo=texture2D(westQuaySurface,vec2(quayUv.x,1.-quayUv.y));
+          float quayEdge=min(min(quayUv.x,quayUv.y),min(1.-quayUv.x,1.-quayUv.y));
+          float dampRock=.15*soilCapture(sod,wp.xz*.22,3.).r;
+          vec3 quayGround=quayAlbedo.rgb*(.955+dampRock*(1.-smoothstep(34.,198.,d)));
+          c=mix(c,quayGround,quayAlbedo.a*smoothstep(.0,.012,quayEdge)*.98);
+          float skyView=occ.g,relief=`);
+      }
       if(spec.asset==='acadia'){
         // At the inset the point cloud resolves the two sides of the chasm.
         // The broader cliff-normal map averages across this narrow opening.

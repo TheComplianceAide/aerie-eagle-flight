@@ -1784,7 +1784,8 @@ class Water extends Mesh {
     region==='lofoten'?window.addHamnoyHarbor(THREE,scene,elevation,settings.water):
     retainedSettlement?window.addLakesideBuildings(THREE,scene,retainedSettlement,elevation,settings.water):null;
   const reineVillage=reineTerrain?window.makeReineHarbor(THREE,scene,elevation,texture):null;
-  const roofHeight=craterStructures?(x,z,altitude)=>Math.max(craterStructures.roof(x,z),originalRoof?.(x,z,altitude)??-Infinity):reineVillage?(x,z,altitude)=>Math.max(originalRoof?.(x,z,altitude)??-Infinity,reineVillage.ceiling(x,z)):bankHabitat?(x,z)=>Math.max(originalRoof?.(x,z)??-Infinity,bankHabitat.roofHeight(x,z)):originalRoof;
+  const reineVessel=reineVillage?window.addReineQuayVessel(THREE,scene,texture,clock):null;
+  const roofHeight=craterStructures?(x,z,altitude)=>Math.max(craterStructures.roof(x,z),originalRoof?.(x,z,altitude)??-Infinity):reineVillage?(x,z,altitude)=>Math.max(originalRoof?.(x,z,altitude)??-Infinity,reineVillage.ceiling(x,z),reineVessel?.ceiling(x,z)??-Infinity):bankHabitat?(x,z)=>Math.max(originalRoof?.(x,z)??-Infinity,bankHabitat.roofHeight(x,z)):originalRoof;
   const waterfrontHeight=waterfront?.build(elevation,settings.water,clock,terrain,shoreFloor?.ground||elevation);
   const cabin=survey.cabin?window.addLabradorCabin(THREE,scene,{elevation,height:elevation,surveyGround:!!campSurface,measuredTrees:survey.berteCrowns,waterLevel:settings.water,lakeLevel:settings.water},survey.cabin):null;
   const resort=dixville?window.addDixvilleLandmarks(THREE,scene,survey.sites,elevation,shoreFloor?.ground||elevation):null;
@@ -1958,6 +1959,7 @@ class Water extends Mesh {
     landmarks=landmarks.map(mark=>mark.name==='Hamnøy'?{...mark,approach:[3746,3196,3867,2894,32,0,7]}:mark);
     landmarks=landmarks.map(mark=>mark.name==='Reine'?{...mark,x:1968,z:4335,approach:[2048,4301,1968,4335,24,0,9]}:mark);
     landmarks.push({name:'Reinebringen',x:1250,z:4964,approach:[1438,4954,1780,4320,38,0,14]});
+    landmarks.push({name:'Reine fishing quay',x:1503,z:4427,approach:[1602,4506,1498,4409,15,1,7]});
     landmarks.push({name:'Reinevatnet',x:925,z:4336,approach:[1130,4435,806,4248,44,0,6]});
     landmarks.push({name:'Reine stockfish racks',x:2168,z:4360,approach:[2295,4334,2168,4360,24,0,10]});
     landmarks.push({name:'Olstinden',x:1570,z:1780,approach:[2570,2250,1570,1780,370,0,2]});
@@ -1986,12 +1988,12 @@ class Water extends Mesh {
   const world={region,treeGrid:{cells,size:50,cell},waterfalls,height,elevation,clearance,spawn,launches,landmarks,groundCover,blockVegetationAt,coverHalf:h,cityTerrainMaterial:surry?terrain:null,
     bounds:{minX:-(settings.flightHalf||h)+90,maxX:(settings.flightHalf||h)-90+(region==='crater'?520:0),minZ:-(settings.flightHalf||h)+90,maxZ:reineWall?5500:(settings.flightHalf||h)-90},waterLevel:settings.water,lakeLevel:settings.water,
     skyTexture:skyMap,cloudDensityMap:!acadia&&twilight&&twilight.sky+'-cloud.webp',sunDirection:sun,sunMask,trees,firTrees,forestLightSpan:2*h,longForest:newEngland||region==='yosemite'||region==='labrador',useFirForest:firTrees.length>0,altitudeOffset:0,
-    update(dt,t,player){clock.value=t;bankHabitat?.updateBoats?.(t,player,world.windField);updateDistantTerrain(player);updateTable(player);shoreDetail?.update(player);bankGrowth?.update(player);updateUplandWoods?.(player);updateWeather?.(t,player,world.windField);rainTrace?.(t,player,world.windField);updateHardwoods?.(player);if(water)water.material.uniforms.time.value=t*.65;}};
+    update(dt,t,player){clock.value=t;reineVessel?.update();bankHabitat?.updateBoats?.(t,player,world.windField);updateDistantTerrain(player);updateTable(player);shoreDetail?.update(player);bankGrowth?.update(player);updateUplandWoods?.(player);updateWeather?.(t,player,world.windField);rainTrace?.(t,player,world.windField);updateHardwoods?.(player);if(water)water.material.uniforms.time.value=t*.65;}};
   if(!survey.shore?.length&&shoreDetail)world.fieldBankAt=shoreDetail.closestBank;
   if(dam){world.riverSurfaceAt=dam.riverHeight;world.surryArmorPerch=dam.armorPerch;}
   if(dam?.park&&waterfalls)waterfalls.impacts.push(dam.park.impact);
   if(reinevatnet){world.channelWater=reinevatnet.at;world.reinevatnet=reinevatnet;}
-  if(reineTerrain){world.reineVillage=reineVillage;world.blocksInfillTree=(x,z)=>reineTerrain.edge(x,z)>.2||reineWall?.edge(x,z)>.2;}
+  if(reineTerrain){world.reineVillage=reineVillage;world.reineVessel=reineVessel;world.blocksInfillTree=(x,z)=>reineTerrain.edge(x,z)>.2||reineWall?.edge(x,z)>.2;}
   if(craterStructures){world.craterRim=craterStructures;world.hydrography=survey;world.blocksInfillTree=(x,z)=>craterAreaAt(x,z)?.edge(x,z)>.40;}
   const openRoad=craterStructures?.blocksLooseClutter||reineVillage?.blocks||resort?.openRoadAt||bankHabitat?.managedGround||dam?.park?.managedGround;
   if(openRoad)world.openRoadAt=openRoad;
