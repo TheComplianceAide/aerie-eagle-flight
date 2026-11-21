@@ -49,7 +49,8 @@ function advance(seconds) {
   }
   clock.now = end;
 }
-const box = vm.createContext({console: Object.assign(Object.create(console), {warn() {}}), Math, Float32Array, WeakMap, Map, Set, Object, Number, Array, Promise, URL, AbortController,
+let seed = 20261121; const math = Object.create(Math); math.random = () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296;   // repeatable chance
+const box = vm.createContext({console: Object.assign(Object.create(console), {warn() {}}), Math: math, Float32Array, WeakMap, Map, Set, Object, Number, Array, Promise, URL, AbortController,
   setTimeout: later, clearTimeout: id => { if (timers[id - 1]) timers[id - 1].fn = null; }, performance: {now: () => 0},
   matchMedia: () => ({matches: false}), navigator: {onLine: false}, location: {protocol: 'http:', hash: ''}, addEventListener() {},
   localStorage: {getItem: () => null, setItem: () => {}}, fetch: async () => { throw Error('offline'); },
@@ -85,15 +86,16 @@ assert.ok(sources.every(s => s.stopped !== null), 'a stopped bed left a stretch 
 //    the squares of the two curves sum to one all the way across.
 sources.length = 0; gains.length = 0;
 const direct = box.aerieShuffledLoop(context, recording(16), node());
-advance(13);
-assert.equal(sources.length, 2, 'the loop did not change stretch within 13 s');
-const curves = gains.flatMap(g => g.gain.curves);
-assert.equal(curves.length, 2, `${curves.length} fades for one change of stretch`);
+advance(13);                                   // a stretch is held 5.6 to 11.2 s, so at least one change by now
+assert.ok(sources.length >= 2, 'the loop did not change stretch within 13 s');
+const curves = gains.flatMap(g => g.gain.curves).sort((p, q) => p.when - q.when);
+assert.equal(curves.length, 2 * (sources.length - 1), `${curves.length} fades for ${sources.length - 1} changes of stretch`);
 const [rise, fall] = curves[0].curve[0] < curves[0].curve.at(-1) ? curves : [curves[1], curves[0]];
 assert.ok(rise.when === fall.when && rise.duration === fall.duration && rise.duration >= 1 && rise.duration <= 1.6, 'the two fades do not line up');
 rise.curve.forEach((v, i) => assert.ok(Math.abs(v * v + fall.curve[i] ** 2 - 1) < 1e-6, 'the crossfade does not hold its power'));
+const made = sources.length;
 direct.stop(); advance(60);
-assert.equal(sources.length, 2, 'a stopped loop went on starting stretches');
+assert.equal(sources.length, made, 'a stopped loop went on starting stretches');
 
 // 4. A short texture and footsteps loop plainly: one source, started once.
 sources.length = 0;
