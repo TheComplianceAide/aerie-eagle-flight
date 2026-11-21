@@ -189,7 +189,7 @@
     // Large mammals, by the name of their recording. Most are silent outside
     // the rut; an ibex whistles at an eagle, which takes its kids.
     moose:{idle:[900,2400]},'white-tailed-deer':{idle:[900,2400]},'red-deer':{idle:[240,900]},
-    'alpine-ibex':{idle:[900,2400],alarm:{chance:.8,clips:[1,2],gap:[2,5],bouts:1,rest:[60,120],range:120}},
+    'alpine-ibex':{idle:[900,2400],alarm:{chance:.8,clips:[1,1],gap:[2,5],bouts:1,rest:[60,120],range:120}},
     'desert-bighorn':{idle:[600,1800]},'eurasian-otter':{idle:[240,600]}
   };
   const timingOf=id=>timing[birds[id]?.[0]]||timing[id]||{idle:[60,150]};
