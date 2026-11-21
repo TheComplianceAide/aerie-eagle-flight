@@ -84,6 +84,19 @@
             vec2 screenSlope=(viewMatrix*vec4(surfaceNormal.x,0.,surfaceNormal.z,0.)).xy;
             vec2 warp=screenSlope*distortionScale*(.063+.49/max(5.,distance));`);
       }
+      if(atlas&&region==='lofoten'){
+        // The register comes from the 2 m Hamnøy survey and the wider fjord.
+        // Its alpha is 255 outside the harbor. Retain wind ripples in the lee.
+        shader=shader.replace('vec3 shore=texture2D(shoreField,basin).rgb;', `
+          vec4 shore=texture2D(shoreField,basin);
+          float harborSwell=clamp((shore.a*255.-128.)/127.,0.,1.);`)
+          .replace('float coast=shoreExposure,', 'float coast=shoreExposure*mix(.11,1.,harborSwell),')
+          .replace('float incident=mix(', 'float incident=mix(.035,1.,harborSwell*harborSwell)*mix(')
+          .replace('float white=oceanSurf*', 'float white=oceanSurf*harborSwell*harborSwell*')
+          .replace('vec3 wave=waterWaves(p,time,footprint,energy);', `
+            energy*=mix(.065,1.,harborSwell);
+            vec3 wave=waterWaves(p,time,footprint,energy);`);
+      }
       mat.fragmentShader=atlas&&light?lowSunReflection(mat,shader,light):shader;mat.needsUpdate=true;
     });
   }
