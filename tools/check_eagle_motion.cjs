@@ -149,4 +149,29 @@ function fly(motion, parts, fps, seconds, airAt, poseAt, onFrame) {
   assert.ok(motion.stats.blinks - before >= 1, 'no blinks after the clock restarted');
 }
 
-console.log('Passed eagle motion checks: frame-rate independence, no drift, blink rate, bill hinge, clock restart.');
+// 6. Wingbeats swing the load factor, but that must not read as rough air.
+{
+  const air = t => ({loadFactor: 1 + .6 * Math.sin(t * 2 * Math.PI * 2.5), indicatedAirspeed: 14, wingLoadLeft: 0, wingLoadRight: 0, gust: 0, phase: t * 2 * Math.PI * 2.5});
+  const settle = effort => {
+    const {parts, motion} = load(53);
+    fly(motion, parts, 60, 6, air, () => ({effort}));
+    return motion.stats.turbulence;
+  };
+  const flapping = settle(.9), gliding = settle(0);
+  assert.ok(flapping < .2, `flapping read as turbulence ${flapping}`);
+  assert.ok(gliding > 2 * flapping, 'the same load swing in a glide should read as rougher air');
+}
+
+// 7. Folded on a calm perch, the tail and primaries stay closed.
+{
+  const {parts, motion} = load(61);
+  const air = () => ({loadFactor: 1, indicatedAirspeed: 0, gust: 0});
+  fly(motion, parts, 60, 8, air, () => ({folded: 1}));
+  assert.ok(motion.stats.tailBend < .12 && motion.stats.primaryBend < .12, `perched feathers sag: ${motion.stats.tailBend}, ${motion.stats.primaryBend}`);
+  for (const {ray} of parts.tailRays) {
+    const shown = 2 * Math.acos(Math.min(1, Math.abs(ray.quaternion.w)));
+    assert.ok(shown < .04, `perched rectrix displaced ${shown} rad`);
+  }
+}
+
+console.log('Passed eagle motion checks: frame-rate independence, no drift, blink rate, bill hinge, clock restart, wingbeat load, perched feathers.');
