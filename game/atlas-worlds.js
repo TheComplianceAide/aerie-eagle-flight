@@ -1654,6 +1654,7 @@ class Water extends Mesh {
   }
   if(brook){
     chute(brook.name,brook.rail,brook.width,{brook:true});
+    if(region==='crater')waterfallViews.get(brook.name).approach=[6225,4113,6130,4040,38,-9,6];
     window.makeRegionalBrook(THREE,scene,{brook,elevation,clock,texture,sky:skyMap,sun,region});
   }
   if(!dixville&&!brook)waterfalls?.couple(water);
@@ -1850,7 +1851,7 @@ class Water extends Mesh {
     // Reuse the lit regional rock and forest shader. Only the local photograph's
     // coordinates change, so even the busiest waterfront stays in its texture budget.
     const material=terrain.clone(),{x,z,half}=localDEM;
-    material.uniforms={...terrain.uniforms,aerial:{value:texture('falls-'+region+'-ortho.webp')}};
+    material.uniforms={...terrain.uniforms,aerial:{value:texture(region==='crater'?'crater-plaikni-banks.webp':'falls-'+region+'-ortho.webp')}};
     material.fragmentShader=terrain.fragmentShader.replace(/vec3 photo=mix\(texture2D\(aerial,photoUv\).*?;/,
       'vec3 photo=texture2D(aerial,(vec2(xz.x,-xz.y)-vec2('+x+'.0,'+(-z)+'.0))/'+(half*2)+'.0+.5).rgb;');
     window.shadeRegionalBrook(THREE,material,brookMeshes,brook);
@@ -1861,6 +1862,10 @@ class Water extends Mesh {
       uplands.shadeColdStream(material,localDEM,true);
     }
     for(const mesh of brookMeshes){mesh.material=material;mesh.userData.prepareFlightMaterial=true;mesh.name=brook.name+' · surveyed stream bed';}
+    if(region==='crater'){
+      window.shadePlaikniBanks(material);
+      window.addPlaikniMeadow(THREE,scene,elevation);
+    }
   }
   if(tableHeight)buildTable();
   return world;

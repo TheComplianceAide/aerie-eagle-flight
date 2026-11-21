@@ -56,3 +56,9 @@ https://archives.bape.gouv.qc.ca/sections/mandats/8reserves_cote-nord/documents/
 https://labrador-airsafari.com/images/lacs/carte-berte.pdf
 
 The other five worlds already contained authored falls at Mendenhall Lake, Oeschinensee, Yosemite Valley, Milford Sound / Piopiotahi and Dixville Notch. See the respective regional credits for their elevation and imagery sources.
+
+PLAIKNI FALLS — SAND CREEK MEADOW AND TRAIL
+Landscape photograph: Carrie Wyler, National Park Service, 2022. Plaikni Falls Trail Landscape Annual Report. Three small surface samples represent the cliff, talus and meadow. USDA NAIP aerial, September 23, 2022, 0.30 m native sampling, identifies the main ledge's whitewater and riparian opening. Park trail centerline: NPS National Public Trails, object 15152, EOS Arrow Gold+ GPS. Flower and stone-step locations along the measured corridor are reconstructed.
+https://irma.nps.gov/DataStore/FileSource/Get/2299081?filename=2022+CRLA+Rehabiltiate+Plaikni+Falls+Trail+Landscape+Annual+Report.pdf
+https://mapservices.nps.gov/arcgis/rest/services/NationalDatasets/NPS_Public_Trails/FeatureServer/0
+https://naipeuwest.blob.core.windows.net/naip/v002/or/2022/or_030cm_2022/42122/m_4212208_se_10_030_20220923.tif

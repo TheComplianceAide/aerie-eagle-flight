@@ -26,7 +26,7 @@
     const lakes=region==='winnipesaukee'||region==='moosehead';
     const files=scripts[region]||['atlas-'+region+'-survey.js','atlas-worlds.js','rain-trace.js','shore-bank.js','hardwood.js','scanned-hardwood.js',...(lakes?['lakeside.js','lake-bay-data.js','lake-bay-contours.js']:[]),...trees];
     const surveyDetail={
-      crater:['regional-waterfalls.js','falls-terrain-crater.js','waterfall-system.js','crater-bathymetry.js','crater-weather.js','crater-phantom-ship.js'],
+      crater:['crater-plaikni.js','crater-plaikni-meadow.js','regional-waterfalls.js','falls-terrain-crater.js','waterfall-system.js','crater-bathymetry.js','crater-weather.js','crater-phantom-ship.js'],
       dixville:['waterfall-system.js','dixville-brooks.js','dixville-lidar.js','talus-data.js','rocks.js','architecture.js','dixville-landmarks.js'],
       labrador:['architecture.js','labrador-camp-ground.js','labrador-cabin.js','labrador-weather.js'],
       acadia:['acadia-night.js','acadia-coast.js','acadia-ocean-path.js','acadia-sand-beach.js'],
