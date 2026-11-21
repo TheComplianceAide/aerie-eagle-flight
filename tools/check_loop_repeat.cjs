@@ -97,7 +97,26 @@ const made = sources.length;
 direct.stop(); advance(60);
 assert.equal(sources.length, made, 'a stopped loop went on starting stretches');
 
-// 4. A short texture and footsteps loop plainly: one source, started once.
+// 4. Four copies of one recording round the listener (a family) change stretch at the same moments and
+//    never play the same moment together: at every change their places in the recording are well apart.
+sources.length = 0;
+const family = {seed: 311.7, size: 4};
+const copies = [0, 1, 2, 3].map(i => engine.loop(recording(16), {x: 18 * Math.cos(i), y: 0, z: 18 * Math.sin(i)}, {gain: 1, family, member: i}));
+advance(300);
+for (const copy of copies) copy.stop(.2);
+const byTime = new Map();
+for (const src of sources) { const key = src.started.when.toFixed(3); byTime.set(key, [...(byTime.get(key) || []), src.started.offset]); }
+assert.ok(byTime.size >= 25, `${byTime.size} changes of stretch in five minutes`);
+let nearest = Infinity;
+for (const [when, offsets] of byTime) {
+  assert.equal(offsets.length, 4, `at ${when} s only ${offsets.length} of the four copies changed stretch`);
+  for (let i = 0; i < 4; i++) for (let j = i + 1; j < 4; j++) { const d = Math.abs(offsets[i] - offsets[j]); nearest = Math.min(nearest, d, 16 - d); }
+}
+assert.ok(nearest > 1.5, `two copies came within ${nearest.toFixed(2)} s of each other in the recording`);
+assert.ok(new Set([...byTime.values()].map(o => o[0].toFixed(1))).size > byTime.size * .7, 'the copies keep returning to the same places');
+advance(5);
+
+// 5. A short texture and footsteps loop plainly: one source, started once.
 sources.length = 0;
 engine.loop(recording(4), {x: 10, y: 0, z: 0}, {gain: 1});
 engine.loop(recording(12.5), {x: 10, y: 0, z: 0}, {gain: 1, shuffle: false});
@@ -105,4 +124,4 @@ advance(90);
 assert.equal(sources.length, 2, `${sources.length} sources for two plain loops`);
 assert.ok(sources.every(s => s.loop === true && s.stopped === null));
 
-console.log('Passed loop repeat checks: a 16 s bed is rebuilt from stretches at different places that change every 5.6 to 11.6 s, stopped beds stay stopped, short textures and footsteps loop plainly.');
+console.log('Passed loop repeat checks: a 16 s bed is rebuilt from stretches at different places that change every 5.6 to 11.6 s, stopped beds stay stopped, four copies of one bed change together and keep apart, short textures and footsteps loop plainly.');
