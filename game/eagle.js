@@ -840,6 +840,11 @@ window.makeEagle = function makeEagle(THREE) {
       // Flight direction includes crosswind drift. Filter frame-to-frame motion
       // so head and body can briefly disagree without a twitch at yaw wraparound.
       trackYaw+=wrap(Math.atan2(-dx,-dz)-trackYaw)*(1-Math.exp(-7*step));
+    }else if(fold>=.98){
+      // Standing still, the bird may turn right round on its perch. Keep the
+      // flying gaze facing forward so the launch does not begin by looking
+      // back along the way it arrived.
+      trackYaw=course;lockedYaw=heading;lockedPitch=.66*path;shiftStart=-1;allowedShift=time;
     }
     lastPosition.set(x,y,z);gazeTime=time;
     localHead.setFromEuler(headAngles.set(pitch,heading,bank,'YXZ'));
