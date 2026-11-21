@@ -47,6 +47,12 @@ async function check() {
     stations.update(on,{x,z});assert.equal(water.material.uniforms[key+'Pulse'].value,1);
     stations.update(off,{x,z});assert.equal(water.material.uniforms[key+'Pulse'].value,0);
   }
+  for(const [x,z,expected] of [[-720.80,8774.66,29.17],[-725.70,8810.40,27.61]]){
+    assert.ok(Math.abs(stations.roof(x,z)-expected)<.02,'Baker Island service building '+x);
+  }
+  const atlas=await fs.readFile(path.join(root,'atlas-worlds.js'),'utf8');
+  assert.ok(atlas.includes('float dep=1.-exp('));
+  assert.ok(window.acadiaIslandSurface('float dep=1.-exp(', 'localUV', 'aerial').includes('vec3 localGround='));
   let total=0;stations.plant((tree,fir)=>{
     assert.ok(fir&&tree.height>=3.7&&tree.height<40&&tree.width>.7&&tree.y>.7);
     assert.ok(!Number.isFinite(stations.roof(tree.x,tree.z)));total++;
