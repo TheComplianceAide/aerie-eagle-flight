@@ -167,12 +167,12 @@
         material.fragmentShader=material.fragmentShader.replace(uv,uv.replace(uv.slice(uv.indexOf(',')+1,-1),local));
         if(spec.style==='alaska')material.fragmentShader=material.fragmentShader
           .replace('vec3 nn=normalize(n);','vec3 mappedForestPhoto=base;vec3 nn=normalize(n);')
-          .replace('vec3 substrate=mix(stone,',`
+          .replace('float forest=smoothstep(.004,.05,base.g-base.r)*smoothstep(.012,.085,base.g-base.b);',`$&
             // A shaded Sitka spruce stand can appear slate grey in RGB.
             // The registered red/NIR cover separates those crowns from the bare wall.
             float bankForest=landformHorizon.z*landformHorizon.w;
             forest=max(forest,bankForest*.97);
-            vec3 substrate=mix(stone,`)
+            `)
           .replace('float viewSky=mix(',`
             vec3 photographedBank=mappedForestPhoto*(.89+.17*max(nn.y,0.));
             base=mix(base,photographedBank,bankForest*.86);

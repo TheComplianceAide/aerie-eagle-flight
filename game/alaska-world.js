@@ -67,6 +67,7 @@ class Water extends Mesh {
 		mirrorCamera.userData.lakeReflection = true;
 
 		const renderTarget = new WebGLRenderTarget( textureWidth, textureHeight );
+		const domain=window.makeLakeReflectionDomain(THREE,geometry,textureWidth,textureHeight);
 
 		const mirrorShader = {
 
@@ -339,7 +340,12 @@ class Water extends Mesh {
 			renderer.state.buffers.depth.setMask( true ); // make sure the depth buffer is writable so it can be properly cleared, see #18897
 
 			if ( renderer.autoClear === false ) renderer.clear();
-			renderer.render( scene, mirrorCamera );
+			domain.fit(scene,scope,mirrorCamera,cameraWorldPosition.y-mirrorWorldPosition.y,distortionScale);
+			try {
+				renderer.render(scene,mirrorCamera);
+			} finally {
+				domain.restore();
+			}
 
 			scope.visible = true;
 
@@ -567,18 +573,22 @@ class Water extends Mesh {
       float sheet=irr.b*float(p.x>-1200.&&p.x<2800.&&p.z<-400.&&p.z>-4800.);
       float ice=sheet;float snowfield=smoothstep(.56,.8,max(base.b,base.r))*smoothstep(.39,.63,base.g);
       vec3 weights=pow(abs(nn),vec3(4.));weights/=max(.001,weights.x+weights.y+weights.z);
-      vec3 stone=soilCapture(groundScan,p.zy*.088,4.).rgb*weights.x+soilCapture(groundScan,p.xz*.088,4.).rgb*weights.y+soilCapture(groundScan,p.xy*.088,4.).rgb*weights.z;
       float forest=smoothstep(.004,.05,base.g-base.r)*smoothstep(.012,.085,base.g-base.b);
-      vec3 substrate=mix(stone,texture2D(earth,p.xz*.14).rgb,forest);
-      float fleck=dot(substrate,vec3(.30,.54,.16));base*=mix(.73+fleck*.68,1.,smoothstep(120.,1900.,d));
-      vec3 ridgeTex=texture2D(mountain,p.zy/94.).rgb*weights.x+texture2D(mountain,p.xz/94.).rgb*weights.y+texture2D(mountain,p.xy/94.).rgb*weights.z;
-      float rockiness=(1.-snowfield)*(1.-ice)*smoothstep(.23,.87,1.-nn.y+.36*(1.-forest));
-      float slabs=smoothstep(.095,.45,1.-nn.y)*(1.-ice)*(1.-forest*.72)*(1.-snowfield)*(1.-smoothstep(180.,1150.,d));
-      vec3 stratum=texture2D(mountain,vec2((p.x+.4*p.z)/186.,(p.y+.23*p.x)/91.)).rgb;
-      float chips=dot(ridgeTex,vec3(.23,.64,.13)),stripes=dot(stratum,vec3(.23,.64,.13));
-      vec3 outcrop=mix(vec3(.14,.16,.18),vec3(.69,.67,.62),smoothstep(.19,.66,.57*chips+.43*stripes));
-      base=mix(base,outcrop*clamp(.6+.9*dot(base,vec3(.24,.60,.16)),.7,1.35),slabs*.75);
-      base=mix(base,mix(base,vec3(dot(base,vec3(.3,.59,.11))),.28)*(.53+ridgeTex*1.67),rockiness*.64*(1.-smoothstep(260.,1400.,d)));
+      if(d<1900.) {
+        vec3 stone=soilCapture(groundScan,p.zy*.088,4.).rgb*weights.x+soilCapture(groundScan,p.xz*.088,4.).rgb*weights.y+soilCapture(groundScan,p.xy*.088,4.).rgb*weights.z;
+        vec3 substrate=mix(stone,texture2D(earth,p.xz*.14).rgb,forest);
+        float fleck=dot(substrate,vec3(.30,.54,.16));base*=mix(.73+fleck*.68,1.,smoothstep(120.,1900.,d));
+      }
+      if(d<1400.) {
+        vec3 ridgeTex=texture2D(mountain,p.zy/94.).rgb*weights.x+texture2D(mountain,p.xz/94.).rgb*weights.y+texture2D(mountain,p.xy/94.).rgb*weights.z;
+        float rockiness=(1.-snowfield)*(1.-ice)*smoothstep(.23,.87,1.-nn.y+.36*(1.-forest));
+        float slabs=smoothstep(.095,.45,1.-nn.y)*(1.-ice)*(1.-forest*.72)*(1.-snowfield)*(1.-smoothstep(180.,1150.,d));
+        vec3 stratum=texture2D(mountain,vec2((p.x+.4*p.z)/186.,(p.y+.23*p.x)/91.)).rgb;
+        float chips=dot(ridgeTex,vec3(.23,.64,.13)),stripes=dot(stratum,vec3(.23,.64,.13));
+        vec3 outcrop=mix(vec3(.14,.16,.18),vec3(.69,.67,.62),smoothstep(.19,.66,.57*chips+.43*stripes));
+        base=mix(base,outcrop*clamp(.6+.9*dot(base,vec3(.24,.60,.16)),.7,1.35),slabs*.75);
+        base=mix(base,mix(base,vec3(dot(base,vec3(.3,.59,.11))),.28)*(.53+ridgeTex*1.67),rockiness*.64*(1.-smoothstep(260.,1400.,d)));
+      }
       // In shade, a sky-facing granite surface retains its cool diffuse albedo.
       // Project two scales of photographic rock and its measured normal onto the cut face.
       float rocky=max(smoothstep(.16,.55,1.-nn.y)*(1.-forest*.73),smoothstep(490.,870.,p.y)*.68);
@@ -599,29 +609,38 @@ class Water extends Mesh {
       // Stable aerial colour anchors the broad formations. Fine side-projected
       // fractures remain visible on a rock wall during the last part of an approach.
       base=mix(base,gray,rocky*nearFace*(.78-.30*smoothstep(240.,1600.,d)));
-      float crag=soilCapture(groundScan,p.xz/43.+p.y*.003,4.).r;
-      base*=1.+(crag-.47)*.40*(1.-snowfield)*(1.-ice)*(1.-smoothstep(1700.,5000.,d));
-      vec2 snowUV=p.xz*.12;float grain=texture2D(snow,snowUV).r;
+      if(d<5000.) {
+        float crag=soilCapture(groundScan,p.xz/43.+p.y*.003,4.).r;
+        base*=1.+(crag-.47)*.40*(1.-snowfield)*(1.-ice)*(1.-smoothstep(1700.,5000.,d));
+      }
+      float grain=.65;
+      if(d<1200.)grain=texture2D(snow,p.xz*.12).r;
       base*=1.+(.25*(grain-.65))*max(ice,snowfield)*(1.-smoothstep(70.,1200.,d));
-      float front=texture2D(lightMap,uv).b*(1.-smoothstep(4500.,4800.,q));
+      vec3 measuredLight=texture2D(lightMap,uv).rgb;
+      float front=measuredLight.b*(1.-smoothstep(4500.,4800.,q));
       float vert=smoothstep(.05,.86,1.-nn.y);
-      vec3 wall=texture2D(face,vec2((p.x+.68*p.z)/208.,p.y/53.)).rgb;
-      vec3 serration=texture2D(face,vec2((p.x+.34*p.z)/124.,p.z/110.+p.y/80.)).rgb;
-      base=mix(base,mix(serration,wall,vert)*vec3(.92,1.,1.02),smoothstep(.03,.34,front)*(.72+.28*vert));
-      vec2 coords=p.xz/132.+vec2(.18*sin(p.z/124.),.19*cos(p.x/170.));
-      vec3 icephoto=texture2D(blueIce,coords).rgb;
-      float braid=dot(icephoto,vec3(.23,.63,.14));float light=dot(nn,sun);
-      vec3 oldIce=base;
-      vec3 clearIce=mix(vec3(.16,.47,.59),vec3(.88,.94,.94),smoothstep(.31,.91,braid));
-      vec3 milk=mix(clearIce,oldIce,.32);
-      milk=mix(milk,vec3(.09,.30,.39)*(.8+.24*braid),irr.r*(.48+.2*(1.-irr.g)));
-      milk*=mix(vec3(.72,.85,.94),vec3(1.14,1.045,.935),smoothstep(-.48,.74,light));
-      float cutBand=texture2D(iceDetail,iuv).r*sheet;
-      float inBasin=smoothstep(450.,1600.,-p.z);
-      milk=mix(milk,base*vec3(.76,.98,1.05),inBasin*.79);
-      milk*=1.-.24*cutBand;
-      base=mix(base,milk,sheet*(.46+.38*(1.-smoothstep(420.,2400.,d))));
-      vec2 lightmap=texture2D(lightMap,uv).rg;
+      if(front>.03) {
+        vec3 wall=texture2D(face,vec2((p.x+.68*p.z)/208.,p.y/53.)).rgb;
+        vec3 serration=texture2D(face,vec2((p.x+.34*p.z)/124.,p.z/110.+p.y/80.)).rgb;
+        base=mix(base,mix(serration,wall,vert)*vec3(.92,1.,1.02),smoothstep(.03,.34,front)*(.72+.28*vert));
+      }
+      float light=dot(nn,sun);
+      if(sheet>0.) {
+        vec2 coords=p.xz/132.+vec2(.18*sin(p.z/124.),.19*cos(p.x/170.));
+        vec3 icephoto=texture2D(blueIce,coords).rgb;
+        float braid=dot(icephoto,vec3(.23,.63,.14));
+        vec3 oldIce=base;
+        vec3 clearIce=mix(vec3(.16,.47,.59),vec3(.88,.94,.94),smoothstep(.31,.91,braid));
+        vec3 milk=mix(clearIce,oldIce,.32);
+        milk=mix(milk,vec3(.09,.30,.39)*(.8+.24*braid),irr.r*(.48+.2*(1.-irr.g)));
+        milk*=mix(vec3(.72,.85,.94),vec3(1.14,1.045,.935),smoothstep(-.48,.74,light));
+        float cutBand=irr.r*sheet;
+        float inBasin=smoothstep(450.,1600.,-p.z);
+        milk=mix(milk,base*vec3(.76,.98,1.05),inBasin*.79);
+        milk*=1.-.24*cutBand;
+        base=mix(base,milk,sheet*(.46+.38*(1.-smoothstep(420.,2400.,d))));
+      }
+      vec2 lightmap=measuredLight.rg;
       float sunlit=mix(1.,lightmap.r,1.-smoothstep(4400.,4800.,q));
       vec3 diffuse=mix(vec3(.82,.88,.95),vec3(1.12,1.04,.94),clamp(.34+.66*light,0.,1.)*sunlit);
       base*=mix(diffuse,vec3(1.),sheet*.51)*(.90+.10*lightmap.g);
@@ -629,10 +648,12 @@ class Water extends Mesh {
       base=clamp((base-.37)*1.035+.373,0.,1.);
       // Talus and mineral grains break into smaller scales at low altitude, with a
       // blue-grey ambient contribution on ridges away from the setting sun.
-      vec3 micro=mix(soilCapture(groundScan,p.zy*.29,4.).rgb,soilCapture(groundScan,p.xy*.29,4.).rgb,axis);
-      float granule=dot(micro,vec3(.26,.58,.16));
-      float scree=clamp((granule-.38)*.91+(vein-.45)*.54,-.33,.37);
-      base*=1.+rocky*scree*(1.-smoothstep(65.,520.,d));
+      if(d<520.) {
+        vec3 micro=mix(soilCapture(groundScan,p.zy*.29,4.).rgb,soilCapture(groundScan,p.xy*.29,4.).rgb,axis);
+        float granule=dot(micro,vec3(.26,.58,.16));
+        float scree=clamp((granule-.38)*.91+(vein-.45)*.54,-.33,.37);
+        base*=1.+rocky*scree*(1.-smoothstep(65.,520.,d));
+      }
       base*=1.+snowfield*.28*(grain-.47)*(1.-smoothstep(120.,1050.,d));
       float alpineFloor=(1.-forest)*(1.-max(sheet,snowfield))*smoothstep(220.,710.,p.y)
                         *smoothstep(.45,.88,nn.y)*(1.-smoothstep(450.,1380.,d));
@@ -674,12 +695,14 @@ class Water extends Mesh {
       }
       // Signed local slope and curvature from the 3 m ArcticDEM. Lighting
       // follows the measured rock fins and ice cuts across the entire approach.
-      vec2 stride=vec2(.0014,0.);
-      float surround=.25*(texture2D(alpineRelief,ridgeUV+stride).g+texture2D(alpineRelief,ridgeUV-stride).g
-        +texture2D(alpineRelief,ridgeUV+stride.yx).g+texture2D(alpineRelief,ridgeUV-stride.yx).g);
-      float facetDetail=(measured.g-surround)*2.;
-      float rockExposure=max(exposed,.52*(1.-forest)*smoothstep(.14,.42,1.-nn.y));
-      base*=exp2(facetDetail*surveyed*(.21+1.25*rockExposure+.70*sheet));
+      if(surveyed>0.) {
+        vec2 stride=vec2(.0014,0.);
+        float surround=.25*(texture2D(alpineRelief,ridgeUV+stride).g+texture2D(alpineRelief,ridgeUV-stride).g
+          +texture2D(alpineRelief,ridgeUV+stride.yx).g+texture2D(alpineRelief,ridgeUV-stride.yx).g);
+        float facetDetail=(measured.g-surround)*2.;
+        float rockExposure=max(exposed,.52*(1.-forest)*smoothstep(.14,.42,1.-nn.y));
+        base*=exp2(facetDetail*surveyed*(.21+1.25*rockExposure+.70*sheet));
+      }
       float till=(1.-max(snowfield,sheet))*(1.-smoothstep(.29,.85,exposed))*smoothstep(.51,.90,nn.y);
       float lowWood=forest*(1.-smoothstep(320.,650.,p.y));
       base=regionalSoil(groundScan,p,nn,base,sun,d,lowWood,1.-smoothstep(2.,26.,abs(p.y)),till);
@@ -704,36 +727,38 @@ class Water extends Mesh {
       // An oblique photograph retains the vertical seams and dirty mineral
       // bands which cannot be resolved in the overhead glacier survey.
       float terminus=smoothstep(.21,.65,front)*smoothstep(.20,.74,1.-nn.y);
-      vec2 frontUV=vec2((p.x+.51*p.z)/179.,(p.y+3.5*sin(p.x*.016))/33.);
-      float slab=texture2D(face,frontUV).g;
-      frontUV.x+=(slab-.59)*.014*normalize(cameraPosition-p).x;
-      // Directionally project the photographed Mendenhall fracture planes.
-      // The raked, dusty top breaks into clean ice on the lee side of each cut.
-      vec2 localCrack=vec2((p.x+.39*p.z)/114.,(p.y+.065*p.x)/32.);
-      vec3 rake=texture2D(face,localCrack+vec2(.09*sin(p.z*.014),.06*sin(p.x*.021))).rgb;
-      vec3 fractured=mix(texture2D(face,frontUV).rgb,rake,.57);
-      float darkSeam=1.-smoothstep(.24,.52,dot(fractured,vec3(.22,.64,.14)));
-      vec3 iceSky=diffuseSky+warmDirect+vec3(.115,.136,.146);
-      fractured*=iceSky*mix(vec3(1.),vec3(.63,.84,.91),darkSeam);
       float lowerIce=sheet*smoothstep(-2140.,-1590.,p.z);
-      if(lowerIce>.012){
-        // Oblique moraine bands on the dusty surface turn into blue joint
-        // planes on the calving face. Keep the measured cuts at their true
-        // ground positions rather than stamping a serac silhouette per tile.
-        vec2 flowPlane=vec2(.91*p.x+.42*p.z,-.42*p.x+.91*p.z);
-        vec3 crust=texture2D(face,flowPlane/vec2(192.,69.)+
-                    vec2(.075*sin(p.z*.011),.101*sin(p.x*.016))).rgb;
-        float grainField=texture2D(blueIce,flowPlane/vec2(69.,46.)).g;
-        float joint=smoothstep(.20,.82,irr.r)*(.42+.58*(1.-irr.g));
-        float lamp=clamp(.76+.23*viewSky+.18*max(0.,dot(nn,sun)),.76,1.16);
-        vec3 cap=mix(vec3(.66,.73,.76),crust,.69)*lamp;
-        cap*=.83+.33*grainField+.14*(irr.g-.5);
-        cap*=mix(vec3(1.),vec3(.42,.64,.73),joint*.86);
-        float vertical=smoothstep(.12,.71,1.-nn.y);
-        vec3 lower=mix(cap,fractured,vertical*.90);
-        base=mix(base,lower,lowerIce*.89);
+      if(terminus>0. || lowerIce>.012) {
+        vec2 frontUV=vec2((p.x+.51*p.z)/179.,(p.y+3.5*sin(p.x*.016))/33.);
+        float slab=texture2D(face,frontUV).g;
+        frontUV.x+=(slab-.59)*.014*normalize(cameraPosition-p).x;
+        // Directionally project the photographed Mendenhall fracture planes.
+        // The raked, dusty top breaks into clean ice on the lee side of each cut.
+        vec2 localCrack=vec2((p.x+.39*p.z)/114.,(p.y+.065*p.x)/32.);
+        vec3 rake=texture2D(face,localCrack+vec2(.09*sin(p.z*.014),.06*sin(p.x*.021))).rgb;
+        vec3 fractured=mix(texture2D(face,frontUV).rgb,rake,.57);
+        float darkSeam=1.-smoothstep(.24,.52,dot(fractured,vec3(.22,.64,.14)));
+        vec3 iceSky=diffuseSky+warmDirect+vec3(.115,.136,.146);
+        fractured*=iceSky*mix(vec3(1.),vec3(.63,.84,.91),darkSeam);
+        if(lowerIce>.012){
+          // Oblique moraine bands on the dusty surface turn into blue joint
+          // planes on the calving face. Keep the measured cuts at their true
+          // ground positions rather than stamping a serac silhouette per tile.
+          vec2 flowPlane=vec2(.91*p.x+.42*p.z,-.42*p.x+.91*p.z);
+          vec3 crust=texture2D(face,flowPlane/vec2(192.,69.)+
+                      vec2(.075*sin(p.z*.011),.101*sin(p.x*.016))).rgb;
+          float grainField=texture2D(blueIce,flowPlane/vec2(69.,46.)).g;
+          float joint=smoothstep(.20,.82,irr.r)*(.42+.58*(1.-irr.g));
+          float lamp=clamp(.76+.23*viewSky+.18*max(0.,dot(nn,sun)),.76,1.16);
+          vec3 cap=mix(vec3(.66,.73,.76),crust,.69)*lamp;
+          cap*=.83+.33*grainField+.14*(irr.g-.5);
+          cap*=mix(vec3(1.),vec3(.42,.64,.73),joint*.86);
+          float vertical=smoothstep(.12,.71,1.-nn.y);
+          vec3 lower=mix(cap,fractured,vertical*.90);
+          base=mix(base,lower,lowerIce*.89);
+        }
+        base=mix(base,fractured,terminus*.76);
       }
-      base=mix(base,fractured,terminus*.76);
       vec3 V=normalize(cameraPosition-p),H=normalize(sun+V);
       float sheen=pow(max(0.,dot(H,faceN)),30.)*(1.-.85*forest);
       base+=vec3(.125,.124,.108)*beam*sheen*(.38*rocky+sheet);
