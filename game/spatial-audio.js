@@ -222,20 +222,22 @@ window.makeSpatialAudio = function makeSpatialAudio(context, world, options = {}
     const s = {
       x: opt.x || 0, y: opt.y || 0, z: opt.z || 0, gain: opt.gain ?? 1, ref: opt.ref ?? 12, reach: opt.reach ?? 2000,
       spread: opt.spread || 'point', occlude: opt.occlude ?? true, wet: opt.wet ?? .35, doppler: opt.doppler ?? true,
-      maxDelay: Math.min(179, (opt.reach ?? 2000) * (opt.echo ? 1.8 : 1) / SPEED + 1), lastShield: 0, nextShield: 0, alive: true, onUpdate: opt.onUpdate,
+      maxDelay: opt.doppler === false ? 0 : Math.min(179, (opt.reach ?? 2000) * (opt.echo ? 1.8 : 1) / SPEED + 1), lastShield: 0, nextShield: 0, alive: true, onUpdate: opt.onUpdate,
       // Ear-centred beds are the wind and rain themselves; everything else can be masked by wind noise.
       mask: opt.mask ?? opt.spread !== 'none',
       // What the source is and which individual it is, for traces and checks.
       label: opt.label || '', id: opt.id || '', follows: !!opt.follows
     };
-    s.delay = context.createDelay(s.maxDelay);
+    s.delay = s.doppler ? context.createDelay(s.maxDelay) : null;
     s.air = context.createBiquadFilter(); s.air.type = 'lowpass'; s.air.Q.value = .5;
     s.shade = context.createBiquadFilter(); s.shade.type = 'lowpass'; s.shade.Q.value = .6; s.shade.frequency.value = 20000;
     s.level = context.createGain(); s.level.gain.value = 0;
     s.send = context.createGain(); s.send.gain.value = 0;
     s.merger = context.createChannelMerger(channels);
     s.coeffs = [];
-    node.connect(s.delay); s.delay.connect(s.air).connect(s.shade).connect(s.level);
+    if (s.delay) node.connect(s.delay).connect(s.air);
+    else node.connect(s.air);
+    s.air.connect(s.shade).connect(s.level);
     for (let i = 0; i < channels; i++) { const g = context.createGain(); g.gain.value = 0; s.level.connect(g); g.connect(s.merger, 0, i); s.coeffs.push(g); }
     s.merger.connect(bus);
     s.level.connect(s.send).connect(reverbIn);
@@ -245,11 +247,11 @@ window.makeSpatialAudio = function makeSpatialAudio(context, world, options = {}
       if (!s.alive) return; s.alive = false; live.delete(s);
       for (const im of s.images) im.release();
       try { node.disconnect(); } catch (e) {}
-      for (const n of [s.delay, s.air, s.shade, s.level, s.send, s.merger, ...s.coeffs]) try { n.disconnect(); } catch (e) {}
+      for (const n of [s.delay, s.air, s.shade, s.level, s.send, s.merger, ...s.coeffs]) try { n?.disconnect(); } catch (e) {}
     };
     // Prime the delay so a source starts at its true distance (no Doppler sweep from zero).
     const d0 = Math.hypot(s.x - ear.x, s.y - ear.y, s.z - ear.z);
-    s.delay.delayTime.value = s.doppler ? Math.min(s.maxDelay - .01, d0 / SPEED) : 0;
+    if (s.delay) s.delay.delayTime.value = Math.min(s.maxDelay - .01, d0 / SPEED);
     live.add(s);
     updateSource(s, context.currentTime, true);
     if (opt.echo && !opt.image) attachEchoes(s, node, opt);
