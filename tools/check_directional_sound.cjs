@@ -113,7 +113,7 @@ async function fly(seed, airspeed = 16) {
   };
   const box = {Math: math, console, setTimeout: later, clearTimeout() {}, Promise, Float32Array, performance,
     matchMedia: () => ({matches: false}), localStorage: {getItem: () => null, setItem() {}},
-    location: {protocol: 'http:', hash: ''}, addEventListener() {}, document: page(), navigator: {onLine: false}, AbortController, URL,
+    location: {protocol: 'http:', hash: ''}, addEventListener() {}, removeEventListener() {}, document: page(), navigator: {onLine: false}, AbortController, URL,
     Omnitone: {createHOARenderer: () => ({initialize: async () => {}, input: node(), output: node()}), createFOARenderer: () => ({initialize: async () => {}, input: node(), output: node()})},
     fetch: async name => /\.m4a$/.test(String(name)) && !/^https?:/.test(String(name)) && fs.existsSync(path.join(dir, String(name)))
       ? {ok: true, arrayBuffer: async () => ({name: String(name)})} : {ok: false, json: async () => null, arrayBuffer: async () => { throw Error('missing'); }}};
@@ -146,6 +146,22 @@ async function fly(seed, airspeed = 16) {
 (async () => {
   const first = await fly(20261120), second = await fly(77);
   const {windMasker, hushRadius, leeShelter, postFor, POST_CELL} = first.box.aerieSoundLogic, masking = first.box.aerieWindMasking;
+
+  // Explore and mute must stop the active shoreline immediately when Alaska's
+  // earlier meltwater recording is still decoding.
+  {
+    const context = makeContext(), world = makeWorld();
+    const pending = first.box.makeSoundscape(context, world, 'alaska', node());
+    const lake = context.createBuffer(1, 4800, 48000);
+    pending.adopt('lake', lake);
+    const camera = {position: new first.box.THREE.Vector3(-230, 40, 0), quaternion: new first.box.THREE.Quaternion()};
+    const flight = {x: -230, y: 40, z: 0, airspeed: 16, elapsed: 1};
+    for (let revisit = 0; revisit < 2; revisit++) {
+      pending.setEnabled(true);
+      pending.update(flight, camera, 1 / 30, {gust: .5, open: 1, exposure: 1});
+      assert.doesNotThrow(() => pending.setEnabled(false), 'pause with an active lake and a pending stream');
+    }
+  }
 
   // One source, one place: follow every sounding source by identity.
   const seen = new Map();
