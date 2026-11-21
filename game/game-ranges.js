@@ -7,7 +7,8 @@
     canyon: {title:'Desert bighorns on the bench', anchor:[-651,-65], course:189, rise:0, animals:['desert-bighorn','desert-cottontail']},
     swiss: {title:'Alpine ibex on the slopes', anchor:[-936.3861,17.5827], course:207, rise:0, animals:['alpine-ibex']},
     crater: {title:'Black-tailed deer on the rim', anchor:[-4540,1245], course:198, rise:0, animals:['black-tailed-deer']},
-    yosemite: {title:'Mule deer in El Capitan Meadow', anchor:[-823.4657,981.8304], course:180, rise:0, animals:['mule-deer']},
+    // The grazing group stands inside the mapped open meadow, south of the 22.5 m tree crown.
+    yosemite: {title:'Mule deer in El Capitan Meadow', anchor:[-833.4657,995.8304], course:156, rise:0, animals:['mule-deer']},
     lofoten: {title:'Otter on the tide line', anchor:[970.5377,2100.0616], course:216, rise:-2.25, animals:['eurasian-otter']},
     acadia: {title:'White-tailed deer above Newport Cove', anchor:[514,-1070], course:87, rise:0, animals:['white-tailed-deer','snowshoe-hare']},
     moosehead: {title:'Moose at the lake edge', anchor:[-1082.9789,-2276.9122], course:207, rise:0, animals:['moose','snowshoe-hare','white-tailed-deer']},

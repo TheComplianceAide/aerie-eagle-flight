@@ -55,6 +55,53 @@ def warp(image, quad, size):
     )
 
 
+def shop_materials(image, cache):
+    """Rectify separate materials to avoid baking cars, people or tree trunks into glass."""
+    from PIL import ImageDraw, ImageFont
+
+    atlas = Image.new("RGB", (1024, 1024))
+    # Each source rectangle lies upstream of the parked-car roof line in the
+    # March 2012 field photo. Duplicate a margin for stable lower mip levels.
+    patches = [
+        ((323, 838, 394, 883), (0, 0, 512, 128)),        # stepped cream fascia
+        ((458, 893, 471, 934), (512, 0, 768, 128)),       # sandstone pier
+        ((262, 893, 294, 937), (0, 128, 256, 512)),       # roller shade, first window
+        ((406, 893, 440, 940), (256, 128, 512, 512)),     # shade, last north window
+        ((542, 893, 565, 934), (512, 128, 768, 512)),     # deep blue central glass
+        ((703, 895, 726, 936), (768, 128, 1024, 512)),    # southern display interior
+    ]
+    for (l, t, r, b), rect in patches:
+        size = (rect[2] - rect[0] - 8, rect[3] - rect[1] - 8)
+        tile = warp(image, [(l,t),(r,t),(r,b),(l,b)], size)
+        pixels = (np.asarray(tile, dtype="float32") / 255) ** .84
+        pixels = np.uint8(np.clip(pixels * 1.05, 0, 1) * 255)
+        atlas.paste(Image.fromarray(np.pad(pixels, ((4,4),(4,4),(0,0)), mode="edge")), rect[:2])
+    # The neighboring canopy is legible in the same field photograph.
+    # Keep its left and right edges in the photograph's street registration.
+    awning = warp(image, [(41,850),(229,852),(232,893),(37,892)], (760,184))
+    reveal = warp(image, [(847,852),(873,852),(873,884),(847,884)], (248,184))
+    for tile, at in [(awning,(0,512)), (reveal,(768,512))]:
+        pixels = np.asarray(tile, dtype="float32") / 255
+        corrected = np.uint8(np.clip(pixels ** .87 * 1.06, 0, 1) * 255)
+        atlas.paste(Image.fromarray(np.pad(corrected, ((4,4),(4,4),(0,0)), mode="edge")), at)
+    # Reletter the partly tree-obscured bronze sign; panel proportions,
+    # name, inset border and stepped corners follow the photograph.
+    plaque = Image.new("RGB", (768, 154), (62, 50, 40))
+    draw = ImageDraw.Draw(plaque)
+    def panel(d):
+        return [(d+22,d),(745-d,d),(767-d,d+18),(767-d,135-d),
+                (745-d,153-d),(d+22,153-d),(d,135-d),(d,d+18)]
+    draw.polygon(panel(0), fill=(59,49,39), outline=(119,101,75), width=4)
+    draw.polygon(panel(9), outline=(94,78,54), width=3)
+    font_file = get("https://raw.githubusercontent.com/google/fonts/main/ofl/crimsontext/CrimsonText-Regular.ttf", cache / "crimson-regular.ttf")
+    assert hashlib.sha256(font_file.read_bytes()).hexdigest() == "48e6c5d5ad1d01599d374ecb817e15890d1feb3b8a3a88e527d44c90389e1f06"
+    font = ImageFont.truetype(str(font_file), 54)
+    draw.text((385,79), "CENTRAL SQUARE TERRACE", anchor="mm", font=font, fill=(37,31,26), stroke_width=1)
+    draw.text((383,77), "CENTRAL SQUARE TERRACE", anchor="mm", font=font, fill=(183,161,113))
+    atlas.paste(plaque.resize((248,120),Image.Resampling.LANCZOS),(772,4))
+    return atlas
+
+
 def texture(cache, game):
     source = get(PHOTO, cache / "colony-modern.jpg")
     assert hashlib.sha256(source.read_bytes()).hexdigest() == PHOTO_HASH
@@ -170,6 +217,7 @@ def texture(cache, game):
     normal = Image.fromarray(np.uint8((n * 0.5 + 0.5) * 255))
     for im, name, quality in [
         (facade, "wall", 93),
+        (shop_materials(image, cache), "shops", 94),
         (neighbors, "neighbors", 91),
         (roof, "mansards", 93),
         (field, "slate", 91),

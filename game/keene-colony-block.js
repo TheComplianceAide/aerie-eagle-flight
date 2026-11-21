@@ -5,6 +5,7 @@
 window.addKeeneColonyBlock=function(T,{layout,face,height}){
   const survey=window.keeneColonySurvey,W=survey.width,[ox,oz]=survey.origin,[dx,dz]=survey.tangent;
   const base=height(ox+dx*W/2-dz*.55,oz+dz*W/2+dx*.55);
+  addKeeneTerracePavement(T, face, height, survey, base);
   const color=n=>new T.Color(n),white=color(0xffffff),trim=color(0xcac9bc),stone=color(0xb3a998);
   const brick=color(0x829da3),lead=color(0x686961),dark=color(0x3e4541);
   const wallFoot=3.91,eave=15.81,relief=.245;
@@ -12,6 +13,8 @@ window.addKeeneColonyBlock=function(T,{layout,face,height}){
     colonyWall:{file:'keene-colony-wall.webp',normal:'keene-colony-relief.webp',roughness:.86},
     colonyWindow:{file:'keene-colony-wall.webp',roughness:.26,glazing:true},
     colonyRoofMembrane:{file:'keene-asphalt.webp',roughness:.96},
+    colonyShop:{file:'keene-colony-shops.webp',roughness:.81},
+    colonyShopGlass:{file:'keene-colony-shops.webp',roughness:.27,glazing:true},
     colonyFlank:{file:'keene-colony-neighbors.webp',roughness:.86},
     colonySlate:{file:'keene-colony-slate.webp',roughness:.79},
     colonyDormer:{file:'keene-colony-mansards.webp',roughness:.72}
@@ -92,34 +95,95 @@ window.addKeeneColonyBlock=function(T,{layout,face,height}){
       surface('brick',brick,[[a,wallFoot,d-.31],[a,wallFoot,d],[a,eave,d],[a,eave,d-.31]],[[0,0],[.2,0],[.2,8],[0,8]]);
     }
   }
-  // Shop level uses the photographed openings. The current tenants' lettering
-  // is omitted. Plate glass has deep transoms, recessed entries and splayed
-  // returns, independent of the upper sash photograph.
-  const piers=[0,.337,.707,1].map(f=>f*W);
-  for(let i=0;i<3;i++){
-    const l=piers[i],r=piers[i+1],d=profiles[i].front;
-    box('smooth',trim,l,r,3.10,wallFoot+.05,d-.1,d+.115);
-    box('smooth',stone,l,r,3.08,3.145,d-.035,d+.18);
-    box('smooth',color(0x9c8f82),l+.034,l+.25,-.18,3.10,d-.09,d+.096);
-    box('smooth',color(0xb7a99b),r-.22,r-.024,-.18,3.10,d-.09,d+.096);
-    const door=i===0?l+(r-l)*.47:i===1?l+(r-l)*.18:l+(r-l)*.52;
-    const tint=color(0x78817c),black=color(0x444d47);
-    for(const [a,b] of [[l+.25,door-.61],[door+.61,r-.22]]){
-      box('smooth',stone,a,b,-.12,.38,d-.08,d+.085);
-      box('smooth',black,a,b,.38,3.10,d-.16,d-.06);
-      surface('glass',tint,[[a+.052,.44,d-.04],[b-.052,.44,d-.04],[b-.052,3.02,d-.04],[a+.052,3.02,d-.04]]);
-      box('smooth',trim,a,b,2.36,2.395,d-.045,d+.015);
-      if(b-a>2.)box('smooth',trim,(a+b)*.5-.018,(a+b)*.5+.018,.39,3.05,d-.045,d+.019);
+  // The field photo is registered at x=234..842 on a 1000-wide print. The
+  // material samples omit the parked cars and trees in front of the shops.
+  const shopU=x=>(x-234)*W/608;
+  const ivory=color(0xc1c0b6),sill=color(0x796f65),reveal=color(0x625950);
+  function shopFace(kind,rect,l,r,lo,hi,dl,dr=dl){
+    const [x,y,w,h]=rect;
+    surface(kind,white,[[l,lo,dl],[r,lo,dr],[r,hi,dr],[l,hi,dl]],
+      [[(x+5)/1024,1-(y+h-5)/1024],[(x+w-5)/1024,1-(y+h-5)/1024],
+       [(x+w-5)/1024,1-(y+5)/1024],[(x+5)/1024,1-(y+5)/1024]]);
+  }
+  const fascia=[0,0,512,128],roseStone=[512,0,256,128],bronze=[768,0,256,128];
+  const display=[[0,128,256,384],[256,128,256,384],[512,128,256,384],[768,128,256,384]];
+  // Shallow front steps in the fascia follow the three historic building bays.
+  for(const {l,r,front:d} of profiles){
+    box('smooth',ivory,l,r,2.90,wallFoot+.01,d-.11,d+.077);
+    shopFace('colonyShop',fascia,l,r,2.91,wallFoot+.012,d+.084);
+    box('smooth',ivory,l,r,3.81,3.88,d+.071,d+.145);
+    box('smooth',sill,l,r,2.865,2.91,d+.04,d+.12);
+  }
+  const east=profiles[2].front;
+  box('smooth',color(0x4d4032),shopU(699),shopU(834),3.095,3.57,east+.080,east+.136);
+  shopFace('colonyShop',bronze,shopU(699),shopU(834),3.095,3.57,east+.141);
+  const frontAt=u=>profiles.find(p=>u>=p.l&&u<=p.r)?.front??relief;
+  for(const [left,right] of [[234,257],[443,468],[501,530],[667,695],[827,842]]){
+    const l=shopU(left),r=shopU(right),d=frontAt((l+r)/2);
+    box('smooth',reveal,l,r,-.15,2.87,d-.11,d+.08);
+    shopFace('colonyShop',roseStone,l,r,-.09,2.86,d+.085);
+    for(const y of [.85,1.81]){
+      box('smooth',sill,l,r,y,y+.012,d+.082,d+.088);
     }
-    const back=d-.49;
-    box('smooth',dark,door-.57,door+.57,-.16,3.10,back-.12,back);
-    surface('glass',tint,[[door-.46,.25,back+.012],[door+.46,.25,back+.012],[door+.46,2.49,back+.012],[door-.46,2.49,back+.012]]);
-    for(const sign of [-1,1]){
-      const a=door+.61*sign,b=door+.53*sign;
-      surface('smooth',trim,[[a,-.08,d],[b,-.08,back],[b,3.08,back],[a,3.08,d]]);
+  }
+  // Each opening is independently recessed. Clear plates use the city's
+  // direction-dependent reflections over the sampled interior or roller shade.
+  for(const [left,right,material,recess] of [
+    [257,310,0,.10],[310,356,3,.54],[356,398,1,.19],[398,443,1,.10],
+    [468,501,2,.73],[530,573,2,.10],[573,624,2,.10],[624,667,3,.83],
+    [695,744,3,.23],[744,784,3,.69],[784,827,2,.15]
+  ]){
+    const l=shopU(left),r=shopU(right),d=frontAt((l+r)/2),back=d-recess,isDoor=recess>.4;
+    const edge=isDoor?.11:.065,lo=isDoor?.045:.39;
+    box('smooth',reveal,l,r,-.15,2.87,back-.1,back);
+    shopFace('colonyShopGlass',display[material],l+edge,r-edge,lo,2.82,back+.014);
+    for(const [a,sign] of [[l,1],[r,-1]]){
+      const inner=a+sign*edge;
+      surface('smooth',ivory,[[a,0,d],[inner,0,back+.02],[inner,2.86,back+.02],[a,2.86,d]]);
+      box('smooth',ivory,Math.min(a,inner),Math.max(a,inner),-.12,2.88,d-.035,d+.018);
     }
-    box('smooth',trim,door-.55,door+.55,2.51,2.60,back-.01,back+.095);
-    box('smooth',color(0x939288),door+.33,door+.37,.94,1.34,back+.02,back+.10);
+    surface('smooth',reveal,[[l,2.85,d],[r,2.85,d],[r-edge,2.85,back],[l+edge,2.85,back]]);
+    if(isDoor){
+      box('smooth',ivory,l+edge,r-edge,2.14,2.20,back+.018,back+.081);
+      const handle=r-edge-.18;
+      box('smooth',color(0xaf9c76),handle,handle+.028,.83,1.20,back+.025,back+.11);
+      surface('smooth',sill,[[l,.005,d],[r,.005,d],[r-edge,.035,back],[l+edge,.035,back]]);
+    }else{
+      box('smooth',sill,l+edge,r-edge,-.14,lo,back-.07,d+.08);
+    }
+  }
+  // At 10 Central Square the source shows a projecting red fabric awning,
+  // a shallow valance and an oval cafe sign. The southern neighbor has a
+  // buff stone surround and an entrance sunk into its northern end.
+  const awningL=shopU(38),awningR=shopU(233)-.04;
+  const awningUV=[[5/1024,1-701/1024],[763/1024,1-701/1024],
+    [763/1024,1-517/1024],[5/1024,1-517/1024]];
+  const canopyTint=color(0x73423c),canvasBack=color(0x51403b);
+  const lower=2.67,upper=3.59,tip=1.27,bracket=.29;
+  surface('colonyShop',white,[[awningL,lower,tip],[awningR,lower,tip],
+    [awningR,upper,bracket],[awningL,upper,bracket]],awningUV);
+  box('smooth',canopyTint,awningL,awningR,2.47,lower,.98,tip);
+  for(const a of [awningL,awningR]){
+    surface('smooth',canopyTint,[[a,lower,tip],[a,lower,bracket],[a,upper,bracket]]);
+  }
+  surface('smooth',canvasBack,[[awningL,lower,bracket],[awningR,lower,bracket],
+    [awningR,lower,tip],[awningL,lower,tip]]);
+  for(const [a,b,door] of [[38,89,false],[89,141,false],[141,181,true],[181,233,false]]){
+    const l=shopU(a),r=shopU(b),d=door?.255:.33;
+    shopFace('colonyShopGlass',display[door?3:2],l,r,.16,2.61,d);
+    box('smooth',canvasBack,l,l+.075,-.08,2.63,d-.04,d+.09);
+    box('smooth',sill,l,r,-.14,.16,d-.05,d+.08);
+  }
+  for(const [a,b] of [[843,856],[893,919],[962,999]]){
+    const l=shopU(a),r=shopU(b);
+    box('smooth',sill,l,r,-.11,3.41,.19,.41);
+    shopFace('colonyShop',[768,512,256,192],l,r,-.10,3.41,.418);
+  }
+  for(const [a,b,door] of [[856,893,true],[919,962,false]]){
+    const l=shopU(a),r=shopU(b),d=.29;
+    shopFace('colonyShopGlass',display[door?2:3],l,r,door?.08:.49,2.70,d);
+    box('smooth',stone,l,r,2.73,3.39,d-.015,d+.11);
+    if(!door)box('smooth',stone,l,r,-.10,.48,d-.02,d+.10);
   }
   // Roof collision uses the actual rendered slopes, including the narrow
   // transition from the cornice to the high fronts and the lower rear sheds.
@@ -278,6 +342,8 @@ window.addKeeneColonyBlock=function(T,{layout,face,height}){
     [u[c],aftY(backRow,c),-maxDepth],[u[c-1],aftY(backRow,c-1),-maxDepth]]);
   function collision(x,z){
     const vx=x-ox,vz=z-oz,u=dx*vx+dz*vz,d=-dz*vx+dx*vz;
+    if(u>=awningL&&u<=awningR&&d>=bracket&&d<=tip)
+      return base+upper-(upper-lower)*(d-bracket)/(tip-bracket);
     if(u< -22.7||u>36||d>1.02||d< -maxDepth)return -Infinity;
     if(u<0||u>W){
       const f=flanks[u<0?0:1],ring=f.ring;
@@ -299,5 +365,67 @@ window.addKeeneColonyBlock=function(T,{layout,face,height}){
   }
   const [southX,,southZ]=point(W,0,0);
   return {collision,base,profile:survey,partyTint:brick,north:[ox,oz],south:[southX,southZ],landmark:{name:"Colony's Block",x:1942.7,z:4380.5,discoveryRadius:49,
-    approach:[1917,4463,1935,4323,18,-43,3]}};
+    approach:[1924,4384,1924,4484,7,83,3]}};
 };
+
+// The inner edge of the existing Central Square sidewalk stops short of the
+// registered east storefronts. Join that edge to the terrace doors without
+// changing the surveyed parking strip, its cars, road markings, or trees.
+function addKeeneTerracePavement(T, face, height, survey, base) {
+  const [ox, oz] = survey.origin, [tx, tz] = survey.tangent;
+  const world = (u, d) => [ox + tx*u - tz*d, oz + tz*u + tx*d];
+  const local = ([x, z]) => [tx*(x-ox) + tz*(z-oz), -tz*(x-ox) + tx*(z-oz)];
+  // Same registered eastern footway vertices used by addKeeneStreetscape.
+  const walkEdge = [[1953.4,4337.8],[1945,4349.6],[1940.8,4370.6],[1936,4395.4],[1935.6,4403.8],[1939.2,4405.4]].map(local);
+  function depthAt(u) {
+    const i = walkEdge.findIndex(([at]) => at >= u);
+    const [a, ad] = walkEdge[i-1], [b, bd] = walkEdge[i];
+    return ad + (bd-ad)*(u-a)/(b-a);
+  }
+  const tiles = [0xb8b5a7,0xbdb9ae,0xbab7ab,0xb5b3a8].map(t => new T.Color(t));
+  const joints = new T.Color(0x939187), granite = new T.Color(0xb8b8ad);
+  const back = -.12;
+  function surface(u, f, drop) {
+    const outer = depthAt(u) + .06, d = back + (outer-back)*f;
+    const [x,z] = world(u,d), [fx,fz] = world(u,back), [ex,ez] = world(u,outer);
+    const threshold = Math.max(base-.014,height(fx,fz)+.065);
+    const edge = height(ex,ez)+.613;
+    const y = Math.max(height(x,z)+.052, threshold*(1-f)+edge*f) - drop;
+    return [x,y,z];
+  }
+  function flag(a,b,inside,outside,tint,drop=0) {
+    const corners = [[a,inside],[a,outside],[b,outside],[b,inside]].map(([u,f])=>surface(u,f,drop));
+    face('masonry',tint,corners,corners.map(([x,,z])=>[x/3.1,z/3.1]));
+  }
+  // This is the inferred finish of the continuous footway. No paving seams
+  // are resolvable in the aerial image. Scored cuts are narrow and recessed.
+  const end = 34.22, pitch = 2.15;
+  for (let a=-22.50, index=0; a<end; a+=pitch,index++) {
+    const b=Math.min(a+pitch,end), joint=Math.min(.018,b-a);
+    flag(a,b-joint,0,.503,tiles[index%4]);
+    flag(a,b-joint,.503,.507,joints,.003);
+    flag(a,b-joint,.507,1,tiles[(index+1)%4]);
+    flag(b-joint,b,0,1,joints,.003);
+  }
+  // The street mesh already owns the granite cap. Give its field-traced
+  // outer edge a vertical riser, stopping at the existing asphalt elevation.
+  const curb = [[1940.6,4353.4],[1938.4,4371.6],[1934.8,4387.8],[1928.4,4401.2]];
+  const normals = curb.slice(1).map(([x,z],i)=>{
+    const vx=x-curb[i][0], vz=z-curb[i][1], n=Math.hypot(vx,vz); return [-vz/n,vx/n];
+  });
+  const corners = curb.map(([x,z],i)=>{
+    const a=normals[Math.max(0,i-1)], b=normals[Math.min(i,normals.length-1)];
+    const width=.12/(1+a[0]*b[0]+a[1]*b[1]);
+    return [x+(a[0]+b[0])*width,z+(a[1]+b[1])*width];
+  });
+  for(let i=1;i<corners.length;i++) {
+    const [ax,az]=corners[i-1], [bx,bz]=corners[i], length=Math.hypot(bx-ax,bz-az), count=Math.ceil(length/1.8);
+    for(let j=0;j<count;j++) {
+      const pts = [j/count,(j+1)/count,(j+1)/count,j/count].map((s,k)=>{
+        const x=ax+(bx-ax)*s,z=az+(bz-az)*s;
+        return [x,height(x,z)+(k<2?.464:.625),z];
+      });
+      face('masonry',granite,pts,[[0,0],[length/count,0],[length/count,.16],[0,.16]]);
+    }
+  }
+}

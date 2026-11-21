@@ -1,0 +1,146 @@
+[
+  {
+    "x": -2300,
+    "z": -2900,
+    "response": {
+      "geoidModel": "GEOID18",
+      "station": "UserStation",
+      "lat": 36.90508923,
+      "latDms": "N365418.32123",
+      "lon": -111.53636392,
+      "lonDms": "W1113210.91011",
+      "units": "m",
+      "geoidHeight": -23.49,
+      "error": 0.031
+    },
+    "url": "https://geodesy.noaa.gov/api/geoid/ght?lat=36.90508923&lon=-111.53636392&model=14"
+  },
+  {
+    "x": -2300,
+    "z": -975,
+    "response": {
+      "geoidModel": "GEOID18",
+      "station": "UserStation",
+      "lat": 36.88773691,
+      "latDms": "N365315.85288",
+      "lon": -111.53624251,
+      "lonDms": "W1113210.47304",
+      "units": "m",
+      "geoidHeight": -23.478,
+      "error": 0.031
+    },
+    "url": "https://geodesy.noaa.gov/api/geoid/ght?lat=36.88773691&lon=-111.53624251&model=14"
+  },
+  {
+    "x": -2300,
+    "z": 950,
+    "response": {
+      "geoidModel": "GEOID18",
+      "station": "UserStation",
+      "lat": 36.87038454,
+      "latDms": "N365213.38434",
+      "lon": -111.5361212,
+      "lonDms": "W1113210.03632",
+      "units": "m",
+      "geoidHeight": -23.452,
+      "error": 0.031
+    },
+    "url": "https://geodesy.noaa.gov/api/geoid/ght?lat=36.87038454&lon=-111.5361212&model=14"
+  },
+  {
+    "x": -1025,
+    "z": -2900,
+    "response": {
+      "geoidModel": "GEOID18",
+      "station": "UserStation",
+      "lat": 36.90515298,
+      "latDms": "N365418.55073",
+      "lon": -111.5220526,
+      "lonDms": "W1113119.38936",
+      "units": "m",
+      "geoidHeight": -23.501,
+      "error": 0.031
+    },
+    "url": "https://geodesy.noaa.gov/api/geoid/ght?lat=36.90515298&lon=-111.5220526&model=14"
+  },
+  {
+    "x": -1025,
+    "z": -975,
+    "response": {
+      "geoidModel": "GEOID18",
+      "station": "UserStation",
+      "lat": 36.88780062,
+      "latDms": "N365316.08223",
+      "lon": -111.52193443,
+      "lonDms": "W1113118.96395",
+      "units": "m",
+      "geoidHeight": -23.485,
+      "error": 0.031
+    },
+    "url": "https://geodesy.noaa.gov/api/geoid/ght?lat=36.88780062&lon=-111.52193443&model=14"
+  },
+  {
+    "x": -1025,
+    "z": 950,
+    "response": {
+      "geoidModel": "GEOID18",
+      "station": "UserStation",
+      "lat": 36.87044821,
+      "latDms": "N365213.61356",
+      "lon": -111.52181635,
+      "lonDms": "W1113118.53886",
+      "units": "m",
+      "geoidHeight": -23.448,
+      "error": 0.031
+    },
+    "url": "https://geodesy.noaa.gov/api/geoid/ght?lat=36.87044821&lon=-111.52181635&model=14"
+  },
+  {
+    "x": 250,
+    "z": -2900,
+    "response": {
+      "geoidModel": "GEOID18",
+      "station": "UserStation",
+      "lat": 36.905215,
+      "latDms": "N365418.77400",
+      "lon": -111.50774124,
+      "lonDms": "W1113027.86846",
+      "units": "m",
+      "geoidHeight": -23.501,
+      "error": 0.031
+    },
+    "url": "https://geodesy.noaa.gov/api/geoid/ght?lat=36.905215&lon=-111.50774124&model=14"
+  },
+  {
+    "x": 250,
+    "z": -975,
+    "response": {
+      "geoidModel": "GEOID18",
+      "station": "UserStation",
+      "lat": 36.8878626,
+      "latDms": "N365316.30536",
+      "lon": -111.5076263,
+      "lonDms": "W1113027.45468",
+      "units": "m",
+      "geoidHeight": -23.476,
+      "error": 0.031
+    },
+    "url": "https://geodesy.noaa.gov/api/geoid/ght?lat=36.8878626&lon=-111.5076263&model=14"
+  },
+  {
+    "x": 250,
+    "z": 950,
+    "response": {
+      "geoidModel": "GEOID18",
+      "station": "UserStation",
+      "lat": 36.87051015,
+      "latDms": "N365213.83654",
+      "lon": -111.50751146,
+      "lonDms": "W1113027.04126",
+      "units": "m",
+      "geoidHeight": -23.438,
+      "error": 0.031
+    },
+    "url": "https://geodesy.noaa.gov/api/geoid/ght?lat=36.87051015&lon=-111.50751146&model=14"
+  }
+]

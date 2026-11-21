@@ -1,0 +1,38 @@
+[
+  {
+    "doi": "10.5066/P98GFP93",
+    "direct": "https://www.sciencebase.gov/catalog/file/get/5f3aab9c82ce8df5b6c4074b?f=__disk__40%2F5d%2F36%2F405d3636addee8acb5222d51f7ce25f00d754666",
+    "filename": "Glen_Canyon_2014_Data.zip",
+    "published_md5": "65a754399c1d5316e780fae5b572b5a0",
+    "verified_sha256": "acb3215b5f448487d1843d77e671ea1691c69801928b9a9faf9cf445537ed9f1",
+    "bytes": 49566347,
+    "use_dates": "Field acquisitions 2013\u20132016. November 2014 multibeam, published 2022.",
+    "license": "Public-domain U.S. Geological Survey government data."
+  },
+  {
+    "doi": "10.5066/P1QTRNEB",
+    "direct": "https://www.sciencebase.gov/catalog/file/get/6595800dd34e3265ab152e47?f=__disk__e3%2Fdd%2F8d%2Fe3dd8d39a6df0bf03ac6ed1a04152547624626bb",
+    "filename": "Model_Results_AA.7z",
+    "published_md5": "61ae0bdf7177bb4054b4b6c3556e099d",
+    "verified_sha256": "dbdfce19e65c212f465783c3f47e50f1791ec2d8a8ab026c513ff4ad2b1e7040",
+    "bytes": 273962630,
+    "use_dates": "Model release 2024 based on the 2013\u20132016 channel data.",
+    "license": "Public-domain U.S. Geological Survey government data."
+  },
+  {
+    "credit": "Paul E. Grams, USGS",
+    "date": "2012-03-16",
+    "reference_photo": "HorseshoeBend_PGrams_20120316.jpg",
+    "url": "https://www.sciencebase.gov/catalog/file/get/5f3aab9c82ce8df5b6c4074b?f=__disk__a8%2F8f%2F7d%2Fa88f7d79c1ba5114d2d05c5ab0f8248a36318ef6",
+    "sha256": "7c220657b0dabda83b0749e6f0b27def23c56d4de08bc9391e97a785986ebe62",
+    "use": "Visual comparison of the sandbar, clear green water and canyon-wall reflection. The texture contains no photo pixels from this reference."
+  },
+  {
+    "origin": "NOAA NGS geoid service, GEOID18",
+    "url": "https://geodesy.noaa.gov/GEOID/GEOID18/",
+    "api": "https://geodesy.noaa.gov/api/geoid/ght",
+    "units": "meters",
+    "file": "geoid18.json",
+    "license": "Public-domain U.S. federal geodetic reference data."
+  }
+]

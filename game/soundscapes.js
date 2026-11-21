@@ -732,10 +732,12 @@
     }
     function stopAll() {
       for (const s of state.falls.values()) s.stop(.4);
-      for (const w of state.water) w.emitters.forEach(s => s.stop(.4));
-      for (const b of state.beds) b.emitters.forEach(s => s.stop(.4));
-      for (const l of state.loops) l.source?.stop(.4);
-      for (const c of state.choruses) c.forEach(e => e.stop(.4));
+      // Audio clips can decode out of order, leaving holes at earlier indexes.
+      // Stop every emitter already created when opening Explore or muting.
+      state.water.forEach(w => w.emitters.forEach(s => s.stop(.4)));
+      state.beds.forEach(b => b.emitters.forEach(s => s.stop(.4)));
+      state.loops.forEach(l => l.source?.stop(.4));
+      state.choruses.forEach(c => c.forEach(e => e.stop(.4)));
       for (const m of state.movers) m.source.stop(.3);
       for (const src of state.steps.values()) src.stop(.3);
       for (const v of state.voices) v.source.stop?.(.3);
