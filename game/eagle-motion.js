@@ -238,7 +238,8 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
     // level as it swings, as a perched eagle's does.
     scanAxis.copy(UP).applyQuaternion(scanQ.copy(chest.quaternion).multiply(neckBase.quaternion).invert());
     neck.quaternion.premultiply(scanQ.setFromAxisAngle(scanAxis, scan.yaw * scan.gain));
-    neck.quaternion.multiply(scanQ.setFromAxisAngle(SIDE, scan.pitch * scan.gain));
+    // Added to where the player has left the look: never past about 63 degrees down in all.
+    neck.quaternion.multiply(scanQ.setFromAxisAngle(SIDE, Math.max(scan.pitch * scan.gain, Math.min(0, -1.1 - Math.min(0, lookP)))));
   }
   // ---- intent: attention on something real -------------------------------------------
   // The eagle attends to one real thing at a time: the perch the player has
@@ -532,7 +533,8 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
       const nibble = Math.max(0, Math.sin(preenT * 2 * Math.PI * 4.5)) * (.6 + .4 * Math.sin(preenT * 1.7));
       neckBase.quaternion.multiply(scanQ.setFromAxisAngle(SIDE, -.55 * env));
       neck.quaternion.premultiply(scanQ.setFromAxisAngle(UP, preenSide * .35 * env));
-      neck.quaternion.multiply(scanQ.setFromAxisAngle(SIDE, -(.75 + .08 * nibble) * env));
+      // If the eagle is already looking down, the bill has less far to drop to reach the breast.
+      neck.quaternion.multiply(scanQ.setFromAxisAngle(SIDE, -(Math.max(0, .75 + Math.min(0, air.perchLookPitch ?? 0)) + .08 * nibble) * env));
       neckBase.position.z += -.012 * env;
       fluff = Math.max(fluff, .25 * env);
       if (k >= 1) preenT = -1;
