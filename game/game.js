@@ -489,6 +489,11 @@
       if(canvas!==renderer?.domElement)return;
       event.preventDefault();
       graphicsLost=true;resetInput();syncAudio();
+      // Unregister the old GPU buffers while their context is lost. The
+      // geometries retain their CPU data for upload into the restored context.
+      const geometries=new Set();
+      scene?.traverse(object=>{if(object.geometry)geometries.add(object.geometry);});
+      for(const geometry of geometries)geometry.dispose();
       updateLight?.releaseReflection?.();
       if(!graphicsRecovery.open)graphicsRecovery.showModal();
     });
