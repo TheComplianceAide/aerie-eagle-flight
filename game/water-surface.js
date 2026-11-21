@@ -259,14 +259,16 @@
         previousLevel=level;previousCenter=[centerX,centerZ];
       }
     }
+    const localCurrent=w.surveyedCreek?.waterAt;
     w.channelWater=(x,z)=>{
+      const observed=localCurrent?.(x,z);if(Number.isFinite(observed))return observed;
       for(const [ax,az,bx,bz,r,ay,by] of cells.get(cell(x,z))||[]){
         const dx=bx-ax,dz=bz-az,t=Math.max(0,Math.min(1,((x-ax)*dx+(z-az)*dz)/(dx*dx+dz*dz||1)));
         if((x-ax-t*dx)**2+(z-az-t*dz)**2<r*r*.95)return Math.max(ay+(by-ay)*t,floor(x,z)+.075);
       }
       return -Infinity;
     };
-    const oldClear=w.clearance||w.height;w.clearance=(x,z)=>Math.max(oldClear(x,z),w.channelWater(x,z));
+    const oldClear=w.clearance||w.height;w.clearance=(x,z,altitude)=>Math.max(oldClear(x,z,altitude),w.channelWater(x,z));
     const g=new T.BufferGeometry();
     g.setAttribute('position',new T.Float32BufferAttribute(positions,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));
     g.setAttribute('grade',new T.Float32BufferAttribute(grade,1));g.setAttribute('section',new T.Float32BufferAttribute(sections,4));g.setIndex(indices);

@@ -1,0 +1,22 @@
+Lower Yosemite Fall Trail footbridge and Yosemite Creek
+
+National Center for Airborne Laser Mapping. Yosemite, CA: El Portal, Mariposa Grove, Yosemite Canyon & Tuolumne Meadows. Collected for Greg Stock / National Park Service, September 18–22, 2006. Distributed by OpenTopography.
+https://doi.org/10.5069/G9GQ6VP3
+
+National Center for Airborne Laser Mapping / Valerie Zimmer, University of California, Berkeley. Yosemite National Park, CA: Rockfall Studies. August 6, 2010. Distributed by OpenTopography. National Science Foundation, EAR-1043051.
+https://doi.org/10.5069/G9D798B8
+
+Both point surveys are licensed CC BY 4.0. Aerie registered the returns against USGS terrain, sampled exposed rock and tree crowns, and reconstructed the bridge over the stream.
+https://creativecommons.org/licenses/by/4.0/
+
+U.S. Geological Survey 2019 Yosemite 3DEP one-metre terrain and National Hydrography Dataset. USDA National Agriculture Imagery Program, August 2022, California 60 cm RGB and near-infrared imagery. U.S. National Park Service national trails dataset and Yosemite Valley historic district inventory, Yosemite Creek Footbridge. A Sense of Place, Yosemite Valley, printed page 42, provided the structural reference.
+https://www.nps.gov/yose/learn/management/upload/senseofplace.pdf
+https://npgallery.nps.gov/GetAsset/3809808e-f5f4-4022-9cbd-e5b0c2c499f5/
+
+National Park Service / C. Jacoby, Lower Yosemite Fall Viewing Area. A crop of the granite boulder in the foreground supplies the registered local mineral texture.
+https://www.nps.gov/places/000/yosemite-falls.htm
+
+NPS Yosemite Historic Photo Collection, RL_06862, Yosemite Creek before clearing channel by CWA. The historic view supplied the line of sight past the bridge toward the lower fall and the character of the boulder reach.
+https://npgallery.nps.gov/AssetDetail/a8f1e7fd33b244b48fd8fc021b9be230
+
+The stream stage, whitewater, boulder wakes, spray and individual rail and masonry details are modeled. Small stones below the survey footprint are inferred from local relief and summer aerial brightness. The scenery reuses Aerie's licensed mineral, timber and pebble materials. Source URLs and rebuild parameters are in tools/geology/yosemite-creek/sources.json.
