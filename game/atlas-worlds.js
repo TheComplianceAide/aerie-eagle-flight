@@ -1449,12 +1449,7 @@ class Water extends Mesh {
   const waterfrontHeight=waterfront?.build(elevation,settings.water);
   const cabin=survey.cabin?window.addLabradorCabin(THREE,scene,{elevation,height:elevation,waterLevel:settings.water,lakeLevel:settings.water},survey.cabin):null;
   const resort=dixville?window.addDixvilleLandmarks(THREE,scene,survey.sites,elevation):null;
-  const lakeBounds=localShoreMask?survey.shore.reduce(([x0,x1,z0,z1],[x,z])=>
-    [Math.min(x,x0),Math.max(x,x1),Math.min(z,z0),Math.max(z,z1)],[Infinity,-Infinity,Infinity,-Infinity]):null;
-  function inLake(x,z){
-    return (!lakeBounds||x>=lakeBounds[0]&&x<=lakeBounds[1]&&z>=lakeBounds[2]&&z<=lakeBounds[3])&&
-      inLoop(x,z,survey.shore)&&!(survey.shoreHoles||[]).some(r=>inLoop(x,z,r));
-  }
+  const inLake=makeAtlasWorld.indexLakeOutline(survey.shore,survey.shoreHoles);
   function wetGround(x,z,y,margin){
     if(dixville)return y<settings.water+margin&&inLake(x,z);
     if(!surry)return y<(settings.water??-1000)+margin;
@@ -1609,4 +1604,60 @@ class Water extends Mesh {
   }
   if(tableHeight)buildTable();
   return world;
+};
+
+// Keep the flight's original even–odd rule. Water birds, the eagle and the
+// shoreline can ask about the same large lake hundreds of times per frame.
+window.makeAtlasWorld.indexLakeOutline=function indexLakeOutline(shore,holes){
+  const bandSize=96;
+  function indexRing(points){
+    if(!points?.length)return null;
+    const bands=new Map();
+    let minX=Infinity,maxX=-Infinity,minZ=Infinity,maxZ=-Infinity;
+    for(let i=0,j=points.length-1;i<points.length;j=i++){
+      const a=points[i],b=points[j];
+      minX=Math.min(minX,a[0]);maxX=Math.max(maxX,a[0]);
+      minZ=Math.min(minZ,a[1]);maxZ=Math.max(maxZ,a[1]);
+      if(a[1]===b[1])continue;
+      const first=Math.floor(Math.min(a[1],b[1])/bandSize);
+      const last=Math.floor(Math.max(a[1],b[1])/bandSize);
+      const edge=[a[0],a[1],b[1],b[0]-a[0],b[1]-a[1]];
+      for(let k=first;k<=last;k++){
+        let row=bands.get(k);
+        if(!row)bands.set(k,row=[]);
+        row.push(edge);
+      }
+    }
+    return {bands,minX,maxX,minZ,maxZ};
+  }
+  function contains(ring,x,z,key){
+    if(!ring)return true;
+    if(x<ring.minX||x>ring.maxX||z<ring.minZ||z>ring.maxZ)return false;
+    const row=ring.bands.get(key);
+    if(!row)return false;
+    let odd=false;
+    for(const edge of row){
+      // Preserve the old comparison and division order, including vertices
+      // shared by two segments, horizontal shores and island outline points.
+      if((edge[1]>z)!==(edge[2]>z)&&x<edge[3]*(z-edge[1])/edge[4]+edge[0])odd=!odd;
+    }
+    return odd;
+  }
+  const outer=indexRing(shore),islands=new Map();
+  for(const points of holes||[]){
+    const island=indexRing(points);
+    if(!island)return ()=>false;
+    for(let k=Math.floor(island.minZ/bandSize);k<=Math.floor(island.maxZ/bandSize);k++){
+      let row=islands.get(k);
+      if(!row)islands.set(k,row=[]);
+      row.push(island);
+    }
+  }
+  return (x,z)=>{
+    const key=Math.floor(z/bandSize);
+    if(!contains(outer,x,z,key))return false;
+    const row=islands.get(key);
+    if(row)for(const island of row)if(contains(island,x,z,key))return false;
+    return true;
+  };
 };
