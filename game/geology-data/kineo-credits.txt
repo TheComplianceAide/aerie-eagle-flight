@@ -2,7 +2,7 @@ MOUNT KINEO, MOOSEHEAD LAKE, MAINE
 
 The game loads four metre-scale GLBs. The east cliff and wave margin use the original world-space survey coordinates. A stitched triangular apron connects each measured surface to the native terrain. A full-resolution index and a boundary-preserving distance index share vertices. Two detached scan analogues sit in fitted dry positions on the wave margin. Flights, landing clearance and regional loose-rock placement query the upper surface triangles.
 
-East cliff. A 181 m long section of the eastern face of Mount Kineo reaches 183 m vertically. The major profile uses USGS land elevations. Small joints and sub-face relief are inferred, with up to 2 m horizontal offset from the sampled contour.
+East cliff. A 181 m long section of the eastern face of Mount Kineo reaches 183 m vertically. The major profile uses USGS land elevations. Joints and sub-face relief are inferred. The current model adds reconstructed plucked ledges and recesses, from 7.20 m behind to 5.90 m ahead of the earlier contour reconstruction. Its chart boundary remains fixed. Individual shrubs on ledges are artistically positioned. The loaded surface photograph derives from Coastal Cliff 02, the CC0 analogue credited below.
 
 Wave margin. A separate 41 m long exposed strip follows the 312.23 m lake surface. Its darker low band represents wet stone. The survey terrain and model edges meet exactly in model coordinates.
 

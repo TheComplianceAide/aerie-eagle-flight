@@ -427,7 +427,13 @@ class Water extends Mesh {
     const bar=.105*Math.sin(.46*x+.31*z)+.049*Math.cos(.68*z-.29*x);
     return y+mask*(smoothed-y+bar);
   }
+  const landmarkTerrain=window.aerieRegionalLandforms?.get('alaska');
+  const landmarkGroundMaterials=new Set();
   function elevation(x,z){
+    const base=nativeElevation(x,z);
+    return landmarkTerrain?landmarkTerrain.height(x,z,base):base;
+  }
+  function nativeElevation(x,z){
     const y=surveyElevation(x,z),p=channelAt(x,z);
     if(!p){const bank=shallowCove(x,z,y);return window.mendenhallCoveGround?.(x,z,bank)??bank;}
     const blend=THREE.MathUtils.smoothstep(p.distance,8,34);
@@ -725,6 +731,11 @@ class Water extends Mesh {
     }
   }
   function patch(x0,z0,x1,z1,nx,nz,material=ground){
+    if(landmarkTerrain){
+      const [l,t,r,b]=landmarkTerrain.rect;
+      if(x0<r&&x1>l&&z0<b&&z1>t)landmarkGroundMaterials.add(material);
+    }
+
     const w=nx+1,h=nz+1,vertices=new Float32Array(w*h*3),normal=new Float32Array(w*h*3);
     for(let j=0;j<h;j++)for(let i=0;i<w;i++){
       const k=j*w+i,x=x0+(x1-x0)*i/nx,z=z0+(z1-z0)*j/nz;
@@ -1127,7 +1138,13 @@ class Water extends Mesh {
     mesh.onBeforeRender=(renderer,scene,camera)=>{material.uniforms.linearOutput.value=!!camera.userData.lakeReflection;};
   });
   const sunMask=map('alaska-tree-light.webp');
-  return {region:"alaska",bankDepositMap,localPerchStone,windTerrainHeight,treeGrid:{cells,size:48,cell},waterfalls,forestLightSpan:14400,elevation,clearance,height,trees,sunMask,sunDirection:sun,skyTexture:skyMap,waterLevel:0,lakeLevel:0,lakePolygon:shore,altitudeOffset:18,spawn:lakeLaunch,
+  let landformMesh=null;
+  if(landmarkTerrain&&landmarkGroundMaterials.size){
+    const reference=landmarkGroundMaterials.values().next().value;
+    landformMesh=landmarkTerrain.add(THREE,scene,reference,nativeElevation,map);
+    for(const source of landmarkGroundMaterials)landmarkTerrain.maskOriginal(source);
+  }
+  return {landformMesh,region:"alaska",bankDepositMap,localPerchStone,windTerrainHeight,treeGrid:{cells,size:48,cell},waterfalls,forestLightSpan:14400,elevation,clearance,height,trees,sunMask,sunDirection:sun,skyTexture:skyMap,waterLevel:0,lakeLevel:0,lakePolygon:shore,altitudeOffset:18,spawn:lakeLaunch,
     launches:{lake:lakeLaunch,ridge,shore:shoreLaunch,spruce:{x:173,y:26,z:1630,yaw:.38,lookDown:12},spray:sprayPass,spur:{x:612,y:68.4704,z:977,yaw:-.08159},alpine:{x:-2900,z:-2010,y:elevation(-2900,-2010)+58,yaw:-.28}},bounds:{minX:-6890,maxX:6890,minZ:-6890,maxZ:6890},
     landmarks:[{name:'West alpine crest',x:-2900,z:-2010},{name:'Upper crevasse field',x:1500,z:-4130},{name:'Blue Ice Passage',x:-116,z:-1010},{name:'Nugget Falls beach',x:473,z:927},{name:'Medial moraine',x:632,z:-2450},{name:'Mendenhall Glacier',x:40,z:-1400},{name:'Nugget Falls',x:518,z:658},{name:'Mendenhall Lake',x:-700,z:680},{name:'West Glacier Ridge',x:-860,z:-1890}],
     update(dt,time,player){updateTerrainLOD(player);updateLedges(player);updateShore(player);clock.value=time;lake.material.uniforms.time.value=time*.72;}

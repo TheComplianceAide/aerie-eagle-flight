@@ -629,8 +629,13 @@
     const limit=mobile?64:144, radius=mobile?5.5:7.8;
     const templates=new Map(),groups=new Map(),candidates=[];
     const eye={x:0,y:0,z:0};
-    let epoch=0;
-    function begin(position){
+    let epoch=0,cameraFrame=null,halfHeight=1,halfWidth=1;
+    function begin(position,camera){
+      cameraFrame=camera?.matrixWorld.elements;
+      if(cameraFrame){
+        halfHeight=Math.tan(camera.fov*Math.PI/360);
+        halfWidth=halfHeight*camera.aspect;
+      }
       epoch++;candidates.length=0;
       eye.x=position.x;eye.y=position.y;eye.z=position.z;
       for(const g of groups.values())g.used=0;
@@ -648,6 +653,16 @@
         const x=site[i]*xx-lx,y=site[i+1]*yy-ly,z=site[i+2]*xx-lz;
         const d=x*x+y*y+z*z;
         if(d>=r2)continue;
+        if(cameraFrame){
+          // Keep a metre-scale margin at the edge for needle length, bough
+          // deflection and the short interval between canopy rebuilds.
+          const m=cameraFrame,wx=c*x-s*z,wz=s*x+c*z;
+          const depth=-(wx*m[8]+y*m[9]+wz*m[10]);
+          const side=Math.abs(wx*m[0]+y*m[1]+wz*m[2]);
+          const elevation=Math.abs(wx*m[4]+y*m[5]+wz*m[6]);
+          const margin=.70+.12*Math.max(0,depth);
+          if(depth<-.45||side>halfWidth*depth+margin||elevation>halfHeight*depth+margin)continue;
+        }
         // Stable per-shoot priority avoids shuffling an entire branch of detail
         // during a bank or turn. Only the closest smooth transition zone competes.
         const salt=Math.imul((i+11)^tree.seed,0x9e3779b1)>>>0;

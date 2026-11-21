@@ -156,8 +156,8 @@ window.makeMooseheadBankGrowth=function(T,scene,{survey,ground,waterLevel,growth
     const indices=vertices>65535?new Uint32Array(faceIndices):new Uint16Array(faceIndices);
     let first=0,offset=0;
     for(const r of p.roots){
-      const slopeX=Math.max(-1.5,Math.min(1.5,(ground(r.x+1,r.z)-ground(r.x-1,r.z))*.5));
-      const slopeZ=Math.max(-1.5,Math.min(1.5,(ground(r.x,r.z+1)-ground(r.x,r.z-1))*.5));
+      const slopeX=r.slopeX??Math.max(-1.5,Math.min(1.5,(ground(r.x+1,r.z)-ground(r.x-1,r.z))*.5));
+      const slopeZ=r.slopeZ??Math.max(-1.5,Math.min(1.5,(ground(r.x,r.z+1)-ground(r.x,r.z-1))*.5));
       const horizon=Math.max(0,ground(r.x+sun.x*12,r.z+sun.z*12)-r.y-12*sun.y);
       let sunlight=Math.max(.13,Math.min(1,1-horizon*.29));
       // Cast a short solar ray through the adjacent real tree crowns. Leaf
@@ -194,7 +194,12 @@ window.makeMooseheadBankGrowth=function(T,scene,{survey,ground,waterLevel,growth
   }
   const last=new T.Vector3(Infinity,Infinity,Infinity);
   let queue=[];
-  return {shootAtlas:material.uniforms.atlas.value,update(eye){
+  return {shootAtlas:material.uniforms.atlas.value,addShelf(roots){
+    if(!roots.length)return null;
+    const patch={roots};build(patch);patch.mesh.name='Mount Kineo · rooted ledge shrubs';
+    patch.mesh.userData.aerieLandform={name:'Kineo vegetated rock shelves',plantCount:roots.length};
+    return patch.mesh;
+  },update(eye){
     if(eye.distanceToSquared(last)>36){
       last.copy(eye);queue=[];
       for(const p of patches){

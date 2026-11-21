@@ -492,6 +492,7 @@
       measuredCrowns:0,ordinaryCrowns:0,addedCrowns:0,species:{},sitkaReady:false,sitkaForms:{},regionalSheets:[],regionalForms:{},lod:[0,0,0],shadowDraws:0,lastBuildMs:0,cacheCells:0,indexedTrees:grid?trees.length:0,maskedMaterials:0};
     let stopped=false,offset=grid?trees.length:0,lastCheck=-Infinity,lastBuild=-Infinity,lastShadow=-Infinity,dirty=true,pendingAssets=false,assetRetry=0;
     const previous=new T.Vector3(Infinity,Infinity,Infinity),eye=new T.Vector3(),shadowEye=new T.Vector3(Infinity,Infinity,Infinity);
+    let detailCamera=null;
     const detailEye=new T.Vector3(),lastDetailEye=new T.Vector3(Infinity,Infinity,Infinity);
     const lead=new T.Vector2();
     let lodState=new Map(),idleIndex=null;
@@ -997,7 +998,7 @@
       const move=(value,target,step)=>value+clamp(target-value,-step,step);
       let measured=0,ordinary=0,added=0,drawn=0,animating=false;
       for(const g of groups)if(g)g.used=0;
-      fineShoots?.begin(detailEye);
+      fineShoots?.begin(detailEye,detailCamera);
       maskBytes.fill(0);maskStart.value.set(Math.floor(eye.x/maskStep)*maskStep-maskWorld*.5,Math.floor(eye.z/maskStep)*maskStep-maskWorld*.5);
       for(const {t,d,old} of selected){
         const lod=nearRoots.has(t)?0:middleRoots.has(t)?1:2;
@@ -1074,7 +1075,8 @@
       }
       shadowEye.copy(eye);lastShadow=seconds;shadows.regionalCanopyShadowOn.value=1;counters.shadowDraws++;
     }
-    function update(position,seconds,view=position){
+    function update(position,seconds,view=position,camera=null){
+      detailCamera=camera;
       if(stopped||!Number.isFinite(position?.y))return;
       eye.copy(position);detailEye.copy(view||position);common.clock.value=seconds;
       if(offset<trees.length)buildIndex();

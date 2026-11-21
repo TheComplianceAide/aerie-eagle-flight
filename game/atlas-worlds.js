@@ -511,6 +511,7 @@ class Water extends Mesh {
   const tableHeight=dixville?window.dixvilleTableHeight:null;
   let ship=null;
   const kineo=region==='moosehead'?window.kineoSurvey:null;
+  const landmarkTerrain=window.aerieRegionalLandforms?.get(region);
   function elevation(x,z,includeIslet=true){
     if(tableHeight&&x>=-256&&x<=256&&z>=128&&z<=512){
       const edge=Math.min(x+256,256-x,z-128,512-z);
@@ -518,7 +519,8 @@ class Water extends Mesh {
       if(edge>=8)return measured;
       return lerp(regionalElevation(x,z,includeIslet),measured,smoothstep(edge,0,8));
     }
-    const base=regionalElevation(x,z,includeIslet);
+    const native=regionalElevation(x,z,includeIslet);
+    const base=landmarkTerrain?landmarkTerrain.height(x,z,native):native;
     if(!brookGrid||!insideBrook(x,z))return kineo?kineo.elevation(x,z,base):base;
     const dx=x-localDEM.x,dz=z-localDEM.z,h=localDEM.half;
     return lerp(sample(brookGrid,h,dx,dz),base,smoothstep(Math.max(Math.abs(dx),Math.abs(dz)),h-18,h));
@@ -851,8 +853,8 @@ class Water extends Mesh {
   if(region==='moosehead'){
     // Rock-face field photograph, rectified and locally de-lit. Its remaining
     // joint pattern belongs on steep rhyolite walls within the Kineo headland.
-    const localRock=texture('moosehead-kineo-face.webp');
-    localRock.wrapS=THREE.MirroredRepeatWrapping;
+    const localRock=texture('kineo-fracture-scan.webp');
+    localRock.wrapS=localRock.wrapT=THREE.MirroredRepeatWrapping;
     terrain.uniforms.localRhyolite={value:localRock};
     terrain.uniforms.kineoSlopes={value:texture('moosehead-kineo-slopes.webp')};
     terrain.fragmentShader='uniform sampler2D localRhyolite,kineoSlopes;\n'+terrain.fragmentShader
@@ -867,22 +869,81 @@ class Water extends Mesh {
         float localSurvey=smoothstep(.004,.034,lidarEdge)*smoothstep(315.,329.,wp.y);
         normal=normalize(mix(normal,measuredNormal,.85*localSurvey));`)
       .replace('/* exposed field geology */', `
-        vec2 relative=wp.xz-vec2(125.,-790.);
-        float headland=(1.-smoothstep(850.,1310.,length(relative)))*smoothstep(.20,.77,1.-normal.y)*(1.-dense*.45);
-        // The original rock-only exposure is rectified between its upper and lower
-        // outcrop limits. Horizontal distance and elevation anchor it to the wall.
-        float along=dot(wp.xz,vec2(.55,-.84));
-        float rawU=(along-65.)/1095.;
-        headland*=smoothstep(-.10,.04,rawU)*(1.-smoothstep(.95,1.10,rawU));
-        float u=clamp(rawU,0.,1.);
-        float crest=mix(500.,535.,smoothstep(.04,.63,u))-75.*smoothstep(.83,1.06,u);
-        float toe=mix(392.,335.,smoothstep(.05,.94,u));
-        vec2 ledgeUv=vec2(u,clamp((wp.y-toe)/max(32.,crest-toe),.016,.98));
-        float joint=texture2D(localRhyolite,ledgeUv).r;
-        float gully=(lidar.b-.5)*localSurvey;
-        vec3 strata=vec3(.98,.99,1.01)*(.39+1.58*(joint-.39))*(.88+.34*cliff+.23*gully);
-        lithology=mix(lithology,strata,headland);
-        materialWeight=max(materialWeight,headland*.98);`)
+        // A reconstructed south/east outcrop: orthophotos flatten a cliff, so
+        // mineral reflectance and relief are sampled in metres along its face.
+        vec2 toCliff=(wp.xz-vec2(108.,-970.))/vec2(840.,740.);
+        float rockBounds=1.-smoothstep(.75,1.29,length(toCliff));
+        vec3 rockGeom=normalize(norm);
+        // A contour-registered mesh and its one-metre raster apron share this
+        // weathered rim. Use the same low-frequency surface frame on both
+        // sides before resolving close joint normals. The rim follows variable
+        // bedding elevation and tapers above the lake into the wooded crown.
+        float cliffStation=min(wp.z+1241.5,-1060.5-wp.z);
+        float cliffVertical=min(wp.y-314.,502.-wp.y);
+        float cliffBorder=min(cliffStation,cliffVertical);
+        float cliffSide=1.-smoothstep(20.,69.,abs(wp.x-284.));
+        float cliffRim=(1.-smoothstep(1.,34.,abs(cliffBorder)))*cliffSide;
+        float brokenFace=cliffSide*smoothstep(-31.,23.,cliffBorder);
+        vec3 weatheredNormal=normalize(vec3(1.,.18+.043*sin(wp.y*.052+wp.z*.016),
+          -.34+.15*sin(wp.z*.037+wp.y*.014)+.11*sin(wp.y*.055)));
+        rockGeom=normalize(mix(rockGeom,weatheredNormal,cliffRim*.89));
+        float escarpment=rockBounds*smoothstep(.24,.68,1.-rockGeom.y)*smoothstep(312.49,318.,wp.y);
+        float rockRun=dot(wp.xz,vec2(.27,-.963));
+        float localDip=.085*rockRun+2.35*sin(rockRun*.032)+.93*sin(rockRun*.091+wp.y*.029);
+        vec2 faceMetres=vec2(rockRun,wp.y+localDip);
+        vec2 broadUv=faceMetres/vec2(74.,16.);
+        broadUv+=vec2(.10*sin(wp.y*.047+rockRun*.031),.14*sin(rockRun*.057-wp.y*.011));
+        vec2 rockUv=vec2(faceMetres.x+faceMetres.y*.17,faceMetres.y-.072*rockRun)/vec2(27.2,5.94);
+        // Switch projection as the physical face turns. An underlip or an
+        // upward rock shelf must reveal a surface across its depth too.
+        vec3 facet=normalize(cross(dFdx(wp),dFdy(wp)));
+        if(dot(facet,rockGeom)<0.)facet=-facet;
+        facet=normalize(mix(facet,weatheredNormal,.89*cliffRim));
+        vec3 projectionWeights=pow(abs(mix(rockGeom,facet,.7)),vec3(2.8));
+        projectionWeights/=max(.001,dot(projectionWeights,vec3(1.)));
+        vec2 sideMetres=vec2(wp.x-.19*wp.z,wp.y-.17*wp.x);
+        vec2 topMetres=mat2(.91,.415,-.415,.91)*wp.xz;
+        vec4 fractureSurvey=projectionWeights.x*texture2D(localRhyolite,broadUv)
+          +projectionWeights.z*texture2D(localRhyolite,sideMetres/vec2(61.,15.)+.35)
+          +projectionWeights.y*texture2D(localRhyolite,topMetres/vec2(40.,11.)-.52);
+        vec4 smallRock=projectionWeights.x*texture2D(localRhyolite,rockUv+vec2(.32,-.17))
+          +projectionWeights.z*texture2D(localRhyolite,sideMetres/vec2(22.,6.9)-.61)
+          +projectionWeights.y*texture2D(localRhyolite,topMetres/vec2(18.,5.2)+.18);
+        float angularPatch=.50+.17*sin(.052*rockRun-.034*wp.y+.9*sin(.023*wp.y));
+        float pigment=mix(smallRock.r,fractureSurvey.r,angularPatch);
+        float marked=clamp((pigment-.23)*1.40,0.,1.);
+        vec3 baseRhyolite=mix(vec3(.245,.264,.265),vec3(.685,.643,.539),marked);
+        float exposure=.63*fractureSurvey.a+.37*smallRock.a;
+        baseRhyolite*=.64+.40*exposure;
+        // Open mineral planes, dark fractures and wet lake-contact rock share
+        // the same physical shader across the old GLB, its seam and the broad TIN.
+        lithology=mix(lithology,baseRhyolite,escarpment);
+        materialWeight=max(materialWeight,escarpment);
+      `)
+      .replace('vec3 c=mix(photo,stoneColor,materialWeight);',
+        'vec3 c=mix(mix(photo,stoneColor,materialWeight),baseRhyolite,escarpment);')
+      .replace('float incidence=max(0.,dot(relieved,sun))',`
+        vec3 strike=normalize(vec3(rockGeom.z,0.,-rockGeom.x)+vec3(.00001,0.,.00001));
+        vec3 rockUp=normalize(cross(rockGeom,strike));
+        vec2 rockSlope=(mix(fractureSurvey.gb,smallRock.gb,.41)-.5)*2.;
+        vec3 jointNormal=normalize(rockGeom+strike*rockSlope.x*1.18+rockUp*rockSlope.y*1.31);
+        relieved=normalize(mix(relieved,jointNormal,escarpment));
+        float incidence=max(0.,dot(relieved,sun))`)
+      .replace('/* canopy transmission */',`
+        // Sunlit edges retain warmth while overhanging facets receive blue sky
+        // and lake fill. This follows the measured plus reconstructed 3D normal.
+        vec3 rockAmbient=vec3(.50,.577,.665)*(.56+.32*exposure+.19*max(rockGeom.y,0.));
+        // A horizontal map's shadow cannot represent different altitudes on
+        // a nearly vertical wall. Reconstruct the slowly changing sky opening
+        // across the two source meshes, retaining local occlusion in the joints.
+        float rimSun=.67+.075*sin(wp.z*.02-wp.y*.011);
+        float wallLight=mix(sunlit,rimSun,clamp(.91*cliffRim+.52*brokenFace,0.,.96));
+        float wallIncidence=mix(incidence,max(0.,dot(weatheredNormal,sun)),.61*cliffRim);
+        rockAmbient+=brokenFace*vec3(.065,.062,.055);
+        vec3 rockDirect=vec3(1.22,.982,.70)*(.08+1.19*wallIncidence)*wallLight;
+        vec3 rockLit=pow(baseRhyolite,vec3(2.2))*(rockAmbient+rockDirect);
+        c=mix(c,rockLit,escarpment*.95);
+        /* canopy transmission */`)
       .replace('float dep=1.-exp(-d*(.000032-.000007*temperate));','float dep=1.-exp(-d*mix(.000025,.000016,smoothstep(4200.,7000.,d)));');
   }
   if(survey.innerCenter && settings.detailOrtho!==false){
@@ -1108,6 +1169,16 @@ class Water extends Mesh {
   function patch(left,top,width,depth,nx,nz,localBed=false){
     // Cut the existing terrain around the high-resolution inset. The same
     // survey supplies the drawn rock, physical surface and waterfall rails.
+    if(landmarkTerrain){
+      const [xl,zt,xr,zb]=landmarkTerrain.rect,right=left+width,bottom=top+depth;
+      const l=Math.max(left,xl),t=Math.max(top,zt),r=Math.min(right,xr),b=Math.min(bottom,zb);
+      if(l<r&&t<b){
+        for(const [ax,az,bx,bz] of [[left,top,right,t],[left,b,right,bottom],[left,t,l,b],[r,t,right,b]]){
+          if(ax<bx&&az<bz)patch(ax,az,bx-ax,bz-az,Math.max(1,Math.ceil(nx*(bx-ax)/width)),Math.max(1,Math.ceil(nz*(bz-az)/depth)),localBed);
+        }
+        return;
+      }
+    }
     if(kineo){
       // Reserve the measured wall and wave margin. Their adjoining survey
       // meets the local GLB at its exact contour vertices in native metres.
@@ -1488,10 +1559,13 @@ class Water extends Mesh {
   if(region==='moosehead'){
     launches.reeds={x:-1108,y:316.1,z:-2298,yaw:-1.560,glance:-25,lookDown:9};
     // Fly west alongside a surveyed balsam fir with the shoulder camera clear of its trunk.
+    launches.kineo={x:1115,y:397,z:-1045,yaw:1.57,glance:0,lookDown:0};
     launches.canopy={x:1855.753,y:334.262,z:4123.347,yaw:Math.PI/2,glance:0,lookDown:0};
   }
   for(const [key,tuple] of Object.entries(waterfront?.launches||settings.extraLaunches||{}))launches[key]=start(tuple);
   let landmarks=waterfront?[...survey.landmarks.filter(mark=>!waterfront.landmarks.some(local=>local.name===mark.name)),...waterfront.landmarks]:survey.landmarks;
+  if(dixville)landmarks=[...landmarks,{name:'Mount Gloriette',x:-1150,z:1512,approach:[-540,930,-1150,1512,164,0,4]}];
+  if(region==='lofoten')landmarks=[...landmarks,{name:'Olstinden',x:1570,z:1780,approach:[2570,2250,1570,1780,370,0,2]}];
   if(brook)landmarks=[...landmarks,{name:brook.name}];
   if(ship)landmarks=landmarks.map(mark=>mark.name===ship.mark.name?ship.mark:mark);
   if(waterfallViews.size)landmarks=landmarks.map(mark=>{
@@ -1519,6 +1593,7 @@ class Water extends Mesh {
   world.geologyGround=shoreFloor?(x,z)=>Math.max(shoreFloor.ground(x,z),shoreFloor(x,z)):null;
   const updateUplandWoods=uplands?.woods(THREE,scene,world,clock);
   if(bankGrowth)world.shoreThickets=bankGrowth;
+  if(landmarkTerrain)world.landformMesh=landmarkTerrain.add(THREE,scene,terrain,(x,z)=>regionalElevation(x,z,false),texture);
   if(kineo){world.kineoTerrainMaterial=terrain;world.kineoBase=(x,z)=>regionalElevation(x,z,false);}
   if(region==='yosemite')world.talusFans=survey.talusFans;
   const rainTrace=window.makeRainTrace(THREE,scene,{world,terrain,water,cabin,survey,inLake,ground:(x,z)=>Math.max(shoreFloor?.ground(x,z)??elevation(x,z),shoreFloor?.(x,z)??-Infinity)});

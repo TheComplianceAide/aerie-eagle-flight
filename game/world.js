@@ -377,7 +377,13 @@ class Water extends Mesh {
     const opposite = buffer[n+count+1];
     return (opposite+(1-a)*(buffer[n+count]-opposite)+(1-b)*(buffer[n+1]-opposite))/8;
   }
-  function elevation(x,z) {
+  const landmarkTerrain=window.aerieRegionalLandforms?.get('swiss');
+  const landmarkGroundMaterials=new Set();
+  function elevation(x,z){
+    const base=nativeElevation(x,z);
+    return landmarkTerrain?landmarkTerrain.height(x,z,base):base;
+  }
+  function nativeElevation(x,z){
     const border = Math.max(Math.abs(x),Math.abs(z));
     const regional=()=>sample(region,513,16000,x,z)+window.rangeRelief("swiss",x,z);
     if (border>=4000) return regional();
@@ -560,6 +566,11 @@ class Water extends Mesh {
     });
   }
   function patch(minX,minZ,side,steps,material,isRegional) {
+    if(landmarkTerrain){
+      const [l,t,r,b]=landmarkTerrain.rect;
+      if(minX<r&&minX+side>l&&minZ<b&&minZ+side>t)landmarkGroundMaterials.add(material);
+    }
+
     const n=steps+1,count=n*n;
     const positions=new Float32Array(count*3), normals=new Float32Array(count*3), uvs=new Float32Array(count*2);
     const indices=count<65536?new Uint16Array(steps*steps*6):new Uint32Array(steps*steps*6);
@@ -677,7 +688,13 @@ class Water extends Mesh {
     falls:{x:790,y:elevation(790,900)+54,z:900,yaw:-.10},
     forest:{x:-1280,y:clearance(-1280,420)+43,z:420,yaw:-1.61}
   };
-  return {
+  let landformMesh=null;
+  if(landmarkTerrain&&landmarkGroundMaterials.size){
+    const reference=landmarkGroundMaterials.values().next().value;
+    landformMesh=landmarkTerrain.add(THREE,scene,reference,nativeElevation,texture);
+    for(const source of landmarkGroundMaterials)landmarkTerrain.maskOriginal(source);
+  }
+  return {landformMesh,
     treeGrid:{cells:treeCells,size:32,cell:(x,z)=>Math.floor(x/32)*1024+Math.floor(z/32)},
     waterfalls,height,elevation,clearance,spawn,launches,trees,skyTexture:skyMap,sunMask:visibility,sunDirection:sun,waterLevel:0,lakeLevel:0,lakePolygon:shore,altitudeOffset:survey.heightOffset,
     bounds:{minX:-3700,maxX:3700,minZ:-3700,maxZ:3700},

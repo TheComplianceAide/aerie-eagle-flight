@@ -51,7 +51,8 @@
     material.uniforms={...native.uniforms,surveyBase:{value:scan.map},surveyNormal:{value:scan.normalMap},surveyOrigin:{value:origin}};
     mesh.geometry.setAttribute('surveyDetailUv',mesh.geometry.getAttribute('uv1'));
     material.vertexShader='uniform vec3 surveyOrigin;attribute vec2 surveyDetailUv;varying vec2 captureUv,detailUv;\n'+native.vertexShader.replace('wp=position;','wp=position+surveyOrigin;captureUv=uv;detailUv=surveyDetailUv;');
-    material.fragmentShader='uniform sampler2D surveyBase,surveyNormal;varying vec2 captureUv,detailUv;\n'+native.fragmentShader.replace('float green=smoothstep',`
+    const isEastWall=mesh.name==='kineo-east-cliff';
+    material.fragmentShader=isEastWall?native.fragmentShader:'uniform sampler2D surveyBase,surveyNormal;varying vec2 captureUv,detailUv;\n'+native.fragmentShader.replace('float green=smoothstep',`
       vec2 edge=min(captureUv,1.-captureUv);
       float site=smoothstep(0.,.12,edge.x)*smoothstep(0.,.10,edge.y);
       vec3 field=texture2D(surveyBase,captureUv).rgb;
@@ -130,9 +131,41 @@
       }
       return Number.isFinite(top)?top:undefined;
     };
+    let shelfGrowth=null;
+    const eastWall=models.find(m=>m.name==='kineo-east-cliff');
+    if(eastWall&&world.shoreThickets?.addShelf){
+      const positions=eastWall.geometry.attributes.position,index=eastWall.geometry.index;
+      const a=new T.Vector3(),b=new T.Vector3(),c=new T.Vector3(),normal=new T.Vector3(),center=new T.Vector3();
+      const pockets=[],roots=[];
+      let seed=0x244597;const random=()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296);
+      for(let i=0;i<index.count;i+=3){
+        a.fromBufferAttribute(positions,index.getX(i));b.fromBufferAttribute(positions,index.getX(i+1));c.fromBufferAttribute(positions,index.getX(i+2));
+        normal.subVectors(b,a).cross(c.sub(a)).normalize();c.fromBufferAttribute(positions,index.getX(i+2));
+        if(normal.y<.76)continue;
+        center.copy(a).add(b).add(c).multiplyScalar(1/3).add(eastWall.position);
+        const {x,y,z}=center;
+        // Distinct, sheltered diagonal shelves. Most clefts are bare, and a
+        // vertical return cannot support a floating root.
+        const belt1=((z+1089)/35)**2+((y-413+.16*(z+1089))/7)**2;
+        const belt2=((z+1195)/44)**2+((y-366-.08*(z+1195))/6.5)**2;
+        const belt3=((z+1165)/31)**2+((y-436-.12*(z+1165))/5.1)**2;
+        const inside=Math.min(belt1,belt2,belt3);
+        if(inside>=1)continue;
+        const rank=random()*(1-.60*inside);
+        pockets.push({x,y,z,slopeX:-normal.x/normal.y,slopeZ:-normal.z/normal.y,rank});
+      }
+      pockets.sort((a,b)=>b.rank-a.rank);
+      for(const p of pockets){
+        if(roots.length>=58)break;
+        if(roots.some(r=>Math.hypot(p.x-r.x,p.z-r.z)<2.05&&Math.abs(p.y-r.y)<2.8))continue;
+        const h=(1.0+2.95*p.rank)*(.76+.47*random()),cell=[0,2,8,9,12,14][Math.floor(random()*6)];
+        roots.push({...p,h,cell,a:random()*Math.PI*2,shade:.95+.16*random()});
+      }
+      shelfGrowth=world.shoreThickets.addShelf(roots);
+    }
     const names=models.map(m=>m.name);
     const levels=models.map(m=>{
-      const span=m.name.includes('east-cliff')?480:m.name.includes('margin')?145:m.name.includes('pocket')?70:32;
+      const span=m.name.includes('east-cliff')?1180:m.name.includes('margin')?145:m.name.includes('pocket')?70:32;
       const lower=span*.74,upper=span*1.36;
       const lowGeometry=new T.BufferGeometry();
       for(const [key,attr] of Object.entries(m.geometry.attributes))lowGeometry.setAttribute(key,attr);
@@ -162,6 +195,7 @@
         m.visible=d<upper+42;low.visible=d>lower-42;
       }
     },dispose(){
+      if(shelfGrowth){shelfGrowth.removeFromParent();shelfGrowth.geometry.dispose();}
       for(const {low} of levels){low.geometry.dispose();low.material.dispose();}
       for(const m of models){m.geometry.dispose();const mat=m.userData.originalSurveyMaterial||m.material;if(mat!==m.material)m.material.dispose();for(const tx of new Set([mat.map,mat.normalMap,mat.roughnessMap]))tx.dispose();mat.dispose();}
       for(const m of shells)m.geometry.dispose();
