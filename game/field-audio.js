@@ -135,6 +135,21 @@
     soaring:['eagle-alaska','eagle-peale-answer']
   };
   const playerCalls=Object.values(phrases).flat();
+  // The eagle's bill follows each of its own calls: the loudness envelope of
+  // the recording (60 frames a second, peak 1, noise floor gated) goes out
+  // with an 'aerie-eagle-call' event when the phrase starts.
+  const callEnvelopes=new Map();
+  function callEnvelope(id,b){
+    if(callEnvelopes.has(id))return callEnvelopes.get(id);
+    const d=b.getChannelData(0),hop=Math.max(1,Math.round(b.sampleRate/60)),n=Math.ceil(d.length/hop),e=new Float32Array(n);
+    let peak=1e-6;
+    for(let i=0;i<n;i++){let sum=0;const a=i*hop,z=Math.min(d.length,a+hop);for(let j=a;j<z;j++)sum+=d[j]*d[j];e[i]=Math.sqrt(sum/Math.max(1,z-a));peak=Math.max(peak,e[i]);}
+    for(let i=0;i<n;i++)e[i]=Math.max(0,(e[i]/peak-.14)/.86);
+    callEnvelopes.set(id,e);return e;
+  }
+  function announceCall(id,buffer){
+    try{window.dispatchEvent(new CustomEvent('aerie-eagle-call',{detail:{id,envelope:callEnvelope(id,buffer),rate:60}}));}catch(e){}
+  }
   const aacCalls=new Set(['apapane','meadow-pipit','dunnock',...playerCalls.filter(id=>!['eagle-yellowstone','eagle-chirp','eagle-alaska'].includes(id))]);
   const random=(a,b)=>a+(b-a)*Math.random();
   const clamp=(x,lo,hi)=>Math.max(lo,Math.min(hi,x));
@@ -514,6 +529,7 @@
         if(!buffers.has(choices[index])){const available=choices.findIndex(id=>buffers.has(id));if(available>=0)index=available;}
         const id=choices[index];
         if(voice(id,occasion==='encounter'?.95:occasion==='perched'?.59:.70,-.10,15500)){
+          announceCall(id,buffers.get(id));
           wildlifeUntil=Math.max(wildlifeUntil,now+buffers.get(id).duration+.3);
           nextPhrase.set(occasion,(index+1)%choices.length);pending=null;
           quietUntil=now+buffers.get(id).duration+2.8;
