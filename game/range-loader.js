@@ -27,7 +27,7 @@
     const files=scripts[region]||['atlas-'+region+'-survey.js','atlas-worlds.js','rain-trace.js','shore-bank.js','hardwood.js','scanned-hardwood.js',...(lakes?['lakeside.js','lake-bay-data.js','lake-bay-contours.js','lake-habitat.js','lake-habitat-'+region+'.js']:[]),...trees];
     const surveyDetail={
       crater:['crater-rim-data.js','crater-rim.js','crater-plaikni.js','crater-plaikni-meadow.js','regional-waterfalls.js','falls-terrain-crater.js','waterfall-system.js','crater-bathymetry.js','crater-weather.js','crater-phantom-ship.js'],
-      dixville:['waterfall-system.js','dixville-brooks.js','dixville-lidar.js','talus-data.js','rocks.js','architecture.js','dixville-landmarks.js'],
+      dixville:['waterfall-system.js','dixville-brooks.js','dixville-lidar.js','talus-data.js','rocks.js','architecture.js','dixville-resort-park.js','dixville-resort.js','dixville-hale.js','dixville-landmarks.js'],
       labrador:['architecture.js','labrador-narrows-survey.js','labrador-narrows.js','labrador-camp-ground.js','labrador-cabin.js','labrador-floatplane.js','labrador-weather.js'],
       acadia:['acadia-light-stations.js','acadia-station-optics.js','acadia-night.js','acadia-coast.js','acadia-ocean-path.js','acadia-sand-beach.js'],
       lofoten:['lofoten-sea-mask.js','lofoten-reine-data.js','lofoten-reine.js','lofoten-reinewest-data.js','lofoten-marken.js','lofoten-reinevatnet-data.js','lofoten-reinevatnet.js','lofoten-reinebringen-surface.js','regional-waterfalls.js','falls-terrain-lofoten.js','waterfall-system.js','lofoten-hamnoy.js'],

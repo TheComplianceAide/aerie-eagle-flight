@@ -229,8 +229,8 @@ window.addTalus = function addTalus(THREE, scene, world) {
   shadows.count=0;shadows.name="Boulder contact shadows";shadows.frustumCulled=false;shadows.renderOrder=1;
   shadows.instanceMatrix.setUsage(THREE.DynamicDrawUsage);scene.add(shadows);
   const floorBeforeRocks=world.clearance || world.height;
-  world.clearance=(x,z)=>{
-    let top=floorBeforeRocks(x,z);
+  world.clearance=(x,z,altitude)=>{
+    let top=floorBeforeRocks(x,z,altitude);
     const cx=Math.floor(x/gridSize),cz=Math.floor(z/gridSize);
     // Query the containing cell and neighbours when within boulder radius of an edge.
     const fx=x/gridSize-cx, fz=z/gridSize-cz;

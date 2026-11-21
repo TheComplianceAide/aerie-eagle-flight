@@ -1796,6 +1796,7 @@ class Water extends Mesh {
   const waterfrontHeight=waterfront?.build(elevation,settings.water,clock,terrain,shoreFloor?.ground||elevation);
   const cabin=survey.cabin?window.addLabradorCabin(THREE,scene,{elevation,height:elevation,surveyGround:!!campSurface,measuredTrees:survey.berteCrowns,waterLevel:settings.water,lakeLevel:settings.water},survey.cabin):null;
   const campPlane=cabin?window.addBerteFloatplane(THREE,scene,{level:settings.water,texture,sky:skyMap,elevation}):null;
+  if(dixville)window.finishBalsamsGround(terrain,texture);
   const resort=dixville?window.addDixvilleLandmarks(THREE,scene,survey.sites,elevation,shoreFloor?.ground||elevation):null;
   const inLake=makeAtlasWorld.indexLakeOutline(survey.shore,survey.shoreHoles);
   const birchCover=region==='lofoten'?window.aerieLandClassSampler(region):null;
@@ -1823,7 +1824,7 @@ class Water extends Mesh {
       tree.height*=stature;tree.width*=stature;
     }
     if(reineVillage?.blocks(tree.x,tree.z)||waterfalls?.inChute(tree.x,tree.z,tree.width))return;
-    if(resort?.inClearing(tree.x,tree.z)||dam?.onDam(tree.x,tree.z)||cabin?.inClearing(tree.x,tree.z))return;
+    if(resort?.inClearing(tree.x,tree.z,tree.observedBalsams)||dam?.onDam(tree.x,tree.z)||cabin?.inClearing(tree.x,tree.z))return;
     if(Number.isFinite(roofHeight?.(tree.x,tree.z))||Number.isFinite(waterfrontHeight?.(tree.x,tree.z)))return;
     tree.conifer=isFir;
     trees.push(tree);(isFir?firTrees:broadTrees).push(tree);
@@ -1857,7 +1858,7 @@ class Water extends Mesh {
     plant({...measured,y:elevation(measured.x,measured.z)},true);
   }
   for(const tree of cabin?.campTrees||[])plant(tree,true);
-  for(const tree of resort?.lawnTrees||[])plant(tree,true);
+  for(const tree of resort?.lawnTrees||[])plant(tree,tree.conifer??true);
   const crownPoints=region==='yosemite'?window.yosemiteCanopy:dixville?window.dixvilleCanopy:survey.crownPoints;
   if(crownPoints){
     const records=bytes(crownPoints),view=new DataView(records.buffer);
@@ -1930,7 +1931,7 @@ class Water extends Mesh {
     ground:(x,z)=>Math.max(shoreFloor?.ground(x,z)??elevation(x,z),shoreFloor?.(x,z)??-Infinity),
     waterLevel:settings.water+.16,growth,roof:roofHeight,nearTrees:(x,z)=>cells.get(cell(x,z))||[],sun,sunMask,span:2*h,texture,clock}):null;
   function clearance(x,z,altitude){
-    let y=Math.max(height(x,z),bankGrowth?.clearance(x,z)??-Infinity,resort?.clearance(x,z)??-Infinity,cabin?.clearance(x,z)??-Infinity,campPlane?.clearance(x,z,altitude)??-Infinity,roofHeight?.(x,z,altitude)??-Infinity,dam?.structureHeight(x,z)??-Infinity,waterfrontHeight?.(x,z)??-Infinity);const ix=Math.floor(x/50),iz=Math.floor(z/50);
+    let y=Math.max(height(x,z),bankGrowth?.clearance(x,z)??-Infinity,resort?.clearance(x,z,altitude)??-Infinity,cabin?.clearance(x,z)??-Infinity,campPlane?.clearance(x,z,altitude)??-Infinity,roofHeight?.(x,z,altitude)??-Infinity,dam?.structureHeight(x,z)??-Infinity,waterfrontHeight?.(x,z)??-Infinity);const ix=Math.floor(x/50),iz=Math.floor(z/50);
     for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++){
       const id=(ix+dx+500)*cellStride+iz+dz+500,group=cells.get(id);
       if(group)for(const t of group){const d=Math.hypot(x-t.x,z-t.z)/(t.width*.5);if(d<1)y=Math.max(y,t.y+t.height*(1-d*d*.68));}
@@ -1958,6 +1959,7 @@ class Water extends Mesh {
     if(mark.name==='Cleetwood Cove')return {...mark,x:2877,z:-3420,approach:[2912,-3448,2835,-3338,16,13,10]};
     return mark;
   });
+  if(dixville)landmarks=landmarks.map(mark=>mark.name==='The Balsams Grand Resort Hotel'?{...mark,approach:[-122,-202,-256,-340,38,0,7]}:mark);
   if(dixville)landmarks=[...landmarks,{name:'Mount Gloriette',x:-1150,z:1512,approach:[-540,930,-1150,1512,164,0,4]}];
   if(acadia){
     // Glide downhill beside the viewing steps. The chasm and its foam are

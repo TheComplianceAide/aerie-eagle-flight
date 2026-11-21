@@ -14,10 +14,23 @@ Resort footprints and access drives © OpenStreetMap contributors, ODbL 1.0
 https://www.openstreetmap.org/copyright
 The geographic data adapted for the game are available in the Dixville survey in the public Aerie repository.
 
-Architectural reference for the historic Balsams exterior: Carol M. Highsmith, Library of Congress
+The 1918 Hampshire House at Lake Gloriette uses a registered lake-end photograph by Carol M. Highsmith. Its eight tower roof planes and mast are fitted to the 2015 Connecticut River public lidar. The measured park and Hale House grounds use NH GRANIT's 2021–22 six-inch true-color orthophotography, USGS 3DEP bare earth and crown envelopes inferred from the same laser survey. The photographed season informs the drive, lawn and planted-bed boundaries. Trees and the remaining building elevations are reconstructions. The original photograph predates the resort's closure.
 https://www.loc.gov/item/2011631982/
-Historic stone portal photograph: https://www.loc.gov/item/2011634077/
-The hotel exterior and Table Rock projection are modeled interpretations. The portal position on the lake approach is approximate.
+https://granit24a.sr.unh.edu/image/rest/services/ImageServices/NH_2021_2022_6in_RGB/ImageServer
+https://s3-us-west-2.amazonaws.com/usgs-lidar-public/USGS_LPC_CT_River_Lot6_Winnipesaulee_2015_LAS_2017/ept.json
+
+The Hale House model follows Beaver Lodge, listed as building 4 in the 2002 National Register nomination. Its west drive's surviving castellated portal is registered to the state orthophoto and laser returns. The historic stone face and vault use Carol M. Highsmith's photograph. The south porch, connected dormers and north porch use the National Register text and photo 9 for reference. The photographs by Elizabeth Durfee Hengen are used for visual reference only. The neighboring garage and obscured elevations are interpreted.
+https://www.loc.gov/item/2011634077/
+https://npgallery.nps.gov/AssetDetail/NRIS/02000166
+
+Highsmith photograph credit: Photographs in the Carol M. Highsmith Archive, Library of Congress, Prints and Photographs Division. Digital IDs highsm.13788 and highsm.15884. The Library lists no known restrictions on publication for these items.
+https://www.loc.gov/rr/print/res/482_high.html
+
+Hampshire House's clay roof diffuse and normal maps adapt Roof Tiles by Stephan Seeliger. Hale House's shake siding adapts Weathered Plank Siding by Dimitrios Savva, cut into tapered courses. Both source materials are CC0. Shapes and finishes represent the documented buildings, independent of proposed redevelopment.
+https://polyhaven.com/a/roof_tiles
+https://polyhaven.com/a/weathered_plank_siding
+https://polyhaven.com/license
+
 Autumn canopy and eastern dawn lighting are art-directed. The sky uses the existing CC0 Poly Haven sky panorama from the Winnipesaukee scenery; see atlas-credits.txt.
 
 The outer 32 km uses a 1,093 × 1,093 sample of 3DEP heights and directional relief derived from that survey. The 32 km and 7.8 km orthophotos are 4,096 pixels wide, and the 2.9 km central orthophoto is 3,072 pixels wide. Forest-floor color, ambient occlusion and normals use the CC0 Leaves Forest Ground material from Poly Haven.
