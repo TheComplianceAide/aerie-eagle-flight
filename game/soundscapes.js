@@ -453,6 +453,7 @@
         {clip: 'scape-yosemite-coyote', every: [80, 200], ref: 90, reach: 3500, gain: .6, wet: .8, where: onGround(500, 1600)},
         {clip: 'scape-yosemite-brewers-blackbird', every: [16, 36], ref: 12, reach: 300, gain: .5, where: at(/El Capitan Meadow/, 1, 250)},
         {clip: 'scape-yosemite-steller-jay-yosemite', every: [26, 60], ref: 18, reach: 450, gain: .5, where: inTrees(50, 350, .7)},
+        {clip: 'scape-yosemite-chipmunk', every: [45, 110], ref: 6, reach: 150, gain: .5, where: onGround(20, 120)},
         {clip: 'scape-yosemite-rockfall-granite', every: [200, 420], ref: 120, reach: 6000, gain: .6, wet: 1, where: onCliff(600, 2500)}
       ]
     },
@@ -461,7 +462,8 @@
       beds: [{clip: 'scape-crater-rim-wind', ref: 1, gain: c => .08 + .36 * c.exposure * (.6 + .5 * c.gust)}],
       events: [
         {clip: 'scape-crater-grasshopper-crepitation', every: [9, 22], ref: 6, reach: 160, gain: .45, where: onGround(10, 90)},
-        {clip: 'scape-crater-canada-jay', every: [24, 55], ref: 15, reach: 380, gain: .5, where: inTrees(40, 260, .6)}
+        {clip: 'scape-crater-canada-jay', every: [24, 55], ref: 15, reach: 380, gain: .5, where: inTrees(40, 260, .6)},
+        {clip: 'scape-crater-chipmunk', every: [50, 120], ref: 6, reach: 150, gain: .3, where: onGround(20, 120)}
       ]
     },
     lofoten: {
@@ -1024,29 +1026,32 @@
         if (Math.hypot(s0.x - ear.x, s0.y - ear.y, s0.z - ear.z) < v.hush) { s0.stop(.35); state.voices.delete(v); }
       }
       // The licensed ground recording is a heavy animal walking through
-      // dry foliage. Stop it at the bank as well as when the moose is still.
+      // dry foliage. Stop it at the bank as well as when the animal is still.
+      // A deer steps through the same litter: lighter, quicker and heard
+      // from less far.
       const walkers = [];
       for (const a of world.wildlife?.land?.drawn || []) {
-        if (a.id !== 'moose' || !(a.speed > .22)) continue;
+        const deer = /deer/.test(a.id || '');
+        if ((a.id !== 'moose' && !deer) || !(a.speed > .22)) continue;
         const d = Math.hypot(a.x - ear.x, a.y - ear.y, a.z - ear.z);
-        if (d < 190 && !isWet(world, a.x, a.z)) walkers.push({a, d});
+        if (d < (deer ? 130 : 190) && !isWet(world, a.x, a.z)) walkers.push({a, d, deer});
       }
       walkers.sort((p, q) => p.d - q.d); walkers.length = Math.min(walkers.length, 3);
       for (const [a, src] of state.steps) if (!walkers.some(w => w.a === a)) { src.stop(.8); state.steps.delete(a); }
-      for (const {a} of walkers) {
+      for (const {a, deer} of walkers) {
         let src = state.steps.get(a);
         if (!src) {
           const id = 'move-moose';
           if (!buffers.has(id) && !loading.has(id)) load(id);
           const b = buffers.get(id);
           if (!b) continue;
-          src = engine.loop(b, {x: a.x, y: a.feetY ?? a.y, z: a.z}, {label: id, gain: 0, ref: 9, reach: 190, wet: .3});
+          src = engine.loop(b, {x: a.x, y: a.feetY ?? a.y, z: a.z}, {label: deer ? 'move-deer' : id, follows: true, gain: 0, ref: deer ? 6 : 9, reach: deer ? 130 : 190, wet: .3});
           if (!src) continue;
           state.steps.set(a, src);
         }
         src.x = a.x; src.y = a.feetY ?? a.y; src.z = a.z;
-        src.gain = .8 * clamp((a.speed - .15) / .45, 0, 1.3);
-        src.source?.playbackRate.setTargetAtTime(clamp(.86 + .24 * a.speed, .9, 1.45), now, .3);
+        src.gain = (deer ? .45 : .8) * clamp((a.speed - .15) / .45, 0, 1.3);
+        src.source?.playbackRate.setTargetAtTime(clamp(.86 + .24 * a.speed, .9, 1.45) * (deer ? 1.25 : 1), now, .3);
       }
       // Moving sources follow their paths.
       for (const m of state.movers) {

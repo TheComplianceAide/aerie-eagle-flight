@@ -240,7 +240,8 @@
   window.aerieFauna={scenes,species,birds,sizes,sourceSite,nearestShore};
   window.makeFieldAudio=function makeFieldAudio(context,region){
     const profile=scenes[region];
-    const calls={moose:[134,.81],'white-tailed-deer':[97,.75],'red-deer':[185,.84],
+    // The white-tailed deer recording peaks 11 dB below the others; its level makes that up.
+    const calls={moose:[134,.81],'white-tailed-deer':[97,2.3],'red-deer':[185,.84],
       'alpine-ibex':[170,.74],'desert-bighorn':[125,.70],'eurasian-otter':[115,.66]};
     const localMammals=(window.aerieLandWildlife?.regions[region]?.animals||[]).filter(id=>calls[id]);
     let mammalDue=0;
