@@ -913,7 +913,11 @@ window.makeEagle = function makeEagle(THREE) {
     // Convert the desired nearly level world head into the moving thorax's
     // frame. This stabilizes a fixation even while bank and pitch change together.
     localHead.multiply(chest.quaternion).invert();
-    worldHead.setFromEuler(headAngles.set(lockedPitch,lockedYaw,bank*.17,'YXZ'));
+    // The neck cannot nod more than 68 degrees below the breast. Ask for no
+    // more than that here: past a right angle the conversion below flips, and
+    // in the last moment of a flare, with the breast reared up and the perch
+    // under the bill, the head jerked aside and tilted.
+    worldHead.setFromEuler(headAngles.set(Math.max(lockedPitch,pitch+chest.rotation.x-1.19),lockedYaw,bank*.17,'YXZ'));
     headAngles.setFromQuaternion(localHead.multiply(worldHead),'YXZ');
     const flightYaw=clamp(headAngles.y,-1.33,1.33),flightNod=clamp(headAngles.x,s.gazeLanding?-1.19:-.72,.62),flightRoll=clamp(headAngles.z,-.98,.98);
     // Perched, the head is aimed in the bird's level frame, not the frame of

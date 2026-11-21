@@ -42,7 +42,7 @@
   let glance=0, arrivalGlance=0, arrivalLookDown=0, glanceTime=0;
   let cameraYaw, cameraPath, cameraBank, cameraFov, loadPromise, launchPending=false;
   let last = performance.now(), started = false, paused = false, touchFlap = false, pointerBrake = false;
-  let audio, wind, wingRush, windLevel, volume, fieldAudio, previousFocus;
+  let audio, wind, wingRush, windLevel, volume, fieldAudio, previousFocus, windKneed=false;
   let soundOn=true;
   try { soundOn=localStorage.getItem("aerie:sound")!=="off"; } catch {}
   const clamp = (x,a,b) => Math.max(a,Math.min(b,x));
@@ -416,8 +416,7 @@
       source.buffer=buffer;source.loop=true;
       source.connect(wind).connect(windLevel).connect(volume);
       source.connect(featherBand).connect(wingRush).connect(volume);
-      // The shared soft knee is the last stage before the output (see aerieSoftKnee).
-      volume.connect(window.aerieSoftKnee?.(audio)?.input||audio.destination);source.start();
+      volume.connect(audio.destination);source.start();
     }
     audio.resume().catch(()=>{});
   }
@@ -427,7 +426,7 @@
     }catch(error){
       // A denied audio device can still leave a playable 3D flight.
       audio?.close?.().catch(()=>{});
-      audio=null;fieldAudio=null;
+      audio=null;fieldAudio=null;windKneed=false;
       console.warn("Flight audio could not start",error);
     }
     if(!audio){soundOn=false;audioIcon();}
@@ -436,6 +435,9 @@
     if(!audio)return;
     const audible=soundOn&&started&&!paused;
     if(audible && !fieldAudio)fieldAudio=window.makeFieldAudio?.(audio,world.region);
+    // The shared soft knee is the last stage before the output (see aerieSoftKnee). It is
+    // not loaded yet when the audio is first prepared, so the wind joins it here.
+    if(audible && !windKneed && window.aerieSoftKnee){volume.disconnect();volume.connect(window.aerieSoftKnee(audio).input);windKneed=true;}
     fieldAudio?.setEnabled(audible);
     volume.gain.setTargetAtTime(audible?.12*(window.aerieWindTrim??1):0,audio.currentTime,.14);
   }
