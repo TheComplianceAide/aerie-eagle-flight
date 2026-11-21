@@ -3,7 +3,7 @@
   const base = ['eagle-motion.js','eagle.js','terrain-bounce.js','terrain-shadows.js','flight-light.js','terrain-acoustics.js','field-audio.js','perch-flight.js','perch-habitat.js','plant-models.js','regional-habitat.js','regional-growth.js','regional-geology.js','regional-field-scenery.js','regional-forest.js','canopy-stream.js','understory.js','wildlife-models.js','fauna-shapes.js','land-models.js','land-wildlife.js','fish-schools.js','wildlife.js','game-vision.js','scenic-flights.js','range-relief.js','water-surface.js','wind-field.js','wind-water.js','wind-soarer.js','moving-weather.js','sky-optics.js','valley-mist.js','omnitone.min.js','spatial-audio.js','soundscapes.js'];
   const trees = ['fir-data.js','forest.js'];
   const scripts = {
-    alaska: ['lake-reflection-domain.js','terrain-indices.js','alaska-cove.js','alaska-sediment.js','nugget-surface.js','waterfall-system.js','alaska-survey.js','alaska-world.js','talus-data.js','habitat.js',...trees],
+    alaska: ['lake-reflection-domain.js','terrain-indices.js','alaska-cove.js','alaska-sediment.js','nugget-surface.js','waterfall-system.js','alaska-survey.js','alaska-ice-survey.js','alaska-world.js','talus-data.js','habitat.js',...trees],
     canyon: ['canyon-survey.js','canyon.js','habitat.js','talus-data.js','rocks.js'],
     swiss: ['swiss-frunden-data.js','swiss-frunden.js','waterfall-system.js','alpine-survey.js','alpine-headwall.js','world.js','talus-data.js','rocks.js','habitat.js',...trees]
   };
