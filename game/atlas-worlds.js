@@ -1424,11 +1424,13 @@ class Water extends Mesh {
       if(t.grid.index!==next)t.grid.setIndex(next);
     }
   }
+  const repairedLanding=region==='moosehead'?window.aerieRegionalLandforms.get('rockwood'):null;
   const brookMeshes=[];
-  function patch(left,top,width,depth,nx,nz,localBed=false){
+  function patch(left,top,width,depth,nx,nz,localBed=false,trimmedLanding=false){
     // Cut the existing terrain around the high-resolution inset. The same
     // survey supplies the drawn rock, physical surface and waterfall rails.
     for(const survey of measuredTerrain){
+      if(survey===repairedLanding)continue;
       const [xl,zt,xr,zb]=survey.rect,right=left+width,bottom=top+depth;
       const l=Math.max(left,xl),t=Math.max(top,zt),r=Math.min(right,xr),b=Math.min(bottom,zb);
       if(l<r&&t<b){
@@ -1457,6 +1459,27 @@ class Water extends Mesh {
       if(l<r&&t<b){
         for(const [ax,az,bx,bz] of [[left,top,right,t],[left,b,right,bottom],[left,t,l,b],[r,t,right,b]]){
           if(ax<bx&&az<bz)patch(ax,az,bx-ax,bz-az,Math.ceil(nx*(bx-ax)/width),Math.ceil(nz*(bz-az)/depth));
+        }
+        return;
+      }
+    }
+    // Lay the harbor cut over the existing lattice. Cutting at arbitrary shore
+    // coordinates would retessellate a full regional tile and move its distant
+    // bank heights. Only the one-cell collar uses a shortened interval.
+    if(repairedLanding&&!trimmedLanding){
+      const [x0,z0,x1,z1]=repairedLanding.rect,dx=width/nx,dz=depth/nz;
+      const l=Math.max(left,x0),r=Math.min(left+width,x1),t=Math.max(top,z0),b=Math.min(top+depth,z1);
+      if(l<r&&t<b){
+        const cols=[0,Math.max(0,Math.floor((l-left)/dx)),Math.min(nx,Math.ceil((r-left)/dx)),nx];
+        const rows=[0,Math.max(0,Math.floor((t-top)/dz)),Math.min(nz,Math.ceil((b-top)/dz)),nz];
+        for(let j=0;j<3;j++)for(let i=0;i<3;i++){
+          const n=cols[i+1]-cols[i],m=rows[j+1]-rows[j];
+          if(n<=0||m<=0||i===1&&j===1)continue;
+          patch(left+cols[i]*dx,top+rows[j]*dz,n*dx,m*dz,n,m,localBed,true);
+        }
+        const ax=left+cols[1]*dx,bx=left+cols[2]*dx,az=top+rows[1]*dz,bz=top+rows[2]*dz;
+        for(const [x,z,u,v] of [[ax,az,bx,t],[ax,b,bx,bz],[ax,t,l,b],[r,t,bx,b]]){
+          if(u-x>.0001&&v-z>.0001)patch(x,z,u-x,v-z,Math.ceil((u-x)/dx),Math.ceil((v-z)/dz),localBed,true);
         }
         return;
       }
@@ -1691,6 +1714,7 @@ class Water extends Mesh {
       bedSand:{value:shoreSand},foamCells:{value:saltFoam}
     });
     waterfront?.applyWater(water.material);
+    if(region==='moosehead')window.applyRockwoodRampWater(water.material);
     if(region==='lofoten'||acadia){
       // With a shoulder camera centimetres from the feathers, the sea and
       // low coastal rock can share a depth value several kilometres away.
@@ -1841,19 +1865,23 @@ class Water extends Mesh {
   const firFraction=newEngland?clamp(settings.mixedFirFraction??(region==='moosehead'?.56:.30),0,1):(conifer?1:0);
   const treeSpacing=newEngland?clamp((settings.treeSpacing??18)*.68,10,20):(settings.treeSpacing??(region==='milford'?16:region==='lofoten'?24:21));
   const crownBounds=survey.crownBounds??[focusX-1445,focusZ-1445,focusX+1445,focusZ+1445];
+  // A local wharf repair must not change the random draw order for the rest of
+  // Maine's infill forest. Test its pre-existing regional elevation, then move
+  // eligible local roots to the measured ground after their draw is complete.
+  const infillHeight=repairedLanding?(x,z)=>repairedLanding.edge(x,z)>0?regionalElevation(x,z,true):elevation(x,z):elevation;
   for(let z=-h;z<h && (region!=='yosemite'||!crownPoints);z+=treeSpacing)for(let x=-h;x<h;x+=treeSpacing){
-    const px=x+rand()*treeSpacing,pz=z+rand()*treeSpacing,y=elevation(px,pz);
+    const px=x+rand()*treeSpacing,pz=z+rand()*treeSpacing,y=infillHeight(px,pz);
     if(localDEM&&insideBrook(px,pz))continue;
     if(crownPoints&&px>crownBounds[0]&&pz>crownBounds[1]&&px<crownBounds[2]&&pz<crownBounds[3])continue;
     if(cityTrees&&Math.max(Math.abs(px-cityX),Math.abs(pz-cityZ))<600)continue;
     if(y>settings.top||wetGround(px,pz,y,newEngland?.8:4))continue;
     const biomass=growth(px,pz)*settings.cover;
     if(rand()>biomass)continue;
-    const slope=Math.hypot(elevation(px+8,pz)-y,elevation(px,pz+8)-y)/8;
+    const slope=Math.hypot(infillHeight(px+8,pz)-y,infillHeight(px,pz+8)-y)/8;
     if(slope>(region==='milford'?1.9:1.3))continue;
     const count=1+Math.floor(biomass*2.7*rand());
     for(let k=0;k<count;k++){
-      const tx=px+(k?(rand()-.5)*treeSpacing:0),tz=pz+(k?(rand()-.5)*treeSpacing:0),ty=k?elevation(tx,tz):y;
+      const tx=px+(k?(rand()-.5)*treeSpacing:0),tz=pz+(k?(rand()-.5)*treeSpacing:0),ty=k?infillHeight(tx,tz):y;
       if(wetGround(tx,tz,ty,.8))continue;
       const height=settings.treeH*(.48+.66*rand());
       // Species mix varies gently by stand. Fir crowns rise as narrow spires;
@@ -1861,6 +1889,9 @@ class Water extends Mesh {
       const isFir=newEngland?rand()<clamp(firFraction+.10*Math.sin(tx*.006+tz*.0017)*Math.cos(tz*.004),0,1):conifer;
       const width=height*(isFir?.30+.19*rand():newEngland?.77+.32*rand():.68+.44*rand());
       const tree={x:tx,y:ty,z:tz,height,width,seed:rand()};
+      if(repairedLanding?.edge(tx,tz)>0){
+        tree.y=elevation(tx,tz);if(wetGround(tx,tz,tree.y,.8))continue;
+      }
       plant(tree,isFir);
     }
   }

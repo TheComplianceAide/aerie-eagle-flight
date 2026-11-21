@@ -99,7 +99,7 @@ window.makeMooseheadBankGrowth=function(T,scene,{survey,ground,waterLevel,growth
     return {positions,normals,uv,branch,stem,index};
   });
   seed=placementSeed;
-  const rings=[survey.shore,...(survey.shoreHoles||[])];
+  const rings=[survey.rockwoodGrowthGuide||survey.shore,...(survey.shoreHoles||[])];
   for(const easternBay of [false,true])for(const [ringIndex,ring] of rings.entries()){
     if(!ring?.length)continue;
     let area=0,distance=0,next=3.7;
@@ -124,15 +124,20 @@ window.makeMooseheadBankGrowth=function(T,scene,{survey,ground,waterLevel,growth
         for(let k=0;k<density;k++){
           const along=(random()-.5)*7.6,inland=.7+Math.pow(random(),1.30)*17.4;
           const x=bx+nx*inland+dx/len*along,z=bz+nz*inland+dz/len*along,y=ground(x,z);
-          if(y<waterLevel+.08||y>waterLevel+16||Number.isFinite(roof?.(x,z)))continue;
-          if(Math.abs(ground(x+nx*2,z+nz*2)-y)>2.45)continue;
+          const slot=survey.rockwoodGrowthSlot?.(x,z);
+          const occupied=y<waterLevel+.08||y>waterLevel+16||Number.isFinite(roof?.(x,z));
+          if(slot==null){
+            if(occupied||Math.abs(ground(x+nx*2,z+nz*2)-y)>2.45)continue;
+          }else if(!slot)continue;
           const woods=growth(x,z);
           if(inland>6&&Math.max(woods,inlandCover)<.11&&random()>.22)continue;
           const u=random(),cell=inland<4.8?(u<.48?4+Math.floor(random()*4):u<.77?14:u<.92?15:Math.floor(random()*4)):
             (u<.38?Math.floor(random()*4):u<.65?8+Math.floor(random()*4):u<.82?12:13);
           const h=(cell===14?.47:cell===15?1.08:cell<4?1.8:cell<8?1.25:1.85)*(.70+1.5*random());
+          const a=random()*Math.PI*2,shade=.76+.28*random();
+          if(slot!=null&&(occupied||survey.rockwoodHarborAt?.(x,z)))continue;
           const key=id(x,z,250);if(!bins.has(key))bins.set(key,[]);
-          bins.get(key).push({x,y:y-.035,z,h,cell,a:random()*Math.PI*2,shade:.76+.28*random()});
+          bins.get(key).push({x,y:y-.035,z,h,cell,a,shade});
           if(h>1.4){
             const k=id(x,z,12);if(!cover.has(k))cover.set(k,[]);
             cover.get(k).push({x,y,z,h});

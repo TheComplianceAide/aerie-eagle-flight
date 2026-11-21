@@ -1,0 +1,20 @@
+Rockwood public boat landing and Mount Kineo shuttle, Moosehead Lake, Maine
+
+U.S. Geological Survey 3D Elevation Program, one-metre bare-earth terrain in UTM zone 19N. U.S. Department of Agriculture Farm Service Agency, 2018 National Agriculture Imagery Program summer aerial photography supplied by Maine GeoLibrary. The game uses their registered federal elevation and RGB imagery. The July 2018 near-infrared band supplies the natural lake margin. NOAA's public 2016 Western Maine lidar collection supplies observed treetop envelopes from the first and ground returns. Crown species and position within each crown are estimates.
+https://www.usgs.gov/3d-elevation-program
+https://gis.maine.gov/image/rest/services/NAIP/orthoNaip2018/ImageServer
+https://noaa-nos-coastal-lidar-pds.s3.amazonaws.com/entwine/geoid18/6264/ept.json
+
+Maine Department of Agriculture, Conservation and Forestry, public boat launch directory and Moosehead Lake Shoreline Guide. The Rockwood entry gives 30 feet of width, 57 feet of length, 14 percent slope, 47 trailer spaces, 18 car spaces and accessible floats. Maine GeoLibrary's 2022 regional ortho, tile 44100580_45, was used to survey quay corners, pavement and float positions. No pixels from the state-contracted 2022 photo are distributed. The artificial basin bed outside the documented concrete ramp is visually interpolated; the local bare-earth survey hydroflattens the water.
+https://www.maine.gov/dacf/parks/water_activities/boating/public_boat_launches/boat_sites.shtml
+https://www.maine.gov/dacf/parks/publications_maps/docs/moosehead-lake-shoreline-guide.pdf
+https://gis.maine.gov/image/rest/services/Regional/orthoRegional2022/ImageServer
+
+Mt. Kineo Golf Course's own photographs were used as visual references for the twin pontoons, white side panels, open passenger cabin and green canvas canopy. The hull, canopy, panel art, boarding float, timber cribwork, trailer frames, planted strip and pavement are independently modeled. The moored pose, parked vehicles and loading conditions are representative. No operator photographs are part of the game.
+https://www.mtkineogolf.com/
+
+Wood Planks, Amal Kumar, Poly Haven, CC0. The diffuse map is color-balanced for exposed dock timber.
+https://polyhaven.com/a/wood_planks
+Gravel Floor, Matterfield (photography) and Jenelle van Heerden (processing), Poly Haven, CC0. A neutral-color derivative supplies the north turnout.
+https://polyhaven.com/a/gravel_floor
+https://polyhaven.com/license

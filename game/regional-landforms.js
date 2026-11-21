@@ -3,6 +3,7 @@
 (() => {
   'use strict';
   const catalog={
+    rockwood:{name:'Rockwood public landing and Kineo pier',asset:'rockwood',lakeBank:true,source:'USGS 3DEP, USDA NAIP and Maine GeoLibrary 2022 waterfront survey'},
     lily:{name:'Lily Bay · measured bank',asset:'lily',lakeBank:true,source:'USGS 3DEP lidar and hydrography, USDA NAIP four-band bank survey'},
     spencer:{name:'Spencer Bay · measured bank',asset:'spencer',lakeBank:true,source:'USGS 3DEP lidar and hydrography, USDA NAIP four-band bank survey'},
     meredith:{name:'Meredith Bay · measured bank',asset:'meredith',lakeBank:true,source:'USGS 3DEP lidar and hydrography, USDA NAIP four-band bank survey'},
@@ -281,7 +282,18 @@
         material.fragmentShader=material.fragmentShader.replace('normal=normalize(mix(normal,ledgeNormal,.94*graniteShore));',
           'ledgeNormal=normalize(mix(ledgeNormal,normal,landformHorizon.w));normal=normalize(mix(normal,ledgeNormal,.94*graniteShore));');
       }
-      if(spec.lakeBank){
+      if(spec.asset==='rockwood'){
+        // Federal summer RGB supplies the foliage and aggregate color. The alpha
+        // encodes only the registered walking/parking surfaces. The same lighting
+        // expression is used by the town docks without consuming another sampler.
+        const sampler=hasDetail?'detailOrtho':'aerial';
+        material.fragmentShader=material.fragmentShader.replace('/* lake bank surface */',`
+          vec4 landingSample=texture2D(${sampler},${localUV});
+          float landingCover=(1.-landingSample.a)*landformHorizon.w;
+          vec3 landingLight=(ambient+direct)*(.95+.05*skyView);
+          c=mix(c,pow(landingSample.rgb,vec3(2.2))*landingLight,landingCover);
+          /* lake bank surface */`);
+      }else if(spec.lakeBank){
         const sampler=hasDetail?'detailOrtho':'aerial';
         material.fragmentShader=material.fragmentShader.replace('/* lake bank surface */',`
           // The mapped crown-top horizon is sampled toward this lake's sun.
