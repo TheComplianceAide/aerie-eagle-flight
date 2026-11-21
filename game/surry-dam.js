@@ -216,7 +216,8 @@
       for(let i=0;i<outline.length;i++){
         const [x,z]=outline[i],corner=.70+.24*random();
         lip.push(new THREE.Vector3(x,.08+.30*random(),z));
-        cap.push(new THREE.Vector3(x*corner+.06,.49+topSlope*x+.085*z,z*corner-.055));
+        const crownX=x*corner+.06,crownZ=z*corner-.055;
+        cap.push(new THREE.Vector3(crownX,.49+topSlope*crownX+.085*crownZ,crownZ));
       }
       function face(a,b,c,light){
         normal.copy(b).sub(a).cross(edge.copy(c).sub(a)).normalize();
@@ -275,13 +276,24 @@
       }
     }
     const capCells=new Map(),capCell=(x,z)=>Math.floor(x/8)*4096+Math.floor(z/8);
+    const blockCells=new Map(),landings=[];
     profiles.forEach((outline,i)=>{
       const blocks=new THREE.InstancedMesh(splitBlock(outline,i),blockMaterial,matrices[i].length);
       blocks.name='Surry graded quarry armor '+(i+1);
       const crown=blocks.geometry.userData.cap,center=new THREE.Vector3(),n=new THREE.Vector3();
       const points=crown.map(()=>new THREE.Vector3()),edge=new THREE.Vector3();
+      blocks.geometry.computeBoundingBox();
+      const probe=new THREE.Mesh(blocks.geometry,blockMaterial);
       matrices[i].forEach((matrix,j)=>{
-        blocks.setMatrixAt(j,matrix);blocks.setColorAt(j,tones[i][j]);center.set(0,0,0);
+        blocks.setMatrixAt(j,matrix);blocks.setColorAt(j,tones[i][j]);
+        const box=blocks.geometry.boundingBox.clone().applyMatrix4(matrix);
+        const rock={matrix,box,probe};
+        for(let u=Math.floor(box.min.x/8);u<=Math.floor(box.max.x/8);u++)for(let v=Math.floor(box.min.z/8);v<=Math.floor(box.max.z/8);v++){
+          const key=u*4096+v;
+          if(!blockCells.has(key))blockCells.set(key,[]);
+          blockCells.get(key).push(rock);
+        }
+        center.set(0,0,0);
         points.forEach((p,k)=>{p.copy(crown[k]).applyMatrix4(matrix);center.add(p);});center.divideScalar(points.length);
         n.copy(points[2]).sub(points[0]).cross(edge.copy(points[1]).sub(points[0])).normalize();
         if(n.y<.95)return;
@@ -291,12 +303,38 @@
           radius=Math.min(radius,Math.abs(ex*(center.z-a.z)-ez*(center.x-a.x))/Math.hypot(ex,ez));
         }
         if(radius<.30)return;
-        const key=capCell(center.x,center.z);
-        if(!capCells.has(key))capCells.set(key,[]);
-        capCells.get(key).push({x:center.x,y:center.y,z:center.z,radius,gx:-n.x/n.y,gz:-n.z/n.y});
+        landings.push({rock,cap:{x:center.x,y:center.y,z:center.z,radius,gx:-n.x/n.y,gz:-n.z/n.y}});
       });
       blocks.computeBoundingSphere();scene.add(blocks);
     });
+
+    // Neighboring pieces of riprap interlock. A candidate cap sometimes lies
+    // below an adjacent block: test the talon footprint on the final rendered
+    // geometry now, once, before exposing a site to steering or picking.
+    const down=new THREE.Raycaster();down.ray.direction.set(0,-1,0);
+    const hits=[];
+    function covered(rock,x,y,z){
+      for(const other of blockCells.get(capCell(x,z))||[]){
+        const b=other.box;
+        if(other===rock||y+.025>=b.max.y||x<b.min.x||x>b.max.x||z<b.min.z||z>b.max.z)continue;
+        down.ray.origin.set(x,b.max.y+.10,z);down.far=down.ray.origin.y-y-.025;hits.length=0;
+        other.probe.matrixWorld.copy(other.matrix);other.probe.raycast(down,hits);
+        if(hits.length)return true;
+      }
+      return false;
+    }
+    for(const {rock,cap} of landings){
+      const footprint=Math.min(.325,cap.radius*.93);
+      const obstructed=[[0,0],[1,0],[-1,0],[0,1],[0,-1],[.68,.68],[-.68,-.68]].some(([u,v])=>{
+        const dx=u*footprint,dz=v*footprint;
+        return covered(rock,cap.x+dx,cap.y+cap.gx*dx+cap.gz*dz,cap.z+dz);
+      });
+      if(obstructed)continue;
+      const key=capCell(cap.x,cap.z);
+      if(!capCells.has(key))capCells.set(key,[]);
+      capCells.get(key).push(cap);
+    }
+    blockCells.clear();landings.length=0;
 
     function armoredStation(s,t){
       const width=Math.min(1,s/93,(length-s)/94)*(t<0?62:74);

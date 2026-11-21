@@ -16,6 +16,7 @@ window.makeKeeneCity = function makeKeeneCity(T, scene, {height}) {
     asphalt: {file:'keene-asphalt.webp', roughness:.98},
     smooth: {roughness:.76},
     glass: {roughness:.24},
+    churchBoards: {roughness:.82},
     marquee: {roughness:.5}
   };
   const detail=window.makeBuildingFittings(T,scene);
@@ -170,41 +171,152 @@ window.makeKeeneCity = function makeKeeneCity(T, scene, {height}) {
       face(kind,tint,[[...a[i]],a[j],b[j],b[i]].map(([x,z],k)=>[x,k<2?y1:y2,z]));
     }
   }
-  function church(ring, x, z, base, peak) {
-    // The temple front faces Central Square. The main spire is 152 feet high.
-    const cx=1892.7, cz=4334.5, axis=.18;
+  // Surveyed front axis and the south elevation of the United Church of Christ.
+  // The 1859–1860 work created an attached Corinthian facade, paired columns,
+  // the arched lights and the tower that closes the long view up Main Street.
+  function church(base) {
+    const cx=1892.7,cz=4334.5,axis=.193,co=Math.cos(axis),si=Math.sin(axis);
+    const at=(u,h,d)=>[cx+u*co+d*si,base+h,cz-u*si+d*co];
+    const point=(u,d)=>{const p=at(u,0,d);return [p[0],p[2]];};
+    const facade=color(0xe9e9de),trim=color(0xf3f0e7),joint=color(0xb6b8b0),shadow=color(0x757c7a);
+    const glass=color(0x34494c),sill=color(0xc9c9bc),onyx=color(0x272d2d);
     const nave=[[1877.2,4307.2],[1895.7,4303.5],[1902.4,4335.0],[1884.1,4338.7]];
-    roofGable(nave,base+8.61,base+12.25,color(0x888888));
-    clearRoof(nave,base+12.25);
-    const sq=(r)=>rectangle(cx,cz,Math.cos(axis),-Math.sin(axis),r,r);
-    const oct=r=>circle(cx,cz,r,8), surface=y=>base+y;
-    for(const [lo,hi,a,b,cloud,n] of [[6.4,16.3,3.54,3.54,white,sq],[16.3,17.05,3.75,3.62,white,sq],
-      [17.05,22.2,3.15,3.15,white,sq],[22.2,23.1,3.25,2.72,white,sq],
-      [23.1,28.6,2.66,2.37,white,oct],[28.6,30.3,2.5,1.7,white,oct],
-      [30.3,45.5,1.74,.15,color(0x8b9690),oct],[45.5,46.33,.15,.03,trim,oct]])
-      frustum('smooth',cloud,n(a),n(b),surface(lo),surface(hi));
-    const clockX=cx+.58, clockZ=cz+3.22;
-    const disk=(r, h, out, tint)=> {
-      const ring=Array.from({length:16},(_,i)=>[clockX+r*Math.sin(i*Math.PI/8),surface(h)+r*Math.cos(i*Math.PI/8),clockZ+out]);
-      for(let i=0;i<ring.length;i++)face('smooth',tint,[ring[i],ring[(i+1)%ring.length],[clockX,surface(h),clockZ+out]]);
-    };
-    disk(1.1,19.45,.04,black); disk(.88,19.45,.06,white);
-    face('smooth',black,[[clockX,surface(19.45),clockZ+.1],[clockX+.06,surface(19.45),clockZ+.1],[clockX+.36,surface(20.02),clockZ+.1]]);
-    face('smooth',black,[[clockX,surface(19.45),clockZ+.1],[clockX,surface(19.52),clockZ+.1],[clockX-.58,surface(19.49),clockZ+.1]]);
-    const porchZ=4338.5, porchX=1893.3;
-    const pediment=rectangle(porchX,porchZ,1,0,5.9,2.4);
-    horizontal('smooth',white,pediment,base+7.8);
-    face('smooth',white,[[porchX-5.9,base+7.8,porchZ+2.4],[porchX+5.9,base+7.8,porchZ+2.4],[porchX,base+10.65,porchZ+2.4]]);
-    for(const offset of [-4.9,-1.64,1.64,4.9]){
-      const pillar=circle(porchX+offset,porchZ+1.85,.42,8);
-      frustum('smooth',white,pillar,pillar,base+.4,base+7.8);
+    roofGable(nave,base+10.34,base+14.2,color(0x929496));clearRoof(nave,base+14.2);
+    const sq=r=>rectangle(cx,cz,co,-si,r,r),oct=r=>circle(cx,cz,r,8);
+    function box(u,d,l,w,lo,hi,tone){
+      const [x,z]=point(u,d),corners=rectangle(x,z,co,-si,l*.5,w*.5);
+      frustum('smooth',tone,corners,corners,base+lo,base+hi);horizontal('smooth',tone,corners,base+hi);
     }
-    for(let i=0;i<3;i++){
-      const stairs=rectangle(porchX,porchZ,1,0,6.1,2.76-i*.35);
-      horizontal('masonry',white,stairs,base+.08+i*.14);
+    function panel(plane,left,right,lo,hi,dep,tone,mat='smooth'){
+      face(mat,tone,[plane(left,lo,dep),plane(right,lo,dep),plane(right,hi,dep),plane(left,hi,dep)]);
     }
-    clearRoof(sq(3.7),surface(46.33));
-    clearRoof(pediment,peak);
+    function slat(plane,x1,y1,x2,y2,width,dep,tone){
+      const l=Math.hypot(x2-x1,y2-y1),dx=(y2-y1)*width/(2*l),dy=(x1-x2)*width/(2*l);
+      face('smooth',tone,[plane(x1-dx,y1-dy,dep),plane(x2-dx,y2-dy,dep),plane(x2+dx,y2+dy,dep),plane(x1+dx,y1+dy,dep)]);
+    }
+    function arch(plane,mid,lo,spring,r,dep,fill,frame,thick=.095){
+      const fillKind=fill===glass?'glass':'smooth';
+      panel(plane,mid-r,mid+r,lo,spring,dep,fill,fillKind);
+      panel(plane,mid-r-thick,mid-r,lo,spring,dep+.018,frame);
+      panel(plane,mid+r,mid+r+thick,lo,spring,dep+.018,frame);
+      for(let i=0;i<16;i++){
+        const a=Math.PI*i/16,b=Math.PI*(i+1)/16,P=(rad,angle,off)=>plane(mid+rad*Math.cos(angle),spring+rad*Math.sin(angle),dep+off);
+        face(fillKind,fill,[plane(mid,spring,dep),P(r,a,0),P(r,b,0)]);
+        face('smooth',frame,[P(r,a,.018),P(r+thick,a,.018),P(r+thick,b,.018),P(r,b,.018)]);
+      }
+    }
+    // The tower's footprint reduces with each stage, also for flight clearance.
+    const tower=[
+      [9.8,16.35,3.55,3.55,facade,sq],[16.35,16.62,3.58,3.73,joint,sq],
+      [16.62,16.98,3.75,3.82,trim,sq],[16.98,22.17,3.17,3.17,facade,sq],
+      [22.17,22.48,3.24,3.36,sill,sq],[22.48,22.65,3.38,3.38,trim,sq],
+      [22.65,27.91,2.62,2.58,facade,sq],[27.91,28.31,2.62,2.77,trim,sq],
+      [28.31,30.39,2.40,1.75,facade,oct],[30.39,44.94,1.76,.147,color(0xa0a8a4),oct],
+      [44.94,46.37,.18,.024,color(0xb0a98d),oct]];
+    for(const [lo,hi,a,b,tone,shape] of tower){
+      const first=shape(a),last=shape(b);frustum(tone===facade?'churchBoards':'smooth',tone,first,last,base+lo,base+hi);
+      if(Math.abs(b-a)>.035)horizontal('smooth',tone,last,base+hi);
+      clearRoof(first,base+hi);
+    }
+    for(let side=0;side<4;side++){
+      const a=side*Math.PI*.5,ca=Math.cos(a),sa=Math.sin(a);
+      const plane=(u,h,d)=>at(u*ca+d*sa,h,d*ca-u*sa);
+      const disk=(r,mid,out,tone)=>{
+        for(let k=0;k<32;k++){const a0=k*2*Math.PI/32,a1=(k+1)*2*Math.PI/32;
+          face('smooth',tone,[plane(0,mid,out),plane(r*Math.cos(a0),mid+r*Math.sin(a0),out),plane(r*Math.cos(a1),mid+r*Math.sin(a1),out)]);}
+      };
+      disk(1.22,19.64,3.195,joint);disk(1.13,19.64,3.216,trim);disk(1.025,19.64,3.229,color(0xd9dbce));
+      for(let i=0;i<60;i++){const theta=i*Math.PI/30,major=i%5===0,r=major?.79:.90;
+        slat(plane,r*Math.sin(theta),19.64+r*Math.cos(theta),.965*Math.sin(theta),19.64+.965*Math.cos(theta),major?.062:.026,3.24,onyx);}
+      slat(plane,0,19.64,-.52,19.95,.088,3.252,onyx);slat(plane,0,19.64,.05,20.43,.064,3.257,onyx);
+      disk(.096,19.64,3.264,onyx);
+      arch(plane,0,23.16,25.26,1.10,2.64,shadow,trim,.15);
+      for(let k=0;k<10;k++){
+        const lo=23.23+k*.28,high=lo+.102,rr=high<=25.26?1.06:Math.sqrt(Math.max(0,1.06**2-(high-25.26)**2));
+        if(rr>.04)panel(plane,-rr,rr,lo,high,2.683,sill);
+      }
+      for(const u of [-2.30,2.30]){panel(plane,u-.11,u+.11,23.12,27.79,2.64,trim);panel(plane,u-.20,u+.20,27.58,27.76,2.67,sill);}
+      panel(plane,-2.99,2.99,23.09,23.23,3.01,trim);
+      for(let k=-8;k<=8;k++)panel(plane,k*.32-.033,k*.32+.033,22.65,23.14,3.01,trim);
+      // Recessed joints and dentils on the clock stage.
+      for(let j=0;j<4;j++)for(const u of [-2.78,2.78])panel(plane,u-.27,u+.27,17.46+j*.88,17.49+j*.88,3.189,joint);
+    }
+    const front=at;const middle=3.74,outer=2.40;
+    // The front is painted horizontal weatherboard; the shallow attached
+    // portico shades the backing around its column pairs and under the eaves.
+    function cladding(left,right,lo,hi,dep){
+      const ux=[left,left+.36,(left+right)*.5,right-.36,right],dy=[lo,lo+.33,hi-.74,hi-.19,hi];
+      const shade=(u,h)=>{
+        const post=Math.min(...[-8.93,-4.72,-3.45,3.45,4.72,8.93].map(p=>Math.abs(u-p)));
+        return facade.clone().multiplyScalar(.965-.095*Math.exp(-post/.61)-.155*Math.exp(-(hi-h)/.35));
+      };
+      for(let i=1;i<ux.length;i++)for(let j=1;j<dy.length;j++){
+        const corners=[[ux[i-1],dy[j-1]],[ux[i],dy[j-1]],[ux[i],dy[j]],[ux[i-1],dy[j]]];
+        face('churchBoards',corners.map(p=>shade(...p)),corners.map(([u,h])=>front(u,h,dep)));
+      }
+    }
+    cladding(-5.15,5.15,.18,10.95,middle);
+    for(const side of [-1,1])cladding(side>0?5.16:-9.44,side>0?9.44:-5.16,.15,10.35,outer);
+    // The central pediment has a deep horizontal return at each column pair.
+    const pediment=(width,lo,hi,dep,tone)=>face(tone===facade?'churchBoards':'smooth',tone,[at(-width,lo,dep),at(width,lo,dep),at(0,hi,dep)]);
+    pediment(9.66,10.04,14.08,outer+.09,facade);
+    pediment(5.71,10.26,13.94,middle+.065,trim);pediment(5.27,10.35,13.62,middle+.085,facade);
+    for(const side of [-1,1]){
+      slat(front,0,13.96,side*5.74,10.26,.25,middle+.19,trim);
+      slat(front,0,13.65,side*5.39,10.21,.066,middle+.191,sill);
+      slat(front,0,14.13,side*9.78,10.10,.19,outer+.19,trim);
+      for(let i=1;i<25;i++){const u=side*i*.215,h=13.62-Math.abs(u)*.646;panel(front,u-.042,u+.042,h-.107,h,middle+.134,joint);}
+      for(const [u,l,dep] of [[side*4.35,2.35,middle+.18],[side*7.39,4.25,outer+.17]]){
+        box(u,dep,l,.45,9.94,10.13,sill);box(u,dep,l+.15,.52,10.13,10.34,trim);
+      }
+    }
+    // Paired fluted columns sit on substantial rusticated bases.
+    function column(u,d,r){
+      const [x,z]=point(u,d),local=(radius)=>Array.from({length:40},(_,i)=>{
+        const a=i*Math.PI/20,r=radius*(i%2?.97:1.0);return [x+Math.cos(a)*r,z+Math.sin(a)*r];});
+      for(const [lo,hi,bot,top,tone] of [[2.39,2.53,r*1.24,r*1.24,sill],[2.53,2.63,r*1.22,r,trim],
+        [2.63,9.05,r,r*.85,facade],[9.05,9.18,r,r*1.16,joint],[9.18,9.57,r,r*1.31,trim]]){
+        frustum('smooth',tone,local(bot),local(top),base+lo,base+hi);
+      }
+      for(let k=0;k<8;k++){
+        const v=k*Math.PI/4,delta=.12;const xy=(r,h,theta)=>[x+Math.cos(theta)*r,base+h,z+Math.sin(theta)*r];
+        face('smooth',sill,[xy(r*.98,9.14,v-delta),xy(r*1.28,9.53,v),xy(r*.98,9.14,v+delta)]);
+      }
+      box(u,d,r*2.82,r*2.82,9.53,9.77,trim);
+    }
+    for(const side of [-1,1])for(const [u,r,d] of [[3.45,.39,middle+.34],[4.72,.38,middle+.27],[8.93,.35,outer+.26]]){
+      const pos=side*u;box(pos,d,1.28,.84,.15,2.40,facade);
+      for(let h=.46;h<2.39;h+=.405){panel(front,pos-.61,pos+.61,h,h+.025,d+.427,joint);}
+      box(pos,d,1.43,.94,2.30,2.46,trim);column(pos,d,r);
+    }
+    // Central paired lancets and oculus under the round hood, with two tall
+    // aisle windows and the smaller paired openings on the lower vestibule.
+    arch(front,0,5.11,8.04,1.09,middle+.08,joint,trim,.14);
+    for(const u of [-.49,.49]){
+      arch(front,u,5.16,8.00,.432,middle+.11,glass,trim,.043);
+      for(let j=0;j<4;j++)panel(front,u-.423,u+.423,5.63+j*.61,5.66+j*.61,middle+.19,sill);
+      panel(front,u-.019,u+.019,5.16,8.29,middle+.19,sill);
+    }
+    arch(front,0,8.59,8.66,.23,middle+.125,onyx,trim,.045);
+    for(const side of [-1,1]){
+      const mid=side*6.63;arch(front,mid,5.22,8.05,.73,outer+.064,glass,trim,.14);
+      for(let h=5.62;h<8.45;h+=.61)panel(front,mid-.69,mid+.69,h,h+.045,outer+.17,trim);
+      panel(front,mid-.022,mid+.022,5.23,8.66,outer+.17,trim);
+      for(const u of [-.26,.26])arch(front,mid+u,3.35,4.04,.18,outer+.08,glass,trim,.063);
+      arch(front,mid,.11,1.88,.61,outer+.06,facade,sill,.085);
+      for(const u of [-.20,.20])arch(front,mid+u,.64,1.65,.115,outer+.11,glass,trim,.023);
+    }
+    arch(front,0,.15,2.02,1.34,middle+.14,glass,trim,.17);
+    for(let j=0;j<9;j++){const a=(j+1)*Math.PI/10;slat(front,0,2.02,1.31*Math.cos(a),2.02+1.31*Math.sin(a),.043,middle+.217,trim);}
+    panel(front,-1.33,1.33,1.96,2.07,middle+.21,trim);
+    for(const u of [-.69,0,.69])panel(front,u-.035,u+.035,.15,2.02,middle+.213,trim);
+    for(const side of [-1,1]){
+      const u=side*3.99;
+      panel(front,u-.43,u+.43,.79,1.80,middle+.79,sill);
+      panel(front,u-.36,u+.36,.88,1.73,middle+.802,color(0x594d38));
+      for(let j=0;j<4;j++){const r=.20-.050*(j%2);panel(front,u-r,u+r,1.03+j*.134,1.043+j*.134,middle+.81,color(0xc2b58e));}
+    }
+    for(let j=0;j<3;j++)box(0,4.07+j*.35,3.65,.53,0,.30-.09*j,sill);
   }
   function inside(ring,x,z){
     let hit=false;
@@ -220,7 +332,7 @@ window.makeKeeneCity = function makeKeeneCity(T, scene, {height}) {
     const lot=ring.reduce((sum,p,i)=>sum+p[0]*ring[(i+1)%ring.length][1]-p[1]*ring[(i+1)%ring.length][0],0)*.5;
     const feel=Math.abs(Math.sin(x*19.3+z*53.1)*4798)%1;
     const base=height(x,z), bottom=Math.min(base,...ring.map(([a,b])=>height(a,b)))-.65;
-    const top=base+(kind==='church'?8.6:measured||(kind==='house'?3.7+feel*2.4:5.9+Math.min(4.8,Math.sqrt(Math.abs(lot))*.035)));
+    const top=base+(kind==='church'?(measured||10.34):measured||(kind==='house'?3.7+feel*2.4:5.9+Math.min(4.8,Math.sqrt(Math.abs(lot))*.035)));
     const facade=kind==='brick'||kind==='theatre';
     const tint=kind==='church'?white:color((facade?brickColors:buildingColors)[Math.floor(feel*(facade?brickColors:buildingColors).length)]);
     const central=Math.hypot(x-1933,z-4530)<560;
@@ -277,7 +389,7 @@ window.makeKeeneCity = function makeKeeneCity(T, scene, {height}) {
           horizontal('masonry',trim,[a,b,d,c],top+.58,2);
         }
         peak=top+.58;
-      }else if(kind==='church')church(ring,x,z,base,top+4.8);
+      }else if(kind==='church')church(base);
       if(central&&kind!=='church'&&Math.abs(lot)>620){
         const count=feel<.5?2:3;
         for(let i=0;i<count;i++){
@@ -358,14 +470,73 @@ window.makeKeeneCity = function makeKeeneCity(T, scene, {height}) {
     horizontal('glass',color(0x778780),bowl,base+1.47);
   }
   {
+    // The city history gives a 13-foot Roxbury-granite pedestal and an
+    // eight-foot bronze figure. Present the historical sculpture facing Main.
     const x=1897.6,z=4399.5,base=height(x,z)+.689;
-    const platform=(r)=>rectangle(x,z,1,0,r,r);
-    for (const [lo,hi,a,b] of [[0,.25,2.43,2.32],[.25,.51,2.0,1.93],[.51,.82,1.54,1.43],[.82,3.36,1.04,.74],[3.36,3.64,.87,.84],[3.64,4.22,.57,.55]])
-      frustum('masonry',white,platform(a),platform(b),base+lo,base+hi);
-    const head=circle(x,z,.24,8), body=circle(x,z,.37,8);
-    frustum('smooth',trim,body,body,base+4.17,base+5.48);
-    frustum('smooth',trim,head,head,base+5.42,base+5.91);
-    clearRoof(platform(2.5),base+5.91);
+    const granite=color(0xb8b5aa),edge=color(0xc5c1b4),bronze=color(0x505a4e),rubbed=color(0x737664),oxide=color(0x424c42);
+    function pedestal(radius){return rectangle(x,z,1,0,radius,radius);}
+    for(const [lo,hi,r1,r2,tone] of [[0,.20,1.53,1.53,granite],[.20,.31,1.53,1.37,edge],[.31,.64,1.27,1.27,granite],
+      [.64,.80,1.27,1.11,edge],[.80,.94,1.11,1.07,granite],[.94,1.14,1.07,.91,edge],[1.14,3.40,.91,.89,granite],
+      [3.40,3.53,.89,1.0,edge],[3.53,3.64,1.0,1.10,granite],[3.64,3.76,1.10,1.10,edge],[3.76,3.96,1.00,.80,granite]]){
+      const a=pedestal(r1),b=pedestal(r2);
+      for(let i=0;i<4;i++){
+        const j=(i+1)%4,lower=k=>[a[k][0],base+lo,a[k][1]],upper=k=>[b[k][0],base+hi,b[k][1]];
+        face('masonry',tone,[lower(i),lower(j),upper(j),upper(i)],[[0,lo],[2*r1,lo],[2*r2,hi],[0,hi]]);
+      }
+      if(r1!==r2||hi===3.96)horizontal('masonry',tone,b,base+hi,1.0);
+    }
+    // Recessed commemorative tablets on the faces of the granite die.
+    for(let k=0;k<4;k++){
+      const cs=Math.cos(k*Math.PI*.5),sn=Math.sin(k*Math.PI*.5);
+      const p=(u,h,out)=>[x+u*cs+sn*out,base+h,z+out*cs-u*sn];
+      const plaque=(w,lo,hi,out,tone)=>face('smooth',tone,[p(-w,lo,out),p(w,lo,out),p(w,hi,out),p(-w,hi,out)]);
+      plaque(.661,1.31,3.24,.919,edge);plaque(.616,1.37,3.18,.926,oxide);
+      for(let j=0;j<23;j++){const y=3.04-j*.061;for(const side of [-1,1]){
+        const center=side*.277,w=.19-.07*(.5+.5*Math.sin(j*9+k+side));face('smooth',rubbed,
+          [p(center-w,y,.931),p(center+w,y,.931),p(center+w,y+.009,.931),p(center-w,y+.009,.931)]);}}
+    }
+    const at=(u,h,d)=>[x+u,base+3.96+h,z+d];
+    const ring=(u,h,d,rx,rz,n=14)=>Array.from({length:n},(_,i)=>{const a=2*Math.PI*i/n;return at(u+rx*Math.cos(a),h,d+rz*Math.sin(a));});
+    function cast(rows,tone,n=14){
+      const parts=rows.map(p=>ring(...p,n));
+      for(let j=1;j<parts.length;j++){const a=parts[j-1],b=parts[j];for(let i=0;i<n;i++){const k=(i+1)%n;
+        face('smooth',tone,[a[i],a[k],b[k],b[i]]);}}
+      for(let i=1;i<n-1;i++)face('smooth',tone,[parts.at(-1)[0],parts.at(-1)[i],parts.at(-1)[i+1]]);
+    }
+    // Boots are separated by the relaxed stance. The greatcoat falls to the
+    // knees and flares around the shallow folds seen in the library photograph.
+    cast([[0,0,0,.70,.43],[0,.084,0,.67,.40]],oxide,8);
+    for(const side of [-1,1]){const xx=side*.232,d=side<0?.09:-.045;
+      cast([[xx,.084,d+.10,.13,.229],[xx,.17,d+.07,.14,.208],[xx,.235,d,.095,.102],
+        [xx,.57,d-.05,.10,.106],[xx*.83,.88,d-.05,.145,.14],[xx*.65,1.04,0,.15,.15]],bronze);
+    }
+    cast([[0,.724,.005,.38,.225],[.005,.80,-.006,.36,.209],[.013,1.18,0,.29,.188],
+      [0,1.39,-.018,.279,.205],[0,1.65,-.015,.36,.215],[0,1.85,0,.329,.174],
+      [0,1.94,.021,.159,.123]],bronze,20);
+    cast([[0,1.35,0,.285,.209],[0,1.399,0,.289,.210]],oxide,20);
+    const dot=(u,h,d,rx,rz,ht,tone)=>cast([[u,h,d,rx*.6,rz*.65],[u,h+ht*.52,d,rx,rz],[u,h+ht,d,rx*.55,rz*.6]],tone,8);
+    for(let i=0;i<6;i++)dot(.043,1.02+i*.147,.196,.023,.016,.030,rubbed);
+    for(const sg of [-1,1]){
+      const flaps=[at(sg*.12,1.3,.18),at(sg*.22,1.26,.16),at(sg*.28,1.31,.11),at(sg*.18,1.34,.16)];face('smooth',oxide,flaps);
+      face('smooth',rubbed,[at(sg*.097,1.90,.113),at(sg*.28,1.8,.106),at(sg*.081,1.65,.194)]);
+      face('smooth',oxide,[at(sg*.08,.739,.22),at(sg*.14,.75,.219),at(sg*.09,1.2,.187)]);
+    }
+    // Right arm bent to the chest; the left arm hangs beside the coat.
+    cast([[-.297,1.43,.105,.091,.103],[-.391,1.53,.04,.118,.105],[-.383,1.70,-.018,.13,.133],[-.294,1.81,-.006,.143,.14]],bronze);
+    cast([[-.332,1.43,.122,.10,.1],[-.229,1.57,.20,.10,.09],[-.153,1.68,.205,.084,.083]],bronze);
+    cast([[.323,1.17,.13,.074,.079],[.342,1.28,.105,.088,.09],[.386,1.55,.025,.119,.130],[.319,1.78,-.006,.141,.14]],bronze);
+    dot(-.12,1.63,.228,.101,.078,.121,rubbed);dot(.321,1.11,.142,.084,.078,.16,rubbed);
+    cast([[.02,1.90,.038,.10,.10],[.021,2.028,.045,.112,.117],[.022,2.06,.052,.137,.143],
+      [.015,2.19,.040,.154,.158],[.017,2.27,.034,.142,.138]],bronze);
+    dot(.017,2.075,.180,.036,.045,.105,rubbed);
+    for(const sg of [-1,1])dot(.018+sg*.144,2.105,.043,.03,.035,.089,bronze);
+    cast([[.012,2.24,.056,.172,.166],[.012,2.273,.092,.181,.208],[.014,2.296,.033,.165,.153]],oxide);
+    cast([[.014,2.280,.030,.16,.153],[-.005,2.373,.029,.163,.146],[-.032,2.437,-.004,.133,.109]],bronze);
+    // The bronze service arm is part of the original stationary sculpture.
+    cast([[.387,.09,.18,.049,.068],[.361,.34,.174,.048,.059],[.203,1.00,.192,.027,.036],
+      [-.091,1.698,.223,.026,.027]],oxide,8);
+    clearRoof(pedestal(1.54),base+3.76);clearRoof(pedestal(.7),base+6.397);
+
   }
 
   const materials={};
@@ -392,6 +563,17 @@ window.makeKeeneCity = function makeKeeneCity(T, scene, {height}) {
   }
   for(const [name,mat] of Object.entries(materials)){
     if(name==='siding'||name==='paintedSiding')scene.userData.buildingLight.finish(mat,'boards',2.3);
+    if(name==='churchBoards'){
+      scene.userData.buildingLight.finish(mat,'boards',2.15);
+      // White maintenance paint softens the high contrast of the raw boards.
+      mat.normalScale.multiplyScalar(.31);
+      const metric=mat.onBeforeCompile;
+      mat.onBeforeCompile=function(shader,renderer){metric.call(this,shader,renderer);
+        shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>',
+          'diffuseColor.rgb *= mix(vec3(.98),texture2D(map,vMapUv).rgb,.24);');
+      };
+      mat.customProgramCacheKey=()=>'keene-painted-clapboard-1';
+    }
     if(name==='shingle')scene.userData.buildingLight.finish(mat,'slate',3);
     if(name==='shopDisplay'||name==='cafeDisplay')scene.userData.buildingLight.glaze(mat,1.05,name==='shopDisplay'?'shop':'cafe');
     else if(layout[name].glazing||['glass','upperSash'].includes(name))scene.userData.buildingLight.glaze(mat,.80);
