@@ -5,6 +5,7 @@ exported over game coordinates (-65,-125)..(140,65). See the Acadia credits.
 The binary uses quarter-metre mesh coordinates and a half-metre height grid.
 """
 import argparse
+import json
 import struct
 from pathlib import Path
 
@@ -37,7 +38,26 @@ def read_ground(path):
     return np.concatenate(selected)
 
 
-def terrain(points):
+def fit_walks(grid, east, south, game):
+    # The laser surface includes the top of the existing walkway. Remove only
+    # its bed, leaving room for the deck triangles and their measured risers.
+    source = (game/'acadia-ocean-path.js').read_text().split('window.thunderHoleWalks=', 1)[1]
+    routes = json.JSONDecoder().raw_decode(source)[0]
+    def remove_bed(distance, deck, width):
+        weight = np.clip((width + .36 - distance) / .34, 0, 1)
+        grid[:] -= weight * weight * (3 - 2 * weight) * np.maximum(grid - (deck - .22), 0)
+    for route in routes:
+        for (ax,az,ay),(bx,bz,by) in zip(route['points'], route['points'][1:]):
+            dx,dz = bx-ax,bz-az
+            t = np.clip(((east-ax)*dx + (south-az)*dz) / (dx*dx+dz*dz), 0, 1)
+            radius = np.hypot(east-ax-t*dx, south-az-t*dz)
+            remove_bed(radius, ay + (by-ay)*t, route['width']/2)
+    distance = np.maximum(35.38-east, np.hypot(east-35.5,south+60.3)-3.71)
+    remove_bed(distance, 12.10, 0)
+    return grid
+
+
+def terrain(points, game):
     left, top, right, bottom = BOUNDS
     x = np.arange(left, right+.125, .25)
     z = np.arange(top, bottom+.125, .25)
@@ -61,7 +81,7 @@ def terrain(points):
     wall = np.clip((radius-np.abs(east-center))/.38, 0, 1)*end
     wall *= wall*(3-2*wall)
     bed = -.92+.13*np.sin(south*.82)+.07*np.sin(east*1.35+south*.57)
-    return grid - wall*np.maximum(0, grid-bed)
+    return fit_walks(grid - wall*np.maximum(0, grid-bed), east, south, game)
 
 
 def pack(grid, image, target):
@@ -118,7 +138,8 @@ def main():
     bounds = ((x0-l)/(r-l)*full.width,(z0-t)/(b-t)*full.height,(x1-l)/(r-l)*full.width,(z1-t)/(b-t)*full.height)
     photo = full.crop(tuple(round(v) for v in bounds))
     photo.save(args.output/'landform-acadia-aerial.webp',quality=94,method=6)
-    pack(terrain(read_ground(args.laser)),photo,args.output/'landform-acadia.bin')
+    game = Path(__file__).resolve().parents[3] / 'game'
+    pack(terrain(read_ground(args.laser), game),photo,args.output/'landform-acadia.bin')
 
 
 if __name__=='__main__':

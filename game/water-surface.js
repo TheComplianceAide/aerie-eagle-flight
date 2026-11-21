@@ -87,14 +87,25 @@
       if(atlas&&region==='acadia'){
         // Ocean Path's survey alpha supplies the measured tide depth. The 3D
         // breaker skin handles whitewater where the NOAA soundings cover it.
+        shader=window.addAcadiaCoast.inletField+'\n'+shader;
         shader=shader.replace('vec3 shore=texture2D(shoreField,basin).rgb;', `
           vec4 shore=texture2D(shoreField,basin);
+          float gorge=inletShelter(p);
           float soundings=step(127.75,shore.a*255.)*interior;
           float tidalDepth=clamp((shore.a*255.-128.)/126.,0.,1.);`)
           .replace('float shallow=exp(-.47*waterDepth);', `
             waterDepth=mix(waterDepth,max(.065,24.*tidalDepth*tidalDepth),soundings);
+            // The NOAA offshore cell is wider than the fissure. Use a bounded
+            // low-tide channel depth where both walls enclose the water.
+            waterDepth=mix(waterDepth,max(waterDepth,1.15),gorge);
             float shallow=exp(-.47*waterDepth);`)
-          .replace('float white=oceanSurf*','float white=oceanSurf*(1.-.92*soundings)*')
+          .replace('vec3 h=normalize(v+sunDirection);',`
+            // Skylight reaches the rock floor over a narrow opening. Preserve
+            // wave reflection while attenuating the transmitted sand lighting.
+            vec3 wetGranite=dot(body,vec3(.21,.72,.07))*vec3(.19,.31,.39)+vec3(.002,.006,.009);
+            body=mix(body,wetGranite,gorge);
+            vec3 h=normalize(v+sunDirection);`)
+          .replace('float white=oceanSurf*','float white=oceanSurf*(1.-gorge)*(1.-.92*soundings)*')
           .replace('incident*shoaling','incident*mix(1.,.16,soundings)*shoaling');
       }
       if(atlas&&region==='lofoten'){

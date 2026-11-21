@@ -2,6 +2,7 @@
 // orthophoto. Landing elevations follow the 2022 NOAA point cloud (NAVD88).
 // The exposed granite shelf is mapped in the 2025 low-water orthophoto.
 // Clumps behind the accessible ramp remain vegetated.
+window.thunderHoleWalks=[{"points":[[18.9,-57.1,13.65],[25,-55.5,13.28],[27.6,-54.8,13.24]],"width":2.3,"rails":false},{"points":[[27.6,-54.8,13.24],[32.5,-53.7,11.87],[35.8,-52.8,11.74],[38.1,-51.6,11.03],[40,-51.5,10.29],[42,-52.6,9.61],[44.1,-54.0,8.1],[45.3,-54.2,7.69],[47.4,-53.2,7.6],[49,-52.6,7.35],[51,-52.25,6.67],[52.65,-51.0,5.99],[52.72,-49.4,5.6],[52.6,-47.6,4.64],[53.0,-46,4.48],[54.4,-43.2,3.93],[55.8,-40.2,3.34],[57.56,-37.0,3.28],[59.75,-33.67,3.06]],"width":1.95},{"points":[[26.7,-55.7,13.3],[28.7,-60.2,12.95],[30.9,-64.2,12.58],[33.7,-68.5,12.33],[35,-68.9,12.21],[35.6,-68.1,12.18],[35.7,-64.1,12.02],[35.35,-60.1,11.96],[35.25,-56.1,11.84],[34.7,-53.25,11.8]],"width":1.48,"steps":false}];
 window.thunderHoleBareLedge=function(x,z){
   if(x<29||x>126||z<-81||z>24)return false;
   const westernEdge=z<-61?49+(-61-z)*.64:z<-53?30+(-53-z)*2.38:z<-35?30:29+Math.max(0,z+24)*.18;
@@ -16,7 +17,7 @@ window.addThunderHoleWalkway=function(T,scene,world){
     map.wrapS=map.wrapT=T.RepeatWrapping;
     return map;
   };
-  const aggregate=new T.MeshStandardMaterial({color:0xcfdcea,map:texture('shore-pebbles.webp'),roughness:.94,toneMapped:false});
+  const aggregate=new T.MeshStandardMaterial({color:0xcfdcea,map:texture('keene-concrete.webp'),roughness:.94,toneMapped:false});
   const granite=new T.MeshStandardMaterial({color:0xcbd7e4,map:texture('building-fieldstone.webp'),roughness:.92,toneMapped:false});
   // Galvanized pipe and smaller cable pick up a narrow cold highlight above
   // the dark water. Neither the rail nor the path emits light at night.
@@ -98,15 +99,7 @@ window.addThunderHoleWalkway=function(T,scene,world){
   }
   // The lower walk bends around the blind chamber on its northeastern lip.
   // These are landing heights, so stepped sections retain horizontal treads.
-  walk([[18.9,-57.1,13.65],[25,-55.5,13.28],[27.6,-54.8,13.24]],2.3,{rails:false});
-  walk([[27.6,-54.8,13.24],[32.5,-53.7,11.87],[35.8,-52.8,11.74],[38.1,-51.6,11.03],
-    [40,-51.5,10.29],[42,-52.6,9.61],[44.1,-54.0,8.10],[45.3,-54.2,7.69],
-    [47.4,-53.2,7.60],[49,-52.6,7.35],[51,-52.25,6.67],[52.65,-51.0,5.99],
-    [52.72,-49.4,5.60],[52.6,-47.6,4.64],[53.0,-46,4.48],[54.4,-43.2,3.93],
-    [55.8,-40.2,3.34],[57.56,-37.0,3.28],[59.75,-33.67,3.06]],1.95);
-  walk([[26.7,-55.7,13.30],[28.7,-60.2,12.95],[30.9,-64.2,12.58],[33.7,-68.5,12.33],
-    [35,-68.9,12.21],[35.6,-68.1,12.18],[35.7,-64.1,12.02],[35.35,-60.1,11.96],
-    [35.25,-56.1,11.84],[34.7,-53.25,11.80]],1.48,{steps:false});
+  for(const route of window.thunderHoleWalks)walk(route.points,route.width,route);
   const patio=[];
   for(let i=0;i<=12;i++){
     const t=-Math.PI*.5+i*Math.PI/12;

@@ -51,6 +51,7 @@ window.addAcadiaCoast=function addAcadiaCoast(T,scene,world){
       varying vec3 swell;
       uniform float clock,sea;
       uniform sampler2D ripples,film;
+      ${addAcadiaCoast.inletField}
       void main(){
         float sand=smoothstep(270.,370.,point.x)*(1.-smoothstep(-950.,-815.,point.z));
         float cameraRange=distance(cameraPosition,point);
@@ -84,7 +85,7 @@ window.addAcadiaCoast=function addAcadiaCoast(T,scene,world){
         float strength=incident*wet*(1.38*collapse*filmValue+
           .46*wake*filmValue*max(shoal,ledge*.66)+retained);
         strength*=mix(1.,.89,sand)*smoothstep(-16.,-8.,bank)*(1.-smoothstep(43.,70.,bank));
-        float alpha=min(.84,strength)*(1.-smoothstep(1250.,4500.,cameraRange));
+        float alpha=min(.84,strength)*(1.-inletShelter(p))*(1.-smoothstep(1250.,4500.,cameraRange));
         if(alpha<.006)discard;
         vec3 nocturne=mix(vec3(.047,.084,.13),vec3(.31,.40,.50),clamp(collapse*.72+bubbles*.29,0.,1.));
         gl_FragColor=vec4(nocturne,alpha);
@@ -168,9 +169,7 @@ window.addAcadiaCoast=function addAcadiaCoast(T,scene,world){
   function makeInlet(){
     // Local x and half-width at successive southings, traced in the low-water
     // photograph. Clip against the quarter-metre rock mesh along both walls.
-    const sections=[[-50.5,49.9,.17],[-49.5,50.1,.63],[-47.5,50.2,.92],
-      [-45,50.5,1.20],[-42,51.2,1.31],[-39,52.1,1.48],[-36,53.4,1.30],
-      [-33,54.6,1.34],[-29,55.7,1.49],[-22,58.8,2.2],[-15,62.0,3.25],[-5,67.0,4.8]];
+    const sections=addAcadiaCoast.inletSections;
     const points=[],coords=[],indices=[];
     const across=12;
     let distance=0,rows=0;
@@ -297,3 +296,25 @@ window.addAcadiaCoast=function addAcadiaCoast(T,scene,world){
     const mesh=new T.Mesh(g,m);mesh.name='Thunder Hole wave-driven spray';mesh.frustumCulled=false;mesh.renderOrder=4;scene.add(mesh);return mesh;
   }
 };
+
+// Local southing, easting and half-width of the mapped Thunder Hole cleft.
+// One transverse profile drives the chamber skin, bed lighting and surf handover.
+window.addAcadiaCoast.inletSections=[[-50.5,49.9,.17],[-49.5,50.1,.63],[-47.5,50.2,.92],
+      [-45,50.5,1.20],[-42,51.2,1.31],[-39,52.1,1.48],[-36,53.4,1.30],
+      [-33,54.6,1.34],[-29,55.7,1.49],[-22,58.8,2.2],[-15,62.0,3.25],[-5,67.0,4.8]];
+window.addAcadiaCoast.inletField=(() => {
+  const rows=window.addAcadiaCoast.inletSections;
+  const increment=rows.slice(1).map(([z,x,width],i)=>{
+    const [prevZ,prevX,prevWidth]=rows[i];
+    return 'profile+=vec2('+(x-prevX).toFixed(3)+','+(width-prevWidth).toFixed(3)+')*clamp((p.y-('+prevZ.toFixed(2)+'))/'+(z-prevZ).toFixed(2)+',0.,1.);';
+  }).join('\n');
+  return `
+    float inletShelter(vec2 p){
+      if(p.x<44.||p.x>78.||p.y< -54.||p.y> -5.)return 0.;
+      vec2 profile=vec2(49.9,.17);
+      ${increment}
+      float crossSlope=abs(p.x-profile.x);
+      float banks=1.-smoothstep(profile.y+.42,profile.y+2.25,crossSlope);
+      return banks*smoothstep(-54.,-50.5,p.y)*(1.-smoothstep(-24.,-5.,p.y));
+    }`;
+})();
