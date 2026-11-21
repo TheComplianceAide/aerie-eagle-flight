@@ -57,25 +57,59 @@ const bearingOf = (air, p) => { const b = Math.atan2(-(p.x - air.x), -(p.z - air
 const flat = {height: () => 0, landmarks: [], wildlife: {nearby: () => []}};
 const dt = 1 / 60;
 
-// 1. A landmark ahead is attended to, and held through a bank until the neck cannot reach it.
+// 1. A landmark ahead is attended to and held through a bank that turns toward it,
+//    for as long as it is ahead or on the inside of the turn.
 {
-  const kineo = {name: 'Mount Kineo', x: -300, z: -900};
+  const kineo = {name: 'Mount Kineo', x: -1400, z: -540};          // 1.2 rad to the left, 1.5 km off
   const {parts, motion} = load(3, {...flat, landmarks: [kineo]});
-  const air = {x: 0, y: 120, z: 0, yaw: 0, bank: 0, loadFactor: 1, indicatedAirspeed: 17, elapsed: 0, gazeLook: 0, gazeTurn: 0};
+  const air = {x: 0, y: 120, z: 0, yaw: .15, bank: 0, loadFactor: 1, indicatedAirspeed: 17, elapsed: 0, gazeLook: 0, gazeTurn: 0};
   for (let i = 0; i < 60; i++, air.elapsed += dt) frame(motion, parts, air, dt, i === 0);
   assert.equal(motion.intent.kind, 'landmark'); assert.equal(motion.intent.name, 'Mount Kineo');
   const aim = air.gazeIntent;
   assert.ok(aim && Math.abs(aim.x - kineo.x) < 1e-9 && Math.abs(aim.z - kineo.z) < 1e-9, 'gazeIntent is not the landmark');
-  // Bank left at 0.6 rad/s for six seconds: far longer than an ordinary look lasts.
+  // Bank left toward it at 0.12 rad/s for nine seconds: far longer than an ordinary look lasts.
   let held = 0, letGoAt = null;
-  for (let i = 0; i < 360; i++, air.elapsed += dt) {
-    air.bank = .9; air.gazeTurn = -1; air.yaw += .6 * dt;
+  for (let i = 0; i < 540; i++, air.elapsed += dt) {
+    air.bank = .5; air.gazeTurn = -.4; air.yaw += .12 * dt;
     frame(motion, parts, air, dt);
-    if (air.gazeIntent === aim) held += dt; else letGoAt ??= bearingOf(air, kineo);
+    if (air.gazeIntent === aim && letGoAt === null) held += dt; else letGoAt ??= bearingOf(air, kineo);
   }
-  // It starts 0.32 rad to the left and sweeps right at 0.6 rad/s, so the neck's 1.3 rad reach lasts about 2.7 s.
-  assert.ok(held > 2.3 && held < 3.2, `held the landmark ${held.toFixed(2)} s through the bank`);
-  assert.ok(letGoAt !== null && Math.abs(letGoAt) > 1.25, `let go at ${letGoAt} rad, inside the neck's reach`);
+  assert.ok(held > 8.9, `held the landmark only ${held.toFixed(2)} s while banking toward it`);
+}
+
+// 1b. A landmark the turn is leaving behind gets a last look; then the eagle
+//     looks where it is going, and takes up nothing on the outside of the turn.
+{
+  const kineo = {name: 'Mount Kineo', x: -300, z: -900}, cove = {name: 'Kineo Cove', x: -700, z: -500};     // both to the left
+  const {parts, motion} = load(3, {...flat, landmarks: [kineo, cove]});
+  const air = {x: 0, y: 120, z: 0, yaw: 0, bank: 0, loadFactor: 1, indicatedAirspeed: 17, elapsed: 0, gazeLook: 0, gazeTurn: 0};
+  for (let i = 0; i < 60; i++, air.elapsed += dt) frame(motion, parts, air, dt, i === 0);
+  assert.ok(air.gazeIntent, 'nothing attended to before the turn');
+  let lastLook = 0, released = false, retaken = 0;
+  for (let i = 0; i < 240; i++, air.elapsed += dt) {          // bank right, away from both, for four seconds
+    air.bank = -.9; air.gazeTurn = 1; air.yaw -= .3 * dt;
+    frame(motion, parts, air, dt);
+    if (!air.gazeIntent) released = true; else if (released) retaken++; else lastLook += dt;
+  }
+  assert.ok(released && lastLook > .3 && lastLook < .7, `the last look lasted ${lastLook.toFixed(2)} s`);
+  assert.equal(retaken, 0, 'a landmark on the outside of the turn was taken up');
+}
+
+// 1c. On the inside of the turn it is held until the neck cannot reach it.
+{
+  const rock = {name: 'Table Rock', x: -260, z: -420};
+  const {parts, motion} = load(3, {...flat, landmarks: [rock]});
+  const air = {x: 0, y: 120, z: 0, yaw: 0, bank: 0, loadFactor: 1, indicatedAirspeed: 17, elapsed: 0, gazeLook: 0, gazeTurn: 0};
+  for (let i = 0; i < 60; i++, air.elapsed += dt) { air.z -= 17 * dt; frame(motion, parts, air, dt, i === 0); }
+  const aim = air.gazeIntent; assert.ok(aim, 'nothing attended to');
+  let letGoAt = null, held = 0;
+  for (let i = 0; i < 1200 && letGoAt === null; i++, air.elapsed += dt) {     // a gentle left bank while flying past it
+    air.bank = .3; air.gazeTurn = -.2; air.z -= 17 * dt;
+    frame(motion, parts, air, dt);
+    if (air.gazeIntent === aim) held += dt; else letGoAt = bearingOf(air, rock);
+  }
+  assert.ok(letGoAt !== null && letGoAt > 1.25, `let go at ${letGoAt} rad, inside the neck's reach`);
+  assert.ok(held > 6, `held only ${held.toFixed(1)} s on the inside of the turn`);
 }
 
 // 2. The player's own look always wins, at once and for a moment afterwards.
@@ -137,6 +171,19 @@ for (const side of [1, -1]) {
   assert.notEqual(air.gazeIntent, perch, 'attention stayed on a perch the player dropped');
 }
 
+// A far peak on the skyline holds the eye; a far bay at lake level does not.
+{
+  const peak = {name: 'Mitre Peak', x: 300, z: -4800}, bay = {name: 'Harrison Cove', x: -300, z: -4800};
+  const relief = {...flat, height: (x, z) => Math.hypot(x - peak.x, z - peak.z) < 900 ? 1200 * (1 - Math.hypot(x - peak.x, z - peak.z) / 900) : 0};
+  for (const [places, expected] of [[[bay], ''], [[bay, peak], 'Mitre Peak']]) {
+    const {parts, motion} = load(17, {...relief, landmarks: places});
+    const air = {x: 0, y: 330, z: 0, yaw: 0, bank: 0, loadFactor: 1, indicatedAirspeed: 17, elapsed: 0, gazeLook: 0, gazeTurn: 0};
+    const seen = new Set();
+    for (let i = 0; i < 600; i++, air.elapsed += dt) { air.z -= 17 * dt; frame(motion, parts, air, dt, i === 0); if (motion.intent.name) seen.add(motion.intent.name); }
+    assert.equal([...seen].join(), expected, 'far landmarks: expected ' + (expected || 'none') + ', attended ' + ([...seen].join() || 'none'));
+  }
+}
+
 // Measured cost of attention plus the whole motion layer, per frame.
 {
   const places = Array.from({length: 12}, (_, i) => ({name: 'Place ' + i, x: 900 * Math.cos(i), z: 900 * Math.sin(i)}));
@@ -146,5 +193,5 @@ for (const side of [1, -1]) {
   const frames = 20000, start = process.hrtime.bigint();
   for (let i = 0; i < frames; i++, air.elapsed += dt) { air.yaw += .2 * dt; air.bank = .5 * Math.sin(air.elapsed); frame(motion, parts, air, dt, i === 0); }
   const micros = Number(process.hrtime.bigint() - start) / 1000 / frames;
-  console.log(`Passed eagle intent checks: landmark held through a bank, player look wins, tail and hand follow, feet ready, perch held. Cost ${micros.toFixed(1)} microseconds per frame (attention and motion together, this machine).`);
+  console.log(`Passed eagle intent checks: landmark held through a bank toward it and released when turning away, player look wins, tail and hand follow, feet ready, perch held, far skyline peak attended and far bay ignored. Cost ${micros.toFixed(1)} microseconds per frame (attention and motion together, this machine).`);
 }
