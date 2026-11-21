@@ -150,7 +150,7 @@
   function announceCall(id,buffer){
     try{window.dispatchEvent(new CustomEvent('aerie-eagle-call',{detail:{id,envelope:callEnvelope(id,buffer),rate:60}}));}catch(e){}
   }
-  const aacCalls=new Set(['apapane','meadow-pipit','dunnock',...playerCalls.filter(id=>!['eagle-yellowstone','eagle-chirp','eagle-alaska'].includes(id))]);
+  const aacCalls=new Set(['apapane','meadow-pipit','dunnock','land-alpine-ibex','land-desert-bighorn','land-eurasian-otter',...playerCalls.filter(id=>!['eagle-yellowstone','eagle-chirp','eagle-alaska'].includes(id))]);
   const random=(a,b)=>a+(b-a)*Math.random();
   const clamp=(x,lo,hi)=>Math.max(lo,Math.min(hi,x));
   const attenuation=(meters,reach)=>1/(1+(meters/reach)**2);
@@ -240,7 +240,8 @@
   window.aerieFauna={scenes,species,birds,sizes,sourceSite,nearestShore};
   window.makeFieldAudio=function makeFieldAudio(context,region){
     const profile=scenes[region];
-    const calls={moose:[134,.81],'white-tailed-deer':[97,.75],'red-deer':[185,.84]};
+    const calls={moose:[134,.81],'white-tailed-deer':[97,.75],'red-deer':[185,.84],
+      'alpine-ibex':[170,.74],'desert-bighorn':[125,.70],'eurasian-otter':[115,.66]};
     const localMammals=(window.aerieLandWildlife?.regions[region]?.animals||[]).filter(id=>calls[id]);
     let mammalDue=0;
     if(!profile)throw new Error('Missing wildlife profile for '+region);

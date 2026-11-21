@@ -155,6 +155,11 @@ https://freesound.org/people/ellie.vanderlip/sounds/704381/
 https://creativecommons.org/publicdomain/zero/1.0/
 Excerpt: 10.00 to 43.50 seconds; loop seam crossfaded; rumble removed; level matched.
 
+scape-yosemite-chipmunk.m4a — “Merriam's Chipmunk calls (iNaturalist obs 311803950, sound 1626626).” Felicia Gershberg (feliciabg) via iNaturalist. Los Gatos, California (37.2080,-121.9360), Santa Cruz Mountains, 2025-09-05 16:27; research-grade identification. CC BY 4.0.
+https://www.inaturalist.org/observations/311803950
+https://creativecommons.org/licenses/by/4.0/
+Excerpt: 0.45 to 9.95 seconds; faded; filtered below 1.5 kHz; level matched.
+
 LAKE WINNIPESAUKEE
 
 scape-winnipesaukee-dock-creak.m4a — “Dock,Wood,Creak,Water,Laping.wav.” Filipe Chagas. Private yacht-club dock; place not stated, no geotag.. CC0 1.0.
@@ -325,6 +330,11 @@ https://freesound.org/people/TRP/sounds/573934/
 https://creativecommons.org/publicdomain/zero/1.0/
 Excerpt: 11.90 to 17.40 seconds; faded; rumble removed; level matched.
 
+scape-crater-chipmunk.m4a — “Townsend's Chipmunk calls (iNaturalist obs 178058212, sound 791281).” Don Boucher (neighborhood-naturalist) via iNaturalist. Benton County, Oregon (44.6197,-123.3086), 2023-08-12 10:17; the recordist watched the chipmunk calling; research-grade identification. CC BY 4.0.
+https://www.inaturalist.org/observations/178058212
+https://creativecommons.org/licenses/by/4.0/
+Excerpt: 0.20 to 7.48 seconds; faded; filtered below 600 Hz; level matched.
+
 LOFOTEN ISLANDS
 
 scape-lofoten-white-tailed-eagle.m4a — “iNaturalist observation 301803228 – Haliaeetus albicilla (sound 1584925).” ahabo (iNaturalist). Zarrentin am Schaalsee, Mecklenburg/Schleswig-Holstein border, Germany (53.575, 10.980), 28 Jul 2025. CC0 1.0.
@@ -415,6 +425,13 @@ scape-labrador-mosquitoes.m4a — “woods.wav.” MarleneAyni (Freesound). Trai
 https://freesound.org/people/MarleneAyni/sounds/580323/
 https://creativecommons.org/publicdomain/zero/1.0/
 Excerpt: 46.00 to 58.00 seconds; faded; rumble removed; level matched.
+
+ANIMAL MOVEMENT
+
+move-moose.m4a — “A cow breathing near and walking on the dry foliage, with a bird singing soflty, road hum and a plane passing, recorded in the forest in Missouri.” Félix Blume (felix.blume, Freesound). Forest in Missouri, USA, May 2013 (no geotag). The animal is a domestic cow walking on dry leaf litter, used as a stand-in for a moose moving through woods. CC0 1.0.
+https://freesound.org/people/felix.blume/sounds/653949/
+https://creativecommons.org/publicdomain/zero/1.0/
+Excerpt: 77.20 to 90.70 seconds; loop seam crossfaded; road hum removed below 300 Hz; 2.05 to 3.85 kHz notched to suppress a singing bird; peaks limited; level matched.
 
 ACOUSTICS, HEADS AND LIVE AIR
 
