@@ -26,7 +26,7 @@ Fly a bald eagle through twelve real-world landscapes, looking out over its righ
 - **Weather and water.** Moving clouds shade ridges and lakes. Gusts roughen patches of open water and blow fine spray sideways at Nugget Falls. Along a river, the current runs faster away from the banks.
 - **Sound.** Turn your head on a perch to place a birdcall in stereo. Glide behind the rock spur at Nugget Falls and the high hiss fades before the low rumble. Ten recorded bald-eagle phrases accompany takeoffs, climbs, glides and landings. [Field recording credits](game/field-audio-credits.txt)
 
-**Claude’s spatial-audio work** is available on the regional soundscapes development branch. Its 78 regional recordings cover all twelve worlds. The headphone mix places calls in three dimensions, delays distant sounds by their travel time and reflects echoes off cliffs. [Explore the audio branch](https://github.com/TheComplianceAide/aerie-eagle-flight/tree/audio/regional-soundscapes) · [Recording credits](https://github.com/TheComplianceAide/aerie-eagle-flight/blob/audio/regional-soundscapes/game/soundscape-credits.txt)
+**Regional soundscapes.** 78 regional recordings cover all twelve worlds. The headphone mix places calls in three dimensions, delays distant sounds by their travel time and reflects echoes off cliffs. Air absorption follows the day’s temperature and humidity at each real location, and pressing **L** or tapping **Eagle Ears** filters the mix toward a raptor’s hearing. [Recording credits](game/soundscape-credits.txt)
 
 ## Play locally
 
