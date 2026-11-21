@@ -438,7 +438,15 @@
         texture.anisotropy=coarse?2:4;textures.push(texture);
         const forms=readMeshes(T,buffer),mat=material(T,sheet,texture,time);
         geometries.push(...forms.flat());materials.push(mat);
-        sheets.push({...sheet,forms,material:mat,batches:new Map()});
+        const entry={...sheet,forms,material:mat,batches:new Map()};
+        if(sheet.id==='moosehead-lake-wash'){
+          // The Kineo approach reaches this layer-1 shoreline batch after crossing open water.
+          // Prepare the same material and geometry layout that gather() will populate.
+          const mesh=batch(entry,1,[]);mesh.visible=false;
+          mesh.userData.prepareDirectMaterial=true;
+          entry.batches.set(sheet.id+'/1',mesh);
+        }
+        sheets.push(entry);
       }));
       hydro.assignForms(sample);
       return sheets.length;

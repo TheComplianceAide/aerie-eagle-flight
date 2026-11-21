@@ -4,8 +4,6 @@
   const variants = new Set([
     'alaska-evening.jpg',
     'acadia-night-sky.webp',
-    'moosehead-dawn-sky.webp',
-    'winnipesaukee-dusk-sky.webp',
     'lofoten-dusk-sky.webp',
     'atlas-dixville-ranges.webp',
     'atlas-dixville-photo.webp',

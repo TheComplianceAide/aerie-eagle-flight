@@ -20,25 +20,13 @@
   // wind fetch at each shore. Colors describe scattered light in deep water
   // and the solar disc; the mirror pass supplies the clouds, trees and cliffs.
   const lowSunWater={
-    moosehead:{body:0x3a3930,sun:0xffbf68,state:.53,wave:.67,skyExposure:1.55,glint:1.54},
-    winnipesaukee:{body:0x27364b,sun:0xffb8a9,state:.37,wave:.45,skyExposure:1.42,glint:.46},
     lofoten:{body:0x393844,sun:0xf7b983,state:1.06,wave:1.19,skyExposure:1.14,glint:.67}
   };
 
   function lowSunReflection(mat,shader,light){
-    mat.userData.shadowDirectWater=true;
     mat.uniforms.waterColor.value.setHex(light.body);
     mat.uniforms.sunColor.value.setHex(light.sun);
     mat.uniforms.seaState.value=light.state;
-    if(light===lowSunWater.moosehead){
-      // Sunlight scattered near the surface of this tea-colored lake travels
-      // furthest toward the viewer across the brighter, sunward reaches.
-      shader=shader.replace('vec3 body=mix(deep,shoal,shallow);',`
-        float waterPath=pow(max(0.,dot(-v.xz,sunDirection.xz)),1.65);
-        deep+=vec3(.15,.077,.016)*waterPath*(.52+.48*daylight);
-        vec3 body=mix(deep,shoal,shallow);
-      `);
-    }
     return shader
       .replace('float fresnel=.0204+.9796*pow(1.-cosV,5.);',`
         // Unpolarized Fresnel reflectance for air over fresh or salt water.
@@ -62,7 +50,9 @@
       if(!mesh.isWater)return;
       const mat=mesh.material,atlas=!!mat.uniforms.shoreField;
       const light=lowSunWater[region];
-      const energy=light?.wave??({dixville:.52,milford:1.25,labrador:1.10,alaska:.88,swiss:.58,crater:.85})[region]??.92;
+      // Terrain blocks direct light on the water and bed while the sky remains visible in the reflection.
+      if(atlas&&(light||region==='moosehead'||region==='winnipesaukee'))mat.userData.shadowDirectWater=true;
+      const energy=light?.wave??({dixville:.52,milford:1.25,labrador:1.10,moosehead:1.05,alaska:.88,swiss:.58,crater:.85})[region]??.92;
       let shader=waves+'\n'+mat.fragmentShader;
       if(atlas&&region==='surry'){
         // The sheltered dam pool is glassy between small moving cat's paws.
