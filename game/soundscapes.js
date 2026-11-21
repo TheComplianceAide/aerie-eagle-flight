@@ -511,8 +511,12 @@
       if (buffers.has(id)) return Promise.resolve(buffers.get(id));
       if (loading.has(id)) return loading.get(id);
       const name = id + '.m4a';
-      const task = fetch(window.aerieAssetURL?.(name) || name)
-        .then(r => { if (!r.ok) throw Error('missing ' + name); return r.arrayBuffer(); })
+      // A hosted build short of space may leave recordings out; fetch those
+      // from the public repository instead (offline builds embed them all).
+      const mirror = 'https://cdn.jsdelivr.net/gh/TheComplianceAide/aerie-eagle-flight@main/game/' + name;
+      const get = url => fetch(url).then(r => { if (!r.ok) throw Error('missing ' + name); return r.arrayBuffer(); });
+      const local = window.aerieAssetURL?.(name) || name;
+      const task = get(local).catch(e => local.startsWith('blob:') || location.protocol === 'file:' ? Promise.reject(e) : get(mirror))
         .then(d => context.decodeAudioData(d))
         .then(b => { buffers.set(id, b); return b; })
         .catch(() => { buffers.set(id, null); return null; })
