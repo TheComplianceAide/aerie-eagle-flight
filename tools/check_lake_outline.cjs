@@ -41,6 +41,8 @@ for(const file of fs.readdirSync(game).filter(n=>/^atlas-.+-survey\.js$/.test(n)
 for(const [name,survey] of Object.entries(context.window.ATLAS_SURVEYS))exercise(name,survey.shore,survey.shoreHoles);
 read('moosehead-shore-survey.js');
 read('lake-bay-data.js');
+read('moosehead-rockwood-data.js');
+read('moosehead-rockwood.js');
 read('lake-bay-contours.js');
 for(const [region,runs] of Object.entries(context.window.aerieLakeBankRuns)){
   const survey=context.window.ATLAS_SURVEYS[region];
