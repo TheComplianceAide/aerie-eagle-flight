@@ -497,6 +497,29 @@
   };
   window.aerieSoundscapes = scapes;
 
+  function stormDepth(storm, x, z, t) {
+    const [ax, az] = storm.front, sx = -az, sz = ax, side = x * sx + z * sz;
+    const edge = 175 * Math.sin(side * .00073) + 112 * Math.sin(side * .00181 + .7) + 43 * Math.sin(side * .0031);
+    const raw = x * ax + z * az - (storm.head - t * storm.speed) - edge;
+    return ((raw + 7000) % storm.period + storm.period) % storm.period - 7000;
+  }
+  // Rain at a point, 0 to 1: inside the Lac Berte sun shower or the Crater
+  // Lake storm bank. The eagle's motion uses this too, with or without sound.
+  window.aerieRainAt = function aerieRainAt(world, region, x, z, t) {
+    const spec = scapes[region] || {};
+    if (spec.shower) {
+      const mark = landmark(world, /rainbow|shower|arc-en-ciel/i); if (!mark || !world.windField) return 0;
+      const f = world.windField, shift = 240 * Math.sin(t * f.advection / 240);
+      const cx = mark.x + f.direction.x * shift, cz = mark.z + f.direction.z * shift;
+      const sun = world.sunDirection, ax = -sun.x, az = -sun.z, al = Math.hypot(ax, az) || 1;
+      const axisX = ax / al, axisZ = az / al, sideX = -axisZ, sideZ = axisX;
+      const dx = x - cx, dz = z - cz, across = dx * sideX + dz * sideZ, along = dx * axisX + dz * axisZ;
+      return (1 - smooth(140, 470, Math.abs(along))) * (1 - smooth(650, 1600, Math.abs(across)));
+    }
+    if (spec.storm) { const d = stormDepth(spec.storm, x, z, t); return smooth(-310, 330, d) * (1 - smooth(4700, 7400, d)); }
+    return 0;
+  };
+
   window.makeSoundscape = function makeSoundscape(context, world, region, destination) {
     const spec = scapes[region] || {}, air = climate[region] || {};
     const engine = window.makeSpatialAudio(context, world, {climate: air});
@@ -706,12 +729,6 @@
       });
     }
     installControls();
-    function stormDepth(storm, x, z, t) {
-      const [ax, az] = storm.front, sx = -az, sz = ax, side = x * sx + z * sz;
-      const edge = 175 * Math.sin(side * .00073) + 112 * Math.sin(side * .00181 + .7) + 43 * Math.sin(side * .0031);
-      const raw = x * ax + z * az - (storm.head - t * storm.speed) - edge;
-      return ((raw + 7000) % storm.period + storm.period) % storm.period - 7000;
-    }
     function strike(storm, t) {
       // Search the rain bank for a cell 1.5-12 km away.
       for (let i = 0; i < 60; i++) {
@@ -734,19 +751,7 @@
       if (far && Math.random() < .55) engine.play(far, pos, {gain: .45, ref: 1500, reach: 30000, wet: 1, occlude: false, when: rand(.6, 2.2)});
       window.dispatchEvent(new CustomEvent('aerie-lightning', {detail: {x: s.x, z: s.z, cloudY: storm.cloudY, distance: synth.nearest}}));
     }
-    function rainLevel(s, t) {
-      if (spec.shower) {
-        const mark = landmark(world, /rainbow|shower|arc-en-ciel/i); if (!mark || !world.windField) return 0;
-        const f = world.windField, shift = 240 * Math.sin(t * f.advection / 240);
-        const cx = mark.x + f.direction.x * shift, cz = mark.z + f.direction.z * shift;
-        const sun = world.sunDirection, ax = -sun.x, az = -sun.z, al = Math.hypot(ax, az) || 1;
-        const axisX = ax / al, axisZ = az / al, sideX = -axisZ, sideZ = axisX;
-        const dx = s.x - cx, dz = s.z - cz, across = dx * sideX + dz * sideZ, along = dx * axisX + dz * axisZ;
-        return (1 - smooth(140, 470, Math.abs(along))) * (1 - smooth(650, 1600, Math.abs(across)));
-      }
-      if (spec.storm) { const d = stormDepth(spec.storm, s.x, s.z, t); return smooth(-310, 330, d) * (1 - smooth(4700, 7400, d)); }
-      return 0;
-    }
+    const rainLevel = (s, t) => window.aerieRainAt(world, region, s.x, s.z, t);
 
     let nextScan = 0, shore = null;
     function update(s, camera, dt, extras = {}) {

@@ -503,7 +503,7 @@
       if(region==="swiss"||region==="canyon"||region==="yosemite"||region==="dixville") updateTalus=window.addTalus?.(THREE,scene,world);
       if(region==="swiss" || region==="alaska" || world.useFirForest) updateForest=window.addForest?.(THREE,scene,world);
       updateMist=window.addValleyMist?.(THREE,scene,world);
-      eagle=makeEagle(THREE);scene.add(eagle.object);eagle.motion?.setWindSource?.(world.windField);
+      eagle=makeEagle(THREE);scene.add(eagle.object);eagle.motion?.setWindSource?.(world.windField);eagle.motion?.setRainSource?.((x,z,t)=>window.aerieRainAt?.(world,region,x,z,t)??0);
       el("viewport").replaceChildren(renderer.domElement);resize();
       world.regionalFieldScenery=fieldScenery=window.makeRegionalFieldScenery(THREE,scene,world);
       loadPromise=Promise.all([assets,world.ready,eagle.ready,geology.ready,fieldScenery.ready]);

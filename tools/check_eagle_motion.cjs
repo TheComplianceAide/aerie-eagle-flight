@@ -174,4 +174,24 @@ function fly(motion, parts, fps, seconds, airAt, poseAt, onFrame) {
   }
 }
 
-console.log('Passed eagle motion checks: frame-rate independence, no drift, blink rate, bill hinge, clock restart, wingbeat load, perched feathers.');
+// 8. Rain: more blinks, wet plumage, and a shake-off once the rain has passed.
+{
+  const air = () => ({loadFactor: 1, indicatedAirspeed: 17, gust: 0});
+  const run = wetWeather => {
+    const {parts, motion} = load(71);
+    let raining = wetWeather, shook = 0;
+    motion.setRainSource(() => raining ? 1 : 0);
+    fly(motion, parts, 60, 40, air, null, t => {
+      if (t > 25) raining = false;
+      if (t > 25.5) shook = Math.max(shook, parts.uniforms.featherFluff.value);
+      if (Math.abs(t - 25) < .009 && wetWeather) assert.ok(motion.stats.wet > .7, `not wet after 25 s of rain: ${motion.stats.wet}`);
+    });
+    return {blinks: motion.stats.blinks, shook, wet: motion.stats.wet};
+  };
+  const dry = run(false), wetRun = run(true);
+  assert.ok(wetRun.blinks > dry.blinks * 1.4, `rain did not bring more blinks: ${wetRun.blinks} vs ${dry.blinks}`);
+  assert.ok(wetRun.shook > .3 && dry.shook < .05, `no shake-off after rain: ${wetRun.shook}`);
+  assert.ok(wetRun.wet < .45, 'still soaked after shaking off');
+}
+
+console.log('Passed eagle motion checks: frame-rate independence, no drift, blink rate, bill hinge, clock restart, wingbeat load, perched feathers, rain.');
