@@ -76,8 +76,7 @@
     // Carve the fine waterfall survey out of the drawn uplands. Source
     // triangles stay available to sample() so the fine grid can meet the
     // coarse surface along its outer contour.
-    function reserveBrook(T,geometry,survey){
-      const {x,z,half}=survey,left=x-half,right=x+half,top=z-half,bottom=z+half;
+    function reserveGround(T,geometry,[left,top,right,bottom]){
       const position=Array.from(geometry.attributes.position.array);
       const normal=Array.from(geometry.attributes.normal.array);
       const exposure=Array.from(geometry.attributes.skyVisibility.array);
@@ -182,7 +181,7 @@
           (bank?'c=coldWood(c,wp,normal,d,smoothstep(4.,14.,brookDistance));\nfloat dep=1.-exp':
           'earth=coldWood(earth,wp,n,d,1.);\nfloat air=1.-exp'));
     }
-    function add(T,scene,ranges,horizon,sun,haze,bays,ground,survey,woodland){
+    function add(T,scene,ranges,horizon,sun,haze,bays,ground,survey,woodland,bankSurveys=[]){
       const material=new T.ShaderMaterial({
         uniforms:{ranges:{value:ranges},horizon:{value:horizon},bays:{value:bays},ground:{value:ground},sun:{value:sun},haze:{value:haze}},
         vertexShader:`attribute float skyVisibility;
@@ -265,7 +264,13 @@
         g.setAttribute('position',new T.BufferAttribute(pos,3));g.setAttribute('normal',new T.BufferAttribute(norm,3));
         g.setAttribute('skyVisibility',new T.BufferAttribute(light,1,true));
         if(survey&&group.some(({i,j})=>axes[i]<survey.x+survey.half&&axes[i+1]>survey.x-survey.half&&
-           axes[j]<survey.z+survey.half&&axes[j+1]>survey.z-survey.half))reserveBrook(T,g,survey);
+           axes[j]<survey.z+survey.half&&axes[j+1]>survey.z-survey.half))
+          reserveGround(T,g,[survey.x-survey.half,survey.z-survey.half,survey.x+survey.half,survey.z+survey.half]);
+        for(const bank of bankSurveys){
+          const [left,top,right,bottom]=bank.rect;
+          if(group.some(({i,j})=>axes[i]<right&&axes[i+1]>left&&axes[j]<bottom&&axes[j+1]>top))
+            reserveGround(T,g,bank.rect);
+        }
         g.computeBoundingSphere();
         const nearStream=forestMaterial&&group.some(({i,j})=>
           axes[i]<survey.x+survey.woodlandHalf&&axes[i+1]>survey.x-survey.woodlandHalf&&
@@ -279,7 +284,7 @@
       const u=Math.floor((x/64000+.5)*forestSize),v=Math.floor((z/64000+.5)*forestSize);
       return u>=0&&v>=0&&u<forestSize&&v<forestSize?percent[v*forestSize+u]*.01:0;
     }
-    function woods(T,scene,world,clock,survey){
+    function woods(T,scene,world,clock,survey,bankSurveys=[]){
       const canopy=window.mooseheadCrowns(T,scene,clock),tiles=new Map();
       const {treeGrid}=world;
       if(!canopy)return ()=>{};
@@ -300,7 +305,8 @@
         }
       }
       for(let k=0;k<rootCount;k++){
-        const at=rootStart+k*8,x=forestView.getInt16(at,true),z=forestView.getInt16(at+2,true),y=sample(x,z);
+        const at=rootStart+k*8,x=forestView.getInt16(at,true),z=forestView.getInt16(at+2,true),insideBank=bankSurveys.some(b=>b.edge(x,z)>0);
+        const y=insideBank?world.elevation(x,z):sample(x,z);
         if(y===null||y<world.waterLevel+.5)continue;
         const tree={x,y,z,height:forestView.getUint8(at+4)/8,width:forestView.getUint8(at+5)/8,conifer:!!forestView.getUint8(at+6),seed:forestView.getUint8(at+7)/255};
         if(survey?.woodland&&Math.max(Math.abs(x-survey.x),Math.abs(z-survey.z))<survey.woodlandHalf-20)continue;

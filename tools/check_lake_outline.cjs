@@ -39,6 +39,30 @@ function exercise(name,outer,holes=[]){
 }
 for(const file of fs.readdirSync(game).filter(n=>/^atlas-.+-survey\.js$/.test(n)))read(file);
 for(const [name,survey] of Object.entries(context.window.ATLAS_SURVEYS))exercise(name,survey.shore,survey.shoreHoles);
+read('moosehead-shore-survey.js');
+read('lake-bay-data.js');
+read('lake-bay-contours.js');
+for(const [region,runs] of Object.entries(context.window.aerieLakeBankRuns)){
+  const survey=context.window.ATLAS_SURVEYS[region];
+  if(region==='moosehead')context.window.refineMooseheadShore(survey);
+  const ringFor=r=>r.ring?survey.shoreHoles[r.ring-1]:survey.shore;
+  const contains=(ring,point)=>ring.some(p=>p[0]===point[0]&&p[1]===point[1]);
+  // The outer lake and each island can rotate their cyclic starting index.
+  // Locate fits by chart endpoints even after other local corrections run.
+  for(const run of runs){
+    assert.ok(contains(ringFor(run),run.start),region+' missing survey start');
+    assert.ok(contains(ringFor(run),run.end),region+' missing survey end');
+  }
+  context.window.refineLakeBays(region,survey);
+  for(const run of runs){
+    const k=2*Math.floor(run.points.length/4);
+    if(run.points.length)assert.ok(contains(ringFor(run),[run.points[k]/5,run.points[k+1]/5]),region+' missing fitted bank');
+  }
+  const shapes=JSON.stringify([survey.shore,survey.shoreHoles]);
+  context.window.refineLakeBays(region,survey);
+  assert.equal(JSON.stringify([survey.shore,survey.shoreHoles]),shapes);
+  exercise(region+' surveyed bays',survey.shore,survey.shoreHoles);
+}
 exercise('empty',null);exercise('empty hole',[],[[]]);
 const square=(x,z,size)=>[[x,z],[x+size,z],[x+size,z+size],[x,z+size],[x,z]];
 exercise('overlapping islands',square(-192,-192,384),[square(0,-96,92),square(45,-55,100)]);

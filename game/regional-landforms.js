@@ -3,6 +3,12 @@
 (() => {
   'use strict';
   const catalog={
+    lily:{name:'Lily Bay · measured bank',asset:'lily',lakeBank:true,source:'USGS 3DEP lidar and hydrography, USDA NAIP four-band bank survey'},
+    spencer:{name:'Spencer Bay · measured bank',asset:'spencer',lakeBank:true,source:'USGS 3DEP lidar and hydrography, USDA NAIP four-band bank survey'},
+    meredith:{name:'Meredith Bay · measured bank',asset:'meredith',lakeBank:true,source:'USGS 3DEP lidar and hydrography, USDA NAIP four-band bank survey'},
+    wolfeboro:{name:'Wolfeboro Bay · measured bank',asset:'wolfeboro',lakeBank:true,source:'USGS 3DEP lidar and hydrography, USDA NAIP four-band bank survey'},
+    diamond:{name:'Diamond Island · measured bank',asset:'diamond',lakeBank:true,source:'USGS 3DEP lidar and hydrography, USDA NAIP four-band bank survey'},
+    sleepers:{name:'Sleepers Island · measured bank',asset:'sleepers',lakeBank:true,source:'USGS 3DEP lidar and hydrography, USDA NAIP four-band bank survey'},
     acadia:{name:'Thunder Hole · tidal chasm and granite ledges',asset:'acadia',water:0,source:'NOAA NGS 2022 Coastal Maine topobathymetric lidar and USDA NAIP, Ocean Path, Mount Desert Island'},
     moosehead:{name:'Mount Kineo',asset:'kineo',rock:'rhyolite',water:312.23,holes:[[236,-1260,344,-1040],[360,-964,416,-880]],
       source:'USGS 3DEP Western Mountains B24 and USDA NAIP, eastern and southern Mount Kineo, Maine'},
@@ -194,7 +200,7 @@
         material.fragmentShader=material.fragmentShader.replace('normal=normalize(mix(normal,ledgeNormal,.94*graniteShore));',
           'ledgeNormal=normalize(mix(ledgeNormal,normal,landformHorizon.w));normal=normalize(mix(normal,ledgeNormal,.94*graniteShore));');
       }
-      if(spec.asset==='yosemite-summits'){
+      if(spec.asset==='yosemite-summits'||(spec.lakeBank&&!hasDetail)){
         // The entire survey sits outside the valley's original aerial. Blend
         // the registered 2022 NAIP image at its edges with the true far region.
         material.fragmentShader=material.fragmentShader.replace(

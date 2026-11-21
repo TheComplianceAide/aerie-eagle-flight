@@ -76,3 +76,10 @@ https://ucckeene.org/about/our-history/
 https://www.cheshiremen.org/where-we-meet
 https://keenenh.gov/wp-content/uploads/2025/03/part10.pdf
 https://www.flickr.com/photos/keenepubliclibrary/2533397331/
+
+Lily Bay and Spencer Bay, Maine; Meredith Bay, Wolfeboro Bay, Diamond Island and Sleepers Island, New Hampshire
+Two-metre bare-earth terrain from USGS 3DEP, registered with the existing USGS NHD lake chart. Near-infrared USDA NAIP measurements refine the land-water boundary. USDA NAIP RGB imagery supplies the local bank colors. Maine imagery is the 2018 NAIP mosaic served by the Maine GeoLibrary. Submerged slopes are reconstructed and lake stage is fixed.
+https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer
+https://hydro.nationalmap.gov/arcgis/rest/services/nhd/MapServer/12
+https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer
+https://gis.maine.gov/image/rest/services/NAIP/orthoNaip2018/ImageServer

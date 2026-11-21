@@ -468,6 +468,7 @@ class Water extends Mesh {
 
   const survey=window.ATLAS_SURVEYS[region];
   if(region==='moosehead')window.refineMooseheadShore(survey);
+  if(region==='moosehead'||region==='winnipesaukee')window.refineLakeBays(region,survey);
   const settings={
     yosemite:{sky:'alaska-evening.jpg',sun:[-.62,.46,.53],stone:[.64,.61,.57],treeH:30,top:2840,cover:.91,launch:[-4600,1780,2300,0,150],low:[-1700,1110,1560,-490,70]},
     crater:{sky:'alaska-evening.jpg',sun:[-.37,.53,-.71],water:1880.62,sea:0x123951,stone:[.43,.385,.337],treeH:21,top:2430,cover:.96,launch:[-3410,1770,-960,-230,315],low:[-2360,1720,600,1630,57]},
@@ -515,7 +516,15 @@ class Water extends Mesh {
   const landmarkTerrain=window.aerieRegionalLandforms?.get(region);
   const harborTerrain=region==='lofoten'?window.aerieRegionalLandforms.get('hamnoy'):null;
   const easternSummits=region==='yosemite'?window.aerieRegionalLandforms.get('yosemitesummits'):null;
-  const measuredTerrain=[landmarkTerrain,harborTerrain,easternSummits].filter(Boolean);
+  const namedBays=window.aerieLakeBankSites?.[region]||[];
+  const bankSurveys=namedBays.map(name=>window.aerieRegionalLandforms.get(name)).filter(Boolean);
+  const measuredTerrain=[landmarkTerrain,harborTerrain,easternSummits,...bankSurveys].filter(Boolean);
+  function bayAt(x,z){
+    for(const bank of bankSurveys){
+      const [l,t,r,b]=bank.rect;
+      if(x>l&&x<r&&z>t&&z<b)return bank;
+    }
+  }
   const campSurface=region==='labrador'&&survey.cabin?landmarkTerrain?.surfacePatch(survey.cabin.x,survey.cabin.z,72,(x,z)=>regionalElevation(x,z,false)):null;
   function elevation(x,z,includeIslet=true){
     if(campSurface){const y=campSurface(x,z);if(y!==null)return y;}
@@ -529,6 +538,7 @@ class Water extends Mesh {
     let base=landmarkTerrain?landmarkTerrain.height(x,z,native):native;
     if(harborTerrain)base=harborTerrain.height(x,z,base);
     if(easternSummits)base=easternSummits.height(x,z,base);
+    if(bankSurveys.length){const bank=bayAt(x,z);if(bank)base=bank.height(x,z,base);}
     if(!brookGrid||!insideBrook(x,z))return kineo?kineo.elevation(x,z,base):base;
     const dx=x-localDEM.x,dz=z-localDEM.z,h=localDEM.half;
     return lerp(sample(brookGrid,h,dx,dz),base,smoothstep(Math.max(Math.abs(dx),Math.abs(dz)),h-18,h));
@@ -1427,7 +1437,7 @@ class Water extends Mesh {
   }
   const maineGround=uplands?texture('moosehead-bank-ground.webp'):null;
   const streamWoodland=uplands&&localDEM?.woodland?texture('cold-stream-woodland.webp'):null;
-  if(uplands)uplands.add(THREE,scene,ranges,texture('moosehead-horizon.webp'),sun,color,texture('moosehead-bays.webp'),maineGround,localDEM,streamWoodland);
+  if(uplands)uplands.add(THREE,scene,ranges,texture('moosehead-horizon.webp'),sun,color,texture('moosehead-bays.webp'),maineGround,localDEM,streamWoodland,bankSurveys);
   else ring(h,farH,Math.max(32,farH/570),0,0,waterfront?.rects||fjordRects);
   if(waterfront)for(const area of waterfront.rects)subdivide(...area,4.5);
   const core=tight?1450:h;
@@ -1607,7 +1617,7 @@ class Water extends Mesh {
       water.material.polygonOffsetUnits=2;
     }
     water.rotation.x=-Math.PI/2;water.position.y=settings.water+.16;scene.add(water);
-    if(survey.shore?.length)shoreFloor=window.joinAtlasShore?.(THREE,scene,{region,survey,elevation,level:water.position.y,terrain});
+    if(survey.shore?.length)shoreFloor=window.joinAtlasShore?.(THREE,scene,{region,survey,elevation,level:water.position.y,terrain,bankSurveys});
   }
   const waterfallViews=new Map();
   const waterfalls=(brook||['milford','yosemite','dixville'].includes(region))?window.makeWaterfallSystem(THREE,scene,{clock,ground:elevation,level:dixville||brook?undefined:water?.position.y,sun,texture,sky:skyMap}):null;
@@ -1818,8 +1828,9 @@ class Water extends Mesh {
   if(!survey.shore?.length&&shoreDetail)world.fieldBankAt=shoreDetail.closestBank;
   if(dam){world.riverSurfaceAt=dam.riverHeight;world.surryArmorPerch=dam.armorPerch;}
   world.geologyGround=shoreFloor?(x,z)=>Math.max(shoreFloor.ground(x,z),shoreFloor(x,z)):null;
-  const updateUplandWoods=uplands?.woods(THREE,scene,world,clock,localDEM);
+  const updateUplandWoods=uplands?.woods(THREE,scene,world,clock,localDEM,bankSurveys);
   if(bankGrowth)world.shoreThickets=bankGrowth;
+  for(const bank of bankSurveys)bank.add(THREE,scene,terrain,(x,z)=>regionalElevation(x,z,false),texture);
   if(landmarkTerrain)world.landformMesh=landmarkTerrain.add(THREE,scene,terrain,(x,z)=>regionalElevation(x,z,false),texture);
   if(easternSummits)world.easternSummits=easternSummits.add(THREE,scene,terrain,(x,z)=>regionalElevation(x,z,false),texture);
   if(harborTerrain){
