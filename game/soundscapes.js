@@ -894,10 +894,13 @@
     const strokes = ['eagle-wing-a', 'eagle-wing-b', 'eagle-wing-c'];
     strokes.forEach(id => load(id));
     load('wind-at-ears');
-    let strokeTurn = null, lastStroke = '';
+    let strokeAt = null, lastStroke = '';
     function wingStroke(s, now) {
-      const turn = Math.floor(((s.phase || 0) - .25) / (2 * Math.PI)), began = strokeTurn !== null && turn > strokeTurn;
-      strokeTurn = turn;
+      // A stroke begins as the wingbeat passes a quarter radian. The phase
+      // wraps every beat, so compare where it is with where it was: a frame
+      // need not land in any particular part of the beat for it to be heard.
+      const at = (((s.phase || 0) - .25) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI), began = strokeAt !== null && at < strokeAt;
+      strokeAt = at;
       const effort = clamp(s.effort || 0, 0, 1.2);
       if (!began || effort < .2) return;
       const ready = strokes.filter(id => id !== lastStroke && buffers.get(id)); if (!ready.length) return;

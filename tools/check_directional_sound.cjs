@@ -268,9 +268,15 @@ async function fly(seed, airspeed = 16) {
   {
     const run = await fly(9), scape = run.scape, started = run.context.started, camera = {position: new run.box.THREE.Vector3(-250, 70, 0), quaternion: new run.box.THREE.Quaternion()};
     const state = {x: -250, y: 70, z: 0, airspeed: 14, effort: .9, phase: 0, elapsed: 0};
-    const strokesIn = seconds => { const from = started.length; for (let t = 0; t < seconds; t += 1 / 30) { run.context.currentTime += 1 / 30; state.phase += 2 * Math.PI * 2.4 / 30; scape.update(state, camera, 1 / 30, {gust: .5, open: 1, exposure: 1}); } return started.slice(from); };
+    // The game keeps the wingbeat phase between 0 and a full turn, so the check does too.
+    const strokesIn = (seconds, fps = 30, beats = 2.4) => { const from = started.length; for (let t = 0; t < seconds - 1e-9; t += 1 / fps) { run.context.currentTime += 1 / fps; state.phase = (state.phase + 2 * Math.PI * beats / fps) % (2 * Math.PI); scape.update(state, camera, 1 / fps, {gust: .5, open: 1, exposure: 1}); } return started.slice(from); };
     const flapping = strokesIn(5).filter(n => /eagle-wing/.test(n)).length;
     assert.ok(flapping >= 11 && flapping <= 13, `five seconds of flapping at 2.4 beats a second gave ${flapping} wing strokes`);
+    // Every beat is heard whatever the frame rate: a take-off at 2.6 beats a second on a slow device and a fast one.
+    for (const fps of [20, 24, 45, 60, 144]) {
+      const heard = strokesIn(10, fps, 2.6).filter(n => /eagle-wing/.test(n)).length;
+      assert.ok(heard >= 25 && heard <= 27, `ten seconds at 2.6 beats a second and ${fps} frames a second gave ${heard} wing strokes, not 26`);
+    }
     state.effort = 0;
     const gliding = strokesIn(5);
     assert.equal(gliding.filter(n => /eagle-wing/.test(n)).length, 0, 'wing strokes were heard on a glide');
