@@ -1511,8 +1511,9 @@ class Water extends Mesh {
     }else{
       // Two triangles spanning 43 km lose depth precision when clipped at
       // the eagle's near plane. Shorter coplanar spans keep the fjord's
-      // waterline attached to the same granite as the camera banks.
-      const divisions=region==='lofoten'?64:1;
+      // waterline attached to the granite. At Thunder Hole they also keep
+      // the lower surface from cutting diagonally through the 4 m surf grid.
+      const divisions=region==='lofoten'||acadia?64:1;
       g=new THREE.PlaneGeometry(farH*2.4,farH*2.4,divisions,divisions);
     }
     const waterColors={acadia:0x101c29,moosehead:0x25505c,winnipesaukee:0x20505e,surry:0x454d49,crater:0x0a3977,milford:0x163d49,lofoten:0x215364};
@@ -1529,11 +1530,11 @@ class Water extends Mesh {
       bedSand:{value:shoreSand},foamCells:{value:saltFoam}
     });
     waterfront?.applyWater(water.material);
-    if(region==='lofoten'){
+    if(region==='lofoten'||acadia){
       // With a shoulder camera centimetres from the feathers, the sea and
       // low coastal rock can share a depth value several kilometres away.
       // The land shader clips below sea level. Resolve the remaining ties
-      // in favor of the exposed rock, including the far side of the fjord.
+      // in favor of exposed rock and the moving film of breaking surf.
       water.renderOrder=-500;
       water.material.polygonOffset=true;
       water.material.polygonOffsetUnits=2;
