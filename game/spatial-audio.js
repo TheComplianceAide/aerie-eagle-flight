@@ -300,16 +300,78 @@ window.makeSpatialAudio = function makeSpatialAudio(context, world, options = {}
     s.distance = d;
   }
 
+  // Where the calls fall in a recording: the stretches that stand above the
+  // quiet between them. Worked out once per recording. Null for a recording
+  // with no gaps to cut at (a colony, a chorus, an insect's whine).
+  const phraseCache = new WeakMap();
+  function phrases(buffer) {
+    if (phraseCache.has(buffer)) return phraseCache.get(buffer);
+    const hop = Math.round(buffer.sampleRate * .01), n = Math.floor(buffer.length / hop), env = new Float32Array(n);
+    const a = buffer.getChannelData(0), b = buffer.numberOfChannels > 1 ? buffer.getChannelData(1) : null;
+    for (let i = 0; i < n; i++) {
+      let sum = 0;
+      for (let j = i * hop, end = j + hop; j < end; j++) { const v = b ? (a[j] + b[j]) * .5 : a[j]; sum += v * v; }
+      env[i] = Math.sqrt(sum / hop);
+    }
+    const sorted = Float32Array.from(env).sort(), loud = sorted[Math.floor(n * .95)] || 0, hiss = sorted[Math.floor(n * .1)] || 0;
+    const gate = Math.max(loud * .06, hiss * 2.2);        // 24 dB under the loud parts and clear of the recording's own hiss
+    const list = []; let start = -1, quiet = 0, voiced = 0;
+    for (let i = 0; i <= n; i++) {
+      if (i < n && env[i] > gate) { if (start < 0) start = i; quiet = 0; }
+      else if (start >= 0 && (i === n || ++quiet >= 16)) {  // 160 ms of quiet ends a call
+        const stop = i - quiet + (i === n ? 0 : 1);
+        if (stop - start >= 4) { list.push([start * .01, stop * .01]); voiced += (stop - start) * .01; }
+        start = -1; quiet = 0;
+      }
+    }
+    // Dense: sound nearly all the way through, with nowhere quiet to cut.
+    // A steady texture (its quietest tenth within 12 dB of its loud parts) counts as dense too.
+    const dense = hiss > loud * .25 || voiced >= .8 * buffer.duration, found = {dense, list: list.length >= 2 && !dense ? list : null};
+    phraseCache.set(buffer, found);
+    return found;
+  }
+  // A different stretch of a recording each time it is heard: it begins at one
+  // call and runs through some of those that follow, so an animal that calls
+  // again does not repeat itself note for note. Null means play it whole.
+  function excerpt(buffer, random = Math.random, anywhere = false) {
+    if (!buffer) return null;
+    const {list, dense} = phrases(buffer), total = buffer.duration;
+    if (!list) {
+      // A dense run of calls, a colony or an insect's whine has no gaps, but
+      // it can begin and end anywhere under a short fade. A single long call
+      // cannot, so the caller says which this is.
+      if (!dense || !anywhere || total < 4.5) return null;
+      const duration = total * (.5 + .45 * random());
+      return {offset: (total - duration) * random(), duration};
+    }
+    const last = list.length - 1, want = total * (.45 + .55 * random());
+    const starts = list.map((p, i) => i).filter(i => list[last][1] - list[i][0] >= Math.min(.35 * total, 1.2));
+    if (!starts.length) return null;
+    const i = starts[Math.floor(random() * starts.length)];
+    let j = i; while (j < last && list[j + 1][1] - list[i][0] <= want) j++;
+    if (i === 0 && j === last) return null;
+    const offset = Math.max(0, list[i][0] - .12), end = Math.min(total, list[j][1] + .18);
+    return {offset, duration: end - offset};
+  }
+
   // One-shot recording at a world position; released after it has fully arrived.
   function play(buffer, position, opt = {}) {
     if (!buffer) return null;
     const src = context.createBufferSource(); src.buffer = buffer;
     src.playbackRate.value = opt.rate || 1;
-    const s = createSource(src, Object.assign({}, opt, position));
-    const end = (opt.offset ? buffer.duration - opt.offset : buffer.duration) / src.playbackRate.value;
+    const length = opt.duration ?? buffer.duration - (opt.offset || 0), end = length / src.playbackRate.value;
+    let node = src;
+    if (opt.offset > 0 || opt.duration > 0) {
+      // A cut inside a recording is faded at both ends, so its background does not click in and out.
+      const cut = context.createGain(), t0 = context.currentTime + (opt.when || 0);
+      cut.gain.setValueAtTime(0, t0); cut.gain.linearRampToValueAtTime(1, t0 + .06);
+      cut.gain.setValueAtTime(1, t0 + Math.max(.06, end - .1)); cut.gain.linearRampToValueAtTime(0, t0 + Math.max(.07, end));
+      src.connect(cut); node = cut;
+    }
+    const s = createSource(node, Object.assign({}, opt, position));
     src.start(context.currentTime + (opt.when || 0), opt.offset || 0, opt.duration);
     s.source = src;
-    src.onended = () => setTimeout(() => s.release(), (s.maxDelay + .5) * 1000);
+    src.onended = () => { if (node !== src) try { src.disconnect(); } catch (e) {} setTimeout(() => s.release(), (s.maxDelay + .5) * 1000); };
     s.endsAt = context.currentTime + (opt.when || 0) + end;
     // A caller can fall silent mid-phrase (a songbird as the eagle closes in).
     s.stop = (fade = .3) => {
@@ -349,7 +411,7 @@ window.makeSpatialAudio = function makeSpatialAudio(context, world, options = {}
   }
   function setSurveyPath(fn) { surveyPath = fn; }
   return {
-    context, output: mixOut, mixGain: final, play, loop, setHeadProfile, setRaptorHearing, get profile() { return profile; }, update, setImpulse, setSurveyPath, absorption, airCutoff, setClimate, climate,
+    context, output: mixOut, mixGain: final, play, loop, excerpt, phrases: buffer => phrases(buffer).list, setHeadProfile, setRaptorHearing, get profile() { return profile; }, update, setImpulse, setSurveyPath, absorption, airCutoff, setClimate, climate,
     get speed() { return SPEED; }, ear, order, get walls() { return walls; }, get ready() { return rendererReady; }, get count() { return live.size; },
     setMasker, get masker() { return masker; }, get sources() { return live; }
   };

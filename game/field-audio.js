@@ -429,8 +429,11 @@
         // simulated reverberation are applied by the spatial engine.
         // The voice belongs to one individual: the visible animal it follows, or a fixed site.
         const who=anchor.actor?id+' animal '+(actorIds.get(anchor.actor)??(actorIds.set(anchor.actor,++actorCount),actorCount)):id+' site '+Math.round(anchor.x)+','+Math.round(anchor.z);
+        // An animal that calls again gives a different run of its calls, at a slightly different pitch.
+        // A mammal's single long call is never cut into; a bird's dense chatter can start anywhere.
+        const part=scape.engine.excerpt?.(buffer,Math.random,!id.startsWith('land-'));
         const s=scape.engine.play(buffer,{x:anchor.x,y:anchor.y,z:anchor.z},{label:id,id:who,follows:!!anchor.actor,gain:gain*1.1,ref:clamp(anchor.reach*.18,12,95),
-          reach:anchor.reach*1.3,wet:.42,echo:anchor.reach>=220,rate:random(.982,1.015)});
+          reach:anchor.reach*1.3,wet:.42,echo:anchor.reach>=220,rate:random(.965,1.035),offset:part?.offset,duration:part?.duration});
         if(s&&anchor.actor)s.onUpdate=()=>{s.x=anchor.actor.x;s.y=anchor.actor.y;s.z=anchor.actor.z;};
         // A songbird or frog that is already singing stops if the eagle closes inside its hush radius.
         if(s&&hushOf(id))scape.hush?.(s,hushOf(id));
