@@ -50,9 +50,11 @@ function page() {
   });
 }
 function makeContext() {
-  const ctx = {sampleRate: 8000, currentTime: 0, destination: node(), state: 'running',
+  const started = [];          // every recording or generated buffer as it starts
+  const source = () => { const n = node(); n.start = () => started.push(n.buffer?.name || 'generated'); return n; };
+  const ctx = {sampleRate: 8000, currentTime: 0, destination: node(), state: 'running', started, createBufferSource: source,
     createBuffer: (channels, length, rate) => ({numberOfChannels: channels, length, sampleRate: rate, duration: length / rate, getChannelData: () => new Float32Array(length)}),
-    decodeAudioData: async data => ({name: data.name, duration: 5, length: 40000, sampleRate: 8000, numberOfChannels: 1, getChannelData: () => new Float32Array(40000)})};
+    decodeAudioData: async data => ({name: data.name, duration: 5, length: 40000, sampleRate: 8000, numberOfChannels: /wind-at-ears/.test(data.name) ? 2 : 1, getChannelData: () => new Float32Array(40000).fill(.1)})};
   return new Proxy(ctx, {get: (t, k) => k in t ? t[k] : typeof k === 'string' && k.startsWith('create') ? node : undefined});
 }
 
@@ -260,9 +262,26 @@ async function fly(seed, airspeed = 16) {
     assert.ok(cut !== null && cut > 30 && cut < 47, `the ovenbird should stop as the eagle closes to its hush radius (stopped at ${cut && cut.toFixed(1)} m)`);
   }
 
+  // The eagle's own wings and wind. One recorded stroke a wingbeat while it
+  // flaps and none on a glide; the wind at the ears is the recording; and
+  // nothing synthesised is played with ordinary hearing.
+  {
+    const run = await fly(9), scape = run.scape, started = run.context.started, camera = {position: new run.box.THREE.Vector3(-250, 70, 0), quaternion: new run.box.THREE.Quaternion()};
+    const state = {x: -250, y: 70, z: 0, airspeed: 14, effort: .9, phase: 0, elapsed: 0};
+    const strokesIn = seconds => { const from = started.length; for (let t = 0; t < seconds; t += 1 / 30) { run.context.currentTime += 1 / 30; state.phase += 2 * Math.PI * 2.4 / 30; scape.update(state, camera, 1 / 30, {gust: .5, open: 1, exposure: 1}); } return started.slice(from); };
+    const flapping = strokesIn(5).filter(n => /eagle-wing/.test(n)).length;
+    assert.ok(flapping >= 11 && flapping <= 13, `five seconds of flapping at 2.4 beats a second gave ${flapping} wing strokes`);
+    state.effort = 0;
+    const gliding = strokesIn(5);
+    assert.equal(gliding.filter(n => /eagle-wing/.test(n)).length, 0, 'wing strokes were heard on a glide');
+    assert.ok(started.some(n => /wind-at-ears/.test(n)), 'the wind at the ears should be the recording');
+    assert.equal(gliding.filter(n => n === 'generated').length, 0, 'something synthesised was played with ordinary hearing');
+  }
+
   const lee = legs.shelter.slice(60), kept = rows => mean(rows.flatMap(r => r.live.filter(s => s.arrived > 0).map(s => s.heard / s.arrived)));
   console.log(`Passed directional sound: ${callers.length} caller posts, ${again.length} heard again from the same post on the return, ${followed} of ${songs} songs with the last singer in earshot were its own, ${patchesAgain} of ${patches.length} cricket patches found again; ` +
     `rock screening ${shieldOpen.toFixed(2)} open, ${shieldLee.toFixed(2)} in the lee; wind masker ${maskOpen.toFixed(4)} open, ${maskLee.toFixed(4)} lee ` +
     `(level kept ${(100 * kept(legs.approach)).toFixed(0)}% open, ${(100 * kept(lee)).toFixed(0)}% lee).`);
+  console.log('Passed the eagle\'s own sound: a recorded wing stroke each beat, recorded wind, nothing synthesised in ordinary hearing.');
   console.log(`Audio update cost: ${first.microseconds.toFixed(1)} microseconds a frame over ${first.frames} frames (node, no rendering).`);
 })().catch(error => { console.error(error); process.exit(1); });
