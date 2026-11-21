@@ -204,7 +204,10 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
   // steering the gaze. Perched hawks change head position about 21 times a
   // minute (O'Rourke et al. 2010, PLoS ONE 5:e12169) and eagles pause longer;
   // the pauses follow a log-normal distribution (Ochs et al. 2017, Auk 134).
-  // Here the median pause is 3 s, about 16 head movements a minute.
+  // Here the median pause is 3 s, about 16 head movements a minute. The turns
+  // themselves are timed from frame counts of a perched bald eagle in U.S.
+  // Fish and Wildlife Service footage: 60 to 70 degrees takes 0.23 to 0.30 s,
+  // and the head then holds dead still.
   const scan = {yaw: 0, pitch: 0, fromY: 0, fromP: 0, toY: 0, toP: 0, t: -1, dur: .12, next: rand(1, 3), gain: 0, quiet: 0, lastY: 0, lastP: 0};
   const UP = new THREE.Vector3(0, 1, 0), SIDE = new THREE.Vector3(1, 0, 0), scanQ = new THREE.Quaternion();
   function updateScan(time, step, perched, air, busy) {
@@ -216,11 +219,11 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
     scan.gain += (want - scan.gain) * (1 - Math.exp(-step / (want ? .5 : .15)));
     if (want && scan.t < 0 && time >= scan.next) {
       scan.fromY = scan.yaw; scan.fromP = scan.pitch;
-      scan.toY = clamp(.55 * gauss() - .25 * scan.yaw, -1, 1);
+      scan.toY = clamp(.7 * gauss() - .3 * scan.yaw, -1.2, 1.2);
       const r = Math.random();
       scan.toP = r < .7 ? rand(-.45, -.05) : r < .85 ? rand(-.05, .05) : rand(.1, .3);
       const span = Math.hypot(scan.toY - scan.fromY, scan.toP - scan.fromP);
-      scan.dur = .08 + .07 * span; scan.t = 0;
+      scan.dur = .10 + .15 * span; scan.t = 0;
       scan.next = time + scan.dur + clamp(3 * Math.exp(.6 * gauss()), .35, 12) * (1 + 2 * drowsy);
     }
     if (scan.t >= 0) {
