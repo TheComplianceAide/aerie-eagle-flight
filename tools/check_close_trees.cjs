@@ -15,6 +15,7 @@ global.fetch = async name => new Response(await fs.readFile(path.join(game, name
 THREE.TextureLoader.prototype.loadAsync = async () => new THREE.Texture();
 require('../game/moosehead-crowns.js');
 require('../game/close-tree-detail.js');
+require('../game/close-bark-material.js');
 require('../game/canopy-stream.js');
 
 const renderer = { capabilities: { isWebGL2: false, getMaxAnisotropy: () => 1 } };
