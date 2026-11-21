@@ -540,12 +540,14 @@ class Water extends Mesh {
     if(dixville)return base; // This outer survey already resolves the 3DEP ridges.
     const shore=settings.water===undefined?1:smoothstep(base-settings.water,2,25);
     const result=base+shore*window.rangeRelief(region,x,z);
-    return marineBed?marineBed(x,z,result):result;
+    return marineBed?marineBed(x,z,result):cabert?cabert.pondBed(x,z,result):result;
   }
   const tableHeight=dixville?window.dixvilleTableHeight:null;
   let ship=null;
   const kineo=region==='moosehead'?window.kineoSurvey:null;
   const landmarkTerrain=window.aerieRegionalLandforms?.get(region);
+  const cabertTerrain=region==='labrador'?window.aerieRegionalLandforms.get('cabert'):null;
+  const cabert=cabertTerrain?window.makeCabertProfile():null;
   const harborTerrain=region==='lofoten'?window.aerieRegionalLandforms.get('hamnoy'):null;
   const reineWall=region==='lofoten'?window.aerieRegionalLandforms.get('reinebringen'):null;
   const reineTerrain=region==='lofoten'?window.aerieRegionalLandforms.get('reine'):null;
@@ -560,7 +562,7 @@ class Water extends Mesh {
   const namedBays=window.aerieLakeBankSites?.[region]||[];
   const bankSurveys=namedBays.map(name=>window.aerieRegionalLandforms.get(name)).filter(Boolean);
   const cityPark=surry?window.keeneRiverPark:null;
-  const measuredTerrain=[landmarkTerrain,harborTerrain,easternSkerries,reineWall,reineTerrain,easternSummits,yosemiteFallsTerrain,cityPark,...bankSurveys,...craterAreas,...offshore].filter(Boolean);
+  const measuredTerrain=[landmarkTerrain,cabertTerrain,harborTerrain,easternSkerries,reineWall,reineTerrain,easternSummits,yosemiteFallsTerrain,cityPark,...bankSurveys,...craterAreas,...offshore].filter(Boolean);
   function bayAt(x,z){
     for(const bank of bankSurveys){
       const [l,t,r,b]=bank.rect;
@@ -578,6 +580,7 @@ class Water extends Mesh {
     }
     const native=regionalElevation(x,z,includeIslet);
     let base=landmarkTerrain?landmarkTerrain.height(x,z,native):native;
+    if(cabertTerrain)base=cabertTerrain.height(x,z,base);
     if(harborTerrain)base=harborTerrain.height(x,z,base);
     if(cityPark)base=cityPark.height(x,z,base);
     if(reineWall)base=reineWall.height(x,z,base);
@@ -614,6 +617,7 @@ class Water extends Mesh {
       const edge=Math.min(x+435,165-x,z-1502,1934-z);
       val=lerp(val,Math.max(val,settings.water+.16),smoothstep(edge,0,20));
     }
+    if(cabert)val=cabert.pondBed(x,z,val);
     if(marineBed)return marineBed(x,z,val);
     if(region!=='crater')return val;
     const bed=shoreDetail.calderaBed(x,z,val);
@@ -1803,6 +1807,7 @@ class Water extends Mesh {
   const inLake=makeAtlasWorld.indexLakeOutline(survey.shore,survey.shoreHoles);
   const birchCover=region==='lofoten'?window.aerieLandClassSampler(region):null;
   function wetGround(x,z,y,margin){
+    if(cabert&&y<cabert.at(x,z)+margin)return true;
     if(dixville)return y<settings.water+margin&&inLake(x,z);
     if(!surry)return y<(settings.water??-1000)+margin;
     return (y<settings.water+margin&&inLake(x,z))||Number.isFinite(dam.riverHeight(x,z));
@@ -1814,6 +1819,7 @@ class Water extends Mesh {
     if(craterAreas.length&&!tree.measuredCrater&&craterAreaAt(tree.x,tree.z)?.edge(tree.x,tree.z)>.40)return;
     if(bankHabitat&&!measuredBank&&bankHabitat.ownsTree(tree.x,tree.z))return;
     if(acadia&&window.acadiaSandOpening(tree.x,tree.z))return;
+    if(cabert&&!tree.measuredCabert&&cabert.ownsCrowns(tree.x,tree.z))return;
     if(survey.inBerteCanopy&&!tree.measuredBerte&&survey.inBerteCanopy(tree.x,tree.z))return;
     if(acadia&&window.thunderHoleBareLedge(tree.x,tree.z))return;
     // Heath and coastal grass are green in the imagery too. Only mapped tree
@@ -1841,6 +1847,7 @@ class Water extends Mesh {
     plant({x,z,y:elevation(x,z),height,width,seed:((x*.618034+z*.381966)%1+1)%1,measuredCrater:true},true);
   }
   cityPark?.plantCrowns(plant,elevation);
+  if(cabert)for(const tree of cabert.crowns){tree.y=elevation(tree.x,tree.z);plant(tree,true);}
   const reineCrowns=reineTerrain?[...window.aerieReineHarbor.crowns,...(window.aerieReinevatnet?.crowns||[])]:[];
   for(const [x,z,height,width] of reineCrowns){
     plant({x,z,y:elevation(x,z),height,width,seed:((x*.618034+z*.381966)%1+1)%1,measuredReine:true},false);
@@ -1928,7 +1935,10 @@ class Water extends Mesh {
   }
   function height(x,z){
     if(settings.water===undefined)return elevation(x,z);
-    const ground=Math.max(elevation(x,z),reinevatnet?.at(x,z)??-Infinity,dam?.riverHeight(x,z,true)??-Infinity,shoreFloor?.(x,z)??-Infinity,cabin?.padHeight(x,z)??-Infinity);
+    const ground=Math.max(elevation(x,z),cabert?.at(x,z)??-Infinity,reinevatnet?.at(x,z)??-Infinity,dam?.riverHeight(x,z,true)??-Infinity,shoreFloor?.(x,z)??-Infinity,cabin?.padHeight(x,z)??-Infinity);
+    if(lightStations?.seaSurface&&ground<settings.water+1){
+      return Math.max(ground,lightStations.seaSurface(x,z,clock.value));
+    }
     return ground<settings.water+.16&&inLake(x,z)?settings.water+.16:ground;
   }
   const bankGrowth=region==='moosehead'?window.makeMooseheadBankGrowth(THREE,scene,{survey,
@@ -1971,7 +1981,8 @@ class Water extends Mesh {
     landmarks=landmarks.map(p=>p.name==='Thunder Hole'?{...p,approach:[32,-57,71,-25,6,0,16]}:p);
     if(lightStations)landmarks.push(
       {name:'Egg Rock Light',x:4038.7,z:-3787.1,approach:[3940,-3739,4042,-3795,28,1,7]},
-      {name:'Baker Island Light',x:-693.13,z:8792.34,approach:[-784,8714,-678,8802,22,0,7]}
+      {name:'Baker Island Light',x:-693.13,z:8792.34,approach:[-784,8714,-678,8802,22,0,7]},
+      {name:"Baker Island Dance Floor",x:-478,z:9215,approach:[-411,9174,-506,9219,10,-1,7]}
     );
   }
   if(region==='lofoten'){
@@ -1983,6 +1994,7 @@ class Water extends Mesh {
     landmarks.push({name:'Reine stockfish racks',x:2168,z:4360,approach:[2295,4334,2168,4360,24,0,10]});
     landmarks.push({name:'Olstinden',x:1570,z:1780,approach:[2570,2250,1570,1780,370,0,2]});
   }
+  if(roofHeight?.colony)landmarks=[...landmarks,roofHeight.colony.landmark];
   if(brook)landmarks=[...landmarks,{name:brook.name}];
   if(ship)landmarks=landmarks.map(mark=>mark.name===ship.mark.name?ship.mark:mark);
   if(footbridge)landmarks=[...landmarks,footbridge.landmark];
@@ -1993,6 +2005,8 @@ class Water extends Mesh {
     const {cabin:porch,rainbow}=settings.extraLaunches;
     landmarks=landmarks.map(mark=>mark.x===survey.cabin.x&&mark.z===survey.cabin.z?{...mark,approach:porch}:mark);
     landmarks.push(campPlane.landmark);
+    if(cabert)landmarks.push({name:'Lac Cabert outlet',x:-3509,z:1456,approach:[-3468,1481,-3560,1423,34,-1,15]},
+      {name:'Lac Cabert headwater',x:-3917,z:1175,approach:[-3780,1320,-3917,1175,32,-2,12]});
     landmarks.push({name:'Rainbow overlook',x:rainbow[0],z:rainbow[1],approach:rainbow});
   }
   function blockVegetationAt(x,z,y=elevation(x,z)){
@@ -2042,6 +2056,13 @@ class Water extends Mesh {
   for(const coastalSurvey of [harborTerrain,easternSkerries,reineTerrain]){
     if(!coastalSurvey)continue;
     const harbor=coastalSurvey.add(THREE,scene,terrain,(x,z)=>regionalElevation(x,z,false),texture);
+    if(coastalSurvey===harborTerrain){
+      window.fitHamnoyTidalWater(THREE,water,harbor);
+      // The lidar resolves the landing rock on the outer shore. Use its
+      // actual top for talon contact as the eagle follows the tide line.
+      world.surveyedPerchShelf={label:'Hamnøy tidal ledge',
+        height:harborTerrain.surfacePatch(3867,3146,117,(x,z)=>regionalElevation(x,z,false))};
+    }
     harbor.traverse(mesh=>{if(mesh.isMesh)shoreDetail.terrainEdges(mesh.geometry,false);});
   }
   if(kineo){world.kineoTerrainMaterial=terrain;world.kineoBase=(x,z)=>regionalElevation(x,z,false);}
@@ -2052,6 +2073,11 @@ class Water extends Mesh {
     // inset clones it, otherwise its rectangular edge cuts through the woods.
     world.landformMesh=addLocalLandform();
     world.berteCanopyAir=window.berteCanopyAir(terrain.uniforms);
+    if(cabert){
+      cabertTerrain.add(THREE,scene,terrain,(x,z)=>regionalElevation(x,z,false),texture);
+      world.cabertOutlet=window.addCabertOutlet(THREE,scene,cabert,texture,skyMap,sun,clock,elevation);
+      world.cabertOutlet.profile=cabert;world.blocksInfillTree=(x,z)=>cabert.ownsCrowns(x,z)||Number.isFinite(cabert.at(x,z));
+    }
   }
 
   if(localDEM){

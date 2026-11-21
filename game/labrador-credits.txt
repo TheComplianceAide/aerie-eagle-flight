@@ -30,3 +30,18 @@ Manufacturer’s drawing, Viking Air Limited, reproduced by the NTSB on page 4: 
 Canada Aviation and Space Museum, DHC-3 Otter: https://ingenium.ca/aviation/en/collection-highlight/de-havilland-canada-dhc-3-otter/
 Pourvoirie Manicouagan, Lac Berté fishing package and floatplane transfer: https://labrador-airsafari.com/en/fishing/fishing-packages
 Otter Archive, Labrador Air Safari photographs of DHC-3 c/n 353 by Anthony J. Hickey (Baie-Comeau, April 1993) and Karl E. Hayes (Baie-Comeau, May 2001), independently used as type and livery references: https://www.dhc-3archive.com/DHC-3_353.html
+
+Lac Cabert outlet · Côte-Nord
+The province maps a 682.09 m permanent, second-order stream that drains Lac Cabert into the southwest shore of Lac Berté. Its outlet is near 50.73707° N, 68.55583° W, and its mouth reaches Lac Berté near 50.73405° N, 68.54799° W. The geographic names authority identifies the upper lake as Lac Cabert. “Lac Cabert outlet” and “Lac Cabert headwater” describe the game approaches. The stream has no registered name in the source record.
+
+Gouvernement du Québec, ministère des Ressources naturelles et des Forêts and ministère de l’Environnement, de la Lutte contre les changements climatiques, de la Faune et des Parcs. Adapted the Géobase du réseau hydrographique du Québec (GRHQ) watercourse 17617331 and lake polygon 4477454, the 2022 Côte-Nord summer airborne RGB image, and bare-earth and canopy lidar on sheet 22K10NE. CC BY 4.0. The model fits the line to an under-canopy trough and samples terrain every two metres. Treetop returns and source colours estimate the reflected banks. Positive bed roughness guides larger mineral bars. The submerged profile, smaller clasts, water stage, foam and flow speed are reconstructed.
+https://www.donneesquebec.ca/recherche/dataset/grhq
+https://servicescarto.mrnf.gouv.qc.ca/pes/rest/services/Territoire/GRHQ_WMS/MapServer/15/query?objectIds=17617331&outFields=*&returnGeometry=false&f=pjson
+https://www.donneesquebec.ca/recherche/dataset/imagerie-orthorectifiee-du-quebec
+https://www.donneesquebec.ca/recherche/dataset/produits-derives-de-base-du-lidar
+https://creativecommons.org/licenses/by/4.0/
+https://toponymie.gouv.qc.ca/ct/ToposWeb/Fiche.aspx?no_seq=180835
+https://diffusion.mern.gouv.qc.ca/public/diffusion/RGQ/Matriciel/Carte_Topo/Local/BDTQ/PDF/22k10202.pdf
+
+The small gravel and stone materials reuse the game's CC0 photographed surface analogues credited in credits.txt. The muskeg and spruce cover follow the regional site description.
+https://www.environnement.gouv.qc.ca/biodiversite/reserves-bio/berte/depliant-berte.pdf

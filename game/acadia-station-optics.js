@@ -37,7 +37,11 @@ window.acadiaNavigationLamp=function acadiaNavigationLamp(T,scene,id,station){
 };
 
 window.acadiaIslandSurface=function acadiaIslandSurface(shader,localUV,sampler){
-  return shader.replace('photo=mix(photo,vec3(lum(photo)),arctic*.27);',`
+  return shader.replace('if(wp.y<shoreLevel+.001)discard;', `
+      bool waveLedge=(wp.x>3938.&&wp.x<4087.&&wp.z>-3959.&&wp.z< -3740.)||
+                     (wp.x> -604.&&wp.x< -344.&&wp.z>9128.&&wp.z<9298.);
+      if(wp.y<shoreLevel+(waveLedge ? -.80 : .001))discard;`)
+    .replace('photo=mix(photo,vec3(lum(photo)),arctic*.27);',`
       // Beyond the mainland atlas boundary the regional photograph blends to
       // the distant panorama. The island surveys have their own geographic UVs.
       photo=mix(photo,texture2D(${sampler},${localUV}).rgb,landformHorizon.w);

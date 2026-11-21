@@ -16,11 +16,12 @@ window.addRegionalWildlife=function(T,scene,w){
   }
   let lakeOffset=0;
   scene.traverse(o=>{if(o.isWater&&Number.isFinite(w.waterLevel))lakeOffset=o.position.y-w.waterLevel;});
-  function waterAt(x,z){
+  function waterAt(x,z,t){
     const channel=w.channelWater?.(x,z);
     if(Number.isFinite(channel))return channel;
     const y=ground(x,z);
     if(!h.wet(x,z,y))return -Infinity;
+    if(w.acadiaLights?.seaSurface&&Number.isFinite(t))return w.acadiaLights.seaSurface(x,z,t);
     return Number.isFinite(w.waterLevel)?w.waterLevel+lakeOffset:h.surface(x,z);
   }
   function findWater(x,z,radius){
@@ -44,6 +45,7 @@ window.addRegionalWildlife=function(T,scene,w){
     return null;
   }
   const ripples=window.makeFishRipples(T,scene,w,waterAt);
+  const eggRock=region==='acadia'?window.makeAcadiaHarborSeals?.(T,scene,w,waterAt,ripples.emit):null;
   const fish=window.makeFishSchools(region,waterAt,ripples.emit),sites=new Map(),dormantSites=new Map();
   const social={
     'barred-owl':[1,1],'harbor-seal':[1,2],loon:[1,2],goose:[5,15],nene:[2,5],mallard:[3,12],'black-duck':[2,8],'wood-duck':[2,6],
@@ -74,6 +76,7 @@ window.addRegionalWildlife=function(T,scene,w){
       base=findDry(x,z,105)||((seabird||skin==='heron')?site.water:null);
     }else base=findDry(x,z,site.curated?150:65,goose||hab==='meadow');
     if(!base)return;
+    if(skin==='harbor-seal'&&eggRock?.contains(base.x,base.z))return;
     if(skin==='harbor-seal'&&(base.y>w.waterLevel+3.5||Math.hypot(base.x-site.water.x,base.z-site.water.z)>40))return;
     if(skin==='norwegian-sheep'&&(base.y<.4||base.y>330))return;
     if(skin==='alpine-marmot'&&base.y+(w.altitudeOffset||0)<1550)return;
@@ -156,6 +159,14 @@ window.addRegionalWildlife=function(T,scene,w){
       }
     }
     resident=makeSite('shallows',pick.x,pick.z,true);
+    // Adult sockeye hold in Steep Creek's tributary current and can be seen
+    // from the elevated salmon platforms. The lake's resident site remains alive.
+    if(w.steepCreek)for(const [x,z] of w.steepCreek.fish){
+      const key='steep-creek:'+x+','+z,schoolSite={key,x,z,curated:true,flocks:[],schools:[]};
+      const station={x,z,findWater,stream:w.steepCreek.holding};
+      schoolSite.schools=fish.populate(station,randomAt(x,z),true,['sockeye']);
+      if(schoolSite.schools.length)sites.set(key,schoolSite);
+    }
     if(region==='acadia'){
       // A low intertidal haul-out on Boulder Beach and a hunting perch at the
       // wooded rim of Newport Cove both sit outside the open-water eider raft.
@@ -336,6 +347,11 @@ window.addRegionalWildlife=function(T,scene,w){
         if(d<best){best=d;out=a;}
       }
     }
+    if(id==='harbor-seal'&&eggRock)for(const a of visibleSubjects){
+      if(a.id!==id||!eggRock.contains(a.x,a.z))continue;
+      const d=(p.x-a.x)**2+(p.y-a.y)**2+(p.z-a.z)**2;
+      if(d<best){best=d;out=a;}
+    }
     return out?{x:out.x,y:out.y,z:out.z,actor:out}:null;
   }
   // Only animals drawn in the preceding frame can attract a passing eagle.
@@ -420,6 +436,7 @@ window.addRegionalWildlife=function(T,scene,w){
         makeSite(key,ix*310,iz*310,false);
     }
     visibleSubjects.length=0;rendered.length=0;
+    if(eggRock)for(const a of eggRock.update(player,t)){rendered.push(a);visibleSubjects.push(a);}
     if(land)for(const a of land.update(player,t)){rendered.push(a);visibleSubjects.push(a);}
     models.begin(t);
     for(const site of sites.values()){
@@ -463,7 +480,9 @@ window.addRegionalWildlife=function(T,scene,w){
             if(Number.isFinite(level)){
               const gain=1-Math.exp(-absence*.1);
               const px=a.x+(x-a.x)*gain,pz=a.z+(z-a.z)*gain,py=waterAt(px,pz);
-              if(Number.isFinite(py)){a.x=px;a.z=pz;a.level=py;}
+              if(Number.isFinite(py)&&(!school.stream||school.stream.depth(px,pz)>=a.length*.36)){
+                a.x=px;a.z=pz;a.level=py;
+              }
             }
           }
         }

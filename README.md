@@ -21,7 +21,9 @@ The source is public for noncommercial play, study, modification and sharing. Co
 
 *Pick a world and a launch point. At Moosehead Lake, the Mount Kineo cliffs launch puts you above the water facing the headland.* [Open the flight menu](https://aerie-valley-flight.randyb308826.chatgpt.site/#world=moosehead&launch=lake)
 
-[Fly Acadia at night](https://aerie-valley-flight.randyb308826.chatgpt.site/#world=acadia&launch=lake). Start at Otter Cliff under the Milky Way, turn into Thunder Hole for the surf, or follow Sand Beach toward Great Head.
+Start at Otter Cliff under the Milky Way. Open **Explore landmarks** to skim breaking waves at Baker Island’s Dance Floor or find the harbor seals on Egg Rock’s western ledge. [Fly Acadia at night](https://aerie-valley-flight.randyb308826.chatgpt.site/#world=acadia&launch=lake)
+
+At Mendenhall, follow Steep Creek alongside the viewing platforms and turn on **Game Vision** to spot sockeye in the shallows. At Lac Berté, follow the outlet from Lac Cabert downhill and listen for riffles as the stream crosses rock. [Fly Mendenhall](https://aerie-valley-flight.randyb308826.chatgpt.site/#world=alaska&launch=lake) · [Fly Lac Berté](https://aerie-valley-flight.randyb308826.chatgpt.site/#world=labrador&launch=rainbow)
 
 ## How the world works
 

@@ -127,3 +127,15 @@ Coordinates use LV95 E2622000/N1150000 and 1,574.9 m LN02 as the simulation orig
 | `full-61888645.jpg` | `e4b9585e3971ef100c7513ca14a55636bae1b43c4b424ac65b6793f48e93bd1f` |
 | `full-60724717.jpg` | `2a35b93e8d8477043854d3ee21efa78b2d01a34131de333df663821e50456234` |
 | `full-120320903.jpg` | `15b03d747224775011db564d3648da936a695f5b16ba44fbd45e306716484f1c` |
+
+### Lac Cabert outlet
+
+Rebuild the lidar corridor, 2022 ortho, 341 flow stations, reflected terrain and crown atlas with `python tools/geology/field-sites/bake_cabert_outlet.py --cache /path/to/cabert/cache --game game`. The bake uses the scientific Python packages above, requests and scikit-image. The original Lac Berté regional terrain in the game directory supplies the longer upper-lake sightlines. Source records, datum, adaptations and licence appear in `game/labrador-credits.txt`.
+
+On macOS, `python tools/geology/field-sites/bake_cabert_audio.py --cache /path/to/cabert/cache --game game` rebuilds the two monaural AAC loops from the credited CC0 Mont-Bélair field recording via NumPy, SciPy and Audio Toolbox. Positional mixing uses the observed steep reaches in the channel profile. The heights and geographic positions are real. Discharge and small clasts are inferred.
+
+### Colony’s Block in downtown Keene
+
+Run `python tools/geology/field-sites/bake_keene_colony.py --cache /path/to/cache --game game` using Pillow, NumPy, SciPy, requests and rasterio. This reproduces the brick and sash image, photographic normal relief, three separately rectified mansards, their slate fields, separate photographic strips from the adjoining façades, a 7 × 7 relative roof-height lookup and the two immediate roof junctions. The material and mesh code in `game/keene-colony-block.js` cuts individual glazing wells out of the projected wall, projects dormers ahead of each sloped roof and uses rendered roof triangles for collision. The rear roof and its physical duct bank use the existing Keene ortho registration. The wall follows the city footprint at its NPS-recorded width of 63.7 feet.
+
+The original photograph by Ymblanter and the five adapted WebP maps are licensed under CC BY-SA 3.0. Full links, authorship, modifications and survey sources are in `game/keene-colony-credits.txt`. The five WebP derivatives also carry XMP attribution. For this release the SHA-256 of the photograph is `dd8fb3013911d59e44a76d87d9ec7bfd236aa8aef7a521f54e93027a507a962c`. The 142 × 174 export of the NH GRANIT normalized digital surface model used for the small roof table was `1af8cb02bb8bc11eb69d7a96a5eeec0216fe7958b873272ab2d48f39a3a2d168`.

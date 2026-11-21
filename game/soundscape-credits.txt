@@ -391,6 +391,10 @@ Excerpt: 30.00 to 62.00 seconds; loop seam crossfaded; rumble removed; level mat
 
 LAC BERTÉ
 
+scape-cabert-brook.m4a and scape-cabert-sill.m4a — “stream.wav” by MarleneAyni. A small stream at Mont-Bélair, Québec, recorded with a Zoom H4n. Published 13 July 2021, CC0 1.0. This Québec field recording is a regional analogue for the unnamed Lac Cabert outlet. The 1.65–21.30 and 25.10–47.80 second excerpts were folded to mono, band-limited, level matched and crossfaded for independent 3D loop sources at three measured drops along the channel.
+https://freesound.org/people/MarleneAyni/sounds/580324/
+https://creativecommons.org/publicdomain/zero/1.0/
+
 scape-labrador-rain-on-lake.m4a — “Kevyt sade veden pintaan / Light rain on surface of a lake, water.” YleArkisto (Yle, Finnish Broadcasting Company). Eno, North Karelia, Finland, 17 Jul 1980. CC BY 4.0.
 https://freesound.org/people/YleArkisto/sounds/248282/
 https://creativecommons.org/licenses/by/4.0/

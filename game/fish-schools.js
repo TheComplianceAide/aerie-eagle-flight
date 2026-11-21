@@ -28,13 +28,16 @@ window.makeFishSchools=function(region,waterAt,disturb){
       const size=short+(long-short)*random(),count=lo+Math.floor((hi-lo+1)*random()**1.45);
       const offset=j*(curated?5.2:8),home=site.findWater(site.x+Math.sin(j*2.4)*offset,site.z+Math.cos(j*2.4)*offset,9);
       if(!home)continue;
-      const members=[],direction=random()*tau,spacing=gap*size;
-      const school={skin,home,members,spacing,cruise,phase:random()*tau,direction};
+      const members=[],direction=site.stream?site.stream.upstream(home.x,home.z):random()*tau,spacing=gap*size;
+      const school={skin,home,members,spacing,cruise,phase:random()*tau,direction,stream:site.stream};
       for(let k=0;k<count;k++){
         const r=spacing*Math.sqrt(k)*.91,a=k*2.4+random()*.3;
         const x=home.x+r*Math.cos(a),z=home.z+r*Math.sin(a),level=waterAt(x,z);
         if(!Number.isFinite(level))continue;
-        const length=size*(.88+random()*.24),depth=length*(.62+random()*.9),phase=random()*tau;
+        const length=size*(.88+random()*.24),preferred=length*(.62+random()*.9),phase=random()*tau;
+        const space=site.stream?.depth(x,z);
+        if(site.stream&&space<length*.36)continue;
+        const depth=site.stream?Math.min(preferred,space-length*.16):preferred;
         const residentId=region+'/school/'+home.x.toFixed(2)+','+home.z.toFixed(2)+'/'+skin+'/'+k;
         members.push({skin,residentId,x,z,y:level-depth,depth,level,length,heading:direction+random()*.25,pitch:0,bank:0,
           speed:cruise*length,phase,mode:0,effort:.3,seed:random()*tau,scare:0,lastSwirl:-Infinity,offsetX:x-home.x,offsetZ:z-home.z});
@@ -47,7 +50,7 @@ window.makeFishSchools=function(region,waterAt,disturb){
     const {members,home,spacing,cruise}=school,d=school.direction;
     // A holding trout faces a small current. Shoaling fish follow a meandering
     // feeding front. Neighbours transmit a turn with a slight individual delay.
-    const travel=members.length>4?3.2:1.6;
+    const travel=school.stream?.38:members.length>4?3.2:1.6;
     const cx=home.x+travel*Math.sin(t*.086+school.phase),cz=home.z+travel*.72*Math.sin(t*.113+school.phase*.7);
     const leader=members[0],heading=leader.heading;
     for(let i=0;i<members.length;i++){
@@ -56,6 +59,9 @@ window.makeFishSchools=function(region,waterAt,disturb){
       a.scare=Math.max(threat?1:0,a.scare-dt*.65);
       const tx=cx+a.offsetX+.6*Math.sin(t*.27+a.seed),tz=cz+a.offsetZ+.55*Math.cos(t*.19+a.seed);
       let vx=tx-a.x,vz=tz-a.z;
+      // A spawning adult generally faces into the current at its holding lie.
+      // Displacement from the gravel pocket steers it back to the same reach.
+      if(school.stream){vx+=1.55*Math.cos(d);vz+=1.55*Math.sin(d);}
       if(i&&members.length>4){vx+=.85*Math.cos(heading);vz+=.85*Math.sin(heading);}
       if(Math.hypot(vx,vz)<.38){vx+=Math.cos(d);vz+=Math.sin(d);}
       for(let n=0;n<members.length;n++){
@@ -74,17 +80,27 @@ window.makeFishSchools=function(region,waterAt,disturb){
       const effort=cruise*(.27+.80*pulse)+2.8*a.scare;
       a.speed+=(a.length*effort-a.speed)*(1-Math.exp(-dt*2.7));
       const x=a.x+Math.cos(a.heading)*a.speed*dt,z=a.z+Math.sin(a.heading)*a.speed*dt,level=waterAt(x,z);
-      if(Number.isFinite(level)){a.x=x;a.z=z;a.level=level;}
+      if(Number.isFinite(level)&&(!school.stream||school.stream.depth(x,z)>=a.length*.36)){
+        if(school.stream){
+          const flow=school.stream.current(a.x,a.z),ax=x-flow*Math.cos(d)*dt,az=z-flow*Math.sin(d)*dt;
+          if(school.stream.depth(ax,az)>=a.length*.36){a.x=ax;a.z=az;a.level=waterAt(ax,az);}
+        }else{a.x=x;a.z=z;a.level=level;}
+      }
       // A feeding rise approaches the film, rolls through the turn, then
       // sounds again. Individuals in a school reach the surface at different times.
       const surfaceFeeder=a.skin==='atlantic-salmon'||a.skin==='sockeye'||a.skin==='brook-trout';
       const period=(surfaceFeeder?7.4:13)+a.seed*(surfaceFeeder?.65:1.4);
       const cycle=(t/period+(a.risePhase??a.seed/tau))%1;
-      const rise=(!surfaceFeeder&&members.length>8&&i%5!==0)?0:Math.max(0,1-Math.abs(cycle-.45)*4.5);
+      // Adult Pacific salmon on their return to spawn no longer make feeding rises.
+      const rise=(school.stream||(!surfaceFeeder&&members.length>8&&i%5!==0))?0:Math.max(0,1-Math.abs(cycle-.45)*4.5);
       const lift=rise*rise*(3-2*rise)*(1-a.scare);
       const normalDepth=Math.max(a.length*.13,a.depth-.048*Math.sin(t*.83+a.seed));
       const y=a.level-(normalDepth*(1-lift)+a.length*.09*lift)-.36*a.scare;
-      a.pitch=clamp((y-a.y)*1.3,-.22,.22);a.y+=(y-a.y)*(1-Math.exp(-3*dt));
+      const bed=school.stream?a.level-school.stream.depth(a.x,a.z)+a.length*.15:-Infinity;
+      const swim=Math.max(bed,y);
+      const ceiling=school.stream?a.level-a.length*.12:Infinity;
+      a.pitch=clamp((swim-a.y)*1.3,-.22,.22);
+      a.y=clamp(a.y+(swim-a.y)*(1-Math.exp(-3*dt)),bed,ceiling);
       a.bank=clamp(-delta*.16,-.38,.38)+.38*lift*Math.sin(a.seed+cycle*tau);a.phase+=dt*tau*(.76+effort*1.35);
       a.effort=clamp(pulse*.56+a.scare,.1,1);
       const depth=a.level-a.y;

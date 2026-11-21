@@ -419,6 +419,7 @@ class Water extends Mesh {
     return reliefHeight(x,z)+(d>4650?THREE.MathUtils.lerp(local,sample(far,601,18000,x,z),(d-4650)/150):local);
   }
   const landmarkTerrain=window.aerieRegionalLandforms?.get('alaska');
+  const steepCreek=window.makeSteepCreekSurvey();
   const flow=landmarkTerrain?.watercourse||[[1080,895],[1000,870],[946,821],[890,765],[819,711],[754,732],[696,743],[660,734],[636,696],[602,670],[567,653],[539,643],[522,644],[507,656],[493,669],[474,680]];
   // A treetop or protruding DEM triangle in a narrow chute can put a dry
   // triangular wall through the water. Constrain only the incised channel to
@@ -461,7 +462,7 @@ class Water extends Mesh {
   const landmarkGroundMaterials=new Set();
   function elevation(x,z){
     const base=nativeElevation(x,z);
-    return landmarkTerrain?landmarkTerrain.height(x,z,base):base;
+    return steepCreek.height(x,z,landmarkTerrain?landmarkTerrain.height(x,z,base):base);
   }
   function nativeElevation(x,z){
     const y=surveyElevation(x,z),p=channelAt(x,z);
@@ -852,7 +853,8 @@ class Water extends Mesh {
       // Keep cliff and ice silhouettes resolved across the valley. Flat terraces
       // can spend the same pixel error budget on fewer vertices.
       const sharp=t.relief>240;
-      const pitch=(t.outer||range<(sharp?2650:1450))?1:range<(sharp?6400:3300)?2:t.nx>=120?4:2;
+      const pitch=t.mesh.material.userData.steepSurvey?(range<280?1:range<740?2:range<1700?4:8):
+        (t.outer||range<(sharp?2650:1450))?1:range<(sharp?6400:3300)?2:t.nx>=120?4:2;
       if(t.pitch!==pitch){t.regular=gridIndex(t.nx,t.nz,pitch);t.pitch=pitch;}
       const grid=t.mesh.geometry;
       const chosen=t.reduced?window.aerieTerrainIndices.select(grid,t.regular,t.reduced,range):t.regular;
@@ -895,10 +897,21 @@ class Water extends Mesh {
       const steps=fallsPatch?300:westCrest?300:icePatch?240:Math.max(Math.abs(x+600),Math.abs(z+600))<6250?120:75;
       if((x===0||x===-1200)&&z===1200){
         const bank=new THREE.ShaderMaterial({uniforms:{...material.uniforms,face:{value:shoreAtlas},blueIce:{value:bankDepositMap}},defines:{MENDENHALL_BANK:1},vertexShader:material.vertexShader,fragmentShader:material.fragmentShader});
+        const creekBank=x===-1200?new THREE.ShaderMaterial({uniforms:{...bank.uniforms,
+          crevasseSurvey:{value:map('alaska-steep-habitat.webp')}},defines:bank.defines,
+          vertexShader:bank.vertexShader,fragmentShader:steepCreek.shade(bank.fragmentShader)}):null;
+        if(creekBank)creekBank.userData.steepSurvey=true;
         for(let row=0;row<4;row++)for(let col=0;col<4;col++){
           const west=x+col*300,north=z+row*300;
           const divisions=x<0?(col===3&&row===1?150:30):col===0&&row===1?150:col===0&&row===0?60:30;
-          if(x===0&&col===0&&row===1&&window.mendenhallCoveGround){
+          if(creekBank&&col===3&&(row===1||row===2)){
+            for(let a=0;a<2;a++)for(let b=0;b<2;b++){
+              const x0=west+150*a,z0=north+150*b;
+              const intersectsSurvey=z0+150>1748&&z0<2040;
+              const divisions=intersectsSurvey?120:75;
+              patch(x0,z0,x0+150,z0+150,divisions,divisions,intersectsSurvey?creekBank:bank);
+            }
+          }else if(x===0&&col===0&&row===1&&window.mendenhallCoveGround){
             for(let a=0;a<2;a++)for(let b=0;b<2;b++){
               const x0=west+150*a,z0=north+150*b,n=b===0?150:75;
               patch(x0,z0,x0+150,z0+150,n,n,bank);
@@ -920,12 +933,14 @@ class Water extends Mesh {
   const lake=new Water(new THREE.ShapeGeometry(outline),{textureWidth:960,textureHeight:640,waterNormals:waters,sunDirection:sun,sunColor:0xffe9cd, waterColor:0x396c70,distortionScale:1.82,fog:true});
   lake.name="Lake surface";lake.rotation.x=-Math.PI/2;lake.position.y=.18;lake.material.uniforms.size.value=3.1;scene.add(lake);
   if(landmarkTerrain?.watercourse)window.nuggetShallows(lake.material,map('alaska-nugget-shoal.webp'));
-  const treeSections=[unpack(survey.trees),landmarkTerrain?.woodland||[]];
+  const treeSections=[unpack(survey.trees),landmarkTerrain?.woodland||[],steepCreek.trees];
   const trees=[],firTrees=[],alderCrowns=[],cells=new Map(),cell=(x,z)=>Math.floor(x/48)*1024+Math.floor(z/48);
   const nuggetAlder={name:'Sitka alder',family:'shrub',shape:[.91,1,.95,.65,.16],aspect:1.04,tint:[.89,1.03,.72],stature:1};
   for(const treeData of treeSections)for(let i=0;i<treeData.length;i+=3){
     const x=treeData[i],z=treeData[i+1],packed=treeData[i+2];
-    const measured=!!landmarkTerrain?.canopyObserved&&treeData===landmarkTerrain.woodland;
+    const creekTree=treeData===steepCreek.trees;
+    const measured=creekTree||!!landmarkTerrain?.canopyObserved&&treeData===landmarkTerrain.woodland;
+    if(!creekTree&&steepCreek.contains(x,z))continue;
     if(!measured&&landmarkTerrain?.canopyObserved?.(x,z))continue;
     const h=measured?(Math.abs(packed)%128)*.5:packed;
     const seed=measured?((Math.imul(x,73856093)^Math.imul(z,19349663))>>>0)/4294967296:((i*1583)%65521)/65521;
@@ -934,10 +949,11 @@ class Water extends Mesh {
     const y=elevation(x,z),alder=measured&&packed<0;
     const width=measured?Math.floor(Math.abs(packed)/128)*.5:h*(.30+.13*seed);
     const t={x,y,z,height:h,width,seed};
+    if(creekTree){t.steepCreekStem=true;t.conifer=!alder;}
     if(alder){
       // These short, spreading forms are heights/widths of observed cover.
       // Sitka alder is the representative shrub recorded at the cascade.
-      t.aerieSpecies=nuggetAlder;
+      t.aerieSpecies=creekTree&&h>9.5?{name:'Black cottonwood',family:'broad',shape:[.30,.64,.98,.88,.34],aspect:1.04,tint:[.94,1.02,.77],stature:1}:nuggetAlder;
       alderCrowns.push(t);
     }else firTrees.push(t);
     trees.push(t);
@@ -1284,8 +1300,8 @@ class Water extends Mesh {
     for(const {mesh,range} of beachMeshes)mesh.visible=mesh.geometry.boundingSphere.center.distanceToSquared(player)<range*range;
   }
 
-  function clearance(x,z){
-    let y=shoreClearance(x,z,height(x,z));
+  function clearance(x,z,altitude){
+    let y=Math.max(steepCreek.waterAt(x,z),steepCreek.structureHeight(x,z,altitude),shoreClearance(x,z,height(x,z)));
     const gridX=Math.floor(x/96),gridZ=Math.floor(z/96);
     for(let j=-1;j<=1;j++)for(let i=-1;i<=1;i++)for(const stone of ledges.get((gridX+i)*8192+gridZ+j)||[]){
       const r=((x-stone.x)**2+(z-stone.z)**2)/((stone.s*.55)**2);
@@ -1313,6 +1329,7 @@ class Water extends Mesh {
     return y;
   }
   const clock={value:0};
+  const updateSteepCreek=steepCreek.add(THREE,scene,{texture:map,clock,sky:skyMap,sun});
   // The measured Nugget Creek bed splits over rock shelves and empties into the lake.
   const measuredCourse=landmarkTerrain?.watercourse;
   const scouredBed=measuredCourse?landmarkTerrain.surfacePatch(638,704,194,nativeElevation):null;
@@ -1356,14 +1373,15 @@ class Water extends Mesh {
     for(const source of landmarkGroundMaterials)landmarkTerrain.maskOriginal(source);
   }
   function channelWater(x,z){
+    const tributary=steepCreek.waterAt(x,z);if(Number.isFinite(tributary))return tributary;
     // Use the rendered banks to keep perch stones and dry-land wildlife out
     // of the active historical flow. The surveyed rock islands stay in the bed.
     if(!measuredCourse||!waterfalls.inChute(x,z,0))return -Infinity;
     return Math.max(lake.position.y,fallGround(x,z)+.10);
   }
-  return {landformMesh,region:"alaska",glacierDistance,onGlacierMargin,channelWater,bankDepositMap,localPerchStone,windTerrainHeight,treeGrid:{cells,size:48,cell},waterfalls,forestLightSpan:14400,elevation,clearance,height,trees,firTrees,sunMask,sunDirection:sun,skyTexture:skyMap,cloudDensityMap:'alaska-cirrus-density.webp',waterLevel:0,lakeLevel:0,lakePolygon:shore,altitudeOffset:18,spawn:lakeLaunch,
+  return {landformMesh,steepCreek,blocksInfillTree:steepCreek.contains,blockVegetationAt:steepCreek.managed,openRoadAt:steepCreek.isPaved,region:"alaska",glacierDistance,onGlacierMargin,channelWater,bankDepositMap,localPerchStone,windTerrainHeight,treeGrid:{cells,size:48,cell},waterfalls,forestLightSpan:14400,elevation,clearance,height,trees,firTrees,sunMask,sunDirection:sun,skyTexture:skyMap,cloudDensityMap:'alaska-cirrus-density.webp',waterLevel:0,lakeLevel:0,lakePolygon:shore,altitudeOffset:18,spawn:lakeLaunch,
     launches:{lake:lakeLaunch,ridge,shore:shoreLaunch,spruce:{x:173,y:26,z:1630,yaw:.38,lookDown:12},spray:sprayPass,spur:{x:612,y:68.4704,z:977,yaw:-.08159},alpine:{x:-2900,z:-2010,y:elevation(-2900,-2010)+58,yaw:-.28}},bounds:{minX:-6890,maxX:6890,minZ:-6890,maxZ:6890},
-    landmarks:[{name:'West alpine crest',x:-2900,z:-2010},{name:'Upper crevasse field',x:1500,z:-4130},{name:'Blue Ice Passage',x:-116,z:-1010},{name:'Nugget Falls beach',x:473,z:927},{name:'Medial moraine',x:632,z:-2450},{name:'Mendenhall Glacier',x:40,z:-1400},{name:'Nugget Falls',x:518,z:658},{name:'Mendenhall Lake',x:-700,z:680},{name:'West Glacier Ridge',x:-860,z:-1890}],
-    update(dt,time,player){updateTerrainLOD(player);updateLedges(player);updateShore(player);clock.value=time;lake.material.uniforms.time.value=time*.72;}
+    landmarks:[steepCreek.landmark,{name:'West alpine crest',x:-2900,z:-2010},{name:'Upper crevasse field',x:1500,z:-4130},{name:'Blue Ice Passage',x:-116,z:-1010},{name:'Nugget Falls beach',x:473,z:927},{name:'Medial moraine',x:632,z:-2450},{name:'Mendenhall Glacier',x:40,z:-1400},{name:'Nugget Falls',x:518,z:658},{name:'Mendenhall Lake',x:-700,z:680},{name:'West Glacier Ridge',x:-860,z:-1890}],
+    update(dt,time,player){updateSteepCreek(player);updateTerrainLOD(player);updateLedges(player);updateShore(player);clock.value=time;lake.material.uniforms.time.value=time*.72;}
   };
 };

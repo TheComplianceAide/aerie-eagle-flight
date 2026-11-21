@@ -10,6 +10,9 @@ import numpy as np
 from pyproj import Transformer
 import requests
 
+import surf_field
+import slab_edges
+import baker_granite
 import materials
 import terrain
 
@@ -60,7 +63,8 @@ def crop(path, data, target):
         inside = (e >= east+left) & (e <= east+right) & (n >= north-bottom) & (n <= north-top)
         np.savez_compressed(target, land_x=(e-east).astype('f4')[inside],
                             land_z=(north-n).astype('f4')[inside],
-                            land_y=np.asarray(hit.z[valid], 'f4')[inside])
+                            land_y=np.asarray(hit.z[valid], 'f4')[inside],
+                            land_c=np.asarray(hit.classification[valid], 'u1')[inside])
 
 
 def main():
@@ -73,21 +77,24 @@ def main():
     for name in MANIFEST['inputs']:
         if not name.endswith('.copc.laz'):
             fetch(name, sources)
-    # Only Baker's wooded island needs a first-return crown and occlusion field.
-    # A pre-existing raw tile belongs to its caller. Temporary downloads expire
-    # only after their verified source has been converted to the local crop.
-    baker = MANIFEST['sites']['baker']
-    directory = args.cache / 'point-crops' / 'baker'
-    directory.mkdir(parents=True, exist_ok=True)
+    # Repeat the same COPC sampling in both the fracture-zone and crown surveys.
+    # Keep caller-owned downloads. Temporary verified tiles can be released
+    # after the crop has been saved.
     with tempfile.TemporaryDirectory(dir=args.cache) as scratch:
-        for name in sorted(baker['lidar']):
-            folder = sources if (sources/name).is_file() else Path(scratch)
-            path = fetch(name, folder)
-            crop(path, baker, directory/(name+'.npz'))
-            if folder == Path(scratch):
-                path.unlink()
+        for site, data in MANIFEST['sites'].items():
+            directory = args.cache / 'point-crops' / site
+            directory.mkdir(parents=True, exist_ok=True)
+            for name in sorted(data['lidar']):
+                folder = sources if (sources/name).is_file() else Path(scratch)
+                path = fetch(name, folder)
+                crop(path, data, directory/(name+'.npz'))
+                if folder == Path(scratch):
+                    path.unlink()
     terrain.bake(args.cache, args.game)
+    surf_field.bake(args.game/"acadia-island-tides.png",args.game/"acadia-surf-field.bin")
+    slab_edges.bake(args.game/"landform-bakerisland.bin",args.game/"acadia-baker-slab-edges.bin")
     materials.bake(args.cache, args.game)
+    baker_granite.material(sources/"baker-inventory.pdf", args.game/"acadia-baker-dance-granite.webp")
 
 
 if __name__ == '__main__':

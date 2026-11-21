@@ -197,9 +197,21 @@ window.makeFishRipples=function(T,scene,world,waterAt){
   mesh.name='Fish surface swirls';mesh.frustumCulled=false;mesh.count=0;mesh.renderOrder=6;
   mesh.instanceMatrix.setUsage(T.DynamicDrawUsage);scene.add(mesh);
   const tangent=new T.Vector3(),normal=new T.Vector3(),across=new T.Vector3();
+  const scale=new T.Vector3();
+  function fitWater(basis,x,z,angle,radius,t,level){
+    const c=Math.cos(angle),s=Math.sin(angle);
+    const forward=waterAt(x+radius*c,z+radius*s,t),side=waterAt(x-radius*s,z+radius*c,t);
+    if(!Number.isFinite(level)||!Number.isFinite(forward)||!Number.isFinite(side))return false;
+    const fx=(forward-level)/radius,fz=(side-level)/radius;
+    if(Math.abs(fx)+Math.abs(fz)>.65)return false;
+    tangent.set(c,fx,s).normalize();across.set(-s,fz,c).normalize();
+    normal.crossVectors(across,tangent).normalize();across.crossVectors(tangent,normal).normalize();
+    basis.makeBasis(tangent,normal,across).scale(scale.set(radius,1,radius*.85)).setPosition(x,level+.025,z);
+    return true;
+  }
   function emit(fish,t,strength){
     const c=Math.cos(fish.heading),s=Math.sin(fish.heading);
-    const x=fish.x-c*fish.length*.34,z=fish.z-s*fish.length*.34,level=waterAt(x,z);
+    const x=fish.x-c*fish.length*.34,z=fish.z-s*fish.length*.34,level=waterAt(x,z,t);
     if(!Number.isFinite(level))return;
     let radius=Math.min(1.8,fish.length*(2+strength*.76));
     // Fit the entire footprint to wet terrain, including narrow streams.
@@ -213,15 +225,10 @@ window.makeFishRipples=function(T,scene,world,waterAt){
       radius*=.53;
       if(pass===2)return;
     }
-    const forward=waterAt(x+radius*c,z+radius*s),side=waterAt(x-radius*s,z+radius*c);
-    if(!Number.isFinite(forward)||!Number.isFinite(side))return;
-    const fx=(forward-level)/radius,fz=(side-level)/radius;
-    if(Math.abs(fx)+Math.abs(fz)>.65)return;
-    tangent.set(c,fx,s).normalize();across.set(-s,fz,c).normalize();
-    normal.crossVectors(across,tangent).normalize();across.crossVectors(tangent,normal).normalize();
-    const basis=new T.Matrix4().makeBasis(tangent,normal,across);
-    basis.scale(new T.Vector3(radius,1,radius*.85)).setPosition(x,level+.025,z);
-    packets[next]={basis,t,life:1.55+radius*.72,seed:fish.seed,strength,heading:fish.heading};
+    const basis=new T.Matrix4();
+    if(!fitWater(basis,x,z,fish.heading,radius,t,level))return;
+    packets[next]={basis,t,life:1.55+radius*.72,seed:fish.seed,strength,heading:fish.heading,
+      moving:!!world.acadiaLights?.seaSurface,radius};
     next=(next+1)%capacity;
   }
   function update(player,t){
@@ -233,6 +240,7 @@ window.makeFishRipples=function(T,scene,world,waterAt){
       if(age>=1||age<0){packets[i]=null;continue;}
       const pos=p.basis.elements;
       if(Math.hypot(pos[12]-player.x,pos[13]-player.y,pos[14]-player.z)>115)continue;
+      if(p.moving&&!fitWater(p.basis,pos[12],pos[14],p.heading,p.radius,t,waterAt(pos[12],pos[14],t)))continue;
       const j=mesh.count++;mesh.setMatrixAt(j,p.basis);
       flow.setXYZW(j,age,p.seed,p.strength,p.heading);
     }

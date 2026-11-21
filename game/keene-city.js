@@ -65,6 +65,7 @@ window.makeKeeneCity = function makeKeeneCity(T, scene, {height}) {
   const roofColors=[0x776d63,0x8f7e72,0x93877d,0x7d8288,0x838683];
   const avenueX=z=>1889+.16*(z-4423);
   const drawFrontage=window.makeKeeneFrontages(T,{layout,face,clearRoof});
+  const colony=window.addKeeneColonyBlock(T,{layout,face,height});
   function storefront(a,b,x,z,base,top,value,kind){
     const length=Math.hypot(b[0]-a[0],b[1]-a[1]);
     if(length<4)return;
@@ -339,7 +340,20 @@ window.makeKeeneCity = function makeKeeneCity(T, scene, {height}) {
     const wallKind=facade?'brick':kind==='house'?'siding':kind==='church'?'smooth':'masonry';
     for(let i=0;i<ring.length;i++){
       const a=ring[i],b=ring[(i+1)%ring.length];
-      wall(wallKind,tint,a,b,bottom,top,wallKind==='brick'?1.58:wallKind==='siding'?5.7:3.8);
+      // The municipal parcel merges three shops on a 57 m wall. Leave the
+      // actual Colony frontage open so its recessed entries meet the sidewalk.
+      if(a[0]===1938&&a[1]===4404.6&&b[0]===1948.9&&b[1]===4348.8){
+        for(const [p,q] of [[a,colony.south],[colony.north,b]]){
+          wall(wallKind,tint,p,q,bottom,top,1.58);
+          storefront(p,q,x,z,base,top,feel,kind);
+        }
+        continue;
+      }
+      const southernParty=(
+        a[0]===1970&&a[1]===4399.5&&b[0]===1940.3&&b[1]===4406.7||
+        a[0]===1940.3&&a[1]===4406.7&&b[0]===1938&&b[1]===4404.6
+      );
+      wall(wallKind,southernParty?colony.partyTint:tint,a,b,bottom,top,wallKind==='brick'?1.58:wallKind==='siding'?5.7:3.8);
       if(facade&&drawFrontage(a,b,base,top))continue;
       if(facade)storefront(a,b,x,z,base,top,feel,kind);
       if(central&&(kind==='hall'||kind==='house'))sideWindows(a,b,x,z,base,top,kind,feel);
@@ -587,12 +601,14 @@ window.makeKeeneCity = function makeKeeneCity(T, scene, {height}) {
     geo.computeVertexNormals();geo.computeBoundingSphere();
     const mesh=new T.Mesh(geo,materials[kind]);mesh.name='Keene '+kind;scene.add(mesh);
   }
-  return (x,z) => {
-    let floor=-Infinity;
+  const clearance=(x,z) => {
+    let floor=colony.collision(x,z);
     for(const {ring,top} of roofs.get(Math.floor(x/cellSize)*1024+Math.floor(z/cellSize))||[]){
       if(top<=floor)continue;
       if(inside(ring,x,z))floor=top;
     }
     return floor;
   };
+  clearance.colony=colony;
+  return clearance;
 };

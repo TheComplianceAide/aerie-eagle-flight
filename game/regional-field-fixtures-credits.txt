@@ -40,6 +40,11 @@ https://kartkatalog.geonorge.no/metadata/0f0a0f38-00c4-4213-a9e5-2d861dc4abb0
 https://wcs.geonorge.no/skwms1/wcs.hoyde-dtm-nhm-25833
 https://creativecommons.org/licenses/by/4.0/
 
+Hamnøy tidal ledges south of Breisundet bridge. The local surface incorporates a one-metre terrain export from © Kartverket, ETRS89 / UTM zone 33N, adapted into a coastal mesh at the modeled tide. The fjord surface follows the exposed rock triangles. Modified data available under Creative Commons Attribution 4.0.
+https://www.kartverket.no/en/api-and-data/terrengdata
+https://www.kartverket.no/en/api-and-data/terms-of-use
+https://creativecommons.org/licenses/by/4.0/
+
 Hamnøy wave exposure. The alpha channel of atlas-lofoten-shore.webp derives from the modified © Kartverket national terrain model (CC BY 4.0) and the regional fjord elevation survey. The directional distance to 13 headland intercepts limits incoming swell and breaking foam in the anchorage. This is modeled wave exposure for the game's wind direction. The operator's photographs of the village and Breisundet bridge provided visual comparison only.
 https://www.kartverket.no/en/api-and-data/terms-of-use
 https://rorbuer.no/

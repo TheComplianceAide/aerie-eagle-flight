@@ -22,6 +22,7 @@
     korten:{name:'Korten · tidal skerries east of Hamnøy',asset:'korten',water:0,source:'Kartverket two-metre DTM and Copernicus Sentinel-2, 16 July 2025'},
     hamnoy:{name:'Hamnøy · fishing harbor and tidal ledges',asset:'hamnoy',water:0,source:'Kartverket national terrain model and Copernicus Sentinel-2 summer imagery, Moskenes, Norway'},
     milford:{name:'Rahotu Mitre Peak · crest and Sinbad wall',asset:'milford',water:0,source:'LINZ NZ 8m Digital Elevation Model (2012) and Southland 0.75m Rural Aerial Photos (2005–2011)'},
+    cabert:{name:'Lac Cabert · stream corridor to Lac Berté',asset:'cabert',source:'Gouvernement du Québec MRNF and MELCCFP, lidar terrain, 2022 aerial imagery and GRHQ'},
     labrador:{name:'Lac Berté · south narrows and camp headland',asset:'labrador',water:359,source:'Gouvernement du Québec MRNF 2022 lidar terrain and aerial imagery, Côte-Nord'},
     yosemitefalls:{name:'Yosemite Falls · creek, lip and basin',asset:'yosemite-falls',source:'USGS 2019 Yosemite 1 m 3DEP and USDA August 2022 NAIP'},
     yosemite:{name:'El Capitan · Nose and southeast face',asset:'yosemite',source:'USGS 3DEP and USDA NAIP, Yosemite Valley, California'},
@@ -101,6 +102,14 @@
       const triangles=new Uint16Array(buffer,at,3*f);at+=triangles.byteLength;
       horizon={xyz,light,triangles};
     }
+    let fine=null;
+    if(spec.island&&at+24<=buffer.byteLength&&head.getUint32(at)===0x53524631){
+      const box=[4,8,12,16].map(i=>head.getInt32(at+i,true));
+      const cols=head.getUint16(at+20,true),rows=head.getUint16(at+22,true);at+=24;
+      if(cols<2||rows<2||(cols-1)!==4*(box[2]-box[0])||(rows-1)!==4*(box[3]-box[1]))throw Error('Invalid island shoreline detail');
+      const values=new Int16Array(buffer,at,cols*rows);at+=values.byteLength;
+      fine={box,cols,rows,values};
+    }
     if(at!==buffer.byteLength)throw Error('Incomplete regional terrain survey');
     const sections=[];
     for(const sector of sectors.values()){
@@ -116,7 +125,8 @@
     }
     const holes=spec.holes||[];
     const surveyedBed=spec.asset==='winnipesaukee'?window.makeWinnipesaukeeWaterfront?.islandBed
-      :spec.asset==='swisswest'?window.makeOeschinenLanding?.berthWeight:null;
+      :spec.asset==='swisswest'?window.makeOeschinenLanding?.berthWeight
+      :spec.island?window.makeAcadiaLedgeSurf?.bedWeight:null;
     function fitElevation(x,z,h,base,w){
       const fitted=base+(h-base)*w;
       if(spec.water===undefined||h>spec.water+.12)return fitted;
@@ -130,6 +140,12 @@
       return ease(d/20);
     }
     function sample(x,z){
+      if(fine&&x>=fine.box[0]&&x<=fine.box[2]&&z>=fine.box[1]&&z<=fine.box[3]){
+        const fx=(x-fine.box[0])*4,fz=(z-fine.box[1])*4;
+        const i=Math.min(fine.cols-2,Math.floor(fx)),j=Math.min(fine.rows-2,Math.floor(fz)),k=i+j*fine.cols;
+        const sx=fx-i,sz=fz-j,g=fine.values;
+        return datum+scale*((1.-sz)*(g[k]+sx*(g[k+1]-g[k]))+sz*(g[k+fine.cols]+sx*(g[k+fine.cols+1]-g[k+fine.cols])));
+      }
       const xx=(x-left)/step,zz=(z-top)/step;
       const i=Math.min(nx-2,Math.max(0,Math.floor(xx))),j=Math.min(nz-2,Math.max(0,Math.floor(zz)));
       const u=Math.min(1,Math.max(0,xx-i)),v=Math.min(1,Math.max(0,zz-j)),k=i+j*nx;
@@ -222,6 +238,7 @@
       }else if(hasDetail)material.fragmentShader=material.fragmentShader.replace('photo=mix(photo,texture2D(detailOrtho,vec2(focus.x,-focus.y)/2900.+.5).rgb,blend);',
         'photo=mix(photo,texture2D(detailOrtho,'+localUV+').rgb,landformHorizon.w);');
       else material.fragmentShader=material.fragmentShader.replace('texture2D(aerial,photoUv)','texture2D(aerial,'+localUV+')');
+      if(spec.asset==='cabert')window.shadeCabertBanks(material,localUV,texture);
       if(spec.asset==='watchman'||spec.asset==='cleetwood'){
         // The broader caldera relief is several metres per texel. Retain its storm lighting
         // over the local lidar surface, restoring the mapped exposure before the cloud shadow.
@@ -335,6 +352,7 @@
           float skyView=occ.g,relief=`);
       }
       if(spec.island)material.fragmentShader=window.acadiaIslandSurface(material.fragmentShader,localUV,hasDetail?'detailOrtho':'aerial');
+      if(spec.asset==='bakerisland')window.bakerDanceFloorSurface(T,material,texture);
       if(spec.asset==='acadia'){
         // At the inset the point cloud resolves the two sides of the chasm.
         // The broader cliff-normal map averages across this narrow opening.
@@ -417,7 +435,8 @@
           pos[j]=x;pos[j+1]=fitElevation(x,z,y,base,w);pos[j+2]=z;
           // Calculate boundary normals from the adjoining native terrain so both
           // shapes and lighting meet continuously at the exact old survey slot.
-          const normalStep=Math.min(2,step),a=x-normalStep,b=x+normalStep,c=z-normalStep,d=z+normalStep;
+          const inFineShore=fine&&x>fine.box[0]&&x<fine.box[2]&&z>fine.box[1]&&z<fine.box[3];
+          const normalStep=inFineShore ? .36 : Math.min(2,step),a=x-normalStep,b=x+normalStep,c=z-normalStep,d=z+normalStep;
           const sx=(w>.999?sample(a,z)-sample(b,z):height(a,z,baseAt(a,z))-height(b,z,baseAt(b,z)));
           const sz=(w>.999?sample(x,c)-sample(x,d):height(x,c,baseAt(x,c))-height(x,d,baseAt(x,d)));
           const diameter=2*normalStep,inv=1/Math.hypot(sx,diameter,sz);norm[j]=sx*inv;norm[j+1]=diameter*inv;norm[j+2]=sz*inv;
@@ -440,11 +459,13 @@
         group.add(mesh);mesh.userData.distantIsland=part===horizon;
         if(part!==horizon)faces+=part.triangles.length/3;
       }
+      const plates=spec.asset==='bakerisland'?window.makeBakerSlabs(T,scene,material,sample):null;
       if(horizon){
         // At a kilometre and a half the distant survey's 0.84 m relief error
         // is sub-pixel. Hysteresis keeps banks and turns from switching back.
         let previous=null;
         group.userData.updateDetail=player=>{
+          if(plates)plates.visible=Math.hypot(player.x+474,player.z-9213)<(plates.visible?395:345);
           const d=Math.hypot(Math.max(left-player.x,0,player.x-right),Math.max(top-player.z,0,player.z-bottom));
           const distant=d>(previous?1380:1550);
           if(previous===distant)return;

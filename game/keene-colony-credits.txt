@@ -1,0 +1,22 @@
+COLONY’S BLOCK
+4–7 Central Square, Keene, New Hampshire. The original Second Empire block dates to 1870. The street-facing wall was registered on the eastern side of Central Square. The simulation includes three differently profiled mansards, recessed sash and entrances, a central recessed bay, projecting stone courses and the fifth-floor dormers.
+
+Photographic artwork
+“Colony Block Keene” by Ymblanter, 31 March 2012. Creative Commons Attribution–ShareAlike 3.0 Unported.
+https://commons.wikimedia.org/wiki/File:Colony_Block_Keene.jpg
+https://upload.wikimedia.org/wikipedia/commons/e/eb/Colony_Block_Keene.jpg
+https://creativecommons.org/licenses/by-sa/3.0/
+
+keene-colony-wall.webp, keene-colony-relief.webp, keene-colony-mansards.webp, keene-colony-slate.webp and keene-colony-neighbors.webp are adapted from this photograph and are distributed under the same CC BY-SA 3.0 licence. Aerie rectified and color-balanced the brick and sash, reduced tree branches, derived a normal map, isolated each roof front, and rebuilt slate fields from unobstructed surfaces under the projecting dormers, and used the visible upper bays of each adjoining building on its own wing. The adjoining upper fronts repeat those visible bays. The pale lettering of the original central building tablet is part of the photograph. Storefront glass and joinery below the upper facade are an original approximation. The photograph records 2012 conditions.
+
+Geometry and register
+The 1982 National Register nomination and archive images identify the original 63.7-foot frontage, facade divisions, Vermont slate pattern, bracketed cornice, dormers, sandstone bands and rear additions. The City of Keene's downtown inventory provides its civic context. These archival images informed shape and scale. The archival photographs were used as shape references.
+https://npgallery.nps.gov/AssetDetail/NRIS/83001134
+https://npgallery.nps.gov/GetAsset/47b00df0-91a2-47cc-9c3a-9c95197dab6d
+https://npgallery.nps.gov/GetAsset/f105a84a-ee77-46ca-8c25-f30f10382caf
+https://keenenh.gov/wp-content/uploads/2025/03/DowntownKeeneHistoricInventory-1.pdf
+
+The municipal footprint combines neighboring businesses. The model registers the northern corner of the historic front at local X 1944.55, Z 4370.96. The existing Keene city transform uses EPSG:32618 and easting 720171, northing 4761465. Relative roof heights are a small local sample of the New Hampshire GRANIT statewide normalized digital surface model. The source surfaces are gridded returns. The small dormers and frontage are modeled from the photograph and measured width. The adjoining roof heights of 14.41 m and 13.04 m are medians of first returns on the two immediately connected roofs. The small rooftop mechanical bank is located from the ortho and uses approximate heights. The upper roof uses the existing 2021–22 New Hampshire six-inch orthophotography in its original plan registration.
+https://keenenh.gov/online-services/gis-and-mapping-services/
+https://nhgeodata.unh.edu/image/rest/services/ImageServices/nDSM_NH/ImageServer
+https://nhgeodata.unh.edu/image/rest/services/ImageServices/NH_2021_2022_6in_RGB/ImageServer

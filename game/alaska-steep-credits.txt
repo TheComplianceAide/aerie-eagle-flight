@@ -1,0 +1,7 @@
+Steep Creek, Tongass National Forest, Alaska
+
+Terrain and bank profile: USGS 3DEP Alaska Southeast Landslides, 2023.
+Boardwalk footprint, elevations, vegetation and color: City and Borough of Juneau 2013 colorized survey via NOAA Digital Coast.
+Trail 33744: USDA Forest Service National Forest System Trails.
+Stream and salmon: Alaska Department of Fish and Game, Anadromous Waters Catalog 111-50-10500-2006 and Steep Creek field observations.
+The submerged bed, pebble and fish positions are modeled. Source URLs, observation dates and acquisition checksums: tools/geology/steep-creek/sources.json.

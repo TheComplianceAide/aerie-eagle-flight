@@ -1,0 +1,85 @@
+{
+  "site": {
+    "name": "Steep Creek, Mendenhall Glacier Recreation Area, Tongass National Forest",
+    "north_platform_wgs84": [
+      58.41614849,
+      -134.54854203
+    ],
+    "projection": "EPSG:32608, game origin 526511 E, 6477009 N; x east and z south",
+    "surface_datum": "NAVD88 minus 18 metres; local dry-ground registration 2013 alt +2023 correction \u22120.82212448 m"
+  },
+  "terrain_2023": {
+    "source": "USGS 3DEP Alaska Southeast Landslides, project D22",
+    "notice": "https://www.fisheries.noaa.gov/inport/item/80000",
+    "collection": "July through October 2023",
+    "native_spacing_metres": 0.5,
+    "use": "Public US government elevation data, terrain and bank survey",
+    "tiles": [
+      {
+        "source": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/OPR/Projects/AK_SouthEastLandslides_D22/AK_SELandslides_2_D22/TIFF/USGS_OPR_AK_SouthEastLandslides_D22_766732.tif",
+        "sha256": "75e45aaeca5d57122a9c955a6e09b0d24094d2fae042274a73a15494b59ac383"
+      },
+      {
+        "source": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/OPR/Projects/AK_SouthEastLandslides_D22/AK_SELandslides_2_D22/TIFF/USGS_OPR_AK_SouthEastLandslides_D22_766733.tif",
+        "sha256": "af8dd563e404065423cdd5bba40277d4900d67720f77a359a4c9787e8a5e419f"
+      },
+      {
+        "source": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/OPR/Projects/AK_SouthEastLandslides_D22/AK_SELandslides_2_D22/TIFF/USGS_OPR_AK_SouthEastLandslides_D22_767732.tif",
+        "sha256": "6d5ebf01116520968754511ebb8839840d139df21a7f932eaa4712bb3c5a9334"
+      },
+      {
+        "source": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/OPR/Projects/AK_SouthEastLandslides_D22/AK_SELandslides_2_D22/TIFF/USGS_OPR_AK_SouthEastLandslides_D22_767733.tif",
+        "sha256": "e55564f0e20dc10f83de102ff3c2e9d587f083d069fd3b1b80d75149798d7f08"
+      }
+    ]
+  },
+  "point_cloud_2013": {
+    "source": "2013\u20132014 NOAA/City and Borough of Juneau LiDAR",
+    "notice": "https://www.fisheries.noaa.gov/inport/item/49628",
+    "collection": "2013-05-22 in the two tile records used",
+    "use": "NOAA lists no access restrictions. It documents possible TIN interpolation under closed vegetation and water-edge breaklines across open water. Classified colorized returns and dry-ground registration.",
+    "tiles": [
+      {
+        "url": "https://noaa-nos-coastal-lidar-pds.s3.amazonaws.com/laz/mllw/4813/20130522_AK_Juneau_2013-2014_000866.copc.laz",
+        "sha256": "4666e193c1a78baeeb2d47b468005a06a517904695cb48c2bd057c7adf72d1c0",
+        "count": 1012601
+      },
+      {
+        "url": "https://noaa-nos-coastal-lidar-pds.s3.amazonaws.com/laz/mllw/4813/20130522_AK_Juneau_2013-2014_000917.copc.laz",
+        "sha256": "129fd434e2b890268c1065adfbe8192e8d83e671ec2069b725389fa6f752cf59",
+        "count": 520485
+      }
+    ]
+  },
+  "geography": {
+    "public_nfs_trail_33744": "https://apps.fs.usda.gov/arcx/rest/services/EDW/EDW_TrailNFSPublish_01/MapServer/0",
+    "brochure": "https://www.fs.usda.gov/sites/nfs/files/r10/tongass/publication/MendenhallBrochure2025_0.pdf",
+    "current_facilities_and_proposed_works": "https://www.govinfo.gov/content/pkg/GOVPUB-A13-PURL-gpo222163/pdf/GOVPUB-A13-PURL-gpo222163.pdf",
+    "official_adfg_stream": "https://gis.adfg.alaska.gov/mapping/rest/services/sf_public/AWC_2026/MapServer/10",
+    "official_adfg_fish": "https://gis.adfg.alaska.gov/mapping/rest/services/sf_public/AWC_2026/MapServer/12",
+    "awc_code": "111-50-10500-2006",
+    "use": "USFS existing trail and Alaska AWC public mapped stream, observed fish habitat.",
+    "forest_summer_flora": "https://www.recreation.gov/camping/poi/234504",
+    "spawning_sockeye_biology": "https://www.nps.gov/katm/learn/photosmultimedia/sockeye-salmon-frequently-asked-questions.htm"
+  },
+  "photo_validation": {
+    "juneau_ortho_service": "https://epv.ci.juneau.ak.us/arcgis/rest/services/prod/aerial_layers_ipv_all/MapServer",
+    "city_registered_tile": "https://epv.ci.juneau.ak.us/arcgis/rest/services/prod/aerial_layers_ipv_all/MapServer/export?bbox=526301%2C6474939%2C526491%2C6475169&bboxSR=32608&imageSR=32608&size=1140%2C1380&layers=show%3A0%2C1&format=jpg&f=image",
+    "city_published_acquisition": "City 2023 urban three-inch imagery and six-inch surrounding-area imagery. Source catalogs May 16 and June 18 flights.",
+    "adfg_visitor_overlook": "https://www.adfg.alaska.gov/index.cfm?adfg=bearviewing.mendenhallglacier",
+    "adfg_fish_field_record": "https://www.adfg.alaska.gov/FDDDOCS/NOM_PDFs/SEA/18-517.PDF",
+    "adfg_boardwalk_photo_and_species": "https://www.adfg.alaska.gov/index.cfm?adfg=wildlifenews.view_article&articles_id=589",
+    "use": "Reference photos and city ortho checked for physical structure and seasonal habitat. No reference photographs are shipped."
+  },
+  "inferences": [
+    "Submerged creek and pond beds and individual cobble positions.",
+    "Height and crown form separation, species labels assigned from representative local canopy; no tree species inventory for each crown.",
+    "Fish skin/behavior/positions are native Aerie models, no telemetry; representative simulated run.",
+    "Multiple acquisition dates. Water and vegetation evolve seasonally."
+  ],
+  "materials": {
+    "survey_to_runtime": "Dry low-return color and vegetation-classed heights select the location of short understory communities. Existing Aerie ground scan and near photographed plant assets supply visual fine detail.",
+    "external_scans": "Original CC0 photographic material names and links are in game/field-ground-credits.txt.",
+    "plant_representations": "Ground cover uses the native Aerie summer grasses, sedges, forbs and scrub. Individual plant species and positions are inferred."
+  }
+}

@@ -1,4 +1,5 @@
 """Bake Acadia's offshore islands from NOAA topobathymetry, USGS 3DEP and USDA NAIP."""
+import fine_shore
 import argparse
 import base64
 import re
@@ -75,7 +76,7 @@ def forest_heights(cache, key, bounds, dtm):
         roots.append([int(X),int(Z),round(height*4),round(float(radius)*2*8)])
     return np.clip(gaussian_filter((canopy>2.9).astype('f4'),2.1),0,1), roots, surface
 
-def mesh(path, bounds, y, cover, tolerance):
+def mesh(path, bounds, y, cover, tolerance, inset):
     # One continuous triangulation; then split along shared vertices for culling.
     # Deep bottom relief is preserved in the flight grid and optical depth
     # field. Submerged triangles outside the visible shoal can be much coarser.
@@ -84,13 +85,16 @@ def mesh(path, bounds, y, cover, tolerance):
     col = mesh.vertices[:,0].astype('i4')
     row = y.shape[0]-1-mesh.vertices[:,1].astype('i4')
     zz = np.c_[col,row]; triangles = np.array(mesh.triangles,dtype='i4')
+    yy=y[row,col]
+    zz,yy,triangles=fine_shore.refine(zz,yy,triangles,bounds,inset)
     a,b,c = zz[triangles[0]]
     if (b[0]-a[0])*(c[1]-a[1])>(b[1]-a[1])*(c[0]-a[0]): triangles=triangles[:,::-1]
     datum = float(np.floor(y.min())-1)
     scale = .01
-    xyz = np.c_[col*4,row*4,np.rint((y[row,col]-datum)/scale)].astype('<u2')
+    xyz = np.c_[np.rint(zz*4),np.rint((yy-datum)/scale)].astype('<u2')
     relief = np.maximum(0,gaussian_filter(y,5)-y)
-    light = np.c_[np.clip(255-10*relief[row,col],130,255),np.zeros(len(col)),255*cover[row,col],np.full(len(col),255)].astype('u1')
+    cc=np.rint(zz[:,0]).astype(int);rr=np.rint(zz[:,1]).astype(int)
+    light = np.c_[np.clip(255-10*relief[rr,cc],130,255),np.zeros(len(cc)),255*cover[rr,cc],np.full(len(cc),255)].astype('u1')
     bucket = (zz[triangles].mean(1)//220).astype(int)
     bucket = bucket[:,0]+16*bucket[:,1]
     sections = np.unique(bucket)
@@ -116,6 +120,9 @@ def mesh(path, bounds, y, cover, tolerance):
         assert len(fp)<65536
         out.write(struct.pack('<4sII',b'LOD1',len(fp),len(ft)))
         for data in (fp,fc,ft.astype('<u2')):out.write(data.tobytes())
+        fine_bounds,field,_=inset
+        out.write(struct.pack('<4s4i2H',b'SRF1',*fine_bounds,field.shape[1],field.shape[0]))
+        out.write(np.rint((field-datum)/scale).astype('<i2').tobytes())
     return len(triangles),len(ft)
 
 def horizon_field(key,bounds,dtm,surface,game):
@@ -183,14 +190,16 @@ def bake(cache, game):
         cover,roots,surface=forest_heights(cache,key,bounds,y) if key=='baker' else (np.zeros_like(y),[],y)
         img=Image.open(source/(key+'-full-naip.jpg')).convert('RGB')
         station_ground(img,key,bounds).save(game/('landform-'+name+'-aerial.webp'),quality=91,method=6)
-        triangles,distant=mesh(game/('landform-'+name+'.bin'),bounds,y,cover,tolerance)
+        inset=fine_shore.measure(cache,key,y,bounds,cover)
+        triangles,distant=mesh(game/('landform-'+name+'.bin'),bounds,y,cover,tolerance,inset)
+        print('Fine shore',key,inset[2],flush=True)
         tidal=tide_field(y,measured).resize((1024,1024),Image.Resampling.BILINEAR)
         shore.paste(tidal,(idx*1024,0))
         shore.paste(horizon_field(key,bounds,y,surface,game),(idx*1024,1024))
         if roots:
             arr=np.asarray(roots,dtype='<i2')
             (game/'acadia-baker-crowns.bin').write_bytes(arr.tobytes())
-        results[key]=dict(bounds=bounds,triangles=triangles,distantFaces=distant,retainedCrowns=len(roots),measuredBedFraction=float(measured.mean()))
+        results[key]=dict(bounds=bounds,fine=inset[2],triangles=triangles,distantFaces=distant,retainedCrowns=len(roots),measuredBedFraction=float(measured.mean()))
         print(key,results[key],flush=True)
     shore.save(game/'acadia-island-tides.png',optimize=True)
     return results
