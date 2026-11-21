@@ -84,6 +84,19 @@
             vec2 screenSlope=(viewMatrix*vec4(surfaceNormal.x,0.,surfaceNormal.z,0.)).xy;
             vec2 warp=screenSlope*distortionScale*(.063+.49/max(5.,distance));`);
       }
+      if(atlas&&region==='acadia'){
+        // Ocean Path's survey alpha supplies the measured tide depth. The 3D
+        // breaker skin handles whitewater where the NOAA soundings cover it.
+        shader=shader.replace('vec3 shore=texture2D(shoreField,basin).rgb;', `
+          vec4 shore=texture2D(shoreField,basin);
+          float soundings=step(127.75,shore.a*255.)*interior;
+          float tidalDepth=clamp((shore.a*255.-128.)/126.,0.,1.);`)
+          .replace('float shallow=exp(-.47*waterDepth);', `
+            waterDepth=mix(waterDepth,max(.065,24.*tidalDepth*tidalDepth),soundings);
+            float shallow=exp(-.47*waterDepth);`)
+          .replace('float white=oceanSurf*','float white=oceanSurf*(1.-.92*soundings)*')
+          .replace('incident*shoaling','incident*mix(1.,.16,soundings)*shoaling');
+      }
       if(atlas&&region==='lofoten'){
         // The register comes from the 2 m Hamnøy survey and the wider fjord.
         // Its alpha is 255 outside the harbor. Retain wind ripples in the lee.

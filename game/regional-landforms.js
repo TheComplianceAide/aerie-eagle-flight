@@ -3,6 +3,7 @@
 (() => {
   'use strict';
   const catalog={
+    acadia:{name:'Thunder Hole · tidal chasm and granite ledges',asset:'acadia',water:0,source:'NOAA NGS 2022 Coastal Maine topobathymetric lidar and USDA NAIP, Ocean Path, Mount Desert Island'},
     moosehead:{name:'Mount Kineo',asset:'kineo',rock:'rhyolite',water:312.23,holes:[[236,-1260,344,-1040],[360,-964,416,-880]],
       source:'USGS 3DEP Western Mountains B24 and USDA NAIP, eastern and southern Mount Kineo, Maine'},
     lofoten:{name:'Olstinden · fjord-facing wall',asset:'lofoten',water:0,source:'Kartverket national terrain model and Copernicus Sentinel-2, Lofoten, Norway'},
@@ -24,8 +25,12 @@
   const url=file=>window.aerieAssetURL?.(file)||file;
   function decode(spec,buffer){
     const head=new DataView(buffer);
-    if(head.getUint32(0)!==0x41524631||head.getUint16(4,true)!==1)throw Error('Unreadable regional terrain survey');
-    const step=head.getUint16(6,true),rect=[8,12,16,20].map(i=>head.getInt32(i,true));
+    const version=head.getUint16(4,true);
+    if(head.getUint32(0)!==0x41524631||(version!==1&&version!==2))throw Error('Unreadable regional terrain survey');
+    // Small coastal fissures use quarter-metre horizontal coordinates. The
+    // original regional mountain tiles store whole metres in the same fields.
+    const unit=version===2?.25:1;
+    const step=head.getUint16(6,true)*unit,rect=[8,12,16,20].map(i=>head.getInt32(i,true));
     const [left,top,right,bottom]=rect,nx=head.getUint16(24,true),nz=head.getUint16(26,true);
     const datum=head.getFloat32(28,true),scale=head.getFloat32(32,true),count=head.getUint32(36,true);
     let at=40;
@@ -39,7 +44,7 @@
       // The baking tiles enforce seams around the original survey. Combine
       // them in broader spatial sectors so distant land costs only a few draws.
       let x=0,z=0;for(let i=0;i<n;i++){x+=xyz[i*3];z+=xyz[i*3+1];}
-      const key=Math.floor(3*x/(n*(right-left)))+4*Math.floor(3*z/(n*(bottom-top)));
+      const key=Math.floor(3*x*unit/(n*(right-left)))+4*Math.floor(3*z*unit/(n*(bottom-top)));
       const sector=sectors.get(key)||{parts:[],vertices:0,indices:0};
       sector.parts.push({xyz,light,triangles});sector.vertices+=n;sector.indices+=triangles.length;
       sectors.set(key,sector);
@@ -97,7 +102,7 @@
       for(const {xyz,triangles} of sections){
         for(let j=0;j<triangles.length;j+=3){
           const a=3*triangles[j],b=3*triangles[j+1],c=3*triangles[j+2];
-          const ax=left+xyz[a],az=top+xyz[a+1],bx=left+xyz[b],bz=top+xyz[b+1],dx=left+xyz[c],dz=top+xyz[c+1];
+          const ax=left+unit*xyz[a],az=top+unit*xyz[a+1],bx=left+unit*xyz[b],bz=top+unit*xyz[b+1],dx=left+unit*xyz[c],dz=top+unit*xyz[c+1];
           const lx=Math.max(x0,Math.min(ax,bx,dx)),rx=Math.min(x1,Math.max(ax,bx,dx));
           const tz=Math.max(z0,Math.min(az,bz,dz)),bzLimit=Math.min(z1,Math.max(az,bz,dz));
           if(lx>rx||tz>bzLimit)continue;
@@ -163,6 +168,12 @@
       }else if(hasDetail)material.fragmentShader=material.fragmentShader.replace('photo=mix(photo,texture2D(detailOrtho,vec2(focus.x,-focus.y)/2900.+.5).rgb,blend);',
         'photo=mix(photo,texture2D(detailOrtho,'+localUV+').rgb,landformHorizon.w);');
       else material.fragmentShader=material.fragmentShader.replace('texture2D(aerial,photoUv)','texture2D(aerial,'+localUV+')');
+      if(spec.asset==='acadia'){
+        // At the inset the point cloud resolves the two sides of the chasm.
+        // The broader cliff-normal map averages across this narrow opening.
+        material.fragmentShader=material.fragmentShader.replace('normal=normalize(mix(normal,ledgeNormal,.94*graniteShore));',
+          'ledgeNormal=normalize(mix(ledgeNormal,normal,landformHorizon.w));normal=normalize(mix(normal,ledgeNormal,.94*graniteShore));');
+      }
       if(!spec.style)material.fragmentShader=material.fragmentShader
         .replace('dense*=orthoCoverage;',`dense=mix(dense,landformHorizon.z*.96,landformHorizon.w);dense*=orthoCoverage;`)
         .replace('vec3 c=mix(photo,stoneColor,materialWeight);',`
@@ -185,15 +196,15 @@
       for(const part of sections){
         const n=part.xyz.length/3,pos=new Float32Array(n*3),norm=new Float32Array(n*3),ex=new Uint8Array(part.light);
         for(let i=0;i<n;i++){
-          const j=i*3,x=left+part.xyz[j],z=top+part.xyz[j+1],w=edge(x,z),base=baseAt(x,z);
+          const j=i*3,x=left+unit*part.xyz[j],z=top+unit*part.xyz[j+1],w=edge(x,z),base=baseAt(x,z);
           const y=datum+part.xyz[j+2]*scale;
           pos[j]=x;pos[j+1]=low!==undefined&&y<=low+.12?Math.min(base,y):base+(y-base)*w;pos[j+2]=z;
           // Calculate boundary normals from the adjoining native terrain so both
           // shapes and lighting meet continuously at the exact old survey slot.
-          const a=x-2,b=x+2,c=z-2,d=z+2;
+          const normalStep=Math.min(2,step),a=x-normalStep,b=x+normalStep,c=z-normalStep,d=z+normalStep;
           const sx=(w>.999?sample(a,z)-sample(b,z):height(a,z,baseAt(a,z))-height(b,z,baseAt(b,z)));
           const sz=(w>.999?sample(x,c)-sample(x,d):height(x,c,baseAt(x,c))-height(x,d,baseAt(x,d)));
-          const inv=1/Math.hypot(sx,4,sz);norm[j]=sx*inv;norm[j+1]=4*inv;norm[j+2]=sz*inv;
+          const diameter=2*normalStep,inv=1/Math.hypot(sx,diameter,sz);norm[j]=sx*inv;norm[j+1]=diameter*inv;norm[j+2]=sz*inv;
           ex[4*i+3]=Math.round(255*w);
         }
         const geometry=new T.BufferGeometry();

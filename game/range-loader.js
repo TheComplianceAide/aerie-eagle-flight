@@ -29,7 +29,7 @@
       crater:['regional-waterfalls.js','falls-terrain-crater.js','waterfall-system.js','crater-bathymetry.js','crater-weather.js','crater-phantom-ship.js'],
       dixville:['waterfall-system.js','dixville-brooks.js','dixville-lidar.js','talus-data.js','rocks.js','architecture.js','dixville-landmarks.js'],
       labrador:['architecture.js','labrador-camp-ground.js','labrador-cabin.js','labrador-weather.js'],
-      acadia:['acadia-night.js','acadia-coast.js'],
+      acadia:['acadia-night.js','acadia-coast.js','acadia-ocean-path.js'],
       lofoten:['regional-waterfalls.js','falls-terrain-lofoten.js','waterfall-system.js','lofoten-hamnoy.js'],
       yosemite:['terrain-indices.js','waterfall-system.js','atlas-yosemite-crowns.js','talus-data.js','rocks.js'],
       moosehead:['moosehead-crowns.js','moosehead-shore-survey.js','moosehead-bank-growth.js','moosehead-uplands.js','kineo-terrain.js','regional-waterfalls.js','falls-terrain-moosehead.js','waterfall-system.js','architecture.js'],

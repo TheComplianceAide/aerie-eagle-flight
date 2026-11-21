@@ -6,8 +6,8 @@ use WGS84 / UTM zone 19N (EPSG:32619), with origin at easting 564651 m,
 northing 4907768 m. The 2.9 km square around Ocean Path is sampled at 2 m,
 the 6.656 km square around the eastern shore at 6.5 m, and the 32 km
 background at 50 m. Heights are quantized in 0.25 m steps for rendering.
-The submerged seabed is a modeled surface, recessed from the wet side of
-the DEM for rendering through the water. It is not a hydrographic chart.
+Along Ocean Path the water-depth and breaker fields use NOAA topobathymetry.
+Beyond survey coverage the game extends a modeled seabed.
 Coastal slope normals are sampled from an additional one-metre USGS 3DEP
 export across the near cliffs. Geological surface texture is rendered on
 these slopes from the shared game cliff material. Moonlight and terrain
@@ -51,3 +51,26 @@ block sizes and joint positions between survey returns are representative.
 The night material follows the local 3DEP outward normals and tidal reach.
 https://www.usgs.gov/media/images/granite-rocks-thunder-hole
 https://www.nps.gov/acad/learn/nature/geologic-features.htm
+
+Thunder Hole terrain and coastal water. NOAA National Geodetic Survey,
+2022–2023 Coastal Maine topobathymetric lidar and one-metre DEM, public
+domain. October 16, 2022 returns from ground and bathymetric classes 2, 40
+and 43 supply the local rock and viewing-terrace elevations. The 116 by 112 m
+site mesh samples at 0.25 m and the contact height field at 0.5 m. The floor
+in the shadowed blind chamber interpolates the opening visible at low tide.
+Along the wider coast, a finite-depth gravity wave travels through a 2 m
+grid using the open-source scikit-fmm fast-marching solver offline. The
+7.6-second swell, its strength, foam and spray are simulated at a fixed tide.
+https://www.fisheries.noaa.gov/inport/item/77189
+https://www.fisheries.noaa.gov/inport/item/77200
+https://github.com/scikit-fmm/scikit-fmm
+
+Thunder Hole viewing walks. The National Park Service Cultural Landscapes
+Inventory site plan, lower-walk photographs and 1992 as-built drawing
+document the terraces, steps and accessible upper overlook. The 2025 Maine
+GeoLibrary coastal orthophoto was inspected to trace the plan and the cleft.
+Rail dimensions, individual tread heights and finishes are approximations.
+The daytime ground color rendered here is USDA NAIP.
+https://irma.nps.gov/DataStore/Reference/Profile/2192694
+https://www.nps.gov/places/thunder-hole.htm
+https://gis.maine.gov/image/rest/services/Coastal/Maine_Orthoimagery_Coastal_Acadia_2025/ImageServer
