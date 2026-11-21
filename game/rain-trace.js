@@ -9,13 +9,27 @@ window.makeRainTrace=function makeRainTrace(T,scene,{world,terrain,water,cabin,s
   const profile=climates[world.region];if(!profile||!water)return null;
   const mark=survey.landmarks.find(p=>p.name===profile[0]);if(!mark)return null;
   const anchor=new T.Vector2(mark.x,mark.z),dir=new T.Vector2(1,0);
+  const wind=window.getCanopyWind(T,scene);
   const time={value:0},speed=profile[1],breadth=profile[2],strength=profile[3];
   const uniforms={stormAnchor:{value:anchor},stormDir:{value:dir},stormTime:time,
     stormSpeed:{value:speed},stormWidth:{value:breadth},stormIntensity:{value:strength}};
+  const narrows=world.region==='labrador'&&survey.landmarks.find(p=>/rainbow|shower|arc-en-ciel/i.test(p.name));
+  let narrowsGLSL='';
+  if(narrows){
+    const axis=new T.Vector2(-world.sunDirection.x,-world.sunDirection.z).normalize();
+    uniforms.weatherNarrows={value:new T.Vector4(narrows.x,narrows.z,narrows.x,narrows.z)};
+    narrowsGLSL=`uniform vec4 weatherNarrows;
+      float narrowsDrops(vec2 p,vec2 center){
+        const vec2 axis=vec2(${axis.x.toFixed(7)},${axis.y.toFixed(7)});
+        vec2 dst=p-center;
+        return (1.-smoothstep(140.,470.,abs(dot(dst,axis))))*
+               (1.-smoothstep(650.,1600.,abs(dot(dst,vec2(-axis.y,axis.x)))));
+      }`;
+  }
   // The normal cabin flight starts under the retreating edge of the cell and
   // crosses into sunlight over the building. Other regions keep their own timing.
   const phase=cabin?16:0;
-  const fields=`
+  const fields=`${narrowsGLSL}
     uniform vec2 stormAnchor,stormDir;uniform float stormTime,stormSpeed,stormWidth,stormIntensity;
     vec2 rainPass(vec2 p){
       vec2 q=p-stormAnchor;
@@ -36,11 +50,16 @@ window.makeRainTrace=function makeRainTrace(T,scene,{world,terrain,water,cabin,s
     Object.assign(mat.uniforms,uniforms);mat.fragmentShader=fields+'\n'+mat.fragmentShader.replace(anchorText,code+'\n'+anchorText);
     mat.needsUpdate=true;
   }
+  Object.assign(terrain.uniforms,wind.uniforms);
+  terrain.fragmentShader=wind.flowGLSL+'\n'+terrain.fragmentShader;
   extend(terrain,'float dep=1.-exp(-d*',`
     vec2 storm=rainPass(wp.xz);
-    if(storm.y>.005 && storm.x>-19. && storm.x<680.){
+    ${narrows?`float rainNow=narrowsDrops(wp.xz,weatherNarrows.xy),rainTail=narrowsDrops(wp.xz,weatherNarrows.zw);`:''}
+    if((storm.y>.005 && storm.x>-19. && storm.x<680.)${narrows?'||max(rainNow,rainTail)>.005':''}){
       float exposure=clamp(dot(normal,sun)*1.9+.1,.04,1.);
-      float damp=waterHeld(storm,mix(127.,48.,exposure));
+      float ventilation=.34+.66*localExposure(wp.xz);
+      float damp=waterHeld(storm,mix(127.,48.,exposure)/ventilation);
+      ${narrows?'damp=max(damp,max(rainNow,.66*rainTail*exp(-36.*ventilation/95.)));':''}
       float mottled=.5+.21*sin(wp.x*.73+sin(wp.z*.91))+.19*sin(wp.z*.41-wp.x*.68);
       float wetArea=smoothstep(mottled*.43,mottled*.43+.46,damp);
       vec3 v=normalize(cameraPosition-wp);
@@ -152,6 +171,7 @@ window.makeRainTrace=function makeRainTrace(T,scene,{world,terrain,water,cabin,s
   // Expanding fronts are antialiased and fade naturally at altitude.
   extend(wm,'vec3 n=normalize(vec3(slope.x,1.,slope.y));',`
     float showers=dropsNow(rainPass(p));
+    ${narrows?'showers=max(showers,narrowsDrops(p,weatherNarrows.xy));':''}
     if(showers>.012 && footprint<.24){
       vec2 cell=p*3.25,ix=floor(cell);
       vec2 ringSlope=vec2(0.);
@@ -193,13 +213,21 @@ window.makeRainTrace=function makeRainTrace(T,scene,{world,terrain,water,cabin,s
   }
 
   const smooth=(a,b,v)=>T.MathUtils.smoothstep(v,a,b);
-  function pass(x,z,t){
-    const dx=x-anchor.x,dz=z-anchor.y,side=-dx*dir.y+dz*dir.x,along=dx*dir.x+dz*dir.y;
+  function pass(x,z,t,out={}){
+    // Visuals, audio and feather wetting may sample before the next render.
+    const current=world.windField?.direction,sign=cabin?-1:1;
+    const fx=current?sign*current.x:dir.x,fz=current?sign*current.z:dir.y;
+    const dx=x-anchor.x,dz=z-anchor.y,side=-dx*fz+dz*fx,along=dx*fx+dz*fz;
     const age=t+phase-along/speed-3*Math.sin(side*.012);
     const area=(1-smooth(breadth*.37,breadth,Math.abs(side)))*(1-smooth(1500,2300,Math.abs(along)))*strength;
-    return {age,area,rain:area*smooth(-19,-7,age)*(1-smooth(6,17,age))};
+    out.age=age;out.area=area;out.rain=area*smooth(-19,-7,age)*(1-smooth(6,17,age));return out;
   }
   const wet=(p,seconds)=>p.area*smooth(-19,-5,p.age)*Math.exp(-Math.max(0,p.age-6)/seconds);
+  const sourcePass={};
+  world.rainCellAt=(x,y,z,t,out)=>{
+    const p=pass(x,z,t,sourcePass);
+    out.rain=p.rain;out.wetness=wet(p,82/out.drying);
+  };
   let randomState=930187;
   const random=()=>((randomState=(Math.imul(randomState,1664525)+1013904223)>>>0)/4294967296);
   const seed=[],tip=[];
@@ -220,6 +248,10 @@ window.makeRainTrace=function makeRainTrace(T,scene,{world,terrain,water,cabin,s
   let last=-1,air={};
   return function update(t,eye,field){
     time.value=t;dir.set(field.direction.x,field.direction.z);
+    if(narrows){
+      const now=240*Math.sin(t*field.advection/240),past=240*Math.sin((t-36)*field.advection/240);
+      uniforms.weatherNarrows.value.set(narrows.x+dir.x*now,narrows.z+dir.y*now,narrows.x+dir.x*past,narrows.z+dir.y*past);
+    }
     // The trailing edge evaporates back toward the lake. Rain itself continues
     // to fall downwind with the measured surface air over the clearing.
     if(cabin)dir.multiplyScalar(-1);
@@ -228,13 +260,14 @@ window.makeRainTrace=function makeRainTrace(T,scene,{world,terrain,water,cabin,s
     const dt=last<0?0:Math.max(0,Math.min(.18,t-last));last=t;
     if(drops.visible){field.sample(eye.x,eye.y,eye.z,t,air);u.wind.value.set(air.windX,air.windZ);u.travel.value.addScaledVector(u.wind.value,dt);}
     if(camp){
-      const p=pass(anchor.x,anchor.y,t),retained=wet(p,68);
+      const p=pass(anchor.x,anchor.y,t),ventilation=.34+.66*field.canopyExposure(anchor.x,anchor.y);
+      const retained=wet(p,68/ventilation);
       // The hydrograph peaks later than the rain at the roof and recedes
       // slowly as the clearing drains. A cold jump to a landmark is continuous.
       const delayed={...p,age:p.age-10};
-      const runoff=wet(delayed,63)*smooth(-10,10,p.age);
+      const runoff=wet(delayed,63/ventilation)*smooth(-10,10,p.age);
       plumeLoad.value=runoff;plumeTime.value=t;
-      camp(t,p.rain,retained,wet(p,34),wet(p,142),runoff);
+      camp(t,p.rain,retained,wet(p,34/ventilation),wet(p,142/ventilation),runoff);
       vapor?.(eye,retained,1-T.MathUtils.smoothstep(p.rain,.04,.7));
     }
   };

@@ -1,3 +1,16 @@
+// Rain below the actual broken squall, including the gaps between its shafts.
+window.aerieCalderaRain=function(x,y,z,t){
+  const mod=(v,n)=>v-n*Math.floor(v/n);
+  const ease=(x,a,b)=>{const u=Math.max(0,Math.min(1,(x-a)/(b-a)));return u*u*(3-2*u);};
+  const nearSide=-.316228*x+.948683*z;
+  const bend=175*Math.sin(nearSide*.00073)+112*Math.sin(nearSide*.00181+.7)+43*Math.sin(nearSide*.0031);
+  const local=mod(.948683*x+.316228*z+2590+t*17-bend+7000,18000)-7000;
+  const broken=.70+.22*Math.cos(nearSide*.0019+.4)+.08*Math.sin(nearSide*.0043);
+  const ribbon=ease(local,-94,58)*(1-ease(local,368,690));
+  const core=ease(local,930,1430)*(1-ease(local,4600,5900));
+  const cells=ease(.74*Math.sin(nearSide*.00117+.9)+.48*Math.sin(nearSide*.00273+.4)+.22*Math.sin(nearSide*.00645),-.46,.68);
+  return Math.max(ribbon*broken,core*cells)*(1-ease(y,2730,3060));
+};
 // A squall crossing the caldera. A clear slot toward the low western sun
 // remains visible below the bank. The pass, its shadow and the rain shafts
 // occupy survey space and are seen from the same geometry in the lake mirror.
@@ -11,6 +24,7 @@ window.addCraterWeather=function addCraterWeather(T,scene,{sun,clock,sky,terrain
   const arcus=new T.TextureLoader().load('crater-arcus-front.webp');
   arcus.colorSpace=T.SRGBColorSpace;
   const uniforms={calderaTime:clock,calderaSun:{value:sun},calderaCloud:{value:cloud},calderaCells:{value:lobes},calderaPhoto:{value:photo},calderaArcus:{value:arcus}};
+  const surfaceFlow=window.getCanopyWind(T,scene);
   const front=`
     uniform float calderaTime;
     uniform vec3 calderaSun;
@@ -81,13 +95,13 @@ window.addCraterWeather=function addCraterWeather(T,scene,{sun,clock,sky,terrain
       float light=1.-exp(-through*.00034*forward);
       return mix(color,vec3(1.09,.670,.293),min(.49,light));
     }
-    float dropCover(vec3 p){
-      float d=stormDepth(p.xz),side=dot(p.xz,frontSide);
+    float rainAtDepth(vec3 p,float d,float side){
       float broken=.70+.22*cos(side*.0019+.4)+.08*sin(side*.0043);
       float ribbon=smoothstep(-94.,58.,d)*(1.-smoothstep(368.,690.,d));
       float main=smoothstep(930.,1430.,d)*(1.-smoothstep(4600.,5900.,d));
       return max(ribbon*broken,main*rainLoad(side))*(1.-smoothstep(2730.,3060.,p.y));
     }
+    float dropCover(vec3 p){return rainAtDepth(p,stormDepth(p.xz),dot(p.xz,frontSide));}
     float curtainHit(vec3 ray){
       float axisRay=dot(ray.xz,frontAxis);
       // Each curtain falls just behind the leading cloud. Use a predictor
@@ -216,11 +230,22 @@ window.addCraterWeather=function addCraterWeather(T,scene,{sun,clock,sky,terrain
     /* before local precipitation */
     gl_FragColor.rgb=craterSky(gl_FragColor.rgb,d);`);
   const lightLine='/* canopy transmission */';
-  extend(terrain,front,lightLine,`
+  Object.assign(terrain.uniforms,surfaceFlow.uniforms);
+  extend(terrain,surfaceFlow.flowGLSL+'\n'+front,lightLine,`
     float squallShade=craterShade(wp);
     float ribbon=apertures(clearSlot(wp));
     c*=mix(vec3(1.34,1.05,.744),vec3(.292,.396,.565),squallShade);
     c+=c*vec3(.50,.285,.076)*ribbon*(.47+.53*incidence);
+    if(d<380.){
+      float depth=stormDepth(wp.xz),side=dot(wp.xz,frontSide);
+      float dry=.34+.66*localExposure(wp.xz);
+      float wet=max(rainAtDepth(wp,depth,side),max(
+          .76*rainAtDepth(wp,mod(depth-30.*17.+7000.,18000.)-7000.,side)*exp(-30.*dry/105.),
+          .56*rainAtDepth(wp,mod(depth-90.*17.+7000.,18000.)-7000.,side)*exp(-90.*dry/105.)));
+      wet*=(1.-smoothstep(210.,380.,d))*(1.-.48*veg);
+      float grazing=1.-clamp(dot(normalize(cameraPosition-wp),normal),0.,1.);
+      c=c*(1.-.20*wet)+wet*pow(grazing,4.)*vec3(.059,.062,.069);
+    }
 
     `+lightLine);
   const terrainLine='gl_FragColor=vec4(mix(c,aerialHaze,dep*(.72+.28*skyView)),1.);';
@@ -295,14 +320,7 @@ window.addCraterWeather=function addCraterWeather(T,scene,{sun,clock,sky,terrain
     const gap=.789352*x+.613941*z-mid;
     const slit=Math.min(1,1-ease(Math.abs(gap),width*.28,width*1.14)+.69*(1-ease(Math.abs(gap-680),26,104)));
     const shade=ease(depth,-310,330)*(1-ease(depth,4700,7400))*(1-slit);
-    const nearSide=-.316228*player.x+.948683*player.z;
-    const bend=175*Math.sin(nearSide*.00073)+112*Math.sin(nearSide*.00181+.7)+43*Math.sin(nearSide*.0031);
-    const local=T.MathUtils.euclideanModulo(.948683*player.x+.316228*player.z+2590+t*17-bend+7000,18000)-7000;
-    const broken=.70+.22*Math.cos(nearSide*.0019+.4)+.08*Math.sin(nearSide*.0043);
-    const ribbon=ease(local,-94,58)*(1-ease(local,368,690));
-    const core=ease(local,930,1430)*(1-ease(local,4600,5900));
-    const cells=ease(.74*Math.sin(nearSide*.00117+.9)+.48*Math.sin(nearSide*.00273+.4)+.22*Math.sin(nearSide*.00645),-.46,.68);
-    wetAir.value=Math.max(ribbon*broken,core*cells)*(1-ease(player.y,2730,3060));
+    wetAir.value=window.aerieCalderaRain(player.x,player.y,player.z,t);
     drops.visible=wetAir.value>.009;
     if(previous<0||t<previous)drift.value.set(0,0);
     if(drops.visible&&field){

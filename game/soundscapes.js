@@ -432,7 +432,7 @@
     },
     milford: {
       falls: {clip: 'scape-milford-big-waterfall', ref: 160, reach: 7000, gain: 1},
-      beds: [{clip: 'scape-milford-rainforest-rain', ref: 1, gain: c => .16 * (1 - smooth(60, 260, c.agl)) + .05}],
+      beds: [{clip: 'scape-milford-rainforest-rain', ref: 1, gain: c => (.16 * (1 - smooth(60, 260, c.agl)) + .05) * (c.rain === undefined ? 1 : .82 * c.rain + .18 * c.wetness)}],
       choruses: [{clip: 'scape-milford-chorus-cicada', habitat: 'trees', count: 3, r: [25, 160], ref: 14, reach: 600, gain: .38}],
       events: [
         {clip: 'scape-milford-weka', every: [30, 70], ref: 18, reach: 450, gain: .5, where: onGround(40, 300)},
@@ -791,17 +791,30 @@
       if (far && Math.random() < .55) engine.play(far, pos, {gain: .45, ref: 1500, reach: 30000, wet: 1, occlude: false, when: rand(.6, 2.2)});
       window.dispatchEvent(new CustomEvent('aerie-lightning', {detail: {x: s.x, z: s.z, cloudY: storm.cloudY, distance: synth.nearest}}));
     }
-    const rainLevel = (s, t) => window.aerieRainAt(world, region, s.x, s.z, t);
+    const weatherSample = {};
+    let listenerWeather = null, sampledField = null, lastWeatherTime = -Infinity;
+    let sampledX = 0, sampledY = 0, sampledZ = 0;
 
     let nextScan = 0, shore = null;
     function update(s, camera, dt, extras = {}) {
       if (!enabled) return;
       engine.update(camera, dt); lastCamera = camera;
       const now = context.currentTime, t = s.elapsed || 0, ear = engine.ear;
+      const field = world.windField;
+      if (field !== sampledField || t < lastWeatherTime || t - lastWeatherTime >= .10 ||
+          (ear.x-sampledX)**2 + (ear.y-sampledY)**2 + (ear.z-sampledZ)**2 > 64) {
+        listenerWeather = field?.weatherAt?.(ear.x, ear.y, ear.z, t, weatherSample);
+        sampledField = field; lastWeatherTime = t; sampledX = ear.x; sampledY = ear.y; sampledZ = ear.z;
+      }
+      const gust = listenerWeather?.gust ?? extras.gust ?? .5;
       airflow = airflow || makeAirflow(context, destination);
-      airflow.update(s, extras.gust ?? .5, now);
+      // Indicated airspeed already includes the air velocity relative to the
+      // moving bird. The local pressure pulse adds independent ear turbulence.
+      airflow.update(s, gust, now);
       const agl = Math.max(0, ear.y - ground(world, ear.x, ear.z));
-      ctx = {world, ear, agl, exposure: extras.exposure ?? clamp(agl / 200, 0, 1), gust: extras.gust ?? .5, canopy: extras.canopy ?? 0,
+      const elevationGain = extras.exposure ?? clamp(agl / 200, 0, 1);
+      const exposure = listenerWeather ? listenerWeather.exposure * (.34 + .66 * elevationGain) : elevationGain;
+      ctx = {world, ear, agl, exposure, gust, rain: listenerWeather?.rain, wetness: listenerWeather?.wetness ?? 0, canopy: extras.canopy ?? 0,
         shore: extras.shore, town: 0, t, overWater: isWet(world, ear.x, ear.z)};
       const keene = landmark(world, /Central Square/);
       if (keene) ctx.town = 1 - smooth(300, 1400, Math.hypot(ear.x - keene.x, ear.z - keene.z));
@@ -871,7 +884,7 @@
         placeBed(state.beds[k], clamp(b.gain(ctx), 0, 1.2), now);
       });
       // Rain at the eagle: recorded rain plus synthesised near drops on the surface below.
-      const rain = rainLevel(ear, t);
+      const rain = ctx.rain ?? window.aerieRainAt(world, region, ear.x, ear.z, t);
       if (rain > .01 && !state.rain) {
         const below = isWet(world, ear.x, ear.z) ? 'water' : (world.habitat?.nearestTree?.(ear.x, ear.z, 25) ? 'leaves' : 'rock');
         const rec = buffers.get('scape-' + region + (below === 'water' ? '-rain-on-lake' : '-rain-on-spruce')) || buffers.get('scape-' + region + '-rain-approach');
@@ -906,32 +919,29 @@
     }
     function tickEvents(now) {
       const ear = engine.ear;
-      // Hoofed animals on the move. A looping source rides with each walking
-      // moose or deer near the eagle (the three nearest): brush and steps for
-      // a walk, quicker and louder when it bolts, wading where a moose stands
-      // in water. It stops when the animal stands still.
+      // The licensed ground recording is a heavy animal walking through
+      // dry foliage. Stop it at the bank as well as when the moose is still.
       const walkers = [];
       for (const a of world.wildlife?.land?.drawn || []) {
-        const kind = a.id === 'moose' ? 'moose' : /deer/.test(a.id || '') ? 'deer' : null;
-        if (!kind || !(a.speed > .22)) continue;
+        if (a.id !== 'moose' || !(a.speed > .22)) continue;
         const d = Math.hypot(a.x - ear.x, a.y - ear.y, a.z - ear.z);
-        if (d < (kind === 'moose' ? 190 : 130)) walkers.push({a, kind, d});
+        if (d < 190 && !isWet(world, a.x, a.z)) walkers.push({a, d});
       }
       walkers.sort((p, q) => p.d - q.d); walkers.length = Math.min(walkers.length, 3);
       for (const [a, src] of state.steps) if (!walkers.some(w => w.a === a)) { src.stop(.8); state.steps.delete(a); }
-      for (const {a, kind} of walkers) {
+      for (const {a} of walkers) {
         let src = state.steps.get(a);
         if (!src) {
-          const id = kind === 'moose' && isWet(world, a.x, a.z) ? 'move-moose-wade' : 'move-' + kind;
-          for (const want of new Set([id, 'move-' + kind])) if (buffers.get(want) === undefined && !loading.has(want)) load(want);
-          const b = buffers.get(id) || buffers.get('move-' + kind);
+          const id = 'move-moose';
+          if (!buffers.has(id) && !loading.has(id)) load(id);
+          const b = buffers.get(id);
           if (!b) continue;
-          src = engine.loop(b, {x: a.x, y: a.feetY ?? a.y, z: a.z}, {gain: 0, ref: kind === 'moose' ? 9 : 6, reach: kind === 'moose' ? 190 : 130, wet: .3});
+          src = engine.loop(b, {x: a.x, y: a.feetY ?? a.y, z: a.z}, {gain: 0, ref: 9, reach: 190, wet: .3});
           if (!src) continue;
           state.steps.set(a, src);
         }
         src.x = a.x; src.y = a.feetY ?? a.y; src.z = a.z;
-        src.gain = (kind === 'moose' ? .8 : .6) * clamp((a.speed - .15) / .45, 0, 1.3);
+        src.gain = .8 * clamp((a.speed - .15) / .45, 0, 1.3);
         src.source?.playbackRate.setTargetAtTime(clamp(.86 + .24 * a.speed, .9, 1.45), now, .3);
       }
       // Moving sources follow their paths.
