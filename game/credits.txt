@@ -820,3 +820,17 @@ Fründenhütte SAC and Fründengletscher proglacial tarns, Kandersteg, Switzerla
 The window, red-and-white shutters and doorway are restored from “Fründenhütte gegen Doldenhorn” by Caumasee, 31 July 2008, released to the public domain. The photographic regions were perspective-corrected and their diffuse exposure was balanced. Original photograph: https://commons.wikimedia.org/wiki/File:Fr%C3%BCndenh%C3%BCtte_gegen_Doldenhorn.jpg. Field description and reference photographs: https://www.sac-cas.ch/en/huts-and-tours/sac-route-portal/fruendenhuette-sac-2147000102/ .
 
 Korten, the two rocky sea islets east of Hamnøy, Moskenes. © Kartverket, Norwegian terrain model and Central Place Name Register (https://www.kartverket.no/en/api-and-data/terms-of-use). Coordinates 67.94759° N, 13.15291° E. The native two-metre terrain export preserves the channel and measures approximately 8.7 m and 3.7 m of relief on the two rock masses. Thirty-six kilometres of conservative marine coverage are derived from the national DTM at ten-metre spacing. Recessed open-water surfaces are graphical approximations, without bathymetric soundings. Vegetation and colour contain modified Copernicus Sentinel-2 data (16 July 2025, S2C_32WPA_20250716_1_L2A). Terms: https://sentinels.copernicus.eu/documents/247904/690755/Sentinel_Data_Legal_Notice .
+
+Ashuelot River Park and West Street Dam, Keene. Terrain and hydro-flattened
+pool levels use USGS 3DEP, one metre. USGS NH Connecticut River 2015 point
+cloud returns locate the pedestrian deck and woodland crown maxima. NH
+GRANIT's statewide 2021/2022 six-inch orthophotos supply the mapped river
+edge, spillway, bridge and terrace positions and pavement color. Conway
+School's 2020 park master plan for the City of Keene guided the modeled
+suspension rails, granite observation seats and west-bank viewing enclosure.
+No City plan or park photograph is reproduced in the game.
+https://apps.nationalmap.gov/downloader/
+https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer
+https://granit24a.sr.unh.edu/image/rest/services/ImageServices/NH_2021_2022_6in_RGB/ImageServer
+https://keeneparks.recdesk.com/Community/Facility/Detail?facilityId=73
+https://keenenh.gov/wp-content/uploads/2025/03/2020_Keene_SpringFinalSet-High-part1.pdf

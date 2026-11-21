@@ -550,7 +550,8 @@ class Water extends Mesh {
   const easternSummits=region==='yosemite'?window.aerieRegionalLandforms.get('yosemitesummits'):null;
   const namedBays=window.aerieLakeBankSites?.[region]||[];
   const bankSurveys=namedBays.map(name=>window.aerieRegionalLandforms.get(name)).filter(Boolean);
-  const measuredTerrain=[landmarkTerrain,harborTerrain,easternSkerries,easternSummits,...bankSurveys].filter(Boolean);
+  const cityPark=surry?window.keeneRiverPark:null;
+  const measuredTerrain=[landmarkTerrain,harborTerrain,easternSkerries,easternSummits,cityPark,...bankSurveys].filter(Boolean);
   function bayAt(x,z){
     for(const bank of bankSurveys){
       const [l,t,r,b]=bank.rect;
@@ -569,6 +570,7 @@ class Water extends Mesh {
     const native=regionalElevation(x,z,includeIslet);
     let base=landmarkTerrain?landmarkTerrain.height(x,z,native):native;
     if(harborTerrain)base=harborTerrain.height(x,z,base);
+    if(cityPark)base=cityPark.height(x,z,base);
     if(easternSkerries)base=easternSkerries.height(x,z,base);
     if(easternSummits)base=easternSummits.height(x,z,base);
     if(bankSurveys.length){const bank=bayAt(x,z);if(bank)base=bank.height(x,z,base);}
@@ -1705,6 +1707,7 @@ class Water extends Mesh {
   const trees=[],firTrees=[],broadTrees=[],cells=new Map(),cellStride=uplands?4096:1024,cell=(x,z)=>(Math.floor(x/50)+500)*cellStride+Math.floor(z/50)+500;
   if(['surry','moosehead','winnipesaukee','labrador','dixville'].includes(region))
     scene.userData.buildingLight=window.makeBuildingLight(THREE,scene,region,skyMap);
+  if(cityPark)cityPark.terrain(THREE,scene,terrain,elevation,texture);
   const dam=surry?window.addSurryDam(THREE,scene,{survey,elevation,ground:shoreFloor?.ground||elevation,terrain,texture,sun,sky:skyMap,clock,aerial,half:h}):null;
   const bankHabitat=bankSurveys.length?window.makeLakeHabitat(THREE,scene,region,elevation,settings.water):null;
   const settlement=waterfront?{
@@ -1729,6 +1732,7 @@ class Water extends Mesh {
     return (y<settings.water+margin&&inLake(x,z))||Number.isFinite(dam.riverHeight(x,z));
   }
   function plant(tree,isFir,measuredBank=false){
+    if(cityPark?.ownsCanopy(tree.x,tree.z)&&!tree.observedRiverPark)return;
     if(bankHabitat&&!measuredBank&&bankHabitat.ownsTree(tree.x,tree.z))return;
     if(acadia&&window.acadiaSandOpening(tree.x,tree.z))return;
     if(survey.inBerteCanopy&&!tree.measuredBerte&&survey.inBerteCanopy(tree.x,tree.z))return;
@@ -1751,6 +1755,7 @@ class Water extends Mesh {
     const id=cell(tree.x,tree.z);if(!cells.has(id))cells.set(id,[]);cells.get(id).push(tree);
   }
   bankHabitat?.plantCrowns(plant);
+  cityPark?.plantCrowns(plant,elevation);
   if(localDEM){
     const crowns=unpack(localDEM.crowns);
     for(let i=0;i<crowns.length;i+=5){
@@ -1891,10 +1896,11 @@ class Water extends Mesh {
     update(dt,t,player){clock.value=t;bankHabitat?.updateBoats?.(t,player,world.windField);updateDistantTerrain(player);updateTable(player);shoreDetail?.update(player);bankGrowth?.update(player);updateUplandWoods?.(player);updateWeather?.(t,player,world.windField);rainTrace?.(t,player,world.windField);updateHardwoods?.(player);if(water)water.material.uniforms.time.value=t*.65;}};
   if(!survey.shore?.length&&shoreDetail)world.fieldBankAt=shoreDetail.closestBank;
   if(dam){world.riverSurfaceAt=dam.riverHeight;world.surryArmorPerch=dam.armorPerch;}
-  const openRoad=resort?.openRoadAt||bankHabitat?.managedGround;
+  if(dam?.park&&waterfalls)waterfalls.impacts.push(dam.park.impact);
+  const openRoad=resort?.openRoadAt||bankHabitat?.managedGround||dam?.park?.managedGround;
   if(openRoad)world.openRoadAt=openRoad;
-  if(waterfront||bankHabitat||resort)world.blocksInfillTree=(x,z)=>
-    bankHabitat?.ownsTree(x,z)||waterfront?.blocksInfillTree(x,z)||world.openRoadAt?.(x,z);
+  if(waterfront||bankHabitat||resort||cityPark)world.blocksInfillTree=(x,z)=>
+    bankHabitat?.ownsTree(x,z)||waterfront?.blocksInfillTree(x,z)||cityPark?.ownsCanopy(x,z)||world.openRoadAt?.(x,z);
   world.geologyGround=shoreFloor?(x,z)=>Math.max(shoreFloor.ground(x,z),shoreFloor(x,z)):null;
   const updateUplandWoods=uplands?.woods(THREE,scene,world,clock,localDEM,bankSurveys,bankHabitat);
   if(bankGrowth)world.shoreThickets=bankGrowth;
