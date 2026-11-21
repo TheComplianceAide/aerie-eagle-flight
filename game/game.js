@@ -22,8 +22,9 @@
   window.addEventListener("worldchange",()=>{if(renderer||launchPending){disposeCanopy();location.reload();}});
   const keys = new Set(), found = new Set();
   let renderer, scene, camera, world, eagle, player, gaze, cameraTarget;
-  let gameVision,canopy,geology,fieldScenery;
+  let gameVision,canopy,geology,fieldScenery,terrainShadows;
   function disposeCanopy(){
+    terrainShadows?.dispose();terrainShadows=null;
     canopy?.dispose();
     geology?.dispose();
     fieldScenery?.dispose();
@@ -540,6 +541,7 @@
       if(region==="surry")window.lightKeeneStreet(THREE,renderer,scene,world,eagle.object);
       updateWeather=await window.makeMovingWeather(THREE,scene,world);
       updateOptics=window.addAtmosphericOptics(THREE,scene,world);
+      terrainShadows=window.makeTerrainShadows(THREE,renderer,scene,world);
       const departingCanopy=canopy;
       departingCanopy.ready?.then(()=>departingCanopy.warmApproachPrograms?.(camera));
       if(launchPicker.value==='canopy'&&canopy.ready){
@@ -935,6 +937,7 @@
     canopy?.update(player,elapsed,camera.position,camera);
     geology?.update(player,elapsed);
     fieldScenery?.update(player,elapsed);
+    terrainShadows?.update(player);
     renderer.render(scene,camera);updatePerchHUD(s);gameVision.update(player,camera,elapsed);
     if(s.contact){showDialog("contact");return;}
     if(elapsed>=nextReadout){

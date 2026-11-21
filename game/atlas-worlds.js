@@ -1146,6 +1146,7 @@ class Water extends Mesh {
       .replace('photo=mix(photo,texture2D(detailOrtho,vec2(focus.x,-focus.y)/2900.+.5).rgb,blend);','');
     for(let z=128;z<512;z+=64)for(let x=-256;x<256;x+=64){
       const mesh=new THREE.Mesh(tableGeometry(x,z,4),tableMaterial);
+      mesh.userData.terrainCaster=true;
       mesh.name='Table Rock · lidar ground';scene.add(mesh);
       tableMeshes.push({mesh,x,z,y:elevation(x+32,z+32),step:4});
     }
@@ -1213,7 +1214,9 @@ class Water extends Mesh {
     }
     shoreDetail?.terrainEdges(grid);
     grid.computeBoundingSphere();
-    const mesh=new THREE.Mesh(grid,terrain);scene.add(mesh);
+    const mesh=new THREE.Mesh(grid,terrain);
+    mesh.userData.terrainCaster=true;
+    scene.add(mesh);
     if(localBed)brookMeshes.push(mesh);
   }
   function subdivide(left,top,right,bottom,step){

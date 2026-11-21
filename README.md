@@ -32,6 +32,8 @@ Fly a bald eagle through twelve real-world landscapes, looking out over its righ
 
 [Download the offline game](https://github.com/TheComplianceAide/aerie-eagle-flight/releases/latest/download/Aerie.html) and open it in Chrome. Choose a world and select **Take flight**.
 
+Gameplay videos use native 1920 × 1080 per view in every world. In side-by-side comparisons, each view retains its full 1920 × 1080 frame.
+
 ## Run from source
 
 Clone or download this repository. From its root, start a local server with Python 3.
@@ -110,6 +112,8 @@ Take the **Nugget Falls spray pass** in Alaska to see the water separate into st
 | Crater Lake · Caldera overlook | Look across Wizard Island. A break in the storm lights the western rim while a dark shelf of cloud and falling rain cross the lake. |
 
 ## Scenery and credits
+
+Mountains, canyon walls and surveyed rock faces cast shadows in the direction of each world's sunlight. The same terrain shadow reaches the water surface and follows the flight from the distant ridges to a low shoreline pass.
 
 Forests and ground cover continue between landmarks in every world. A twelve-cell lidar inset follows the ground and crowns at Table Rock. Other woodland fills use regional land cover and representative plant specimens. [Flight study, regional coverage and source photographs](docs/regional-scenery.md)
 

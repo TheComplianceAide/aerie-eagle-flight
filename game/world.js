@@ -595,7 +595,9 @@ class Water extends Mesh {
     g.setAttribute('normal',new THREE.BufferAttribute(normals,3));
     g.setAttribute('uv',new THREE.BufferAttribute(uvs,2));
     g.setIndex(new THREE.BufferAttribute(indices,1));g.computeBoundingSphere();
-    scene.add(new THREE.Mesh(g,material));
+    const mesh=new THREE.Mesh(g,material);
+    mesh.userData.terrainCaster=true;
+    scene.add(mesh);
   }
   const farMaterial=terrainMaterial(texture('high-alps.jpg'));
   for(let j=0;j<8;j++)for(let i=0;i<8;i++){

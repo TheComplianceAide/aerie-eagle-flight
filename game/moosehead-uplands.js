@@ -150,7 +150,9 @@
         g.setIndex(new T.BufferAttribute(index,1));
         g.setAttribute('position',new T.BufferAttribute(pos,3));g.setAttribute('normal',new T.BufferAttribute(norm,3));
         g.setAttribute('skyVisibility',new T.BufferAttribute(light,1,true));g.computeBoundingSphere();
-        const mesh=new T.Mesh(g,material);mesh.name='Maine uplands · USGS terrain';scene.add(mesh);
+        const mesh=new T.Mesh(g,material);
+        mesh.userData.terrainCaster=true;
+        mesh.name='Maine uplands · USGS terrain';scene.add(mesh);
       }
     }
     function cover(x,z){
