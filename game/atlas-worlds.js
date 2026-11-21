@@ -1614,7 +1614,7 @@ class Water extends Mesh {
     material.fragmentShader=terrain.fragmentShader.replace(/vec3 photo=mix\(texture2D\(aerial,photoUv\).*?;/,
       'vec3 photo=texture2D(aerial,(vec2(xz.x,-xz.y)-vec2('+x+'.0,'+(-z)+'.0))/'+(half*2)+'.0+.5).rgb;');
     window.shadeRegionalBrook(THREE,material,brookMeshes,brook);
-    for(const mesh of brookMeshes){mesh.material=material;mesh.name=brook.name+' · surveyed stream bed';}
+    for(const mesh of brookMeshes){mesh.material=material;mesh.userData.prepareFallsMaterial=true;mesh.name=brook.name+' · surveyed stream bed';}
   }
   if(tableHeight)buildTable();
   return world;

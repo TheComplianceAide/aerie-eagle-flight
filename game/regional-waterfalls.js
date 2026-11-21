@@ -68,7 +68,7 @@ window.makeRegionalBrook=function(T,scene,world){
         float alpha=inside*attached*(.85+.09*bed.z)*(1.-smoothstep(80.,123.,viewDistance)*.19);
         gl_FragColor=vec4(col,alpha);
       }`});
-  const stream=new T.Mesh(geometry,material);stream.name=brook.name+' · stream and plunge pool';stream.renderOrder=.1;scene.add(stream);
+  const stream=new T.Mesh(geometry,material);stream.name=brook.name+' · stream and plunge pool';stream.userData.prepareFallsMaterial=true;stream.renderOrder=.1;scene.add(stream);
   const stoneG=new T.IcosahedronGeometry(1,2),vertex=stoneG.attributes.position;
   for(let i=0;i<vertex.count;i++){
     const x=vertex.getX(i),y=vertex.getY(i),z=vertex.getZ(i);
@@ -85,7 +85,7 @@ window.makeRegionalBrook=function(T,scene,world){
     else color.setRGB(.42+.29*variation,.47+.21*variation,.39+.21*variation);
     rocks.setColorAt(i,color);
   }
-  rocks.name=brook.name+' · stream-bank stones';rocks.computeBoundingSphere();scene.add(rocks);
+  rocks.name=brook.name+' · stream-bank stones';rocks.userData.prepareFallsMaterial=true;rocks.computeBoundingSphere();scene.add(rocks);
 };
 
 // Moisture darkens the actual wetted channel and grows patchy moss under the

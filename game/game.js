@@ -542,6 +542,7 @@
       updateWeather=await window.makeMovingWeather(THREE,scene,world);
       updateOptics=window.addAtmosphericOptics(THREE,scene,world);
       terrainShadows=window.makeTerrainShadows(THREE,renderer,scene,world);
+      await window.prepareWaterfallPrograms(THREE,renderer,scene,camera);
       const departingCanopy=canopy;
       departingCanopy.ready?.then(()=>departingCanopy.warmApproachPrograms?.(camera));
       if(launchPicker.value==='canopy'&&canopy.ready){
