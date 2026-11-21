@@ -131,10 +131,13 @@
   function streams(T,scene,w){
     const lines=window.aerieChannels;
     if(!lines?.length)return;
-    const positions=[],uv=[],grade=[],sections=[],indices=[],cells=new Map();
+    const positions=[],uv=[],grade=[],sections=[],viewStations=[],indices=[],cells=new Map();
+    const valley=window.yosemiteRiverViews;
+    const bankData=valley?.banks;
+    const offsets=bankData?new Int8Array(Uint8Array.from(atob(bankData.offsets),c=>c.charCodeAt(0)).buffer):null;
     const cell=(x,z)=>Math.floor(x/64)+','+Math.floor(z/64);
     const floor=(x,z)=>w.habitat.surface(x,z);
-    for(const [width,source] of lines){
+    for(const [number,[width,source]] of lines.entries()){
       // Hydrography polylines may be stored in either order. Compare the
       // elevations at their ends before assigning the downstream coordinate.
       const ordered=floor(...source[0])<floor(...source[source.length-1])?[...source].reverse():source;
@@ -161,34 +164,56 @@
         for(let j=0;j<steps;j++)samples.push([a[0]+dx*j/steps,a[1]+dz*j/steps]);
       }
       samples.push(path[path.length-1]);
-      let run=0,previousLevel;
+      const survey=valley?.reaches[number];
+      let reachLength=0;
+      if(survey)for(let j=1;j<samples.length;j++)
+        reachLength+=Math.hypot(samples[j][0]-samples[j-1][0],samples[j][1]-samples[j-1][1]);
+      const bankRange=bankData?.reaches[number];
+      let run=0,previousLevel,previousCenter;
       for(let i=0;i<samples.length;i++){
         const [x,z]=samples[i],a=samples[Math.max(0,i-1)],b=samples[Math.min(i+1,samples.length-1)];
         const dx=b[0]-a[0],dz=b[1]-a[1],dist=Math.max(.01,Math.hypot(dx,dz));
         if(i)run+=Math.hypot(x-samples[i-1][0],z-samples[i-1][1]);
         const nx=-dz/dist,nz=dx/dist;
         const widthVariation=1+.074*Math.sin(run*.19+Math.sin(x*.043))+.041*Math.cos(run*.39+z*.061);
-        const half=width*.5*widthVariation;
+        let half=width*.5*widthVariation,centerX=x,centerZ=z;
         const slope=Math.abs(floor(...b)-floor(...a))/dist,base=positions.length/3;
         const before=samples[Math.max(0,i-3)],after=samples[Math.min(samples.length-1,i+3)];
         const ax=x-before[0],az=z-before[1],bx=after[0]-x,bz=after[1]-z;
         const bend=(ax*bz-az*bx)/Math.max(.01,Math.hypot(ax,az)*Math.hypot(bx,bz));
-        const level=floor(x,z)+.13;
+        const along=run/Math.max(1,reachLength);
+        const mappedAlong=ordered===source?along:1-along;
+        const station=survey?survey[0]+mappedAlong*(survey[1]-1): -1;
+        if(bankRange){
+          // The main stem widens into pools and moves to the outside of
+          // exposed gravel bars. The two NIR-traced shorelines are independent
+          // of the generalized centreline supplied by hydrography.
+          const at=bankRange[0]+mappedAlong*(bankRange[1]-1);
+          const j=Math.floor(at),k=Math.min(j+1,bankRange[0]+bankRange[1]-1);
+          const f=at-j;
+          const left=.5*((1-f)*offsets[j*4]+f*offsets[k*4]);
+          const right=.5*((1-f)*offsets[j*4+1]+f*offsets[k*4+1]);
+          const middle=(left+right)*(ordered===source ? .5 : -.5);
+          centerX+=nx*middle;centerZ+=nz*middle;half=.5*(right-left);
+        }
+        const level=floor(centerX,centerZ)+.13;
         for(let j=0;j<7;j++){
-          const f=j/3-1,px=x+nx*half*f,pz=z+nz*half*f;
+          const f=j/3-1,px=centerX+nx*half*f,pz=centerZ+nz*half*f;
           const interior=1-Math.min(1,Math.max(0,(Math.abs(f)-.58)/.40));
-          positions.push(px,Math.max(level,floor(px,pz)-.035+.15*interior),pz);
+          const shoreClearance=bankRange ? .075+.06*interior : -.035+.15*interior;
+          positions.push(px,Math.max(level,floor(px,pz)+shoreClearance),pz);
           uv.push(f,run);grade.push(slope);sections.push(dx/dist,dz/dist,half,bend);
+          viewStations.push(station);
           if(i&&j){const k=base+j;indices.push(k-8,k-7,k,k-8,k,k-1);}
         }
         if(i){
-          const prev=samples[i-1],segment=[prev[0],prev[1],x,z,half,previousLevel,level];
-          for(let cx=Math.floor((Math.min(x,prev[0])-half)/64);cx<=Math.floor((Math.max(x,prev[0])+half)/64);cx++)
-            for(let cz=Math.floor((Math.min(z,prev[1])-half)/64);cz<=Math.floor((Math.max(z,prev[1])+half)/64);cz++){
+          const prev=previousCenter,segment=[prev[0],prev[1],centerX,centerZ,half,previousLevel,level];
+          for(let cx=Math.floor((Math.min(centerX,prev[0])-half)/64);cx<=Math.floor((Math.max(centerX,prev[0])+half)/64);cx++)
+            for(let cz=Math.floor((Math.min(centerZ,prev[1])-half)/64);cz<=Math.floor((Math.max(centerZ,prev[1])+half)/64);cz++){
               const k=cx+','+cz;if(!cells.has(k))cells.set(k,[]);cells.get(k).push(segment);
             }
         }
-        previousLevel=level;
+        previousLevel=level;previousCenter=[centerX,centerZ];
       }
     }
     w.channelWater=(x,z)=>{
@@ -202,15 +227,28 @@
     const g=new T.BufferGeometry();
     g.setAttribute('position',new T.Float32BufferAttribute(positions,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));
     g.setAttribute('grade',new T.Float32BufferAttribute(grade,1));g.setAttribute('section',new T.Float32BufferAttribute(sections,4));g.setIndex(indices);
+    g.setAttribute('bankStation',new T.Float32BufferAttribute(viewStations,1));
     const loader=new T.TextureLoader(),pebbles=loader.load('shore-pebbles.webp');
     const deposit=loader.load('shore-cobble.webp');
     for(const tex of [pebbles,deposit]){tex.wrapS=tex.wrapT=T.RepeatWrapping;tex.anisotropy=8;}
     const clock={value:0};
+    const viewMap=valley?loader.load('yosemite-merced-banks.webp'):null;
+    if(viewMap){viewMap.minFilter=T.LinearFilter;viewMap.generateMipmaps=false;}
     const m=new T.ShaderMaterial({side:T.DoubleSide,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-2,
-      uniforms:{t:clock,bed:{value:pebbles},deposit:{value:deposit},sky:{value:w.skyTexture},sun:{value:w.sunDirection},desert:{value:0}},
-      vertexShader:`attribute float grade;attribute vec4 section;varying float fall;varying vec3 wp;varying vec2 flow;varying vec4 channel,mirrorUv;uniform mat4 reflectProjection;
-        void main(){fall=grade;wp=position;flow=uv;channel=section;mirrorUv=reflectProjection*vec4(wp,1.);gl_Position=projectionMatrix*modelViewMatrix*vec4(wp,1.);}`,
-      fragmentShader:`varying float fall;varying vec3 wp;varying vec2 flow;varying vec4 channel,mirrorUv;uniform float t,desert,reflectionWeight;uniform vec3 sun,reflectCentre;uniform sampler2D sky,bed,deposit,sceneReflection;
+      uniforms:{t:clock,bed:{value:pebbles},deposit:{value:deposit},bankViews:{value:viewMap},sky:{value:w.skyTexture},sun:{value:w.sunDirection},desert:{value:0}},
+      vertexShader:`attribute float grade,bankStation;attribute vec4 section;varying float fall,station;varying vec3 wp;varying vec2 flow;varying vec4 channel,mirrorUv;uniform mat4 reflectProjection;
+        void main(){fall=grade;station=bankStation;wp=position;flow=uv;channel=section;mirrorUv=reflectProjection*vec4(wp,1.);gl_Position=projectionMatrix*modelViewMatrix*vec4(wp,1.);}`,
+      fragmentShader:`varying float fall,station;varying vec3 wp;varying vec2 flow;varying vec4 channel,mirrorUv;uniform float t,desert,reflectionWeight;uniform vec3 sun,reflectCentre;uniform sampler2D sky,bed,deposit,sceneReflection,bankViews;
+        ${valley?`
+        vec4 surveyedBank(float index,vec3 direction){
+          vec2 base=vec2(mod(index,${valley.columns}.),floor(index/${valley.columns}.))*vec2(${valley.tile[0]}.,${valley.tile[1]}.);
+          float bearing=fract(atan(direction.z,direction.x)*.15915494+1.);
+          float elevation=clamp(asin(clamp(direction.y,0.,1.))/1.55509,0.,1.);
+          vec2 texel=base+vec2(1.5+bearing*${valley.angles[0]}.,1.5+(1.-elevation)*${valley.angles[1]-1}.);
+          vec2 uv=texel/vec2(${valley.size[0]}.,${valley.size[1]}.);
+          vec4 s=texture2D(bankViews,vec2(uv.x,1.-uv.y));
+          return vec4(pow(s.rgb,vec3(2.2)),s.a);
+        }` : ''}
         float streamNoise(vec2 p){
           vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
           vec4 h=fract(sin(dot(i,vec2(37.7,61.3))+vec4(0.,37.7,61.3,99.))*5939.43);
@@ -243,6 +281,14 @@
           slope+=lateral*((wrinkle-.5)*.15*quiet+.041*eddy)*(1.-smoothstep(.12,.79,px));
           vec3 n=normalize(vec3(-slope.x,1.,-slope.y)),v=normalize(cameraPosition-wp),ref=reflect(-v,n);
           vec3 skyLight=texture2D(sky,vec2(.5+atan(ref.z,ref.x)*.159155,.5+asin(clamp(ref.y,-1.,1.))*.31831)).rgb;
+          ${valley?`if(station>=0.){
+            // The actual granite and crown silhouettes vary on every bend.
+            // Sample the incoming ray on either side of this stretch before
+            // the live near-bank reflection resolves individual moving trees.
+            float first=floor(station);
+            vec4 a=surveyedBank(first,ref),b=surveyedBank(min(first+1.,${Object.values(valley.reaches).reduce((end,[start,count])=>Math.max(end,start+count-1),0)}.),ref);
+            skyLight=mix(mix(skyLight,a.rgb,a.a),mix(skyLight,b.rgb,b.a),fract(station));
+          }` : ''}
           vec2 reflectedUv=mirrorUv.xy/max(.01,mirrorUv.w)+n.xz*.017;
           float border=min(min(reflectedUv.x,1.-reflectedUv.x),min(reflectedUv.y,1.-reflectedUv.y));
           float nearby=1.-smoothstep(35.,95.,distance(wp.xz,reflectCentre.xz));
@@ -258,8 +304,13 @@
           substrate*=mix(vec3(.83,.95,.91),vec3(1.29,.87,.63),desert);
           float caustic=exp(-18.*abs(streak+.53*wrinkle-.765))*(1.-smoothstep(.1,.7,px))*exp(-depth*.7);
           vec3 waterTone=mix(vec3(.027,.105,.080),vec3(.14,.114,.061),desert);
+          if(station>=0.)waterTone=mix(vec3(.012,.039,.032),vec3(.032,.075,.053),pool*.65+.25*bar);
           vec3 body=mix(waterTone,substrate*(.81+.47*caustic),exp(-depth*mix(1.25,2.25,desert)/max(.51,-ray.y)));
-          float fr=.0204+.9796*pow(1.-max(0.,dot(v,n)),5.);
+          float cosine=max(0.,dot(v,n));
+          float transmittedAngle=sqrt(.4366+.5634*cosine*cosine);
+          float rs=(cosine-1.333*transmittedAngle)/(cosine+1.333*transmittedAngle);
+          float rp=(1.333*cosine-transmittedAngle)/(1.333*cosine+transmittedAngle);
+          float fr=.5*(rs*rs+rp*rp);
           float filaments=(1.-smoothstep(.025,.101,abs(wrinkle-.56)))*smoothstep(.32,.70,streak);
           float aeration=smoothstep(.43,.76,coarse)*(.28*riffle+.39*lee);
           float foam=filaments*aeration*(1.-smoothstep(.22,1.1,px));

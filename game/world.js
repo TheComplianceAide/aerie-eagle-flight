@@ -189,7 +189,10 @@ class Water extends Mesh {
             +.25*texture2D(mirrorSampler,clamp(uvReflection+blur,0.,1.)).rgb
             +.25*texture2D(mirrorSampler,clamp(uvReflection-blur,0.,1.)).rgb;
           float theta=clamp(dot(eyeDirection,surfaceNormal),0.,1.);
-          float reflectance=.033+.967*pow(1.-theta,3.65);
+          float cosTransmission=sqrt(1.-.5625*(1.-theta*theta));
+          float rs=(theta-1.333*cosTransmission)/(theta+1.333*cosTransmission);
+          float rp=(1.333*theta-cosTransmission)/(1.333*theta+cosTransmission);
+          float reflectance=.5*(rs*rs+rp*rp);
           vec3 halfVector=normalize(eyeDirection+sunDirection);
           float cosHalf=max(dot(halfVector,surfaceNormal),.001);
           float rough=.057+.023*wind;
@@ -378,9 +381,11 @@ class Water extends Mesh {
     return (opposite+(1-a)*(buffer[n+count]-opposite)+(1-b)*(buffer[n+1]-opposite))/8;
   }
   const landmarkTerrain=window.aerieRegionalLandforms?.get('swiss');
-  const landmarkGroundMaterials=new Set();
+  const strandSurvey=window.aerieRegionalLandforms?.get('swisswest');
+  const groundMaterials=new Map([landmarkTerrain,strandSurvey].filter(Boolean).map(area=>[area,new Set()]));
   function elevation(x,z){
     const base=nativeElevation(x,z);
+    if(strandSurvey?.edge(x,z))return strandSurvey.height(x,z,base);
     return landmarkTerrain?landmarkTerrain.height(x,z,base):base;
   }
   function nativeElevation(x,z){
@@ -566,9 +571,9 @@ class Water extends Mesh {
     });
   }
   function patch(minX,minZ,side,steps,material,isRegional) {
-    if(landmarkTerrain){
-      const [l,t,r,b]=landmarkTerrain.rect;
-      if(minX<r&&minX+side>l&&minZ<b&&minZ+side>t)landmarkGroundMaterials.add(material);
+    for(const [survey,materials] of groundMaterials){
+      const [l,t,r,b]=survey.rect;
+      if(minX<r&&minX+side>l&&minZ<b&&minZ+side>t)materials.add(material);
     }
 
     const n=steps+1,count=n*n;
@@ -619,7 +624,7 @@ class Water extends Mesh {
   const outline = new THREE.Shape(shore.slice(0,-1).map(p=>new THREE.Vector2(p.x,-p.z)));
   const lake = new Water(new THREE.ShapeGeometry(outline),{
     textureWidth:1024,textureHeight:704,waterNormals:texture('waternormals.jpg',true),
-    sunDirection:sun,sunColor:0xffdfac,waterColor:0x1d6372,distortionScale:1.13,fog:true
+    sunDirection:sun,sunColor:0xffdfac,waterColor:0x377e89,distortionScale:.56,fog:true
   });
   lake.position.y=.18;lake.rotation.x=-Math.PI/2;lake.material.uniforms.size.value=2.65;
   scene.add(lake);
@@ -690,13 +695,15 @@ class Water extends Mesh {
     falls:{x:790,y:elevation(790,900)+54,z:900,yaw:-.10},
     forest:{x:-1280,y:clearance(-1280,420)+43,z:420,yaw:-1.61}
   };
-  let landformMesh=null;
-  if(landmarkTerrain&&landmarkGroundMaterials.size){
-    const reference=landmarkGroundMaterials.values().next().value;
-    landformMesh=landmarkTerrain.add(THREE,scene,reference,nativeElevation,texture);
-    for(const source of landmarkGroundMaterials)landmarkTerrain.maskOriginal(source);
+  let landformMesh=null,strandMesh=null;
+  for(const [survey,materials] of groundMaterials){
+    if(!materials.size)continue;
+    const reference=materials.values().next().value;
+    const mesh=survey.add(THREE,scene,reference,nativeElevation,texture);
+    for(const source of materials)survey.maskOriginal(source);
+    if(survey===strandSurvey)strandMesh=mesh;else landformMesh=mesh;
   }
-  return {landformMesh,
+  return {landformMesh,strandMesh,strandSurvey,
     treeGrid:{cells:treeCells,size:32,cell:(x,z)=>Math.floor(x/32)*1024+Math.floor(z/32)},
     waterfalls,height,elevation,clearance,spawn,launches,trees,skyTexture:skyMap,sunMask:visibility,sunDirection:sun,waterLevel:0,lakeLevel:0,lakePolygon:shore,altitudeOffset:survey.heightOffset,
     bounds:{minX:-3700,maxX:3700,minZ:-3700,maxZ:3700},

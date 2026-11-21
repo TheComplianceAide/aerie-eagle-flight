@@ -18,7 +18,7 @@
       map.colorSpace = THREE.SRGBColorSpace;
       return map;
     };
-    const riprap = texture('surry-riprap.webp',true);
+    const riprap = texture('surry-armor-bed.webp',true);
     terrain.uniforms.damRiprap = {value:riprap};
     terrain.uniforms.damOrigin = {value:new THREE.Vector2(...west)};
     terrain.uniforms.damAxis = {value:new THREE.Vector2(dx,dz)};
@@ -30,21 +30,26 @@
         float armorUp=1.-smoothstep(taper-4.,taper+6.,-across);
         float armorDown=1.-smoothstep(taper+18.,taper+26.,across);
         float rocks=smoothstep(-8.,36.,along)*(1.-smoothstep(479.,546.,along))*armorUp*armorDown*smoothstep(2.,6.,abs(across));
-        vec3 stones=texture2D(damRiprap,vec2(along,across)*.246).rgb;
-        vec3 mottled=texture2D(damRiprap,vec2(-across,along)*.079+.37).rgb;
-        c=mix(c,stones*(.74+.39*lum(mottled))*vec3(.97,1.,1.025),rocks*(1.-smoothstep(260.,1150.,d))*.86);
         veg*=1.-rocks*.99;
         dense*=1.-rocks;
         float bedding=desert*(1.-veg);`);
 
     terrain.fragmentShader=terrain.fragmentShader.replace('/* canopy transmission */',`
-      // Multiple overlapping grades of fractured granite darken the voids
-      // between blocks across the upstream face.
-      float upFace=1.-smoothstep(-4.,2.,across);
-      float apron=rocks*(1.-smoothstep(300.,1100.,d));
-      float mineral=clamp(lum(stones)*1.16-.13,.13,.79);
-      vec3 blockBed=pow(vec3(mineral)*vec3(.97,.99,1.),vec3(2.2));
-      c=mix(c,blockBed*(.65+.35*incidence),apron*(.60+.27*upFace));
+      // Quarry blocks at the crest grade down into smaller angular spalls along
+      // the pool. Both scales come from a measured 1.8 m aggregate scan.
+      float armor=rocks*(1.-smoothstep(320.,1100.,d));
+      if(armor>.002){
+        vec2 slopeMeters=vec2(along,across*1.07);
+        float closeToCrest=1.-smoothstep(10.,42.,abs(across));
+        vec2 coarse=slopeMeters*.22;
+        vec2 fine=mat2(.80,-.60,.60,.80)*slopeMeters*.48+vec2(.27,.42);
+        float seam=.5+.24*sin(along*.19+across*.35)+.15*cos(across*.41-along*.10);
+        float coarseWeight=smoothstep(.19,.86,closeToCrest*.71+seam*.50);
+        vec3 aggregate=mix(texture2D(damRiprap,fine).rgb,texture2D(damRiprap,coarse).rgb,coarseWeight);
+        float damp=(1.-smoothstep(.06,1.6,wp.y-shoreLevel))*step(across,0.);
+        vec3 field=pow(aggregate*(1.-.21*damp),vec3(2.2))*(ambient+direct)*(1.+.22*relief);
+        c=mix(c,field,armor*.98);
+      }
       /* canopy transmission */`);
     const material = (opts) => new THREE.MeshStandardMaterial({roughness:.88,...opts});
     const roadTex = colorMap('lakeside-roof.webp');
@@ -191,30 +196,129 @@
 
     let seed=664177;
     const random=()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296);
-    const rockGeometry=new THREE.IcosahedronGeometry(1,0);
-    const rockMap=colorMap('shore-stone.webp');
-    const rockMat=material({color:0xffffff,map:rockMap,bumpMap:rockMap,bumpScale:.055,flatShading:true});
-    const rocks=new THREE.InstancedMesh(rockGeometry,rockMat,17600);
-    const color=new THREE.Color();
-    for(let i=0;i<rocks.count;i++){
-      const along=18+random()*506, side=random()>.66?1:-1;
-      const endFade=Math.min(1,along/104,(length-along)/102);
-      const across=side*(6.5+random()*endFade*(side===1?69:54));
-      const [x,z]=at(along,across);
-      const radius=.22+Math.pow(random(),1.64)*.71;
-      const y=ground(x,z)-.035;
-      dummy.position.set(x,y,z);
-      dummy.rotation.set(random()*2.3,random()*6.28,random()*3.4);
-      dummy.scale.set(radius*(1+random()*.5),radius*(.44+random()*.36),radius*(.70+random()*.63));
-      dummy.updateMatrix();rocks.setMatrixAt(i,dummy.matrix);
-      const gray=.56+random()*.38;
-      color.setRGB(gray*1.028,gray*1.008,gray*.96);rocks.setColorAt(i,color);
+    // The upper edge is packed with large split slabs. Across the rest of the
+    // dam the survey photographs show a finer, flatter grade of stone.
+    const blockMap=colorMap('surry-block-surface.webp');
+    const blockMaterial=material({map:blockMap,bumpMap:blockMap,bumpScale:.034,vertexColors:true});
+    const profiles=[
+      [[-1,-.52],[-.58,-.90],[.65,-.83],[1,-.16],[.66,.64],[-.79,.72]],
+      [[-.91,-.77],[.59,-.80],[1,-.23],[.85,.55],[-.54,.79],[-.98,.31]],
+      [[-.97,-.34],[-.47,-.79],[.41,-.61],[.99,.10],[.52,.69],[-.77,.53]],
+      [[-.80,-.83],[.74,-.66],[.96,.34],[.43,.66],[-.94,.50]],
+      [[-.96,-.62],[.37,-.83],[.99,-.31],[.61,.74],[-.47,.86],[-.90,.24]],
+      [[-.99,-.18],[-.65,-.58],[.69,-.63],[.96,-.05],[.53,.52],[-.72,.56]]
+    ];
+    function splitBlock(outline,variant){
+      const points=[],uv=[],normals=[],colors=[];
+      const heel=new THREE.Vector3(0,-.86,0),lip=[],cap=[];
+      const normal=new THREE.Vector3(),edge=new THREE.Vector3();
+      const topSlope=.13*Math.sin(variant*1.7+1.);
+      for(let i=0;i<outline.length;i++){
+        const [x,z]=outline[i],corner=.70+.24*random();
+        lip.push(new THREE.Vector3(x,.08+.30*random(),z));
+        cap.push(new THREE.Vector3(x*corner+.06,.49+topSlope*x+.085*z,z*corner-.055));
+      }
+      function face(a,b,c,light){
+        normal.copy(b).sub(a).cross(edge.copy(c).sub(a)).normalize();
+        const vertical=Math.abs(normal.y)>.73,alongX=Math.abs(normal.z)>Math.abs(normal.x);
+        for(const p of [a,b,c]){
+          points.push(p.x,p.y,p.z);normals.push(normal.x,normal.y,normal.z);
+          const u=vertical||alongX?p.x:p.z,v=vertical?p.z:p.y;
+          uv.push(variant*.27+u*.54,variant*.41+v*.54);
+          const exposure=light*(.76+.24*THREE.MathUtils.smoothstep(p.y,-.48,.32));
+          colors.push(exposure,exposure,exposure);
+        }
+      }
+      for(let i=0;i<outline.length;i++){
+        const j=(i+1)%outline.length,side=.88+.12*random();
+        face(heel,lip[i],lip[j],side);
+        face(lip[i],cap[i],lip[j],side);face(lip[j],cap[i],cap[j],side);
+        if(i>0&&j>0)face(cap[0],cap[j],cap[i],1);
+      }
+      const geometry=new THREE.BufferGeometry();
+      for(const [field,values,n] of [['position',points,3],['normal',normals,3],['uv',uv,2],['color',colors,3]])
+        geometry.setAttribute(field,new THREE.Float32BufferAttribute(values,n));
+      geometry.userData.cap=cap;
+      return geometry;
     }
-    rocks.computeBoundingSphere();scene.add(rocks);
+    const matrices=profiles.map(()=>[]),tones=profiles.map(()=>[]);
+    const up=new THREE.Vector3(0,1,0),localUp=new THREE.Vector3(),twist=new THREE.Quaternion();
+    const tint=new THREE.Color(),tau=2*Math.PI;
+    for(const side of [-1,1]){
+      // A reservoir-side line of armor follows the rail shoulder. Fill around
+      // it with progressively wider, jittered cells to avoid parallel rows.
+      let band=0;
+      for(let off=6.1;off<(side<0?58:70);){
+        const upper=side<0?Math.exp(-((off-9)**2)/131):.38*Math.exp(-((off-10)**2)/140);
+        const spacing=1.09+(1-upper)*1.03;
+        for(let along=10+random()*spacing;along<length-10;along+=spacing){
+          const s=along+(random()-.5)*spacing*.89;
+          const endFade=Math.min(1,s/93,(length-s)/94);
+          const width=(side<0?58:70)*endFade;
+          const across=side*(off+(random()-.5)*spacing*.88+.55*Math.sin(s*.083+band*.56));
+          if(Math.abs(across)>width||random()<(side<0?.10:.32))continue;
+          const [x,z]=at(s,across),y=ground(x,z);
+          const variation=Math.sin(s*.15+off*.19)*Math.cos(off*.31-s*.052)*.5+.5;
+          const grade=1-THREE.MathUtils.smoothstep(off,17,57);
+          const radius=(.23+grade*.14+upper*.28+.19*variation)*(.69+random()*.78);
+          const shape=Math.floor(random()*profiles.length);
+          dummy.position.set(x,y+.045*radius,z);
+          const slope=side<0?.36:-.37;
+          localUp.set(dz*slope+(random()-.5)*.34,1,-dx*slope+(random()-.5)*.30).normalize();
+          dummy.quaternion.setFromUnitVectors(up,localUp).multiply(twist.setFromAxisAngle(up,random()*tau));
+          dummy.scale.set(radius*(1.+random()*.49),radius*(.64+.42*random()),radius*(.68+random()*.43));
+          dummy.updateMatrix();matrices[shape].push(dummy.matrix.clone());
+          const tone=.61+random()*.39,warm=(random()-.5)*.10;
+          tint.setRGB(tone*(1+warm),tone*(1+warm*.17),tone*(1-warm));tones[shape].push(tint.clone());
+        }
+        off+=spacing*.76;band++;
+      }
+    }
+    const capCells=new Map(),capCell=(x,z)=>Math.floor(x/8)*4096+Math.floor(z/8);
+    profiles.forEach((outline,i)=>{
+      const blocks=new THREE.InstancedMesh(splitBlock(outline,i),blockMaterial,matrices[i].length);
+      blocks.name='Surry graded quarry armor '+(i+1);
+      const crown=blocks.geometry.userData.cap,center=new THREE.Vector3(),n=new THREE.Vector3();
+      const points=crown.map(()=>new THREE.Vector3()),edge=new THREE.Vector3();
+      matrices[i].forEach((matrix,j)=>{
+        blocks.setMatrixAt(j,matrix);blocks.setColorAt(j,tones[i][j]);center.set(0,0,0);
+        points.forEach((p,k)=>{p.copy(crown[k]).applyMatrix4(matrix);center.add(p);});center.divideScalar(points.length);
+        n.copy(points[2]).sub(points[0]).cross(edge.copy(points[1]).sub(points[0])).normalize();
+        if(n.y<.95)return;
+        let radius=Infinity;
+        for(let k=0;k<points.length;k++){
+          const a=points[k],b=points[(k+1)%points.length],ex=b.x-a.x,ez=b.z-a.z;
+          radius=Math.min(radius,Math.abs(ex*(center.z-a.z)-ez*(center.x-a.x))/Math.hypot(ex,ez));
+        }
+        if(radius<.30)return;
+        const key=capCell(center.x,center.z);
+        if(!capCells.has(key))capCells.set(key,[]);
+        capCells.get(key).push({x:center.x,y:center.y,z:center.z,radius,gx:-n.x/n.y,gz:-n.z/n.y});
+      });
+      blocks.computeBoundingSphere();scene.add(blocks);
+    });
 
+    function armoredStation(s,t){
+      const width=Math.min(1,s/93,(length-s)/94)*(t<0?62:74);
+      return s>0&&s<length&&Math.abs(t)<Math.max(6,width);
+    }
+    function onArmor(x,z){
+      return x>west[0]-8&&x<east[0]+8&&z>west[1]-63&&z<east[1]+75&&armoredStation(...station(x,z));
+    }
+    function capNear(x,z,reach){
+      let nearest=null,distance=reach*reach;
+      for(let u=Math.floor((x-reach)/8);u<=Math.floor((x+reach)/8);u++)
+        for(let v=Math.floor((z-reach)/8);v<=Math.floor((z+reach)/8);v++)
+          for(const cap of capCells.get(u*4096+v)||[]){
+            const d=(x-cap.x)**2+(z-cap.z)**2;
+            if(d<distance){nearest=cap;distance=d;}
+          }
+      return nearest;
+    }
     const riverHeight=addRiver(THREE,scene,survey.river||[],ground,texture,sun,sky,clock,aerial,half);
     return {
       riverHeight,
+      armorPerch(x,z){return onArmor(x,z)?capNear(x,z,8):undefined;},
       onDam(x,z){
         const [s,t]=station(x,z);
         const width=Math.max(12,Math.min((s+15)*.7,(length-s+10)*.62,84));
@@ -227,6 +331,10 @@
         if(bx*49-bz*53>=0&&bx*49-bz*53<=bridgeSpan**2&&Math.abs(bx*53+bz*49)<2.53*bridgeSpan)return 173.21;
         if(Math.abs(x-gateX)<4.5&&Math.abs(z-gateZ)<3.6)return gateBase+5.86;
         if(s>=0&&s<=length&&Math.abs(t)<4.6)return crestDeck(x,z)+(Math.abs(t)>3.3?.77:0);
+        if(armoredStation(s,t)){
+          const cap=capNear(x,z,1.3);
+          if(cap&&Math.hypot(x-cap.x,z-cap.z)<=cap.radius)return cap.y+cap.gx*(x-cap.x)+cap.gz*(z-cap.z);
+        }
         return -Infinity;
       }
     };

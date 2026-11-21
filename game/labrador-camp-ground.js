@@ -1,6 +1,6 @@
 // Immediate camp surroundings in cabin-local metres. The same trees render,
 // receive forest lighting and participate in flight clearance via atlas plant().
-window.addBerteCampGround=function addBerteCampGround(T,scene,root,{site,floor,ground,water,waterDistance,texture}) {
+window.addBerteCampGround=function addBerteCampGround(T,scene,root,{site,floor,ground,water,waterDistance,texture,surveyGround}) {
   let seed=75269;
   const rand=()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296);
   const sin=Math.sin(site.yaw),cos=Math.cos(site.yaw),world=(x,z)=>[site.x+cos*x+sin*z,site.z-sin*x+cos*z];
@@ -13,6 +13,7 @@ window.addBerteCampGround=function addBerteCampGround(T,scene,root,{site,floor,g
   });
   // Seat trunks, lichen-covered rocks and moss on the triangles actually drawn.
   function surface(x,z){
+    if(surveyGround||Math.abs(x)<8&&z>=-8&&z<=15)return ground(x,z);
     const [wx,wz]=world(x,z);
     for(const g of grids) if(wx>=g.left&&wx<g.right&&wz>=g.top&&wz<g.bottom){
       const u=(wx-g.left)/(g.right-g.left)*(g.cols-1),v=(wz-g.top)/(g.bottom-g.top)*(g.rows-1);
@@ -56,7 +57,7 @@ window.addBerteCampGround=function addBerteCampGround(T,scene,root,{site,floor,g
       if(Math.abs(dx)<r&&Math.abs(dz)<r)shadow=Math.min(shadow,.51+.49*smooth(0,r,Math.hypot(dx,dz)));
     }
     positions.setXYZ(i,x,y-floor+.033,z);uv.setXY(i,x*.29,z*.29);
-    colors.push(shadow*.89,shadow*.98,shadow*.78,.91*cover);
+    colors.push(shadow*.88,shadow*.97,shadow*.85,.83*cover);
   }
   floorMesh.setAttribute('color',new T.Float32BufferAttribute(colors,4));floorMesh.computeVertexNormals();floorMesh.computeBoundingSphere();
   function add(geometry,material,name){
@@ -74,7 +75,11 @@ window.addBerteCampGround=function addBerteCampGround(T,scene,root,{site,floor,g
       float overlap=smoothstep(-.71,.63,zone);
       vec4 grain=mix(texture2D(map,p),texture2D(map,q),overlap);
       float third=smoothstep(.88,1.70,cos(p.x*.7-p.y*.91)+sin(p.x*1.04+.6*p.y));
-      diffuseColor*=mix(grain,texture2D(map,k),third);
+      vec4 photograph=mix(grain,texture2D(map,k),third);
+      float value=dot(photograph.rgb,vec3(.27,.59,.14));
+      float moss=smoothstep(-.016,.041,photograph.g-.78*photograph.r);
+      vec3 localColor=value*mix(vec3(1.07,.86,.68),vec3(.75,1.03,.81),moss);
+      diffuseColor*=vec4(mix(photograph.rgb,localColor,.80),photograph.a);
     `);
   };
   add(floorMesh,litter,'Moss and needle litter under the spruce');

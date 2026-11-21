@@ -32,3 +32,10 @@ Outer woodland density uses the USDA Forest Service NLCD percent tree canopy and
 
 Moosehead submerged terrain uses 1,245 Maine Department of Environmental Protection depth points for MIDAS 390. Depths are interpolated between soundings and graded toward the game’s mapped shoreline. Maine DEP Lakes Data, layer 2: https://gis.maine.gov/mapservices/rest/services/dep/MaineDEP_Lakes_Data/MapServer/2
 Spencer Bay and Lily Bay approach photography: USDA National Agriculture Imagery Program, USGS National Map NAIP ImageServer (original true color).
+
+
+The summit lookout is a new mesh of the converted steel fire tower, with an open wood platform, grated stair flights and cross bracing. Its position follows the Forest Fire Lookout Association waypoint at 45.69978 N, 69.73373 W. The approximately 19.5 m height, restored platform and staircase appearance were checked against Maine Bureau of Parks and Lands, the lookout association and field photographs. Structural details are interpreted. No tower photograph is used as a texture.
+https://www.maine.gov/dacf/parks/get_involved/planning_and_acquisition/management_plans/docs/Moosehead_Plan_1997.pdf
+https://firelookout.org/lookouts/us/me/me-st/
+https://curiousermaine.com/mount-kineo-boat-hike-up-fire-tower-moosehead-lake/
+https://www.bangordailynews.com/2021/02/12/outdoors/act-out/snowshoeing-up-mount-kineo-is-a-glorious-adventure-that-requires-extra-planning/

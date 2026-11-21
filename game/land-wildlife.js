@@ -78,7 +78,7 @@ window.makeLandWildlife=function makeLandWildlife(T,scene,w){
     if(!lead)return null;
     if(primary==='eurasian-otter'&&!rockTop){
       rockTop=render.haulout(lead,h.surface);
-      w.clearance=(x,z)=>Math.max(clear(x,z),rockTop(x,z));
+      w.clearance=(x,z,altitude)=>Math.max(clear(x,z,altitude),rockTop(x,z));
     }
     const random=rng(lead.x,lead.z);addGroup('home',lead,primary,true,random);
     // Keep a hare within the same habitat but outside the ungulate group.

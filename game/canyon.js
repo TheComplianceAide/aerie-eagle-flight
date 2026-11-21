@@ -69,7 +69,7 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
   sky.frustumCulled=false;sky.renderOrder=-1000;scene.add(sky);
   const time={value:0}, shared={
     terrainField:{value:texture('canyon-terrain-field.png')},bankRadiance:{value:texture('canyon-river-banks.webp')},
-    crossbeds:{value:texture('canyon-crossbeds.webp',true)},
+    crossbeds:{value:texture('canyon-overlook-strata.webp')},
     strata:{value:texture('cliff-strata.jpg',true)},grain:{value:texture('rock.jpg',true)},
     flow:{value:texture('canyon-flow.webp')},ripple:{value:texture('waternormals.jpg',true)},
     sand:{value:texture('shore-sand.webp',true)},pebbles:{value:texture('shore-pebbles.webp',true)},
@@ -80,7 +80,13 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
   // sample on the native four-metre field, using interpolation within that cell.
   shared.terrainField.value.minFilter=THREE.LinearFilter;
   shared.terrainField.value.generateMipmaps=false;
-  shared.crossbeds.value.wrapS=shared.crossbeds.value.wrapT=THREE.MirroredRepeatWrapping;
+  // The bottom rectangle retains the scanned, metre-scale cross beds. The
+  // upper rectangle holds only visible rock from the NPS overlook photograph.
+  const localBeds=`
+    vec3 bandScan(vec2 p){
+      vec2 edge=1.-abs(mod(p,2.)-1.);
+      return texture2D(crossbeds,vec2(.0015+.496*edge.x,.012+.303*edge.y)).rgb;
+    }`;
   const vertex=`varying vec3 wp,n;varying vec2 tc;
     void main(){wp=position;n=normal;tc=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`;
   shared.scrubFloor={value:texture('field-ground-scans.webp')};
@@ -90,8 +96,31 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
     uniform sampler2D terrainField,bankRadiance,crossbeds;
     uniform sampler2D photo,strata,grain,flow,ripple,panorama,sand,pebbles,pebbleNormal,bankMap;
     uniform vec3 sun;uniform float clock;varying vec2 tc;varying vec3 wp,n;
-    `+skyColor+`
+    `+skyColor+localBeds+`
     float lum(vec3 c){return dot(c,vec3(.299,.587,.114));}
+    vec4 overlookStone(vec3 p,vec3 N){
+      vec3 ray=p-vec3(-71.077,349.703,96.735);
+      float depth=dot(ray,vec3(-.851342,-.343441,-.396567));
+      if(depth<360.||depth>3400.)return vec4(0.);
+      vec2 sensor=vec2(dot(ray,vec3(.432410,-.031360,-.901132)),
+                       dot(ray,vec3(-.297049,.938651,-.175205)))/depth;
+      // Invert the photo's fitted first-order radial lens distortion.
+      float rs=dot(sensor,sensor);
+      float scale=1./(1.+.072476*rs);
+      scale=1./(1.+.072476*rs*scale*scale);
+      vec2 uv=.5+sensor*scale*vec2(.505310,.759229);
+      if(min(uv.x,uv.y)<0.||max(uv.x,uv.y)>1.)return vec4(0.);
+      vec4 stone=texture2D(crossbeds,vec2(uv.x,.333984+.666016*uv.y));
+      // Reject back faces and any surface lying behind or in front of the
+      // surveyed first intersection. Original sky, trees, water and nearby
+      // foreground were masked while orthorectifying the field photograph.
+      float visibleDepth=80.*exp(3.80666*(255.*stone.a-1.)/254.);
+      float visible=1.-smoothstep(.018,.061,abs(visibleDepth-depth)/depth);
+      visible*=smoothstep(.024,.23,dot(N,-normalize(ray)));
+      float oxide=(stone.g-.5)/1.25;
+      vec3 color=stone.r+oxide*vec3(.49,-.104,-.51);
+      return vec4(color,visible*stone.b*step(.006,stone.a));
+    }
     float riverGrain(vec2 p){
       vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
       vec4 h=fract(sin(dot(i,vec2(61.7,37.3))+vec4(0.,61.7,37.3,99.))*4375.19);
@@ -188,15 +217,15 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
       }
       float region=1.-smoothstep(2960.,3195.,max(abs(wp.x),abs(wp.z)));
       vec4 valleyLight=texture2D(terrainField,clamp(flowUv,0.,1.));
-      float sunVisibility=mix(1.,valleyLight.b,region);
+      float sunVisibility=mix(1.,valleyLight.b,region)*(1. /* direct terrain visibility */);
       float openSky=mix(1.,texture2D(bankRadiance,clamp(flowUv,0.,1.)).a,region);
       if(face>.025){
         // Curved sets of dune beds run through the scan. Project along each
         // exposed face so steep and vertical surfaces retain their metre scale.
         float dip=wp.y+.072*wp.x-.065*wp.z+shift*1.7+longWave*.75;
         vec2 a=vec2(wp.z,dip)*vec2(.030,.048),b=vec2(-wp.x,dip)*vec2(.030,.048);
-        vec3 series=mix(texture2D(crossbeds,a).rgb,texture2D(crossbeds,b).rgb,sideMix);
-        vec3 large=mix(texture2D(crossbeds,a*.238+.32).rgb,texture2D(crossbeds,b*.238+.32).rgb,sideMix);
+        vec3 series=mix(bandScan(a),bandScan(b),sideMix);
+        vec3 large=mix(bandScan(a*.238+.32),bandScan(b*.238+.32),sideMix);
         float band=clamp(.5+1.15*(series.r-.5)+.61*(large.g-.5)+.48*(series.g-.5),0.,1.);
         float varnish=smoothstep(.23,.66,large.b)*smoothstep(.34,.67,series.b);
         vec3 pigment=mix(vec3(.47,.257,.163),vec3(.88,.61,.393),band);
@@ -233,6 +262,12 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
         }
         dry=mix(dry,pigment,face*(.98-.46*smoothstep(1300.,6100.,dist)));
       }
+      vec4 overlook=overlookStone(wp,normal);
+      // The field mask includes flat benches of bare Navajo Sandstone.
+      // Steep faces receive the greatest photographic contribution.
+      float bedrock=(.46+.54*smoothstep(.045,.43,1.-normal.y))*(1.-wet);
+      float mappedBed=overlook.a*bedrock;
+      vec3 sandstone=overlook.rgb*(.90+.20*beds);
       float incidence=max(0.,dot(normal,sun));
       // Sky scatter and light bouncing off the opposite warm wall both reach
       // the canyon floor during sunset, even when the rim blocks the sun.
@@ -241,6 +276,19 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
       float terrace=(1.-face)*(1.-wet)*smoothstep(2.,25.,signedBank);
       float bankMoisture=1.-smoothstep(4.,36.,signedBank);
       dry=regionalSoil(scrubFloor,wp,normal,dry,sun,dist,smoothstep(.00,.07,aerial.g-aerial.r)*.30,bankMoisture,terrace);
+      dry=mix(dry,sandstone,mappedBed*(.94-.32*(1.-smoothstep(35.,190.,dist))));
+      float rimRock=(1.-smoothstep(155.,690.,length(wp.xz-vec2(0.,80.))))*
+                    smoothstep(270.,330.,wp.y)*smoothstep(.47,.86,normal.y);
+      if(rimRock>.004){
+        vec2 plate=wp.xz*.105+vec2(.14*sin(wp.z*.032),.085*cos(wp.x*.028));
+        vec2 gritUv=1.-abs(mod(plate,2.)-1.);
+        vec2 large=1.-abs(mod(mat2(.80,-.60,.60,.80)*plate*.29+.54,2.)-1.);
+        vec3 chips=texture2D(crossbeds,vec2(.5025+.496*gritUv.x,.012+.303*gritUv.y)).rgb;
+        vec3 broad=texture2D(crossbeds,vec2(.5025+.496*large.x,.012+.303*large.y)).rgb;
+        vec3 lip=chips*vec3(1.13,.977,.878)*(.81+.39*lum(broad));
+        float scrub=smoothstep(.006,.075,aerial.g-aerial.r);
+        dry=mix(dry,lip,rimRock*(1.-scrub)*(.73-.36*smoothstep(240.,620.,dist)));
+      }
       dry*=indirect+sunward;
       float groundPass=closeGround*(1.-face)*(1.-wet)*smoothstep(3.,26.,signedBank);
       vec3 pebbly=soilCapture(scrubFloor,wp.xz*.32,10.).rgb;
@@ -418,7 +466,7 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
   const outcrops=[];
   const outcropMaterial=new THREE.ShaderMaterial({uniforms:shared,
     vertexShader:'varying vec3 p,n;varying float recess;attribute float cavity;void main(){p=position;n=normal;recess=cavity;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-    fragmentShader:`varying vec3 p,n;varying float recess;uniform sampler2D crossbeds,terrainField,strata,grain;uniform vec3 sun;
+    fragmentShader:`varying vec3 p,n;varying float recess;uniform sampler2D crossbeds,terrainField,strata,grain;uniform vec3 sun;`+localBeds+`
       void main(){
         vec3 N=normalize(n);vec3 weights=pow(abs(N),vec3(4.));weights/=max(.001,weights.x+weights.y+weights.z);
         float bedding=p.y+.31*sin(p.z*.17)+.53*sin(p.z*.042+p.x*.12);
@@ -428,7 +476,7 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
         float luma=dot(sides+cap*weights.y,vec3(.299,.587,.114));
         float vein=.5+.5*sin(bedding*4.4+.7*sin(p.z*.36)+2.*luma);
         vec3 stone=mix(vec3(.41,.255,.160),vec3(.80,.539,.339),smoothstep(.17,.86,luma));
-        vec3 lamina=texture2D(crossbeds,vec2((p.x*.76+p.z*.65)*.085,bedding*.12)).rgb;
+        vec3 lamina=bandScan(vec2((p.x*.76+p.z*.65)*.085,bedding*.12));
         stone*=clamp(.65+.55*lamina.r+.26*lamina.g,.61,1.24);
         vec4 illum=texture2D(terrainField,vec2(p.x,-p.z)/6400.+.5);
         stone*=mix(vec3(.63,.70,.83),vec3(1.15,1.02,.91),illum.b);
@@ -501,7 +549,9 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
     }
     return surface;
   }
-  const spawn={x:45,z:76,y:elevation(45,76)+72,yaw:1.38};
+  // The overlook stands on the eastern rim. Fly just above its rock lip,
+  // looking down into both arms of the Colorado as they wrap the promontory.
+  const spawn={x:-74,z:98,y:elevation(-74,98)+18,yaw:1.26,lookDown:26};
   const ridge={x:-425,z:-2450,y:elevation(-425,-2450)+90,yaw:1.54};
   const shore={x:-441,z:-76,y:elevation(-441,-76)+7.2,yaw:.24};
   let landformMesh=null;

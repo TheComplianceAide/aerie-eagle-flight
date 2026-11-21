@@ -42,3 +42,12 @@ and the park driving directions verify the order of the named locations.
 https://carto.nationalmap.gov/arcgis/rest/services/geonames/MapServer
 https://www.nps.gov/thingstodo/hike-ocean-path-trail.htm
 https://www.nps.gov/acad/planyourvisit/directions.htm
+
+Otter Cliff and Ocean Path exposed rock. The cliff material uses rock-only
+crops of the U.S. Geological Survey photograph “Granite Rocks at Thunder
+Hole,” July 7, 2014 (public domain), which looks south toward Otter Point.
+The daylight photograph was cropped, illumination-balanced and tiled;
+block sizes and joint positions between survey returns are representative.
+The night material follows the local 3DEP outward normals and tidal reach.
+https://www.usgs.gov/media/images/granite-rocks-thunder-hole
+https://www.nps.gov/acad/learn/nature/geologic-features.htm

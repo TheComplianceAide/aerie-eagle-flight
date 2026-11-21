@@ -4,12 +4,22 @@ window.addLabradorCabin = function addLabradorCabin(T, scene, world, site) {
   root.name = 'Lakeside camp cabin';
   const sin = Math.sin(site.yaw), cos = Math.cos(site.yaw);
   const elevation = world.elevation || world.height;
-  function ground(x,z) {
+  function originalGround(x,z) {
     return elevation(site.x + cos*x + sin*z, site.z - sin*x + cos*z);
   }
 
-  // Keep the timber level while allowing individual footings to reach the slope.
-  const floor = Math.max(...[-2,2].flatMap(x => [-2.8,2.8].map(z => ground(x,z)))) + .56;
+  // Set the floor off the uphill sill. The downward-running bank needs a
+  // compact gravel landing to meet all three log treads from the album.
+  const floor = Math.max(...[-2,2].flatMap(x => [-2.8,2.8].map(z => originalGround(x,z)))) + .19;
+  const ease=(a,b,x)=>{const f=Math.max(0,Math.min(1,(x-a)/(b-a)));return f*f*(3-2*f);};
+  function ground(x,z){
+    const base=originalGround(x,z);
+    if(Math.abs(x)>8||z< -8||z>15)return base;
+    const spread=1-ease(2.2,7.6,Math.abs(x+.16*Math.sin(z*.58)));
+    const weight=spread*ease(-8,-3.2,z)*(1-ease(4.05,14.6,z));
+    const landing=floor-.54-.023*Math.max(0,z-3.6)-.009*x;
+    return base+weight*Math.max(0,landing-base);
+  }
   root.position.set(site.x,floor,site.z);
   root.rotation.y = site.yaw;
   const groups = new Map();
@@ -217,7 +227,7 @@ window.addLabradorCabin = function addLabradorCabin(T, scene, world, site) {
     const offset=.66-i*.12,joint=-offset;
     pipe('log',0xd1b995,[-end,y-.006,z+.017],[joint-.012,y+.004,z],.119+i*.007,14);
     pipe('log',0xd6bf9c,[joint+.016,y+.002,z-.011],[end,y-.012,z+.012],.123+i*.006,14);
-    box('wood',0xa89476,0,y+.060,z-.075,2*end-.08,.092,.2,1.7);
+    box('log',0xd7cbb3,0,y+.060,z-.075,2*end-.08,.092,.2,1.7);
     obstacles.push({x:0,z,w:2*end,h:y+.135,d:.35});
   }
   obstacles.push({x:0,z:deckMid,w:4.27,h:.03,d:porchEnd-front+.15});
@@ -237,6 +247,29 @@ window.addLabradorCabin = function addLabradorCabin(T, scene, world, site) {
     pipe('wood',0xbb9a71,[x,y,.97],[x,y,.71],.021,7);
     pipe('hardware',0x43433b,[x-.026,y-.048,.68],[x+.018,y-.048,.68],.046,10);
   }
+  // Exposed roots and a broken stub at the right edge of the sandy yard
+  // appear in the family print. Each root settles back into the actual bank.
+  const rootX=2.95,rootZ=5.18,rootBed=ground(rootX,rootZ)-floor;
+  function rootRing(x,z,r,h,phase,wobble){
+    return Array.from({length:12},(_,i)=>{
+      const angle=i*Math.PI/6,rad=r*(1+.12*Math.sin(3*angle+phase)+.09*Math.sin(5*angle));
+      return [x+Math.cos(angle)*rad,h+wobble*(.45+.55*Math.sin(angle*4.1+phase)),z+Math.sin(angle)*rad];
+    });
+  }
+  const rings=[rootRing(rootX,rootZ,.30,rootBed-.09,.012,0),rootRing(rootX-.03,rootZ+.02,.17,rootBed+.13,.73,.037),
+    rootRing(rootX-.09,rootZ+.037,.115,rootBed+.30,1.1,.14)];
+  for(let i=0;i<12;i++){
+    const n=(i+1)%12;
+    for(let j=1;j<rings.length;j++)panel('rootWood',0xb3a68b,rings[j-1][i],rings[j-1][n],rings[j][n],rings[j][i],.63);
+    face('log',0xb1a792,[rings[2][n],rings[2][i],[rootX-.09,rootBed+.31,rootZ+.037]],[[0,0],[1,0],[.5,1]]);
+  }
+  for(const [angle,length,bend] of [[.23,.82,.16],[1.32,1.18,-.18],[2.67,1.29,.23],[-2.57,.85,-.20],[-.94,1.13,.16]]){
+    const along=Math.cos(angle),across=Math.sin(angle);
+    const curve=t=>{const curl=Math.sin(t*Math.PI)*bend,x=rootX+along*length*t-across*curl,z=rootZ+across*length*t+along*curl;
+      return [x,ground(x,z)-floor+.005+.065*(1-t),z];};
+    for(let i=0;i<4;i++)pipe('rootWood',0xb0a58d,curve(i/4),curve((i+1)/4),.095*(1-.21*i),8);
+  }
+  obstacles.push({x:rootX,z:rootZ,w:.44,d:.44,h:rootBed+.38});
   // The shallow roof at the far end steps down behind the main cabin.
   const leanBack=back-1.52, leanHalf=1.94,leanTop=2.10,leanLow=1.82;
   facade(0,leanBack,Math.PI).siding(leanHalf*2,leanLow);
@@ -292,7 +325,7 @@ window.addLabradorCabin = function addLabradorCabin(T, scene, world, site) {
   }
   const materials={
     wood:{map:'lakeside-dock.webp'},siding:{map:'labrador-painted-wood.webp'},
-    log:{map:'lakeside-dock.webp'},roof:{map:'lakeside-metal.webp',roughness:.73,metalness:.16},
+    log:{map:'lakeside-dock.webp'},rootWood:{map:'shore-bark.webp'},roof:{map:'lakeside-metal.webp',roughness:.73,metalness:.16},
     stone:{map:'shore-stone.webp'},hardware:{roughness:.57,metalness:.36},paint:{roughness:.74},
     glass:{color:0x34413e,roughness:.165,metalness:.38},glassLight:{color:0xa6afa5,roughness:.29,metalness:.40},
     seam:{roughness:.48,metalness:.32},screen:{roughness:.94},alloy:{roughness:.45,metalness:.48},
@@ -301,6 +334,15 @@ window.addLabradorCabin = function addLabradorCabin(T, scene, world, site) {
     const opts={...materials[kind]};
     if(opts.map) opts.map=texture(opts.map);
     const mat=new T.MeshStandardMaterial({vertexColors:true,roughness:.88,side:T.DoubleSide,...opts});
+    if(kind==='log')mat.onBeforeCompile=shader=>{
+      shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>',`
+        // Peeled logs carry long silver grain without the board joints or nail
+        // heads in a deck atlas. The cylinders supply their own curved relief.
+        vec3 wood=texture2D(map,vec2(.115+.073*fract(vMapUv.x),vMapUv.y)).rgb;
+        float value=.44+.64*sqrt(max(0.,dot(wood,vec3(.29,.58,.13))));
+        diffuseColor.rgb*=vec3(1.03,1.01,.98)*value;
+      `);
+    };
     if(kind==='glass'||kind==='glassLight')scene.userData.buildingLight.glaze(mat,1.0);
     if(['wood','roof','siding'].includes(kind)){mat.bumpMap=mat.map;mat.bumpScale=kind==='roof'?.037:.014;}
     if(kind==='siding')scene.userData.buildingLight.finish(mat,'boards',1.49,true);
@@ -312,6 +354,25 @@ window.addLabradorCabin = function addLabradorCabin(T, scene, world, site) {
     geometry.computeVertexNormals();geometry.computeBoundingSphere();
     const mesh=new T.Mesh(geometry,mat);mesh.name='Cabin '+kind;mesh.castShadow=true;mesh.receiveShadow=true;root.add(mesh);
   }
+  // The gravel apron is opaque wherever it actually raises the bank, and its
+  // feathered boundary touches the registered headland. Tree roots, fly-over
+  // clearance and individual stones use this same physical surface.
+  const pad=new T.PlaneGeometry(16,23,40,58);pad.rotateX(-Math.PI/2);
+  const pp=pad.attributes.position,pu=pad.attributes.uv,shade=[];
+  for(let i=0;i<pp.count;i++){
+    const x=pp.getX(i),z=pp.getZ(i)+3.5,original=originalGround(x,z),y=ground(x,z);
+    pp.setXYZ(i,x,y-floor+.014,z);pu.setXY(i,x/2.8,z/2.8);
+    const w=ease(.012,.10,y-original),d=.88+.075*Math.cos(x*2.03+.63*z)*Math.sin(.58*z-x*.4);
+    shade.push(d*.98,d*.96,d*.89,w);
+  }
+  pad.setAttribute('color',new T.Float32BufferAttribute(shade,4));pad.computeVertexNormals();pad.computeBoundingSphere();
+  const soil=new T.MeshStandardMaterial({map:texture('shore-sand.webp'),vertexColors:true,roughness:.95,transparent:true,alphaTest:.015,depthWrite:true});
+  soil.onBeforeCompile=shader=>{shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>',`
+    #include <map_fragment>
+    float fines=dot(diffuseColor.rgb,vec3(.27,.58,.15));
+    diffuseColor.rgb=mix(diffuseColor.rgb,vec3(fines)*vec3(1.10,1.03,.89),.80)*1.34;
+  `);};
+  const apron=new T.Mesh(pad,soil);apron.name='Compacted mineral landing under the porch steps';apron.receiveShadow=true;root.add(apron);
   // Irregular sandy yard and narrow landing path fade into the existing shore
   // grass. Sample the terrain for every vertex and keep the lake itself clear.
   const sand={position:[],uv:[],color:[],index:[]};
@@ -319,7 +380,7 @@ window.addLabradorCabin = function addLabradorCabin(T, scene, world, site) {
     const groundY=ground(x,z);
     if(Number.isFinite(water) && groundY<water+.07) alpha=0;
     sand.position.push(x,groundY-floor+.036,z);sand.uv.push(x/4.6,z/4.6);
-    sand.color.push(1,.96,.87,alpha);
+    sand.color.push(1,.98,.95,alpha);
   }
   const sandEnd=Number.isFinite(waterDistance)?Math.min(waterDistance+1.2,90):9;
   const rows=Math.ceil((sandEnd+6)/.7),across=10;
@@ -341,8 +402,14 @@ window.addLabradorCabin = function addLabradorCabin(T, scene, world, site) {
   for(const [key,size] of [['position',3],['uv',2],['color',4]]) surface.setAttribute(key,new T.Float32BufferAttribute(sand[key],size));
   surface.setIndex(sand.index);surface.computeVertexNormals();surface.computeBoundingSphere();
   const sandMat=new T.MeshStandardMaterial({map:texture('shore-sand.webp'),vertexColors:true,roughness:.98,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1});
+  sandMat.onBeforeCompile=soil.onBeforeCompile;
   const yard=new T.Mesh(surface,sandMat);yard.name='Sandy cabin clearing';yard.receiveShadow=true;root.add(yard);
   function local(x,z) {const dx=x-site.x,dz=z-site.z;return [cos*dx-sin*dz,sin*dx+cos*dz];}
+  function padHeight(x,z){
+    if(Math.abs(x-site.x)>17||Math.abs(z-site.z)>17)return -Infinity;
+    const [u,v]=local(x,z);
+    return Math.abs(u)<=8&&v>=-8&&v<=15?ground(u,v):-Infinity;
+  }
   function clearance(x,z) {
     const [u,v]=local(x,z);
     for(const r of roofs) if(v>=r.back && v<=r.front && Math.abs(u)<=r.half)
@@ -355,10 +422,10 @@ window.addLabradorCabin = function addLabradorCabin(T, scene, world, site) {
   }
   function inClearing(x,z) {
     const [u,v]=local(x,z);
-    if(v>-5.0 && v<6.7 && Math.abs(u)<4.8) return true;
-    return v>=5 && v<=sandEnd+.45 && Math.abs(u-.39*Math.sin(v*.47))<1.2;
+    if(v>-5.0 && v<7.8 && Math.abs(u)<5.3) return true;
+    return v>=5 && v<=sandEnd+.45 && Math.abs(u-.39*Math.sin(v*.47))<2.6;
   }
   scene.add(root);
-  const campTrees=window.addBerteCampGround(T,scene,root,{site,floor,ground,water,waterDistance,texture});
-  return {root,clearance,inClearing,campTrees,roofs,waterDistance};
+  const campTrees=window.addBerteCampGround(T,scene,root,{site,floor,ground,water,waterDistance,texture,surveyGround:world.surveyGround});
+  return {root,clearance,padHeight,inClearing,campTrees,roofs,waterDistance};
 };

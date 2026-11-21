@@ -55,3 +55,24 @@ Lake and ocean reflection material derived from Three.js Water (MIT). Existing t
 
 Moosehead Lake's moving cloud deck is adapted from the 8K Citrus Orchard (Pure Sky) photograph by Dimitrios Savva, processed by Jarod Guest, hosted by Poly Haven under CC0. The panorama represents simulated summer conditions. Its sun is registered to the local scene lighting.
 https://polyhaven.com/a/citrus_orchard_puresky
+
+
+Weirs Beach excursion wharf
+The original 3D M/S Mount Washington model depicts the modern three-deck passenger vessel moored in its summer port. The operator supplies its 230 ft length. The wharf is located on the USDA 2023 NAIP orthophoto. The hull, windows, superstructure, rigging, graphics, gangway and berth are modeled interpretations based on operator and local field views. No vessel or municipal photograph was reproduced in the model.
+https://cruisenh.com/pages/our-fleet
+https://cruisenh.com/pages/our-ports
+https://weirsbeach.com/reasons-to-visit/attractions/cruises/
+https://www.laconianh.gov/gallery.aspx?PID=3
+
+Alton Bay Water Bandstand and Keene Central Square
+The original bandstand model follows Alton's surveyed building and platform footprints, the 2019 restored exterior and subsequent photographs of the operational signal mast. The timber, low siding, name board and flags are newly modeled or drawn. Flag details and the mast position are interpreted.
+https://www.alton.nh.gov/forms/planning/2022%20Master%20Plan.pdf
+https://thelaker.com/2019/alton-bay-water-bandstand-celebration-day
+https://www.laconiadailysun.com/news/local/roadside-marker-to-celebrate-floating-bandstand-in-alton-bay-will-be-unveiled-this-weekend/article_f9191b88-526b-11ee-a795-5719b58f30f2.html
+
+The United Church of Christ in Keene and Soldiers' Monument use local measured footprints. The south facade, clock and bell stages, bronze portrayal of Martin Milmore's 1871 figure, and Roxbury-granite pedestal are original models. Dimensions and visual study are from the National Register, the City of Keene, the Historical Society of Cheshire County and Keene Public Library, and a contemporary view supplied by an organization that meets at the church. Source photographs are not incorporated into these models.
+https://npgallery.nps.gov/GetAsset/e78dd922-a265-4c38-8fe9-be1fee5d3359
+https://ucckeene.org/about/our-history/
+https://www.cheshiremen.org/where-we-meet
+https://keenenh.gov/wp-content/uploads/2025/03/part10.pdf
+https://www.flickr.com/photos/keenepubliclibrary/2533397331/

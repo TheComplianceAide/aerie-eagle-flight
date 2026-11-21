@@ -98,13 +98,12 @@
     if(world.region==='winnipesaukee'){
       const f=window.WINNIPESAUKEE_WATERFRONT?.features;
       if(f){
-        const rings=[f.weirs?.station,f.alton?.bandstandPlatform||f.alton?.bandstand];
-        rings.forEach((p,index)=>{
-          if(!p)return;
-          const area=p.reduce((sum,a,i)=>{const b=p[(i+1)%p.length];return sum+a[0]*b[1]-b[0]*a[1];},0);
+        const station=f.weirs?.station;
+        if(station){
+          const area=station.reduce((sum,a,i)=>{const b=station[(i+1)%station.length];return sum+a[0]*b[1]-b[0]*a[1];},0);
           const outside=area>0?-.52:.52;
-          for(let i=0;i<4;i++)edge(p[i],p[(i+1)%4],2,outside,index===1);
-        });
+          for(let i=0;i<station.length;i++)edge(station[i],station[(i+1)%station.length],2,outside);
+        }
         const docks=f.weirs?.piers||f.alton?.piers||[];
         for(const p of docks)if(Array.isArray(p)&&Array.isArray(p[0])&&Array.isArray(p[1]))edge(p[0],p[1],2,.2,true);
       }

@@ -68,6 +68,7 @@ USDA National Agriculture Imagery Program aerial photographs via USGS The Nation
 https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer
 USGS 3D Elevation Program terrain for the Arizona and Alaska landscapes.
 https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer
+See western-landform-credits.txt for the Mendenhall terminus, Horseshoe Bend overlook, Wizard Island and Merced River survey and material sources.
 
 Mendenhall Glacier, Juneau, Alaska.
 Contains modified Copernicus Sentinel data (2024). Sentinel-2 Level-2A multispectral imagery
@@ -793,3 +794,12 @@ https://creativecommons.org/publicdomain/zero/1.0/
 
 The Reinefjorden dusk panorama and its moving cloud-density map derive from Belfast Sunset (Pure Sky), a CC0 photograph from Poly Haven. The light and weather are artistic interpretations.
 https://polyhaven.com/a/belfast_sunset_puresky
+
+Oeschinensee western gravel strand. © Federal Office of Topography swisstopo. The 2 m swissALTI3D 2025 elevation survey and 0.33 m resampling of SWISSIMAGE cover LV95 E2621180–2621652 / N1149352–1149696. They define the visible lower shore and surrounding fan. Rock dimensions, subtidal depth and the shore material at the modeled water stage are visual estimates. The Swiss Federal Inventory describes the Quinten and Öhrli limestone enclosing Oeschinensee. Knapp and colleagues documented limestone fragments within the lake sediment cores.
+https://www.swisstopo.admin.ch/en/orthoimage-swissimage
+https://www.swisstopo.admin.ch/en/terms-of-use-free-geodata-and-geoservices
+https://data.geo.admin.ch/ch.bafu.bundesinventare-bln/objectsheets/2017revision/nr1507.pdf
+https://doi.org/10.1029/2017JF004455
+
+Mendenhall evening sky. Scythian Tombs (Pure Sky), photograph by Sergej Majboroda, sky preparation by Jarod Guest, Poly Haven, CC0. This atmospheric reference was photographed in Ukraine. The photographed solar azimuth and elevation were registered to the game lighting. Drifting cloud density is derived from the same photograph. The terrain and glacier are independently surveyed at Juneau.
+https://polyhaven.com/a/scythian_tombs_puresky

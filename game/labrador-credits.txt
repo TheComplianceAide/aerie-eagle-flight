@@ -13,7 +13,7 @@ Elevation, local terrain shading and outer relief produced using Copernicus Worl
 https://doi.org/10.5270/ESA-c5d3d65
 https://registry.opendata.aws/copernicus-dem/
 
-The operator's marked Camp Sud point was aligned with the lake outline to choose the headland. The cabin, landing, shoreline grading, underwater slope and tree placements are artistic reconstructions. The cabin appearance was modeled using family reference photos. Its in-game footprint is approximate. The interactive weather illustrates late-day conditions.
+The operator's marked Camp Sud point was aligned with the lake outline to choose the headland. The cabin, landing, shoreline grading, underwater slope and tree placements are artistic reconstructions. The raised porch, peeled timber steps, exposed root and pale sandy landing were modeled from family reference photos. The headland surface and its tree roots follow the local rendered relief. The location of the family camera and the cabin footprint remain approximate. The interactive weather illustrates late-day conditions.
 https://labrador-airsafari.com/images/lacs/carte-berte.pdf
 https://labrador-airsafari.com/en/lake
 

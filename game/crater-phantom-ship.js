@@ -22,13 +22,15 @@ window.makePhantomShip=function makePhantomShip(T,scene,texture,level){
   geometry.setAttribute('uv',new T.Float32BufferAttribute(uv,2));geometry.setIndex(indices);geometry.computeVertexNormals();
   const photo=texture('crater-phantom-ortho.webp');photo.colorSpace=T.SRGBColorSpace;
   const slabs=texture('atlas-jointed-rock.webp',true),relief=texture('atlas-jointed-relief.webp',true);
+  const exposure=texture('crater-phantom-exposure.webp');
   const stone=new T.MeshStandardMaterial({map:photo,roughness:.91,metalness:0});
   stone.onBeforeCompile=shader=>{
     shader.uniforms.shipStone={value:slabs};shader.uniforms.shipRelief={value:relief};
+    shader.uniforms.shipExposure={value:exposure};
     const varying='varying vec3 shipPoint,shipNormal;\n';
     shader.vertexShader=varying+shader.vertexShader.replace('#include <begin_vertex>',
       '#include <begin_vertex>\nshipPoint=position;shipNormal=normal;');
-    shader.fragmentShader=varying+'uniform sampler2D shipStone,shipRelief;\n'+shader.fragmentShader.replace('#include <map_fragment>',`
+    shader.fragmentShader=varying+'uniform sampler2D shipStone,shipRelief,shipExposure;\n'+shader.fragmentShader.replace('#include <map_fragment>',`
       #include <map_fragment>
       vec3 norm=normalize(shipNormal);
       // Two upright scans preserve the joints around each vertical face;
@@ -46,12 +48,27 @@ window.makePhantomShip=function makePhantomShip(T,scene,texture,level){
       vec3 photographed=diffuseColor.rgb;
       float algae=(1.-smoothstep(${level.toFixed(3)}+.13,${level.toFixed(3)}+1.15,shipPoint.y));
       diffuseColor.rgb=mix(photographed,andesite*(.86+.34*min(1.,dot(photographed,vec3(.7,1.5,.8)))),.96*cliff);
+      // Charles R. Bacon's USGS photograph records long joints on the
+      // south and west faces. Its projection is fitted to the 1 m lidar.
+      vec3 offset=shipPoint-vec3(2667.,${(level+9).toFixed(3)},3839.);
+      vec3 originalRay=vec3(.754508,-.423977,-.500961);
+      float observedDepth=679.5899+dot(offset,originalRay);
+      vec2 film=vec2(dot(offset,vec3(.551661,-.003770,.834060)),
+                     -dot(offset,vec3(.355511,.905665,-.231047)));
+      vec2 plate=(vec2(199.8763,185.8317)+2628.4592*film/observedDepth)/vec2(480.,295.);
+      vec4 field=texture2D(shipExposure,vec2(plate.x,1.-plate.y));
+      float depthAgreement=1.-smoothstep(1.25,4.65,abs(observedDepth-(565.+225.*field.a)));
+      float facing=smoothstep(.04,.51,dot(norm,-originalRay));
+      float match=field.b*depthAgreement*facing*cliff;
+      float warmth=field.g-.50;
+      vec3 observed=vec3(.95+.25*warmth,.955+.15*warmth,.925-.30*warmth)*pow(max(.10,field.r),1.40)*(.85+.29*aa);
+      diffuseColor.rgb=mix(diffuseColor.rgb,observed,match*.95);
       diffuseColor.rgb*=1.-.44*algae;`).replace('#include <normal_fragment_maps>',`#include <normal_fragment_maps>
       vec2 eNormal=eRelief.rg*2.-1.,nNormal=nRelief.rg*2.-1.;
       vec3 grain=mix(vec3(0.,eNormal.y,eNormal.x),vec3(nNormal.x,nNormal.y,0.),axis);
       grain-=norm*dot(norm,grain);
       vec3 faceNormal=normalize(cross(dFdx(-vViewPosition),dFdy(-vViewPosition)));
-      normal=normalize(mix(normal,faceNormal,.38*cliff)+mat3(viewMatrix)*grain*.90*cliff);`);
+      normal=normalize(mix(normal,faceNormal,.38*cliff)+mat3(viewMatrix)*grain*(.90-.32*match)*cliff);`);
   };
   const mesh=new T.Mesh(geometry,stone);
   mesh.userData.terrainCaster=true;

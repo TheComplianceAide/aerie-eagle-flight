@@ -170,6 +170,18 @@ window.makePerchHabitat=function makePerchHabitat(T,scene,world,region){
   function rockSite(x,z,hint,route=false){
     if(!boundsOK(x,z,5))return null;
     if(moosehead&&!route)return lakeshorePerch(x,z,hint);
+    if(world.surryArmorPerch&&!route){
+      const cap=world.surryArmorPerch(x,z);
+      if(cap!==undefined){
+        if(!cap)return null;
+        const seed=noise(Math.round(cap.x*5),Math.round(cap.z*5),59);
+        return orient(seed,hint,(dx,dz)=>{
+          const slope=corridor(cap.x,cap.y,cap.z,dx,dz);
+          return slope===null?null:finish({id:'armor:'+cap.x.toFixed(3)+','+cap.z.toFixed(3),type:'rock',
+            label:'Quarry stone',x:cap.x,y:cap.y,z:cap.z,seed,radius:cap.radius,root:cap,existingSurface:true},dx,dz,slope);
+        });
+      }
+    }
     // Roof heights are in clearance. Exclude the paved downtown core as well.
     if(region==='surry'&&x>1785&&x<2200&&z>4240&&z<4860)return null;
     const surveyed=ground(x,z),y=surface(x,z);
@@ -442,7 +454,7 @@ window.makePerchHabitat=function makePerchHabitat(T,scene,world,region){
     if(Math.hypot(s.x-lastX,s.z-lastZ)>15){
       lastX=s.x;lastZ=s.z;near=gather(s);
       const list=selected?[selected,...near.filter(p=>p.id!==selected.id)]:near;
-      place((moosehead?list.filter(p=>!p.existingSurface):list).slice(0,capacity));
+      place(list.filter(p=>!p.existingSurface).slice(0,capacity));
     }
     if(selected){
       const d=Math.hypot(selected.x-s.x,selected.y-s.y,selected.z-s.z);
@@ -452,7 +464,7 @@ window.makePerchHabitat=function makePerchHabitat(T,scene,world,region){
   }
   function select(site){
     selected=site||null;halo.visible=!!site;lastX=Infinity;
-    if(lastState)update(lastState);else if(site){place([site]);halo.position.set(site.x,site.y+.055,site.z);}
+    if(lastState)update(lastState);else if(site){place(site.existingSurface?[]:[site]);halo.position.set(site.x,site.y+.055,site.z);}
     return selected;
   }
   const raycaster=new T.Raycaster(),projected=new T.Vector3(),eye=new T.Vector3();
@@ -476,7 +488,7 @@ window.makePerchHabitat=function makePerchHabitat(T,scene,world,region){
     const w=size?.width||size?.x||window.innerWidth||1200,h=size?.height||size?.y||window.innerHeight||800;
     let closest=13,found=null;
     const sites=visible.map(m=>m.userData.site);
-    if(moosehead)sites.push(...near.filter(p=>p.existingSurface));
+    if(moosehead||world.surryArmorPerch)sites.push(...near.filter(p=>p.existingSurface));
     for(const p of sites){
       projected.set(p.x,p.y+.08,p.z).project(camera);
       if(projected.z< -1||projected.z>1)continue;

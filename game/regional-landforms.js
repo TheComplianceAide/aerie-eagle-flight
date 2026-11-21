@@ -6,6 +6,7 @@
     moosehead:{name:'Mount Kineo',asset:'kineo',rock:'rhyolite',water:312.23,holes:[[236,-1260,344,-1040],[360,-964,416,-880]],
       source:'USGS 3DEP Western Mountains B24 and USDA NAIP, eastern and southern Mount Kineo, Maine'},
     lofoten:{name:'Olstinden · fjord-facing wall',asset:'lofoten',water:0,source:'Kartverket national terrain model and Copernicus Sentinel-2, Lofoten, Norway'},
+    hamnoy:{name:'Hamnøy · fishing harbor and tidal ledges',asset:'hamnoy',water:0,source:'Kartverket national terrain model and Copernicus Sentinel-2 summer imagery, Moskenes, Norway'},
     milford:{name:'Rahotu Mitre Peak · crest and Sinbad wall',asset:'milford',water:0,source:'LINZ NZ 8m Digital Elevation Model (2012) and Southland 0.75m Rural Aerial Photos (2005–2011)'},
     labrador:{name:'Lac Berté · south narrows and camp headland',asset:'labrador',water:359,source:'Gouvernement du Québec MRNF 2022 lidar terrain and aerial imagery, Côte-Nord'},
     yosemite:{name:'El Capitan · Nose and southeast face',asset:'yosemite',source:'USGS 3DEP and USDA NAIP, Yosemite Valley, California'},
@@ -15,7 +16,8 @@
     surry:{name:'Surry Mountain Dam · crest and spillway approach',asset:'surry',water:152.33,source:'USGS 3DEP and USDA NAIP, Surry, New Hampshire'},
     canyon:{name:'Horseshoe Bend · central promontory and inner wall',asset:'canyon',style:'canyon',holes:[[-592,-336,-456,-240]],source:'USGS 3DEP and USDA NAIP, Glen Canyon, Arizona'},
     alaska:{name:'Nugget Falls · wall and scoured bedrock',asset:'alaska',style:'alaska',water:0,source:'USGS 3DEP and the Aerie Mendenhall aerial mosaic, Juneau, Alaska'},
-    swiss:{name:'Fründenschnuer · limestone shelf and east wall',asset:'swiss',style:'swiss',water:0,source:'swisstopo swissALTI3D and SWISSIMAGE, Oeschinensee, Switzerland'}
+    swiss:{name:'Fründenschnuer · limestone shelf and east wall',asset:'swiss',style:'swiss',water:0,source:'swisstopo swissALTI3D and SWISSIMAGE, Oeschinensee, Switzerland'},
+    swisswest:{name:'Oeschinensee · western strand and scree fan',asset:'swisswest',style:'swiss',water:0,source:'Federal Office of Topography swisstopo, swissALTI3D 2025 and SWISSIMAGE, Oeschinensee, Switzerland'}
   };
   const available=new Map(),pending=new Map();
   const ease=x=>{const f=Math.max(0,Math.min(1,x));return f*f*(3-2*f);};
@@ -81,6 +83,41 @@
       // Keep charted open-water bottoms underneath the lake's native optical surface.
       if(spec.water!==undefined&&h<=spec.water+.12)return Math.min(base,h);
       return base+(h-base)*w;
+    }
+    // Low structures and patch overlays need the rendered triangles, whose
+    // error-limited decimation may differ from the regularly sampled DEM.
+    // Index only the small area occupied by the requested structure.
+    function surfacePatch(cx,cz,radius,baseAt){
+      const bins=new Map(),cell=8,key=(x,z)=>Math.floor(x/cell)*65536+Math.floor(z/cell);
+      const x0=cx-radius,x1=cx+radius,z0=cz-radius,z1=cz+radius;
+      function yAt(x,z,encoded){
+        const y=datum+scale*encoded,base=baseAt(x,z);
+        return spec.water!==undefined&&y<=spec.water+.12?Math.min(base,y):base+(y-base)*edge(x,z);
+      }
+      for(const {xyz,triangles} of sections){
+        for(let j=0;j<triangles.length;j+=3){
+          const a=3*triangles[j],b=3*triangles[j+1],c=3*triangles[j+2];
+          const ax=left+xyz[a],az=top+xyz[a+1],bx=left+xyz[b],bz=top+xyz[b+1],dx=left+xyz[c],dz=top+xyz[c+1];
+          const lx=Math.max(x0,Math.min(ax,bx,dx)),rx=Math.min(x1,Math.max(ax,bx,dx));
+          const tz=Math.max(z0,Math.min(az,bz,dz)),bzLimit=Math.min(z1,Math.max(az,bz,dz));
+          if(lx>rx||tz>bzLimit)continue;
+          const Bx=bx-ax,Bz=bz-az,Cx=dx-ax,Cz=dz-az,det=Bx*Cz-Bz*Cx;
+          if(!det)continue;
+          const ay=yAt(ax,az,xyz[a+2]);
+          const tri=[ax,az,ay,Cz/det,-Cx/det,-Bz/det,Bx/det,yAt(bx,bz,xyz[b+2])-ay,yAt(dx,dz,xyz[c+2])-ay];
+          for(let ix=Math.floor(lx/cell);ix<=Math.floor(rx/cell);ix++)for(let iz=Math.floor(tz/cell);iz<=Math.floor(bzLimit/cell);iz++){
+            const k=ix*65536+iz;if(!bins.has(k))bins.set(k,[]);bins.get(k).push(tri);
+          }
+        }
+      }
+      return (x,z)=>{
+        if(x<x0||x>x1||z<z0||z>z1)return null;
+        for(const [ax,az,y,ux,uz,vx,vz,by,cy] of bins.get(key(x,z))||[]){
+          const dx=x-ax,dz=z-az,u=ux*dx+uz*dz,v=vx*dx+vz*dz;
+          if(u>=-1e-7&&v>=-1e-7&&u+v<=1.0000001)return y+u*by+v*cy;
+        }
+        return null;
+      };
     }
     function add(T,scene,initialMaterial,baseAt,texture){
       const material=initialMaterial.clone();
@@ -192,7 +229,7 @@
       material.fragmentShader=material.fragmentShader.replace(/void main\(\)\s*\{/,m=>m+'if('+test+')discard;');
       material.needsUpdate=true;
     }
-    return {rect,edge,sample,height,add,maskOriginal,spec,woodland};
+    return {rect,edge,sample,height,surfacePatch,add,maskOriginal,spec,woodland};
   }
   async function prepare(region){
     if(!catalog[region])return;

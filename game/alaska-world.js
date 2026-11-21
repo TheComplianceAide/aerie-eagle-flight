@@ -199,6 +199,18 @@ class Water extends Mesh {
           float windPatch=smoothstep(.38,.96,wind);
           vec3 scattered=waterColor*(.64+.26*theta+.13*wind+.43*dot(slope,normalize(sunDirection.xz)));
           scattered+=vec3(.010,.018,.023)*windPatch;
+          // Fine mineral particles raise diffuse backscatter below the calving
+          // front. The plume follows the mapped southwest lake margin and
+          // disperses across the basin beneath the independent sky reflection.
+          vec2 fromIce=surface-vec2(-76.,-1010.);
+          float along=dot(fromIce,vec2(-.47,.883));
+          float width=150.+.32*max(0.,along);
+          float crossStream=dot(fromIce,vec2(.883,.47));
+          float eddy=52.*sin(along*.006+1.8*swell.x)+21.*sin(along*.014);
+          float flour=exp(-pow((crossStream-eddy)/width,2.))
+              *exp(-max(0.,along)/1090.)*smoothstep(-210.,-15.,along);
+          vec3 silty=vec3(.117,.147,.142)*(.79+.24*theta+.10*wind);
+          scattered=mix(scattered,silty,.84*flour);
           vec3 outgoingLight=mix(scattered,reflectionSample,reflectance)
             +sunColor*min(.94,sunSpecular)*getShadowMask();
           gl_FragColor = vec4( outgoingLight, alpha );
@@ -455,12 +467,17 @@ class Water extends Mesh {
   scene.add(new THREE.HemisphereLight(0xceebff,0x636b72,1.34),key);
   const skyMap=map('alaska-evening.jpg');skyMap.wrapS=THREE.RepeatWrapping;
   const sky=new THREE.Mesh(new THREE.SphereGeometry(1,32,16),new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,
-    uniforms:{sky:{value:skyMap}},vertexShader:`varying vec3 ray;void main(){ray=position;vec4 p=projectionMatrix*vec4(mat3(viewMatrix)*position,1.);gl_Position=p.xyww;}`,
-    fragmentShader:`varying vec3 ray;uniform sampler2D sky;void main(){vec3 d=normalize(ray);vec2 uv=vec2(.968+atan(d.z,d.x)*.15915494,.5+asin(d.y)*.31830989);vec3 c=texture2D(sky,uv).rgb; gl_FragColor=vec4(mix(c,vec3(.98,.79,.64),.09*exp(-abs(d.y)*6.)),1.);}`}));
+    uniforms:{map:{value:skyMap}},vertexShader:`varying vec3 ray;void main(){ray=position;vec4 p=projectionMatrix*vec4(mat3(viewMatrix)*position,1.);gl_Position=p.xyww;}`,
+    fragmentShader:`varying vec3 ray;uniform sampler2D map;void main(){
+      vec3 d=normalize(ray);
+      vec2 uv=vec2(.5+atan(d.z,d.x)*.15915494,.5+asin(d.y)*.31830989);
+      gl_FragColor=vec4(texture2D(map,uv).rgb,1.);
+      gl_FragColor.rgb=mix(gl_FragColor.rgb,vec3(.98,.79,.64),.06*exp(-abs(d.y)*6.));
+    }`}));
   sky.frustumCulled=false;sky.renderOrder=-1000;scene.add(sky);
   const outerPhoto=map('alaska-horizon.jpg');
   const snow=map('alaska-snow.jpg',true),earth=map('alpine-tundra.webp',true);
-  const glacierFace=map('alaska-ice-face.jpg',true), mountain=map('alaska-mountain.jpg',true);
+  const glacierFace=map('alaska-terminus-face.webp',true), mountain=map('alaska-mountain.jpg',true);
   glacierFace.wrapS=glacierFace.wrapT=mountain.wrapS=mountain.wrapT=THREE.MirroredRepeatWrapping;
   const terrainLight=map('alaska-sun.webp'),iceDetail=map('alaska-ice-relief.webp'),blueIce=map('alaska-blue-ice.webp',true);
   blueIce.wrapS=blueIce.wrapT=THREE.MirroredRepeatWrapping;
@@ -667,6 +684,7 @@ class Water extends Mesh {
 #endif
       float viewSky=mix(1.,relief.b,surveyed);
       float beam=mix(clamp(.45+1.6*light,0.,1.),relief.r,surveyed);
+      beam*=1. /* direct terrain visibility */;
       float facet=mix(light,relief.g*2.-1.,surveyed*(1.-.83*forest));
       float incident=max(0.,facet);
       float shadow=beam*(.22+.78*sqrt(incident));
@@ -685,9 +703,33 @@ class Water extends Mesh {
       vec2 frontUV=vec2((p.x+.51*p.z)/179.,(p.y+3.5*sin(p.x*.016))/33.);
       float slab=texture2D(face,frontUV).g;
       frontUV.x+=(slab-.59)*.014*normalize(cameraPosition-p).x;
-      vec3 fractured=texture2D(face,frontUV).rgb;
-      fractured*=diffuseSky+warmDirect+vec3(.055,.082,.093);
-      base=mix(base,fractured,terminus*.71);
+      // Directionally project the photographed Mendenhall fracture planes.
+      // The raked, dusty top breaks into clean ice on the lee side of each cut.
+      vec2 localCrack=vec2((p.x+.39*p.z)/114.,(p.y+.065*p.x)/32.);
+      vec3 rake=texture2D(face,localCrack+vec2(.09*sin(p.z*.014),.06*sin(p.x*.021))).rgb;
+      vec3 fractured=mix(texture2D(face,frontUV).rgb,rake,.57);
+      float darkSeam=1.-smoothstep(.24,.52,dot(fractured,vec3(.22,.64,.14)));
+      vec3 iceSky=diffuseSky+warmDirect+vec3(.115,.136,.146);
+      fractured*=iceSky*mix(vec3(1.),vec3(.63,.84,.91),darkSeam);
+      float lowerIce=sheet*smoothstep(-2140.,-1590.,p.z);
+      if(lowerIce>.012){
+        // Oblique moraine bands on the dusty surface turn into blue joint
+        // planes on the calving face. Keep the measured cuts at their true
+        // ground positions rather than stamping a serac silhouette per tile.
+        vec2 flowPlane=vec2(.91*p.x+.42*p.z,-.42*p.x+.91*p.z);
+        vec3 crust=texture2D(face,flowPlane/vec2(192.,69.)+
+                    vec2(.075*sin(p.z*.011),.101*sin(p.x*.016))).rgb;
+        float grainField=texture2D(blueIce,flowPlane/vec2(69.,46.)).g;
+        float joint=smoothstep(.20,.82,irr.r)*(.42+.58*(1.-irr.g));
+        float lamp=clamp(.76+.23*viewSky+.18*max(0.,dot(nn,sun)),.76,1.16);
+        vec3 cap=mix(vec3(.66,.73,.76),crust,.69)*lamp;
+        cap*=.83+.33*grainField+.14*(irr.g-.5);
+        cap*=mix(vec3(1.),vec3(.42,.64,.73),joint*.86);
+        float vertical=smoothstep(.12,.71,1.-nn.y);
+        vec3 lower=mix(cap,fractured,vertical*.90);
+        base=mix(base,lower,lowerIce*.89);
+      }
+      base=mix(base,fractured,terminus*.76);
       vec3 V=normalize(cameraPosition-p),H=normalize(sun+V);
       float sheen=pow(max(0.,dot(H,faceN)),30.)*(1.-.85*forest);
       base+=vec3(.125,.124,.108)*beam*sheen*(.38*rocky+sheet);
@@ -726,11 +768,14 @@ class Water extends Mesh {
       // Keep cliff and ice silhouettes resolved across the valley. Flat terraces
       // can spend the same pixel error budget on fewer vertices.
       const sharp=t.relief>240;
-      const pitch=(t.x1-t.x0>4000||range<(sharp?2650:1450))?1:range<(sharp?6400:3300)?2:t.nx>=120?4:2;
-      if(t.pitch!==pitch){t.mesh.geometry.setIndex(gridIndex(t.nx,t.nz,pitch));t.pitch=pitch;}
+      const pitch=(t.outer||range<(sharp?2650:1450))?1:range<(sharp?6400:3300)?2:t.nx>=120?4:2;
+      if(t.pitch!==pitch){t.regular=gridIndex(t.nx,t.nz,pitch);t.pitch=pitch;}
+      const grid=t.mesh.geometry;
+      const chosen=t.reduced?window.aerieTerrainIndices.select(grid,t.regular,t.reduced,range):t.regular;
+      if(grid.index!==chosen)grid.setIndex(chosen);
     }
   }
-  function patch(x0,z0,x1,z1,nx,nz,material=ground){
+  function patch(x0,z0,x1,z1,nx,nz,material=ground,outer=false){
     if(landmarkTerrain){
       const [l,t,r,b]=landmarkTerrain.rect;
       if(x0<r&&x1>l&&z0<b&&z1>t)landmarkGroundMaterials.add(material);
@@ -748,7 +793,8 @@ class Water extends Mesh {
     mesh.userData.terrainCaster=true;
     scene.add(mesh);
     g.computeBoundingBox();
-    terrainLods.push({mesh,nx,nz,x0,z0,x1,z1,pitch:1,relief:g.boundingBox.max.y-g.boundingBox.min.y});
+    const reduced=window.aerieTerrainIndices?.forGrid('alaska',x0,z0,nx,nz,g);
+    terrainLods.push({mesh,nx,nz,x0,z0,x1,z1,outer,pitch:1,regular:g.index,reduced,relief:g.boundingBox.max.y-g.boundingBox.min.y});
   }
   // A one-texel apron on each 3.6 km photographic tile preserves filtered continuity between survey panels.
   // Smaller mesh patches allow the renderer to cull unseen ridges. Five metre cells resolve the upper ice.
@@ -779,8 +825,12 @@ class Water extends Mesh {
     }
   }
   const edges=[-18000,-7200,7200,18000];
-  for(let j=0;j<3;j++)for(let i=0;i<3;i++)if(i!==1||j!==1)
-    patch(edges[i],edges[j],edges[i+1],edges[j+1],Math.ceil((edges[i+1]-edges[i])/30),Math.ceil((edges[j+1]-edges[j])/30));
+  // Keep the original 30 m crest samples. Split the outer apron so a glimpse
+  // of one peak cannot submit an entire 14 km ridge in both views of the lake.
+  for(let j=0;j<3;j++)for(let i=0;i<3;i++)if(i!==1||j!==1){
+    for(let z=edges[j];z<edges[j+1];z+=3600)for(let x=edges[i];x<edges[i+1];x+=3600)
+      patch(x,z,x+3600,z+3600,120,120,ground,true);
+  }
   const shore=survey.shore.map(([x,z])=>({x,z}));const outline=new THREE.Shape((window.mendenhallCoveWaterOutline||survey.waterEdge).map(([x,z])=>new THREE.Vector2(x,-z)));
   const waters=map('waternormals.jpg',true);
   const lake=new Water(new THREE.ShapeGeometry(outline),{textureWidth:960,textureHeight:640,waterNormals:waters,sunDirection:sun,sunColor:0xffe9cd, waterColor:0x396c70,distortionScale:1.82,fog:true});
@@ -1125,7 +1175,9 @@ class Water extends Mesh {
   const waterfalls=window.makeWaterfallSystem(THREE,scene,{clock,ground:elevation,level:lake.position.y,sun,texture:map,sky:skyMap});
   waterfalls.chute('Nugget Falls',flow,15,{pool:true,poolLevel:lake.position.y});
   waterfalls.couple(lake);
-  const sprayPass={x:690,z:602,y:Math.max(96,clearance(690,602)+32),yaw:-2.14,glance:-8};
+  // Approach the two steps from the lake, across the outwash fan. The
+  // upper creek is inland and behind the visitor-facing side of the falls.
+  const sprayPass={x:271,z:714,y:Math.max(39,clearance(271,714)+31),yaw:-1.34};
   const lakeLaunch={x:-269,z:-568,y:71,yaw:-.32},shoreLaunch={x:473,z:927,y:height(473,927)+8,yaw:.27},ridge={x:-860,z:-1890,y:elevation(-860,-1890)+100,yaw:-2.73};
   scene.traverse(mesh=>{
     const material=mesh.material;
@@ -1149,7 +1201,7 @@ class Water extends Mesh {
     landformMesh=landmarkTerrain.add(THREE,scene,reference,nativeElevation,map);
     for(const source of landmarkGroundMaterials)landmarkTerrain.maskOriginal(source);
   }
-  return {landformMesh,region:"alaska",bankDepositMap,localPerchStone,windTerrainHeight,treeGrid:{cells,size:48,cell},waterfalls,forestLightSpan:14400,elevation,clearance,height,trees,sunMask,sunDirection:sun,skyTexture:skyMap,waterLevel:0,lakeLevel:0,lakePolygon:shore,altitudeOffset:18,spawn:lakeLaunch,
+  return {landformMesh,region:"alaska",bankDepositMap,localPerchStone,windTerrainHeight,treeGrid:{cells,size:48,cell},waterfalls,forestLightSpan:14400,elevation,clearance,height,trees,sunMask,sunDirection:sun,skyTexture:skyMap,cloudDensityMap:'alaska-cirrus-density.webp',waterLevel:0,lakeLevel:0,lakePolygon:shore,altitudeOffset:18,spawn:lakeLaunch,
     launches:{lake:lakeLaunch,ridge,shore:shoreLaunch,spruce:{x:173,y:26,z:1630,yaw:.38,lookDown:12},spray:sprayPass,spur:{x:612,y:68.4704,z:977,yaw:-.08159},alpine:{x:-2900,z:-2010,y:elevation(-2900,-2010)+58,yaw:-.28}},bounds:{minX:-6890,maxX:6890,minZ:-6890,maxZ:6890},
     landmarks:[{name:'West alpine crest',x:-2900,z:-2010},{name:'Upper crevasse field',x:1500,z:-4130},{name:'Blue Ice Passage',x:-116,z:-1010},{name:'Nugget Falls beach',x:473,z:927},{name:'Medial moraine',x:632,z:-2450},{name:'Mendenhall Glacier',x:40,z:-1400},{name:'Nugget Falls',x:518,z:658},{name:'Mendenhall Lake',x:-700,z:680},{name:'West Glacier Ridge',x:-860,z:-1890}],
     update(dt,time,player){updateTerrainLOD(player);updateLedges(player);updateShore(player);clock.value=time;lake.material.uniforms.time.value=time*.72;}

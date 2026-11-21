@@ -68,6 +68,99 @@
       float green=smoothstep`);
     material.side=T.DoubleSide;mesh.material=material;mesh.userData.originalSurveyMaterial=scan;
   }
+  // The former fire lookout now has an open observation platform. Survey
+  // waypoint 45.69978 N, 69.73373 W in the game's rounded UTM 19N frame.
+  function addSummitLookout(T,group,world){
+    const x=107.14,z=-863.64,platformHeight=18.42,railHeight=1.08;
+    const originY=world.elevation(x,z),baseHalf=3.20,deckHalf=1.86;
+    const geometry=new T.BoxGeometry(1,1,1),verts=geometry.attributes.position,index=geometry.index;
+    const position=[],color=[],transform=new T.Matrix4(),q=new T.Quaternion();
+    const start=new T.Vector3(),end=new T.Vector3(),axis=new T.Vector3(),vertex=new T.Vector3(),mid=new T.Vector3();
+    const up=new T.Vector3(0,1,0),scale=new T.Vector3(),pigment=new T.Color();
+    const metal=0x88877f,shadow=0x636660,rust=0x8c7867,board=0x9e9382;
+    function bar(a,b,width,depth,tone){
+      start.fromArray(a);end.fromArray(b);axis.subVectors(end,start);
+      const length=axis.length();if(length<.001)return;
+      q.setFromUnitVectors(up,axis.multiplyScalar(1/length));
+      transform.compose(mid.copy(start).lerp(end,.5),q,scale.set(width,length,depth));
+      pigment.setHex(tone);
+      for(let i=0;i<index.count;i++){
+        vertex.fromBufferAttribute(verts,index.getX(i)).applyMatrix4(transform);
+        position.push(vertex.x,vertex.y,vertex.z);color.push(pigment.r,pigment.g,pigment.b);
+      }
+    }
+    function slab(cx,cy,cz,sx,sy,sz,tone){bar([cx,cy-sy/2,cz],[cx,cy+sy/2,cz],sx,sz,tone);}
+    function half(y){return baseHalf+(deckHalf-baseHalf)*y/platformHeight;}
+    const corners=[[-1,-1],[1,-1],[1,1],[-1,1]];
+    const corner=(i,y)=>[corners[i][0]*half(y),y,corners[i][1]*half(y)];
+    const heights=[.40,4.92,9.42,13.92,platformHeight];
+    for(let i=0;i<4;i++){
+      const [u,v]=corners[i],baseY=world.elevation(x+baseHalf*u,z+baseHalf*v)-originY;
+      slab(baseHalf*u,baseY-.03,baseHalf*v,.72,.40,.72,0xa1a09a);
+      bar([baseHalf*u,baseY+.10,baseHalf*v],corner(i,platformHeight),.154,.154,metal);
+      const next=(i+1)%4;
+      for(let j=1;j<heights.length;j++){
+        const low=heights[j-1],high=heights[j];
+        bar(corner(i,high),corner(next,high),.136,.108,j%2?metal:shadow);
+        bar(corner(i,low+.09),corner(next,high-.12),.050,.049,shadow);
+        bar(corner(next,low+.09),corner(i,high-.12),.049,.046,j%2?rust:shadow);
+      }
+    }
+    // Reversing flights and grated landings are visible through the truss.
+    const stairWidth=.88;
+    for(let n=0;n<4;n++){
+      const from=n%2?-1:1,lane=n%2?.53:-.53;
+      const low=heights[n],high=heights[n+1],run=Math.min(half(high)-.36,1.74);
+      const count=17;
+      for(const side of [-1,1]){
+        const t=lane+side*stairWidth/2;
+        bar([t,low,from*run],[t,high,-from*run],.078,.095,shadow);
+        bar([t,low+.88,from*run],[t,high+.88,-from*run],.038,.038,metal);
+      }
+      for(let j=0;j<count;j++){
+        const f=(j+.5)/count,cz=from*run*(1-2*f),cy=low+(high-low)*f;
+        slab(lane,cy,cz,stairWidth,.045,.19,j%4?metal:rust);
+        if(j%6===2)for(const side of [-1,1])bar([lane+side*stairWidth/2,cy,cz],[lane+side*stairWidth/2,cy+.88,cz],.038,.038,shadow);
+      }
+      for(let j=0;j<9;j++)slab(0,high,-from*(run-.08+j*.062),2.0,.075,.036,metal);
+    }
+    const deckWidth=2*(deckHalf+.07),strip=deckWidth/23;
+    for(let j=0;j<23;j++){
+      const u=(j-11)*strip,open=u>.09&&u<1.03;
+      const last=open?.65:deckWidth/2,first=-deckWidth/2;
+      slab(u,platformHeight+.055,(first+last)/2,strip-.013,.117,last-first,j%6?board:0x887f70);
+    }
+    const top=platformHeight+railHeight;
+    for(let i=0;i<4;i++){
+      const [u,v]=corners[i],[nx,nz]=corners[(i+1)%4];
+      for(const f of [0,.5]){
+        const ax=(u+(nx-u)*f)*deckHalf,az=(v+(nz-v)*f)*deckHalf;
+        bar([ax,platformHeight,az],[ax,top,az],.062,.062,metal);
+      }
+      for(const h of [.26,.58,railHeight])bar([u*deckHalf,platformHeight+h,v*deckHalf],[nx*deckHalf,platformHeight+h,nz*deckHalf],h===railHeight?.066:.038,.055,metal);
+    }
+    geometry.dispose();
+    const shape=new T.BufferGeometry();
+    shape.setAttribute('position',new T.Float32BufferAttribute(position,3));
+    shape.setAttribute('color',new T.Float32BufferAttribute(color,3));
+    shape.computeVertexNormals();shape.computeBoundingSphere();
+    const surface=new T.MeshStandardMaterial({vertexColors:true,metalness:.23,roughness:.73});
+    const mesh=new T.Mesh(shape,surface);mesh.name='Kineo observation platform and stair tower';
+    mesh.position.set(x,originY,z);group.add(mesh);
+    const prior=world.clearance;
+    function withTower(px,pz,altitude){
+      const ground=prior(px,pz,altitude);
+      if(Math.max(Math.abs(px-x),Math.abs(pz-z))>baseHalf+.1)return ground;
+      const above=altitude-originY,ax=Math.abs(px-x),az=Math.abs(pz-z);
+      if((!Number.isFinite(above)||above>=platformHeight-.45)&&Math.max(ax,az)<deckHalf+.11)
+        return Math.max(ground,originY+platformHeight+.12+(Math.max(ax,az)>deckHalf-.12?railHeight:0));
+      if(above>=0&&above<platformHeight&&Math.abs(ax-half(above))<.17&&Math.abs(az-half(above))<.17)
+        return Math.max(ground,altitude+.12);
+      return ground;
+    }
+    world.clearance=withTower;
+    return ()=>{if(world.clearance===withTower)world.clearance=prior;mesh.removeFromParent();shape.dispose();surface.dispose();};
+  }
   window.loadKineoModels=async(T,group,world,file)=>{
     const fetched=await fetch(file('kineo-seams.bin'));if(!fetched.ok)throw new Error('Kineo survey seam unavailable');
     const buffer=await fetched.arrayBuffer(),head=new DataView(buffer),shells=[];
@@ -193,6 +286,7 @@
       }
       return {m,low,lower,upper};
     });
+    const removeLookout=addSummitLookout(T,group,world);
     return {names,update(p){
       for(const {m,low,lower,upper} of levels){
         const d=Math.hypot(p.x-m.position.x,p.y-m.position.y,p.z-m.position.z);
@@ -201,6 +295,7 @@
         m.visible=d<upper+42;low.visible=d>lower-42;
       }
     },dispose(){
+      removeLookout();
       if(shelfGrowth){shelfGrowth.removeFromParent();shelfGrowth.geometry.dispose();}
       for(const {low} of levels){low.geometry.dispose();low.material.dispose();}
       for(const m of models){m.geometry.dispose();const mat=m.userData.originalSurveyMaterial||m.material;if(mat!==m.material)m.material.dispose();for(const tx of new Set([mat.map,mat.normalMap,mat.roughnessMap]))tx.dispose();mat.dispose();}

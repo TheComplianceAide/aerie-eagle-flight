@@ -45,3 +45,10 @@ https://shop.gns.cri.nz/sr_2006-036-pdf/
 
 Geological map of New Zealand
 https://www.gns.cri.nz/data-and-resources/geological-map-of-new-zealand/
+
+
+Surry Mountain Dam stone slope protection
+surry-armor-bed.webp adapts the 1.8 m Gray Rocks photogrammetry scan by Dimitrios Savva, including photographed color and ambient occlusion. surry-block-surface.webp adapts Rock 01 by Rob Tuytel. Both are CC0 photographic analogues from Poly Haven. Six reconstructed quarry block profiles are distributed by size down the surveyed faces, with the larger upper grade informed by a personal field photograph. The geometry and the image textures contain no pixels from that photograph.
+https://polyhaven.com/a/gray_rocks
+https://polyhaven.com/a/rock_01
+https://polyhaven.com/license
