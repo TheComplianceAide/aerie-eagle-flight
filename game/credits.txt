@@ -866,3 +866,23 @@ https://www.kartverket.no/en/api-and-data/terms-of-use
 https://www.openstreetmap.org/copyright
 https://opendatacommons.org/licenses/odbl/1-0/
 https://dataspace.copernicus.eu/terms-and-conditions
+
+Oeschinensee — Berghotel Oeschinensee, Chalet Arva and the rowing cove
+
+The five measured roof and wall shells, current roof images, terrace layout, exposed shoreline and the 2004 low-stage aerial are derived from © Federal Office of Topography swisstopo, swissBUILDINGS3D 3.0, swissALTI3D and SWISSIMAGE. Coordinates are in LV95 / LN02. The modeled lake stage is 1,574.9 m. The terrain model locates the water surface. Submerged gravel depth is estimated from its exposed slope. The archival aerial and modern terrain establish a low-stage skiff cove; boat positions, ropes, furniture, and small facade features are reconstructions. The historic lower-water berth and current high-water berth differ.
+https://www.swisstopo.admin.ch/en/landscape-model-swissbuildings3d
+https://www.swisstopo.admin.ch/en/height-model-swissalti3d
+https://www.swisstopo.admin.ch/en/orthoimage-swissimage
+https://www.swisstopo.admin.ch/en/terms-of-use-free-geodata-and-geoservices
+https://www.oeschinensee.ch/en/ruderboote/
+https://restaurant-oeschinensee.ch/en/restaurant-oeschinensee-2/
+https://www.arva-oeschinensee.ch/
+
+The derived facade and skiff material atlas, oeschinen-landing-surfaces.webp, is CC BY-SA 4.0. Cropping, perspective rectification, color balancing, and assembly by Aerie. Original photographs, also CC BY-SA 4.0:
+Oeschilover, “Berghotel Oeschinensee erbaut 1892,” 2017 — amber shutters, timber courses, flower boxes and windows.
+https://commons.wikimedia.org/wiki/File:Berghotel_Oeschinensee_erbaut_1892.jpg
+Hp.Baumeler, “Berghaus am oeschinensee,” 2017 — sage shutters, painted frieze, carved railing and joinery.
+https://commons.wikimedia.org/wiki/File:Berghaus_am_oeschinensee.jpg
+Gdmolena, “Boats on the shoreline of Lake Oeschinen,” 2022 — blue skiff paint and timber surface references.
+https://commons.wikimedia.org/wiki/File:Boats_on_the_shoreline_of_Lake_Oeschinen.jpg
+https://creativecommons.org/licenses/by-sa/4.0/

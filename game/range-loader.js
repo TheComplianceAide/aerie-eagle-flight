@@ -5,7 +5,7 @@
   const scripts = {
     alaska: ['lake-reflection-domain.js','terrain-indices.js','alaska-cove.js','alaska-sediment.js','nugget-surface.js','waterfall-system.js','alaska-survey.js','alaska-ice-survey.js','alaska-world.js','talus-data.js','habitat.js',...trees],
     canyon: ['canyon-survey.js','canyon.js','habitat.js','talus-data.js','rocks.js'],
-    swiss: ['swiss-frunden-data.js','swiss-frunden.js','waterfall-system.js','alpine-survey.js','alpine-headwall.js','world.js','talus-data.js','rocks.js','habitat.js',...trees]
+    swiss: ['swiss-landing-data.js','swiss-lake-landing.js','swiss-frunden-data.js','swiss-frunden.js','waterfall-system.js','alpine-survey.js','alpine-headwall.js','world.js','talus-data.js','rocks.js','habitat.js',...trees]
   };
   const loaded=new Map();
   function open(name){

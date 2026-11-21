@@ -115,7 +115,14 @@
       sections.push({xyz,light,triangles});
     }
     const holes=spec.holes||[];
-    const surveyedBed=spec.asset==='winnipesaukee'?window.makeWinnipesaukeeWaterfront?.islandBed:null;
+    const surveyedBed=spec.asset==='winnipesaukee'?window.makeWinnipesaukeeWaterfront?.islandBed
+      :spec.asset==='swisswest'?window.makeOeschinenLanding?.berthWeight:null;
+    function fitElevation(x,z,h,base,w){
+      const fitted=base+(h-base)*w;
+      if(spec.water===undefined||h>spec.water+.12)return fitted;
+      const deep=Math.min(base,h),weight=surveyedBed?.(x,z)||0;
+      return deep+(fitted-deep)*weight;
+    }
     function edge(x,z){
       let d=Math.min(x-left,right-x,z-top,bottom-z);
       if(d<=0)return 0;
@@ -134,8 +141,7 @@
       if(w<=0)return base;
       const h=sample(x,z);
       // Keep charted open-water bottoms underneath the lake's native optical surface.
-      if(spec.water!==undefined&&h<=spec.water+.12&&!surveyedBed?.(x,z))return Math.min(base,h);
-      return base+(h-base)*w;
+      return fitElevation(x,z,h,base,w);
     }
     // Low structures and patch overlays need the rendered triangles, whose
     // error-limited decimation may differ from the regularly sampled DEM.
@@ -145,7 +151,7 @@
       const x0=cx-radius,x1=cx+radius,z0=cz-radius,z1=cz+radius;
       function yAt(x,z,encoded){
         const y=datum+scale*encoded,base=baseAt(x,z);
-        return spec.water!==undefined&&y<=spec.water+.12&&!surveyedBed?.(x,z)?Math.min(base,y):base+(y-base)*edge(x,z);
+        return fitElevation(x,z,y,base,edge(x,z));
       }
       for(const {xyz,triangles} of sections){
         for(let j=0;j<triangles.length;j+=3){
@@ -403,13 +409,12 @@
       group.userData.aerieLandform={name:spec.name,source:spec.source,rect};
       scene.add(group);
       let faces=0;
-      const low=spec.water;
       for(const part of horizon?[...sections,horizon]:sections){
         const n=part.xyz.length/3,pos=new Float32Array(n*3),norm=new Float32Array(n*3),ex=new Uint8Array(part.light);
         for(let i=0;i<n;i++){
           const j=i*3,x=left+unit*part.xyz[j],z=top+unit*part.xyz[j+1],w=edge(x,z),base=baseAt(x,z);
           const y=datum+part.xyz[j+2]*scale;
-          pos[j]=x;pos[j+1]=low!==undefined&&y<=low+.12&&!surveyedBed?.(x,z)?Math.min(base,y):base+(y-base)*w;pos[j+2]=z;
+          pos[j]=x;pos[j+1]=fitElevation(x,z,y,base,w);pos[j+2]=z;
           // Calculate boundary normals from the adjoining native terrain so both
           // shapes and lighting meet continuously at the exact old survey slot.
           const normalStep=Math.min(2,step),a=x-normalStep,b=x+normalStep,c=z-normalStep,d=z+normalStep;

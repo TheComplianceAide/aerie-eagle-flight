@@ -390,7 +390,9 @@ class Water extends Mesh {
     if(strandSurvey?.edge(x,z))return strandSurvey.height(x,z,base);
     return landmarkTerrain?landmarkTerrain.height(x,z,base):base;
   }
-  function nativeElevation(x,z){
+  const fitLandingBank=window.makeOeschinenLanding.fitBank();
+  function nativeElevation(x,z){return fitLandingBank(x,z,coarseElevation(x,z));}
+  function coarseElevation(x,z){
     const border = Math.max(Math.abs(x),Math.abs(z));
     const regional=()=>sample(region,513,16000,x,z)+window.rangeRelief("swiss",x,z);
     if (border>=4000) return regional();
@@ -703,13 +705,14 @@ class Water extends Mesh {
     }
     mesh.onBeforeRender=(renderer,scene,camera)=>{material.uniforms.linearOutput.value=!!camera.userData.lakeReflection;};
   });
+  const lakeLanding=window.makeOeschinenLanding(THREE,scene,texture,elevation,lake,clock);
   const treeData=decode(survey.canopy),trees=[],treeCells=new Map();
   for(let i=0;i<treeData.length;i+=3){
     const x=treeData[i],z=treeData[i+1],h=treeData[i+2]*.1;
     const y=elevation(x,z),seed=rand(),width=h*(.29+.19*seed);
     const slope=Math.hypot(elevation(x+4,z)-elevation(x-4,z),elevation(x,z+4)-elevation(x,z-4))/8;
     // LiDAR returns on cliff edges and glacial water can be mistaken for crowns.
-    if(insideLake(x,z) || slope>1.43 || h<5.8)continue;
+    if(insideLake(x,z) || slope>1.43 || h<5.8 || lakeLanding.managed(x,z))continue;
     const tree={x,y,z,height:h,width,seed};
     trees.push(tree);
     const key=Math.floor(x/32)*1024+Math.floor(z/32);
@@ -719,7 +722,7 @@ class Water extends Mesh {
   const hut=window.makeFrundenHut?.(THREE,scene,texture,skyMap,sun,clock,elevation);
   function clearance(x,z) {
     const terrainHeight=height(x,z);
-    let surface=hut?hut.clearance(x,z,terrainHeight):terrainHeight;
+    let surface=lakeLanding.clearance(x,z,hut?hut.clearance(x,z,terrainHeight):terrainHeight);
     const col=Math.floor(x/32),row=Math.floor(z/32);
     for(let i=col-1;i<=col+1;i++)for(let j=row-1;j<=row+1;j++){
       const batch=treeCells.get(i*1024+j);
@@ -751,15 +754,16 @@ class Water extends Mesh {
     // Omit random talus examples there and on the exposed ice tongue.
     if((x>1244&&x<1320&&z>1880&&z<1960)||(x>1268&&x<1452&&z>1986&&z<2042)||
        (x>1315&&x<1675&&z>2195&&z<2370))return NaN;
-    return height(x,z);
+    return lakeLanding.managed(x,z)?NaN:height(x,z);
   };
-  return {landformMesh,strandMesh,strandSurvey,glacierMesh,frundenHut:hut,rockSurface,
+  lakeLanding.shadeGround();
+  return {lakeLanding,blockVegetationAt:lakeLanding.managed,landformMesh,strandMesh,strandSurvey,glacierMesh,frundenHut:hut,rockSurface,
     treeGrid:{cells:treeCells,size:32,cell:(x,z)=>Math.floor(x/32)*1024+Math.floor(z/32)},
     waterfalls,height,elevation,clearance,spawn,launches,trees,skyTexture:skyMap,sunMask:visibility,sunDirection:sun,waterLevel:0,lakeLevel:0,lakePolygon:shore,altitudeOffset:survey.heightOffset,
     bounds:{minX:-3700,maxX:3700,minZ:-3700,maxZ:3700},
-    landmarks:[{name:'Western gravel beach',x:-647,z:466},{name:'Lakeshore meadow',x:-688,z:497,discoveryRadius:42},{name:'Oeschinensee',x:30,z:260},{name:'Fründen Falls',x:472,z:922},
+    landmarks:[...lakeLanding.landmarks,{name:'Western gravel beach',x:-647,z:466},{name:'Lakeshore meadow',x:-688,z:497,discoveryRadius:42},{name:'Oeschinensee',x:30,z:260},{name:'Fründen Falls',x:472,z:922},
       {name:'Eastwall Cascade',x:947,z:641,approach:[985,700,841,539,24,0,18]},{name:'Fründenschnuer',x:978,z:264},{name:'Fründenhütte',x:1284,z:1918,approach:[1340,1876,1284,1918,69,0,12]},
       {name:'Fründen glacier tarns',x:1435,z:2028,approach:[1311,1929,1435,2028,28,0,16]},{name:'Blüemlisalp Ridge',x:3135,z:-380}],
-    update(dt,time){clock.value=time;lake.material.uniforms.time.value=time*.52;}
+    update(dt,time,player){clock.value=time;lakeLanding.update(time,player);lake.material.uniforms.time.value=time*.52;}
   };
 };

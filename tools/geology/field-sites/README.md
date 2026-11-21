@@ -111,3 +111,19 @@ The harbor study records modest circulation in the partly enclosed water. The mo
 The original procedural aircraft lives in `game/labrador-floatplane.js`. Its span, length and float spacing use Viking's published drawing of the radial DHC-3 Otter. The mooring is a plausible berth by the mapped south camp. The historical type, livery and operator references are in `game/labrador-credits.txt`. No aircraft registration is assigned. No private or historical photograph was copied into the game's assets.
 
 With NumPy and Pillow installed, run `python tools/geology/field-sites/paint_berte_otter.py game/labrador-otter-skin.webp` to rebuild the original paint, panel seams and worn aluminium. The bake uses the fixed seed and Pillow's bundled bitmap/vector font.
+
+### Oeschinensee western hotels and rowing shore
+
+Run `python tools/geology/field-sites/bake_oeschinen_landing.py --cache /path/to/cache --game game` with the scientific Python packages above plus scikit-image and requests. This rebuilds the roof image, settlement and low-stage shore imagery, licensed surface atlas, five federal LoD2 building shells, the 2 m shoreline profile, recorded terrace canopy centers and the eleven modeled berths. Geometry for the eaves, joinery, furniture, open skiffs and oars is authored in `game/swiss-lake-landing.js`. Roof, terrace and boat clearance use the same local coordinate system and datum as the water. Water is clipped inside each independently moving hull. The Swiss water-surface return locates the edge; the underwater continuation is inferred.
+
+Coordinates use LV95 E2622000/N1150000 and 1,574.9 m LN02 as the simulation origin. The 2004 SWISSIMAGE archive records boats in the exposed northern cove. Modern imagery shows a higher-water southern berth. The eleven hulls and fittings depict a plausible low-stage arrangement, with no claim about present fleet size. Original photographs, creators, licences, changes and direct links are in `game/credits.txt`. The surface atlas embeds its creators and CC BY-SA 4.0 terms in XMP. Each reference has different water, lighting and furnishing dates.
+
+| Cached input | SHA-256 |
+| --- | --- |
+| `swissbuildings3d_3_0_2021_1248-31_2056_5728.citygml.zip` | `3a73509badc65fbba702a9ff0ebfe6f5eea30d3a7b807c40c44210785a07a458` |
+| `swissalti3d_2025_2621-1149_2_2056_5728.tif` | `5cd69912f9f702ac8e8d2e8b5d373f49a566b8430797a002462dd74c7fc1a548` |
+| `west-hotel-fine.jpg` | `0646bca0af28933f87995f2295eda9e0f7fb9d70d02c53c00bad3d5c4e3e503b` |
+| `low-overview.jpg` | `d759230173dcafe1b53e550a9cb2078272f0d248e01a2b54ce279d04db87f5e3` |
+| `full-61888645.jpg` | `e4b9585e3971ef100c7513ca14a55636bae1b43c4b424ac65b6793f48e93bd1f` |
+| `full-60724717.jpg` | `2a35b93e8d8477043854d3ee21efa78b2d01a34131de333df663821e50456234` |
+| `full-120320903.jpg` | `15b03d747224775011db564d3648da936a695f5b16ba44fbd45e306716484f1c` |
