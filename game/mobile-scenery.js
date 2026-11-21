@@ -3,6 +3,9 @@
   if (!matchMedia('(pointer: coarse)').matches) return;
   const variants = new Set([
     'alaska-evening.jpg',
+    'moosehead-dawn-sky.webp',
+    'winnipesaukee-dusk-sky.webp',
+    'lofoten-dusk-sky.webp',
     'atlas-dixville-ranges.webp',
     'atlas-dixville-photo.webp',
     'atlas-dixville-detail.webp',

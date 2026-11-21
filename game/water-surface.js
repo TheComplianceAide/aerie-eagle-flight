@@ -16,11 +16,43 @@
         +gravityWave(p,vec2(.97,-.243),.77,.012,t,px,-.9-bend));
     }`;
 
+  // The low sun has different cloud cover and the water has a different
+  // wind fetch at each shore. Colors describe scattered light in deep water
+  // and the solar disc; the mirror pass supplies the clouds, trees and cliffs.
+  const lowSunWater={
+    moosehead:{body:0x3a3930,sun:0xffbf68,state:.53,wave:.67,skyExposure:1.55,glint:1.54},
+    winnipesaukee:{body:0x27364b,sun:0xffb8a9,state:.37,wave:.45,skyExposure:1.42,glint:.46},
+    lofoten:{body:0x393844,sun:0xf7b983,state:1.06,wave:1.19,skyExposure:1.14,glint:.67}
+  };
+
+  function lowSunReflection(mat,shader,light){
+    mat.uniforms.waterColor.value.setHex(light.body);
+    mat.uniforms.sunColor.value.setHex(light.sun);
+    mat.uniforms.seaState.value=light.state;
+    return shader
+      .replace('float fresnel=.0204+.9796*pow(1.-cosV,5.);',`
+        // Unpolarized Fresnel reflectance for air over fresh or salt water.
+        float cosT=sqrt(1.-.5625*(1.-cosV*cosV));
+        float rs=(cosV-1.333*cosT)/(cosV+1.333*cosT);
+        float rp=(1.333*cosV-cosT)/(1.333*cosV+cosT);
+        float fresnel=.5*(rs*rs+rp*rp);
+      `)
+      .replace('vec3 sunlight=vec3(1.,.77,.47)*spec', 'vec3 sunlight=sunColor*'+light.glint.toFixed(2)+'*spec')
+      .replace('vec3 skyVeil=vec3(.41,.53,.64);',`
+        // Restore the brighter incident sky compressed into the photographic
+        // panorama. Keep the weaker return from wooded points and cliff faces.
+        float brightness=dot(reflectLight,vec3(.2126,.7152,.0722));
+        reflectLight*=1.+${light.skyExposure.toFixed(2)}*smoothstep(.035,.66,brightness);
+        vec3 skyVeil=texture2D(mirrorSampler,clamp(mirrorUV,.002,.998),roughLod+2.4).rgb;
+      `);
+  }
+
   function lakes(scene,region){
     scene.traverse(mesh=>{
       if(!mesh.isWater)return;
       const mat=mesh.material,atlas=!!mat.uniforms.shoreField;
-      const energy=({dixville:.52,lofoten:1.65,milford:1.25,labrador:1.10,moosehead:1.05,alaska:.88,swiss:.58,crater:.85})[region]||.92;
+      const light=lowSunWater[region];
+      const energy=light?.wave??({dixville:.52,milford:1.25,labrador:1.10,alaska:.88,swiss:.58,crater:.85})[region]??.92;
       let shader=waves+'\n'+mat.fragmentShader;
       if(atlas&&region==='surry'){
         // The sheltered dam pool is glassy between small moving cat's paws.
@@ -52,7 +84,7 @@
             vec2 screenSlope=(viewMatrix*vec4(surfaceNormal.x,0.,surfaceNormal.z,0.)).xy;
             vec2 warp=screenSlope*distortionScale*(.063+.49/max(5.,distance));`);
       }
-      mat.fragmentShader=shader;mat.needsUpdate=true;
+      mat.fragmentShader=atlas&&light?lowSunReflection(mat,shader,light):shader;mat.needsUpdate=true;
     });
   }
 

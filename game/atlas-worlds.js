@@ -551,16 +551,27 @@ class Water extends Mesh {
   }
   const loader=new THREE.TextureLoader();
   function texture(file,repeat=false){const tex=loader.load(file);tex.anisotropy=12;if(repeat)tex.wrapS=tex.wrapT=THREE.RepeatWrapping;return tex;}
-  const lightAngles={moosehead:[-84,15.5],winnipesaukee:[-112,4.2],surry:[167,19],yosemite:[157,12.4],crater:[-70,8],lofoten:[-115,4.3],milford:[-71,8]};
+  // The solar bearing also locates the illuminated gap in each panorama.
+  // Scene-light colors are sRGB. The terrain irradiances below are linear RGB.
+  const twilight={
+    moosehead:{sky:'moosehead-dawn',fog:0xbd927a,sun:0xffbf79,power:1.88,skyFill:0xe7cbcf,ground:0x645049,
+      diffuse:[.43,.41,.49],beam:[1.48,.87,.43]},
+    winnipesaukee:{sky:'winnipesaukee-dusk',fog:0x807fba,sun:0xffaaa0,power:1.28,skyFill:0xb8c9ef,ground:0x494951,
+      diffuse:[.35,.43,.65],beam:[1.26,.72,.69]},
+    lofoten:{sky:'lofoten-dusk',fog:0x99858d,sun:0xffb680,power:1.06,skyFill:0xbdafc9,ground:0x574d50,
+      diffuse:[.34,.34,.46],beam:[1.08,.68,.49]}
+  }[region];
+  const lightAngles={moosehead:[-84,5.5],winnipesaukee:[-112,4.2],surry:[167,19],yosemite:[157,12.4],crater:[-70,8],lofoten:[-115,4.3],milford:[-71,8]};
   const [azimuth,altitude]=(settings.lightAngles||lightAngles[region]).map(THREE.MathUtils.degToRad);
   const sun=new THREE.Vector3(Math.cos(azimuth)*Math.cos(altitude),Math.sin(altitude),Math.sin(azimuth)*Math.cos(altitude));
-  const skyMap=texture(settings.skyMap||'atlas-'+region+'-sky.webp');
+  const skyMap=texture(twilight?twilight.sky+'-sky.webp':settings.skyMap||'atlas-'+region+'-sky.webp');
   skyMap.colorSpace=THREE.SRGBColorSpace;skyMap.wrapS=THREE.RepeatWrapping;
   skyMap.minFilter=THREE.LinearFilter;skyMap.generateMipmaps=false;
-  const fog=dixville?0xc5b7b6:region==='milford'?0xb2b9b9:0xb6bfc8;
+  const fog=twilight?.fog??(dixville?0xc5b7b6:region==='milford'?0xb2b9b9:0xb6bfc8);
   scene.fog=new THREE.FogExp2(fog,region==='milford'?.000064:.000042);
-  const sunlight=new THREE.DirectionalLight(dixville?0xffc493:0xffdcad,2.1);
-  sunlight.position.copy(sun).multiplyScalar(1000);scene.add(sunlight,new THREE.HemisphereLight(0xdde7fa,0x756757,1.39));
+  const sunlight=new THREE.DirectionalLight(twilight?.sun??(dixville?0xffc493:0xffdcad),twilight?.power??2.1);
+  sunlight.position.copy(sun).multiplyScalar(1000);
+  scene.add(sunlight,new THREE.HemisphereLight(twilight?.skyFill??0xdde7fa,twilight?.ground??0x756757,1.39));
   const sky=new THREE.Mesh(new THREE.SphereGeometry(1,32,18),new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,uniforms:{map:{value:skyMap}},
     vertexShader:'varying vec3 ray;void main(){ray=position;vec4 clip=projectionMatrix*vec4(mat3(viewMatrix)*position,1.);gl_Position=clip.xyww;}',
     fragmentShader:`varying vec3 ray;uniform sampler2D map;void main(){vec3 d=normalize(ray);
@@ -656,8 +667,8 @@ class Water extends Mesh {
         c=mix(c,vec3(lum(c)),green*(.12+.22*arctic));
         c*=vec3(1.025,.999,.965);
         float skyView=occ.g,relief=(occ.b-.5)*(1.-.68*veg);
-        vec3 ambient=vec3(.51,.61,.76)*(.66+.34*max(normal.y,0.))*(.69+.31*skyView);
-        vec3 direct=vec3(1.25,.98,.69)*(.14+1.02*incidence)*sunlit;
+        vec3 ambient=vec3(${twilight?twilight.diffuse.join(','):'.51,.61,.76'})*(.66+.34*max(normal.y,0.))*(.69+.31*skyView);
+        vec3 direct=vec3(${twilight?twilight.beam.join(','):'1.25,.98,.69'})*(.14+1.02*incidence)*sunlit;
         ambient*=mix(vec3(1.),vec3(.74,.87,1.02),desert*(1.-.63*skyView));
         c=pow(max(c,vec3(0.)),vec3(2.2))*(ambient+direct)*(1.+(.32+.42*desert)*relief);
         /* canopy transmission */
@@ -932,7 +943,7 @@ class Water extends Mesh {
       .replace('/* canopy transmission */',`
         // Sunlit edges retain warmth while overhanging facets receive blue sky
         // and lake fill. This follows the measured plus reconstructed 3D normal.
-        vec3 rockAmbient=vec3(.50,.577,.665)*(.56+.32*exposure+.19*max(rockGeom.y,0.));
+        vec3 rockAmbient=vec3(.44,.43,.52)*(.56+.32*exposure+.19*max(rockGeom.y,0.));
         // A horizontal map's shadow cannot represent different altitudes on
         // a nearly vertical wall. Reconstruct the slowly changing sky opening
         // across the two source meshes, retaining local occlusion in the joints.
@@ -940,7 +951,7 @@ class Water extends Mesh {
         float wallLight=mix(sunlit,rimSun,clamp(.91*cliffRim+.52*brokenFace,0.,.96));
         float wallIncidence=mix(incidence,max(0.,dot(weatheredNormal,sun)),.61*cliffRim);
         rockAmbient+=brokenFace*vec3(.065,.062,.055);
-        vec3 rockDirect=vec3(1.22,.982,.70)*(.08+1.19*wallIncidence)*wallLight;
+        vec3 rockDirect=vec3(1.43,.85,.43)*(.08+1.19*wallIncidence)*wallLight;
         vec3 rockLit=pow(baseRhyolite,vec3(2.2))*(rockAmbient+rockDirect);
         c=mix(c,rockLit,escarpment*.95);
         /* canopy transmission */`)
@@ -1584,7 +1595,7 @@ class Water extends Mesh {
   }
   const world={region,treeGrid:{cells,size:50,cell},waterfalls,height,elevation,clearance,spawn,launches,landmarks,groundCover,blockVegetationAt,coverHalf:h,cityTerrainMaterial:surry?terrain:null,
     bounds:{minX:-(settings.flightHalf||h)+90,maxX:(settings.flightHalf||h)-90+(region==='crater'?520:0),minZ:-(settings.flightHalf||h)+90,maxZ:(settings.flightHalf||h)-90},waterLevel:settings.water,lakeLevel:settings.water,
-    skyTexture:skyMap,sunDirection:sun,sunMask,trees,firTrees,forestLightSpan:2*h,longForest:newEngland||region==='yosemite'||region==='labrador',useFirForest:firTrees.length>0,altitudeOffset:0,
+    skyTexture:skyMap,cloudDensityMap:twilight&&twilight.sky+'-cloud.webp',sunDirection:sun,sunMask,trees,firTrees,forestLightSpan:2*h,longForest:newEngland||region==='yosemite'||region==='labrador',useFirForest:firTrees.length>0,altitudeOffset:0,
     update(dt,t,player){clock.value=t;updateTable(player);shoreDetail?.update(player);bankGrowth?.update(player);updateUplandWoods?.(player);updateWeather?.(t,player,world.windField);rainTrace?.(t,player,world.windField);updateHardwoods?.(player);if(water)water.material.uniforms.time.value=t*.65;}};
   if(!survey.shore?.length&&shoreDetail)world.fieldBankAt=shoreDetail.closestBank;
   if(dam)world.riverSurfaceAt=dam.riverHeight;
