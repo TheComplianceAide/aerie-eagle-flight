@@ -183,7 +183,7 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
   let lowL = 0, lowR = 0, lowN = 1, fastL = 0, fastR = 0, fastN = 1, turbulence = 0, rouseT = -1, rouseAt = rand(30, 70);
   // Perched behaviour: peering (head bobs that give motion parallax) and a
   // tail wag after a rouse.
-  let peerT = -1, peerAt = rand(8, 20), peerAxis = 0, wagT = -1, perchedFor = 0;
+  let peerT = -1, peerAt = rand(8, 20), peerAxis = 0, wagT = -1, perchedFor = 0, settleWagAt = -1;
   // A quick head shake, and bouts of preening the breast feathers.
   let shakeT = -1, shakeAt = rand(20, 45), preenT = -1, preenAt = rand(40, 80), preenDur = 2.5, preenSide = 1;
   let prevHeadQ = new THREE.Quaternion(), haveHead = false;
@@ -233,7 +233,7 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
     blinkAt = time + rand(1.5, 4); eyes.forEach(e => { e.active = false; e.membrane = 0; });
     lidBlinkAt = time + rand(20, 50); lidT = -1; saccadeCooldown = 0; drowsy = 0;
     rouseAt = time + rand(30, 70); peerAt = time + rand(8, 20); shakeAt = time + rand(20, 45); preenAt = time + rand(40, 80);
-    rouseT = peerT = wagT = shakeT = preenT = -1; perchedFor = 0;
+    rouseT = peerT = wagT = shakeT = preenT = -1; perchedFor = 0; settleWagAt = -1;
     scan.t = -1; scan.next = time + rand(1, 3); scan.gain = 0; scan.quiet = 0; scan.yaw = scan.pitch = 0;
   }
 
@@ -306,7 +306,12 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
     chest.rotation.x += clamp(pitchJ, -.045, .045) * tune.body;
     chest.rotation.z += clamp(rollJ, -.07, .07) * tune.body;
     // Breathing when perched (about 20 per minute) and an occasional rouse.
+    const justLanded = perched && perchedFor === 0 && !pose.reset;
     perchedFor = perched ? perchedFor + step : 0;
+    // Settling in after a landing: a tail wag as the wings close, and often
+    // a rouse a few seconds later.
+    if (justLanded) { settleWagAt = time + rand(.9, 1.6); if (Math.random() < .55) rouseAt = Math.min(rouseAt, time + rand(3.5, 7)); }
+    if (perched && settleWagAt > 0 && time >= settleWagAt) { wagT = 0; settleWagAt = -1; }
     if (perched) {
       chest.position.y += .0016 * Math.sin(time * 2 * Math.PI * .33);
       if (time > rouseAt && rouseT < 0) { rouseT = 0; rouseAt = time + rand(35, 80); }
@@ -412,7 +417,13 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
     // continuously against the air, more so in rough air and between beats.
     const ctl = stepNoise(controlNoise, step);
     const activity = (.25 + 1.2 * turbulence) * freeFlight * (1 - .7 * (pose.effort ?? 0));
-    for (const {side, ray} of tailRays) ray.rotation.y += side * (.06 * clamp(g, 0, 2) * freeFlight + .03 * ctl.y * activity);
+    // Slow soaring spreads the tail and fingers the primaries apart for
+    // lift; a fast glide narrows the tail and closes the slots.
+    const slowFlight = 1 - smooth(9.5, 16.5, V), fastFlight = smooth(24, 38, V),   // neutral at the 17.5 m/s cruise
+       open = (1 - (pose.tuck ?? 0)) * freeFlight;
+    const tailSpeed = (.10 * slowFlight - .05 * fastFlight) * open, fingerSpeed = (.13 * slowFlight - .05 * fastFlight) * open;
+    for (const {side, ray} of tailRays) ray.rotation.y += side * (.06 * clamp(g, 0, 2) * freeFlight + .03 * ctl.y * activity + tailSpeed);
+    for (const w of wings) w.fan.forEach((bone, i) => { bone.rotation.y += w.sign * (.5 - i / (w.fan.length - 1)) * fingerSpeed; });
     rudder.rotation.y += -.25 * slip * freeFlight;
     rudder.rotation.z += (.035 * ctl.x * activity - .6 * clamp(rollJ, -.07, .07) * freeFlight) * tune.posture;
     for (const w of wings) w.wrist.rotation.y += .025 * ctl.z * activity;
