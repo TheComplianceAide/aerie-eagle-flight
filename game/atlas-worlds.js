@@ -1679,7 +1679,7 @@ class Water extends Mesh {
   const roofHeight=surry?window.makeKeeneCity(THREE,scene,{survey,height:elevation,sunMask:terrainLight}):
     region==='lofoten'?window.addHamnoyHarbor(THREE,scene,elevation,settings.water):
     settlement?window.addLakesideBuildings(THREE,scene,settlement,elevation,settings.water):null;
-  const waterfrontHeight=waterfront?.build(elevation,settings.water,clock);
+  const waterfrontHeight=waterfront?.build(elevation,settings.water,clock,terrain,shoreFloor?.ground||elevation);
   const cabin=survey.cabin?window.addLabradorCabin(THREE,scene,{elevation,height:elevation,surveyGround:!!campSurface,measuredTrees:survey.berteCrowns,waterLevel:settings.water,lakeLevel:settings.water},survey.cabin):null;
   const resort=dixville?window.addDixvilleLandmarks(THREE,scene,survey.sites,elevation):null;
   const inLake=makeAtlasWorld.indexLakeOutline(survey.shore,survey.shoreHoles);
@@ -1845,6 +1845,7 @@ class Water extends Mesh {
     update(dt,t,player){clock.value=t;updateDistantTerrain(player);updateTable(player);shoreDetail?.update(player);bankGrowth?.update(player);updateUplandWoods?.(player);updateWeather?.(t,player,world.windField);rainTrace?.(t,player,world.windField);updateHardwoods?.(player);if(water)water.material.uniforms.time.value=t*.65;}};
   if(!survey.shore?.length&&shoreDetail)world.fieldBankAt=shoreDetail.closestBank;
   if(dam){world.riverSurfaceAt=dam.riverHeight;world.surryArmorPerch=dam.armorPerch;}
+  if(waterfront)world.blocksInfillTree=waterfront.blocksInfillTree;
   world.geologyGround=shoreFloor?(x,z)=>Math.max(shoreFloor.ground(x,z),shoreFloor(x,z)):null;
   const updateUplandWoods=uplands?.woods(THREE,scene,world,clock,localDEM,bankSurveys);
   if(bankGrowth)world.shoreThickets=bankGrowth;

@@ -29,6 +29,16 @@ window.makeWinnipesaukeeWaterfront=function(T,scene,texture){
     return Math.max(ground,stationGrade-.55*outside);
   }
 
+  // The registered aerial resolves the open boarding apron, public parking,
+  // railway and dock. The coarser land-cover cells sometimes call them forest.
+  // Apply the exclusion only to supplementary habitat trees, retaining each
+  // tree with a recorded crown point on the boardwalk margins.
+  const developedFrontage=decode('APD/AAAAAAAAAAAAAPj//wAAAAAAAAAAAAD///8AAAAAAAAAAADg////AAAAAAAAAAAA/v//////HwAAAAAAwP///////wEAAAAAAPj//////x8AAAAAAAD///////8BAAAAAADw//////8fAAAAAAAA/v//////AwAAAAAA4P//////PwAAAAAAAPz//////wMAAAAAAMD//////z8AAAAAAAD4//////8DAAAAAAAA/////38AAAAAAAAA8P///w8AAAAAAAAAAP7///8AAAAAAAAAAOD///8HAAAAAAAAAAD///9/AAAAAAAAAAD4////BwAAAAAAAADg////fwAAAAAAAACA/////wMAAAAAAAAA/uD//z8AAAAAAAAA+AP+//8AAAAAAAAA8AfA/////wAAAAAAwB8A/P///x8AAAAAAH4AgP////8DAAAAAOAAAPD/////AAAAAAAAAAD/////HwAAAAAAAADg/////wMAAAAAAAAA/v///z8AAAAAAAAAwP////8DAAAAAAAAAPz///8/AAAAAAAAAID/////AwAAAAAAAADw////fwAAAAAAAAAA/////wcAAAAAAAAA4P///38AAAAAAAAAAPz///8HAAAAAAAAAMD///8fAAAAAAAAAAD///9/AAAAAAAAAAD8////AQAAAAAAAADw////BwAAAAAAAADAD/7/HwAAAAAAAACAH+D//wMAAAAAAAAAfwD8/38AAAAAAAAA/gHA//8PAAAAAAAA/AEA+P//AQAAAAAA/AMAAP//PwAAAAAA/gcAAPD//w8AAAAA4AcAAAD+//8BAAAAAAAAAADg//8/IAAAAAAAAAAA/P//xwMAAAAAAAAAwP///38AAAAAAAAAAPj///8HAAAAAAAAAID///9/AAAAAAAAAADw////BwAAAAAAAAAA/v///wAAAAAAAAAA4P///w8AAAAAAAAAAPz//z8AAAAAAAAAAMD///8AAAAAAAAAAAD4//8DAAAAAAAAAACA//8fAAAAAAAAAAAA+P9/AAAAAAAAAAAAAP//AQAAAAAAAAAAAPD/DwAAAAAAAAAAAAD8/wAAAAAAAAAAAADA/x8AAAAAAAAAAAAA+P8BAAAAAAAAAAAAgP8/AAAAAAAAAAAAAPD/AwAAAAAAAAAAAAD/fwAAAAAAAAAAAADg/wcAAAAAAAAAAAAA/P8AAAAAAAAAAAAAwP8PAAAAAAAAAAAAAPj/AQAAAAAAAAAAAID/PwAAAAAAAAAAAADw/wMAAAAAAAAAAAAA/n8AAAAAAAAAAAAA4P8HAAAAAAAAAAAAAPz/AAAAAAAAAAAAAMD/DwAAAAAAAAAAAAD+/wEAAAAAAAAAAADA/x8AAAAAAAAAAAAA/P8DAAAAAAAAAAAAgP9/AAAAAAAAAAAAAPj/BwAAAAAAAAAAAID8/wAAAAAAAAAAAADA/w8AAAAAAAAAAAAA+P8BAAAAAAAAAAAAAP8fAAAAAAAAAAAAAPD/AwAAAAAAAAAAAAD+fwAAAAAAAAAAAADg/wcAAAAAAAAAAAAA/P8AAAAAAAAAAAAAgP8PAAAAAAAAAAAAAPj/AQAAAAAAAAAAAAD/HwAAAAAAAAAAAADg/wMAAAAAAAAAAAAA/j8AAAAAAAAAAAAAwP8HAAAAAAAAAHAAAP5/AAAAAAAAAIAfAMD/DwAAAAAAAAD4BwD4/wAAAAAAAACAfwCA/w8AAAAAAAAA+H8A8P8AAAAAAAAAwP8P4P8fAAAAAAAAAPz/gO//AQAgAAAAAMD/Hxj+HwAAHgAAAAD8/wGA/wEA4A8AAADA/38A+A8AAPAHAAAA/P8HgP8AAADwAwAA4P9/APAJBgAA+AEAAP7/BwAf4AEAAPwAAOD/fwDwAx8AAAB+AAD+/wcAPvADAAAAPwDg/38A4IM/AAAAgB8A/P8HAH74BwAAAMAfgP9/AMCH/z8AAADgD/j/AwD88P8DAAAA4A/+PwDAD/8/AAAAAPAH/gMA+PD/AwAAAAD8A/8AgA//PwAAAAAA/oP/APjw/wMAAAAAAP/BfwAffj8AAAAAAID/4Afw4ecDAAAAAADAf3AAH34YAAAAAAAA4D9w8OEPAAAAAAAAAOAf7x/8AAAAAAAAAADwH//DBwAAAAAAAAAA+L8/fAAAAAAAAAAAAPzvwwcAAAAAAAAAAAD8dxgAAAAAAAAAAAAA/w0AAAAAAAAAAAAAgP8BAAAAAAAAAAAAAPg/AAAAAAAAAAAAAMD/DwAAAAAAAAAAAAD88wMAAAAAAAAAAADgP/wBAAAAAAAAAAAA/gf+AAAAAAAAAAAA4H8APwAAAAAAAAAAAP4HwAMAAAAAAAAAAOB/ACAAAAAAAAAAAAD+BwAAAAAAAAAAAADgfwAAAAAAAAAAAAAA/gcAAAAAAAAAAAAA4H8AAAAAAAAAAAAAAP4HAAAAAAAAAAAAAOB/AAAAAAAAAAAAAAD+BwAAAAAAAAAAAADgfwAAAAAAAAAAAAAA/gcAAAAAAAAAAAAA8H8AAAAAAAAAAAAAAP8HAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA');
+  function blocksInfillTree(x,z){
+    const i=Math.floor((x+12650)/4),j=Math.floor((z+3570)/4);
+    if(i<0||i>=100||j<0||j>=155)return false;
+    const k=100*j+i;return !!(developedFrontage[k>>3]&(1<<(k&7)));
+  }
   function createTrees(plant,elevation,waterLevel){
     for(const tile of tiles){
       const raw=decode(tile.crowns),view=new DataView(raw.buffer);
@@ -349,7 +359,7 @@ window.makeWinnipesaukeeWaterfront=function(T,scene,texture){
 
   // Cloth and lettering for the restored Alton Bay signal mast. The three
   // hoists share one draw; pinned edges also stay pinned in the water mirror.
-  function addAltonRig(root,f,clock,deckY,mastU,mastV,mastHeight){
+  function waterfrontFlags(root,f,clock,deckY,mastU,mastV,mastHeight,signalYard){
     const canvas=document.createElement('canvas');canvas.width=512;canvas.height=256;
     const g=canvas.getContext('2d');
     g.fillStyle='#e9e8df';g.fillRect(0,0,512,256);
@@ -411,18 +421,20 @@ window.makeWinnipesaukeeWaterfront=function(T,scene,texture){
         }
     }
     flag(mastU,mastV,mastHeight-.08,1.59,.84,[1,1,253,127],.23,.0);
-    for(const [offset,rect,phase] of [[-.83,[1,132,253,187],1.4],[.83,[258,1,510,127],2.7]]){
-      flag(mastU+offset,mastV,mastHeight-1.81,1.01,.6,rect,.26,phase);
-    }
-    // The lake-facing name board sits under the eaves.
-    const b=f.width*.447,center=0;const sign=[[center-.64,deckY+2.32,b+.11],[center+.64,deckY+2.32,b+.11],
-      [center+.64,deckY+2.04,b+.11],[center-.64,deckY+2.04,b+.11]];
-    for(const i of [0,1,2,0,2,3]){
-      vertex(sign[i],[[258,133],[510,133],[510,187],[258,187]][i],[0,0,0]);
+    if(signalYard){
+      for(const [offset,rect,phase] of [[-.83,[1,132,253,187],1.4],[.83,[258,1,510,127],2.7]]){
+        flag(mastU+offset,mastV,mastHeight-1.81,1.01,.6,rect,.26,phase);
+      }
+      // The lake-facing name board sits under the eaves.
+      const b=f.width*.447,center=0;const sign=[[center-.64,deckY+2.32,b+.11],[center+.64,deckY+2.32,b+.11],
+        [center+.64,deckY+2.04,b+.11],[center-.64,deckY+2.04,b+.11]];
+      for(const i of [0,1,2,0,2,3]){
+        vertex(sign[i],[[258,133],[510,133],[510,187],[258,187]][i],[0,0,0]);
+      }
     }
     const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(pos,3));
     geo.setAttribute('uv',new T.Float32BufferAttribute(uv,2));geo.setAttribute('clothMotion',new T.Float32BufferAttribute(motion,3));geo.computeVertexNormals();
-    const mesh=new T.Mesh(geo,mat);mesh.position.set(f.x,deckY,f.z);mesh.name='Alton Bay signal flags and name board';root.add(mesh);
+    const mesh=new T.Mesh(geo,mat);mesh.position.set(f.x,deckY,f.z);mesh.name=signalYard?'Alton Bay signal flags and name board':'Weirs Beach pavilion flag';root.add(mesh);
   }
 
   function campDocks(parent,waterLevel,deck,elevation){
@@ -494,7 +506,208 @@ window.makeWinnipesaukeeWaterfront=function(T,scene,texture){
     };
   }
 
-  function build(elevation,waterLevel,clock){
+  function paintLakesideStreet(parent,terrain,ground){
+    if(!terrain)return;
+    const left=-12650,top=-3570,width=400,depth=620,cell=12,cols=34,rows=52;
+    const occupied=decode('/gAAAPgDAADAHwAAAH8AAAD4AwAA4A8AAOB/AADA/wMAAP8PAAB8fwAAcPgBAADgDwAAgH8AAMD/AQDg/w8AwP8/AAD//AEAfOAHAACAPwAAAPwBAADwBwAAgD8AAAD+AAAA8AcAAIAfAAAA/gAAAPAHAADAHwAAAP4AAAD4AwAAwB8AAAB+AADg+wMAgM8PMAB+f8AH+P8B/+D/f/yff//h///5P/j/7/8A////A+D//w8A/P8/AID/PwAA8P8AAAD+DwAA+D8AAOD/AACAnwMAAH4AAAD4AQAA4Ac=');
+    // Copy the real drawn ground triangles under the surveyed pavement. A
+    // separate flat decal would either float above the beach or clip into
+    // the uphill sidewalk as the bird comes over the railroad bridge.
+    const positions=[],normals=[],uv=[],faces=[];
+    for(const base of scene.children){
+      if(!base.isMesh||base.material!==terrain||!base.geometry.index)continue;
+      const g=base.geometry;g.computeBoundingBox();const bounds=g.boundingBox;
+      if(bounds.max.x<left||bounds.min.x>left+width||bounds.max.z<top||bounds.min.z>top+depth)continue;
+      const p=g.attributes.position,n=g.attributes.normal,idx=g.index,shared=new Map();
+      function vertex(k){
+        let dest=shared.get(k);if(dest!==undefined)return dest;
+        const x=p.getX(k),z=p.getZ(k);dest=positions.length/3;shared.set(k,dest);
+        positions.push(x,p.getY(k),z);normals.push(n.getX(k),n.getY(k),n.getZ(k));
+        uv.push((x-left)/width,1-(z-top)/depth);return dest;
+      }
+      for(let k=0;k<idx.count;k+=3){
+        const a=idx.getX(k),b=idx.getX(k+1),c=idx.getX(k+2);
+        const x=(p.getX(a)+p.getX(b)+p.getX(c))/3,z=(p.getZ(a)+p.getZ(b)+p.getZ(c))/3;
+        const i=Math.floor((x-left)/cell),j=Math.floor((z-top)/cell),id=i+j*cols;
+        if(i<0||j<0||i>=cols||j>=rows||!(occupied[id>>3]&(1<<(id&7))))continue;
+        faces.push(vertex(a),vertex(b),vertex(c));
+      }
+    }
+    if(!faces.length)return;
+    const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(positions,3));
+    geo.setAttribute('normal',new T.Float32BufferAttribute(normals,3));geo.setAttribute('uv',new T.Float32BufferAttribute(uv,2));
+    geo.setIndex(faces);geo.computeBoundingSphere();
+    const markings=texture('winnipesaukee-lakeside-pavement.webp'),aggregate=texture('keene-asphalt.webp',true);
+    markings.colorSpace=T.SRGBColorSpace;
+    const finish=new T.MeshStandardMaterial({map:markings,roughness:.94,alphaTest:.12,polygonOffset:true,
+      polygonOffsetFactor:-1.25,polygonOffsetUnits:-2.});
+    finish.onBeforeCompile=program=>{
+      program.uniforms.roadGrain={value:aggregate};
+      program.vertexShader='varying vec2 pavementMetres;\n'+program.vertexShader.replace('#include <project_vertex>',
+        '#include <project_vertex>\ngl_Position=projectionMatrix*modelViewMatrix*vec4(transformed,1.);').replace('#include <begin_vertex>',
+        '#include <begin_vertex>\npavementMetres=position.xz;');
+      program.fragmentShader='uniform sampler2D roadGrain;varying vec2 pavementMetres;\n'+program.fragmentShader.replace('#include <map_fragment>',
+        '#include <map_fragment>\nvec2 grainUv=mat2(.77,.34,-.34,.77)*pavementMetres;float roadTexture=texture2D(roadGrain,grainUv).r;float broad=texture2D(roadGrain,pavementMetres*.017).r;float brick=smoothstep(1.50,1.90,diffuseColor.r/max(.007,diffuseColor.g));vec2 block=mat2(.85,.53,-.53,.85)*pavementMetres/vec2(.20,.091);block.x+=.5*mod(floor(block.y),2.);vec2 joint=min(fract(block),1.-fract(block));float mortar=1.-smoothstep(.024,.069,min(joint.x,joint.y));float nearPaver=1.-smoothstep(15.,46.,distance(cameraPosition.xz,pavementMetres));diffuseColor.rgb*=.72+.85*roadTexture+.17*broad;diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*.66,brick*mortar*nearPaver);');
+    };
+    const surface=new T.Mesh(geo,finish);surface.position.y=.049;surface.name='Weirs Beach · surveyed Lakeside Avenue and Route 3 paving';parent.add(surface);
+    // Narrow stripes retain their surveyed width when flying at curb height.
+    // A single batch conforms to the exact support triangles drawn below.
+    const markingPos=[],markingColor=[],tri=(p,q,r,color)=>{
+      for(const point of [p,q,r]){markingPos.push(...point);markingColor.push(color.r,color.g,color.b);}
+    };
+    const ivory=new T.Color(0xd7d7c9),ochre=new T.Color(0xc1a268),curb=new T.Color(0xaaab9f),curbSide=new T.Color(0x96988d);
+    function ribbon(x0,z0,x1,z1,width,color,offset=0,rise=0){
+      const dx=x1-x0,dz=z1-z0,length=Math.hypot(dx,dz);
+      if(length<.025)return;
+      const nx=-dz/length,nz=dx/length,steps=Math.max(1,Math.ceil(length/1.1));
+      let prev;
+      for(let i=0;i<=steps;i++){
+        const s=i/steps,x=x0+dx*s+offset*nx,z=z0+dz*s+offset*nz;
+        const pair=[-1,1].map(k=>{
+          const sx=x+k*.5*width*nx,sz=z+k*.5*width*nz;return [sx,ground(sx,sz)+.058+rise,sz];});
+        if(prev){
+          tri(prev[0],prev[1],pair[1],color);tri(prev[0],pair[1],pair[0],color);
+          if(rise)for(const k of [0,1]){
+            const a=prev[k],b=pair[k],lo=[a[0],a[1]-rise-.03,a[2]],lb=[b[0],b[1]-rise-.03,b[2]];
+            tri(a,b,lb,curbSide);tri(a,lb,lo,curbSide);
+          }
+        }
+        prev=pair;
+      }
+    }
+    const stalls=new Int16Array(decode('lAIQAoYCKAJTA2cDQQOHA2UDgANRA6MDdAOeA2IDvgOFA7kDcwPaA5UD0gODA/MDpgPuA5QDDgS4AwcEpQMqBMcDIgS0A0ME2QM8BMUDXgTqA1cE1gN6BPoDcATlA5UECwSMBPUDswQeBKYEBgTRBC0EwQQUBO0EPgTdBCQECwVOBPYEMwQmBWEEEAVEBEQFcQQsBVQEYAWCBEQFZwR0BUUFjQYtBbkGXgWxBkQF4QZvBcoGUwX8Bn8F5gZjBRgHkAX/BnMFMwegBRoHgwVPB7AFNgeTBWoHwQVPB6IFhgfRBWsHsgWhB+MFhwfDBb8H8gWiB9IF2wcEBsMH6wXuBxEG3Af2BQwIIAb3BwcGJQgwBhMIGAY8CD8GLggfBmcITwZMCDkGcwhfBmgISgaNCG8GgwhaBqgIfgafCGsGwgiOBroIfAbbCJ8G2AiOBvcIrwb0CKAGDgm/Bg8JrgYuCUwHBwo2By4KVgctCjwHWwp0B0oKXwdvCoQHaApxB4sKjweUCoMHqQqhB58KhgfPCrAHvQqfB9wKyAfvCrsHBQvQBxMLwQctC+oHKAveBz4L9Ac8C+kHUAv5B3cL7geKCxgIhAsFCKYLNAicCyYItAtKCL8LPQjUC1YI1wtECPgLbAj2C14IDgyYCEEMfwhsDKEIYgyPCIMM0QisDMQIxAzkCPYM0ggUDUcJbw08CYMNVAmGDUcJnA1jCaENVwm3DbQJKA6nCT4OYAppD1IKgQ9yCn4PaAqPD1kCEQBKAisAegI8AG0CVACzAoQAowKgAAEDCAH1Ah4BGgM1AQkDUwFIA7MBOAPPAYcD8gFxAxkCVARcA0MEegNUBIMDRwSbA5IE4QOGBPcDvQT5A6MEJgQbBa4EAAXeBD0F1wQrBfgEWgUZBT8FSQVvBWkFYAWDBXgGKwdoBkgHBAcQCPEGMQgxB2IIIQd/CG8H5whhB/8Ijwf1CHsHFwk2CCAKHghMCjwISAosCGUKVghMCkQIbApdCIIKTQieCmwIngpdCLoKfgi3CmwI1QqNCNIKfAjxCp0I7gqMCAwLsgj6CpoIJQvDCA4LtQgoC9IIMQu6CFwL7Ah1C9sIkwsCCYEL9giWCxQJnwv8CMoLHQnHCwwJ5gs0CdgLHAkBDE0JFQw7CTYMZAkoDEsJVAxsCU8MWglvDH0JaAxpCYsMjgmEDHkJqQykCZIMiAnEDKsJwgyYCeIMvQnXDKcJ/gzPCe4MtwkZDd8JCQ3GCTUN7gklDdYJUA31CVAN5QlsDQ0KXA31CYcNHgp1DQQKow01CogNFQrBDT4Krw0kCtwNTgrIDTMK+A1bCugNQwoTDnIK9g1SCi8Oigo9DnIKaA6hCksOgQqEDq0Kcg6SCqIOtwqWDqEKvQ7QCqAOsArZDt8KvA6/CvQO7grXDs4KEA/7CvwO3wouDw4LEQ/uCkkPHQssD/0KZQ8rC0oPDAuADzcLbg8cC54P').buffer);
+    for(let i=0;i<stalls.length;i+=4)ribbon(left+stalls[i]/10,top+stalls[i+1]/10,left+stalls[i+2]/10,top+stalls[i+3]/10,.115,ivory);
+    // Roads use the centerline of the ortho. The double yellow belongs to
+    // Route 3; Lakeside Avenue's older narrow center stripe is faded.
+    function streetLine(points,width,color,offset=0,rise=0,scale=1/1.8,xbase=left,zbase=top){
+      for(let i=1;i<points.length;i++)ribbon(xbase+points[i-1][0]*scale,zbase+points[i-1][1]*scale,
+        xbase+points[i][0]*scale,zbase+points[i][1]*scale,width,color,offset,rise);
+    }
+    const regional=[[-2,777],[72,802],[154,828],[235,854],[311,876],[397,903],[462,924],[516,943],[561,958],[604,975],[659,997],[721,1022]];
+    for(const o of [-.13,.13])streetLine(regional,.13,ochre,o);
+    for(const group of [
+      [[71,0],[88,28],[109,63],[142,118]],[[157,145],[188,198],[213,243],[229,272]],
+      [[247,290],[270,331],[297,377],[326,430]],[[344,454],[369,499],[409,570],[443,628],[475,683],[505,735]],
+      [[515,757],[524,779],[536,815],[545,845],[553,874]]])streetLine(group,.118,ochre);
+    // The tapered median and the granite lip on the outer accessible ramp
+    // were reconstructed by Laconia in 2017. The crosswalks interrupt the
+    // curbs at each real cut rather than running across them as a wall.
+    const rc=96/900,rx=-12335-450*rc,rz=-3054-450*rc;
+    for(const poly of [
+      [[464,315],[474,353],[486,402],[492,427]],[[499,454],[506,477],[503,493],[495,507],[483,520],[467,527],[453,530],[441,526],[434,518],[432,502],[438,477],[447,444]],
+      [[450,425],[456,385],[464,315]],[[299,460],[339,443],[365,425],[376,414]],[[392,390],[404,362],[411,333],[410,303],[399,255],[382,193],[360,126],[339,74]]]){
+      streetLine(poly,.19,curb,0,.118,rc,rx,rz);
+    }
+    const paintGeometry=new T.BufferGeometry();paintGeometry.setAttribute('position',new T.Float32BufferAttribute(markingPos,3));
+    paintGeometry.setAttribute('color',new T.Float32BufferAttribute(markingColor,3));paintGeometry.computeVertexNormals();paintGeometry.computeBoundingSphere();
+    const streetPaint=new T.Mesh(paintGeometry,new T.MeshStandardMaterial({vertexColors:true,roughness:.94,side:T.DoubleSide,
+      polygonOffset:true,polygonOffsetFactor:-2.0,polygonOffsetUnits:-3.0}));
+    streetPaint.name='Weirs Beach · marked parking rows, center stripes and curb cuts';parent.add(streetPaint);
+  }
+
+  function addWeirsArrow(parent,elevation,clock){
+    // The 2015 FEMA lidar resolves the sign at 169.0 m NAVD88, above the
+    // 163.2 m median. The newer six-inch ortho registers its orientation.
+    const x=-12334.5,z=-3052.5,grade=elevation(x,z),unit=.01134;
+    const root=new T.Group();root.name='Weirs Beach · 1956 roadside arrow';
+    root.position.set(x,grade,z);root.rotation.y=-1.603;parent.add(root);
+    const board=new T.MeshStandardMaterial({color:0x7aa7a1,roughness:.62,metalness:.20});
+    const rim=new T.MeshStandardMaterial({color:0x9e3332,roughness:.50,metalness:.21});
+    const darkBlue=new T.MeshStandardMaterial({color:0x284452,roughness:.69,metalness:.30});
+    const concrete=new T.MeshStandardMaterial({color:0xa79e8a,roughness:.94});
+    const h=u=>(u-345)*unit,k=v=>5.8-(v-39)*unit;
+    function outline(raw,mat,depth,front){
+      const shape=new T.Shape();
+      for(const [op,...args] of raw){
+        const p=args.map((v,i)=>i%2?k(v):h(v));
+        shape[op](...p);
+      }
+      shape.closePath();
+      const geo=new T.ExtrudeGeometry(shape,{depth,bevelEnabled:true,bevelSegments:2,
+        steps:1,bevelSize:.014,bevelThickness:.016,curveSegments:16});
+      const mesh=new T.Mesh(geo,mat);mesh.position.z=front;root.add(mesh);return mesh;
+    }
+    function post(material,a,b,width,deep){
+      const p=new T.Vector3(...a),q=new T.Vector3(...b),axis=q.clone().sub(p);
+      const mesh=new T.Mesh(new T.BoxGeometry(width,axis.length(),deep),material);
+      mesh.position.copy(p).lerp(q,.5);mesh.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),axis.normalize());
+      root.add(mesh);
+    }
+    for(const [u,offset] of [[234,.15],[480,-.13]]){
+      const xx=h(u);
+      post(concrete,[xx-.05,-.09,0],[xx-.05,.19,0],.46,.51);
+      post(darkBlue,[xx-.05,.15,0],[xx+offset,2.48,0],.13,.18);
+    }
+    outline([['moveTo',179,161],['quadraticCurveTo',158,166,163,199],['lineTo',224,398],
+      ['quadraticCurveTo',226,403,239,403],['lineTo',484,403],['lineTo',502,180],
+      ['quadraticCurveTo',485,141,459,141],['lineTo',188,158]],board,.165,-.083);
+    const arrow=[['moveTo',206,91],['lineTo',306,39],['lineTo',299,80],
+      ['bezierCurveTo',388,80,439,93,472,123],['bezierCurveTo',550,186,558,291,487,361],
+      ['bezierCurveTo',456,391,424,402,390,402],['lineTo',206,402],['lineTo',206,360],['lineTo',383,360],
+      ['bezierCurveTo',423,360,447,342,467,316],['bezierCurveTo',508,262,501,190,448,148],
+      ['bezierCurveTo',418,122,375,119,297,119],['lineTo',297,162],['lineTo',206,91]];
+    outline(arrow,rim,.23,-.115);
+    // Each face can be read by its own lane. The metal arrow always points
+    // north along Lakeside Avenue. Only the reverse side's letters turn.
+    const canv=document.createElement('canvas');canv.width=768;canv.height=478;
+    const ctx=canv.getContext('2d');ctx.textAlign='center';ctx.textBaseline='middle';
+    for(const [line,y] of [['WEIRS',120],['BEACH',357]]){
+      ctx.font='bold 195px Georgia,"Times New Roman",serif';
+      ctx.lineJoin='round';ctx.lineWidth=13;ctx.strokeStyle='#b64431';ctx.strokeText(line,384,y,722);
+      ctx.fillStyle='#ffb649';ctx.fillText(line,384,y,722);
+      ctx.lineWidth=4.5;ctx.strokeStyle='#fff2ac';ctx.strokeText(line,384,y,720);
+    }
+    const nameMap=new T.CanvasTexture(canv);nameMap.colorSpace=T.SRGBColorSpace;nameMap.anisotropy=4;
+    const letters=new T.MeshStandardMaterial({map:nameMap,transparent:true,alphaTest:.23,
+      roughness:.56,emissive:0xffbf7c,emissiveIntensity:1.05,emissiveMap:nameMap});
+    const panel=new T.PlaneGeometry(2.75,1.80);
+    for(const side of [-1,1]){
+      const mesh=new T.Mesh(panel,letters);mesh.position.set(h(336),k(259),side*.127);
+      mesh.rotation.y=side===1?0:Math.PI;root.add(mesh);
+    }
+    // Three running rows in the red channel, then the triangular head. The
+    // documented sign has 696 lamps across its two faces in four chase phases.
+    const path=new T.CurvePath(),point=(u,v)=>new T.Vector2(u,v);
+    path.add(new T.LineCurve(point(214,381),point(383,381)));
+    path.add(new T.CubicBezierCurve(point(383,381),point(545,384),point(567,137),point(412,110)));
+    path.add(new T.CubicBezierCurve(point(412,110),point(382,104),point(337,99),point(295,100)));
+    const lamps=[],shaft=88;
+    for(let j=0;j<shaft;j++){
+      const t=j/(shaft-1),p=path.getPointAt(t),a=path.getTangentAt(t);
+      for(const o of [-9,0,9])lamps.push([p.x-a.y*o,p.y+a.x*o,j%4]);
+    }
+    for(let j=0;j<12;j++){
+      const u=219+j*6.0,half=6+j*3.35,count=j<6?j+1:13-j+5;
+      for(let i=0;i<count;i++)lamps.push([u,94-half+2*half*(i+.5)/count,(86+j)%4]);
+    }
+    const head=lamps.slice(shaft*3);
+    const each=lamps.slice(0,shaft*3).concat(Array.from({length:348-shaft*3},(_,i)=>head[Math.floor(i*head.length/(348-shaft*3))]));
+    const lampMat=new T.MeshStandardMaterial({color:0xffedd5,emissive:0xffb34c,emissiveIntensity:.9,roughness:.32});
+    lampMat.onBeforeCompile=program=>{
+      program.uniforms.arrowTime=clock;
+      program.vertexShader='attribute float arrowPhase;varying float litPhase;\n'+program.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nlitPhase=arrowPhase;');
+      program.fragmentShader='uniform float arrowTime;varying float litPhase;\n'+program.fragmentShader.replace('#include <emissivemap_fragment>',
+        '#include <emissivemap_fragment>\nfloat chase=fract(arrowTime*.76-litPhase*.25);totalEmissiveRadiance*=mix(.18,1.9,smoothstep(.02,.18,chase)*(1.-smoothstep(.67,.96,chase)));');
+    };
+    const bulbGeo=new T.SphereGeometry(.027,6,4),phases=new Float32Array(696),matrix=new T.Matrix4();
+    const bulbs=new T.InstancedMesh(bulbGeo,lampMat,696);
+    let i=0;for(const side of [-1,1])for(const [u,v,phase] of each){
+      matrix.makeTranslation(h(u),k(v),side*.136);bulbs.setMatrixAt(i,matrix);phases[i++]=phase;
+    }
+    bulbGeo.setAttribute('arrowPhase',new T.InstancedBufferAttribute(phases,1));bulbs.computeBoundingSphere();
+    bulbs.name='Weirs Beach arrow · incandescent chase';root.add(bulbs);
+    const ux=Math.cos(root.rotation.y),uz=-Math.sin(root.rotation.y);
+    return (px,pz)=>{
+      const dx=px-x,dz=pz-z,u=dx*ux+dz*uz,v=dz*ux-dx*uz;
+      if(Math.abs(v)>.18||u<h(163)||u>h(536))return -Infinity;
+      const pixel=u/unit+345;
+      const upper=pixel<206?158:pixel<306?91-(pixel-206)*.52:pixel<414?80+(pixel-306)*.15:96+Math.pow((pixel-414)/122,1.65)*160;
+      const top=k(upper);
+      return grade+top;
+    };
+  }
+
+  function build(elevation,waterLevel,clock,terrain,ground=elevation){
     const deck=texture('lakeside-dock.webp',true),shingles=texture('lakeside-roof.webp',true);
     deck.colorSpace=shingles.colorSpace=T.SRGBColorSpace;
     const materials={
@@ -526,7 +739,9 @@ window.makeWinnipesaukeeWaterfront=function(T,scene,texture){
     const ballastMap=texture('surry-riprap.webp',true);ballastMap.colorSpace=T.SRGBColorSpace;
     materials.ballast=new T.MeshStandardMaterial({map:ballastMap,color:0xa8a69d,roughness:.97,side:T.DoubleSide});
     const root=new T.Group();root.name='Weirs Beach and Alton Bay waterfronts';scene.add(root);
+    paintLakesideStreet(root,terrain,ground);
     const vesselHeight=buildMountWashington(root,waterLevel);
+    const arrowHeight=addWeirsArrow(root,elevation,clock);
     const dockHeight=campDocks(root,waterLevel,deck,elevation);
     const unit=new T.BoxGeometry(1,1,1),column=new T.CylinderGeometry(.5,.5,1,9);
     const shapes=new Map(),sections=new Map(),obstacles=[];
@@ -637,13 +852,14 @@ window.makeWinnipesaukeeWaterfront=function(T,scene,texture){
       for(const side of [-1,1]){
         beam('rail',f.at(mastU+.84*side,mastTop-1.76,mastV),f.at(mastU+.40*side,y+.68,mastV),.012,true);
       }
-      addAltonRig(root,f,clock,y,mastU,mastV,mastTop);
+      waterfrontFlags(root,f,clock,y,mastU,mastV,mastTop,true);
       const mast=f.at(mastU,y,mastV);addObstacle(mast[0],mast[2],.15,mastTop);
       addObstacle(f.x,f.z,Math.min(a,b),eaves+rise);
 
     }
 
     const weirs=features.weirs;
+    let stationRoof=()=>-Infinity;
     if(weirs.station){
       const f=footprint(weirs.station),y=Math.max(...weirs.station.map(q=>elevation(...q)))+.45;
       // The rail bed sits on a cross slope above the bay. Extend the masonry
@@ -655,39 +871,102 @@ window.makeWinnipesaukeeWaterfront=function(T,scene,texture){
         footing=Math.min(footing,elevation(along[0],along[2])-.85,elevation(end[0],end[2])-.85);
       }
       f.box('foundation',0,(y+.1+footing)*.5,0,f.length,y+.1-footing,f.width);
-      f.box('cream',0,y+1.58,0,f.length,3.22,f.width);
-      for(const v of [-f.width/2,f.width/2]){
-        f.box('trim',0,y+3.19,v,f.length+.65,.19,.15);
-        for(let u=-f.length*.42;u<f.length*.46;u+=3.36){
-          f.box('trim',u,y+1.79,v+Math.sign(v)*.025,1.28,1.53,.08);
-          f.box('window',u,y+1.82,v+Math.sign(v)*.078,1.05,1.27,.06);
-          f.box('trim',u,y+1.84,v+Math.sign(v)*.121,.095,1.31,.06);
-          f.box('trim',u,y+1.80,v+Math.sign(v)*.121,1.08,.075,.06);
+      // The October 2025 street photograph shows two inset ticket rooms with
+      // a public passage between them. Lidar resolves the long hipped roof
+      // and puts the four-post lookout 2.6 m south of the platform center.
+      const l=f.length/2+.10,w=f.width/2+.17,mid=2.58,top=y+3.59,ridge=y+6.03;
+      f.box('timber',0,y+.115,0,l*2,.13,w*2);
+      const rooms=[[-l+2.1,mid-2.70],[mid+2.70,l-2.13]];
+      for(const [a,b] of rooms){
+        const u=(a+b)/2;
+        f.box('cream',u,y+1.77,-.18,b-a,3.2,w*.95);
+        for(const side of [-1,1]){
+          const edge=-.18+side*w*.475;
+          f.box('trim',u,y+.36,edge,b-a+.08,.23,.13);
+          const bays=Math.max(1,Math.round((b-a)/2.55)),step=(b-a)/bays;
+          for(let i=0;i<bays;i++){
+            const x=a+(i+.5)*step,opening=Math.min(1.38,step-.40);
+            const door=i===bays-1&&side>0,hh=door?2.31:1.43,base=door?y+.22:y+1.05;
+            f.box('trim',x,base+hh/2,edge+side*.044,opening+.18,hh+.14,.09);
+            f.box('window',x,base+hh/2,edge+side*.105,opening,hh,.07);
+            f.box('trim',x,base+hh*.51,edge+side*.15,.061,hh,.044);
+            f.box('trim',x,base+hh*.73,edge+side*.15,opening,.056,.045);
+          }
         }
       }
-      // Corner boards, bay sills and brackets break the long roof fascia.
-      for(const k of [-1,1]){
-        const edge=k*f.width*.5,sign=k;
-        for(const end of [-1,1])f.box('trim',end*(f.length*.5-.06),y+1.62,edge,f.length*.007,3.19,.156);
-        f.box('trim',0,y+.27,edge,f.length,.18,.18);
-        for(let u=-f.length*.42;u<f.length*.46;u+=3.36){
-          f.box('trim',u,y+1.04,edge+sign*.12,1.43,.10,.27);
-          beam('trim',f.at(u+.65,y+2.71,edge+sign*.04),f.at(u+.65,y+3.20,edge+sign*.41),.093);
+      // Keep porch gaps and entrance sightlines open all the way to the lake.
+      const columns=[-l+.68,-l+3.64,-l+6.59,mid-4.02,mid+4.02,l-3.92,l-.66];
+      for(const side of [-1,1]){
+        const edge=side*(w-.46);
+        f.box('trim',0,top-.12,edge,l*2,.25,.18);
+        for(const u of columns){
+          f.box('trim',u,(top+y+.2)/2,edge,.16,top-y-.20,.16);
+          f.box('rail',u,y+.31,edge,.245,.31,.245);
+          for(const s of [-1,1])if(Math.abs(u+s*.63)<l-.35){
+            beam('trim',f.at(u,top-.83,edge),f.at(u+s*.51,top-.15,edge),.092);
+            beam('trim',f.at(u,top-.48,edge),f.at(u+s*.51,top-.15,edge),.087);
+          }
+        }
+        for(const [a,b] of [[-l+.64,-l+3.64],[l-3.92,l-.64]]){
+          f.box('rail',(a+b)/2,y+.97,edge,b-a,.104,.115);
+          f.box('trim',(a+b)/2,y+.35,edge,b-a,.075,.10);
+          for(let u=a+.21;u<b-.08;u+=.18)f.box('trim',u,y+.65,edge,.042,.56,.042);
         }
       }
-      const l=f.length/2+.5,w=f.width/2+.45,top=y+3.29,ridge=top+1.65;
-      section('roof',f.at,[[[-l,top,-w],[l,top,-w],[l,ridge,0],[-l,ridge,0]],[[l,top,w],[-l,top,w],[-l,ridge,0],[l,ridge,0]]]);
-      for(const k of [-1,1])section('roof',f.at,[[[k*l,top,-w],[k*l,top,w],[k*l,ridge,0]]]);
+      const end=l-4.8;
       for(const k of [-1,1]){
-        beam('trim',f.at(-l,top-.09,k*w),f.at(l,top-.09,k*w),.19);
-        beam('trim',f.at(k*l,top,-w),f.at(k*l,ridge,0),.16);
-        beam('trim',f.at(k*l,top,w),f.at(k*l,ridge,0),.16);
+        section('roof',f.at,[[[-l,top,k*w],[l,top,k*w],[end,ridge,0],[-end,ridge,0]]]);
+        section('roof',f.at,[[[k*l,top,-w],[k*end,ridge,0],[k*l,top,w]]]);
+        beam('trim',f.at(-l,top-.055,k*w),f.at(l,top-.055,k*w),.18);
+        beam('trim',f.at(k*l,top-.055,-w),f.at(k*l,top-.055,w),.17);
       }
-      beam('iron',f.at(-l,ridge+.03,0),f.at(l,ridge+.03,0),.105);
-      f.box('trim',-2,ridge+.51,0,2.8,1.20,2.65);
-      for(const v of [-1.36,1.36])f.box('window',-2,ridge+.62,v,1.75,.84,.10);
-      hip((a,b,c)=>f.at(a-2,b,c),3.15,3.15,ridge+1.16,.84);
-      addObstacle(f.x,f.z,f.width*.9,ridge+2.0);
+      beam('iron',f.at(-end,ridge+.02,0),f.at(end,ridge+.02,0),.091);
+      // A shallow curved dormer covers the avenue entrance. Its crown
+      // crosses the main pitch; the eave and the name band bow up together.
+      const radius=4.70,front=w+.09,arch=(u)=>1.51*Math.pow(Math.max(0,1-(u/radius)**2),1.65);
+      for(let i=0;i<28;i++){
+        const a=-radius+radius*2*i/28,b=-radius+radius*2*(i+1)/28,ha=arch(a),hb=arch(b);
+        const strip=(t,h)=>[mid+t,top+h+.07,front];
+        section('roof',f.at,[[strip(a,ha),strip(b,hb),[mid+b,ridge+.015,0],[mid+a,ridge+.015,0]]]);
+        beam('trim',f.at(...strip(a,ha)),f.at(...strip(b,hb)),.17);
+      }
+      // The real sign fills only the upper arch so the boarding passage
+      // beneath remains visible. All lettering here is original paint.
+      const signCanvas=document.createElement('canvas');signCanvas.width=1024;signCanvas.height=226;
+      const sc=signCanvas.getContext('2d');sc.beginPath();sc.moveTo(0,204);sc.quadraticCurveTo(512,-139,1024,204);
+      sc.lineTo(1024,223);sc.lineTo(0,223);sc.closePath();sc.fillStyle='#192325';sc.fill();
+      sc.fillStyle='#f3eedb';sc.textBaseline='middle';sc.textAlign='center';sc.font='bold 65px Georgia,serif';
+      sc.fillText('MOUNT WASHINGTON',512,133,730);sc.font='bold 37px Georgia,serif';sc.fillText('TICKETS & GIFT SHOPPE',512,194,560);
+      const painted=new T.CanvasTexture(signCanvas);painted.colorSpace=T.SRGBColorSpace;painted.anisotropy=4;
+      const name=new T.Mesh(new T.PlaneGeometry(8.45,1.31),new T.MeshStandardMaterial({map:painted,alphaTest:.4,roughness:.77,side:T.DoubleSide}));
+      name.position.set(...f.at(mid,top+.69,front+.04));name.rotation.y=f.angle;root.add(name);
+      // Open square belfry with four white corners; four shallow gables
+      // interrupt the tiny pyramidal cap, as in the operator's roof detail.
+      const cx=mid,cz=-.23,half=1.16,base=ridge+.02,sill=base+.61,cap=y+8.94,peak=y+9.86;
+      f.box('cream',cx,base+.21,cz,half*2,.83,half*2);
+      f.box('trim',cx,sill,cz,half*2+.12,.13,half*2+.12);
+      for(const u of [-half,half])for(const v of [-half,half])f.box('trim',cx+u,(sill+cap)/2,cz+v,.148,cap-sill,.148);
+      const ring=[[-1,-1],[1,-1],[1,1],[-1,1]],over=half+.31;
+      for(let i=0;i<4;i++){
+        const [ax,az]=ring[i],[bx,bz]=ring[(i+1)%4],end0=[cx+ax*over,cap,cz+az*over],end1=[cx+bx*over,cap,cz+bz*over];
+        const between=t=>[end0[0]+t*(end1[0]-end0[0]),cap, end0[2]+t*(end1[2]-end0[2])];
+        const lp=between(.13),hp=between(.50),rp=between(.87);hp[1]=cap+.65;
+        const apex=[cx,peak,cz];
+        section('roof',f.at,[[end0,lp,apex],[lp,hp,apex],[hp,rp,apex],[rp,end1,apex]]);
+        for(const [p,q] of [[end0,lp],[lp,hp],[hp,rp],[rp,end1]])beam('trim',f.at(...p),f.at(...q),.095);
+      }
+      const flagTop=y+12.50;
+      beam('iron',f.at(cx,peak,cz),f.at(cx,flagTop,cz),.045,true);
+      waterfrontFlags(root,f,clock,y,cx,cz,flagTop,false);
+      const ax=Math.cos(f.angle),az=-Math.sin(f.angle);
+      stationRoof=(x,z)=>{
+        const dx=x-f.x,dz=z-f.z,u=dx*ax+dz*az,v=dz*ax-dx*az;
+        if(Math.abs(u)>l||Math.abs(v)>w)return -Infinity;
+        if(Math.abs(u-cx)<.11&&Math.abs(v-cz)<.11)return flagTop;
+        if(Math.max(Math.abs(u-cx),Math.abs(v-cz))<over)return cap+(peak-cap)*(1-Math.max(Math.abs(u-cx),Math.abs(v-cz))/over);
+        const ordinary=top+(ridge-top)*Math.max(0,Math.min(1-Math.abs(v)/w,(l-Math.abs(u))/(l-end)));
+        return v>0&&Math.abs(u-mid)<radius?Math.max(ordinary,top+arch(u-mid)+(ridge-top-arch(u-mid))*(1-v/w)):ordinary;
+      };
     }
     if(weirs.monument){
       const [x,z]=weirs.monument,y=Math.max(waterLevel+.15,elevation(x,z));
@@ -802,12 +1081,12 @@ window.makeWinnipesaukeeWaterfront=function(T,scene,texture){
       instances.forEach((m,i)=>mesh.setMatrixAt(i,m));mesh.computeBoundingSphere();root.add(mesh);
     }
     return (x,z)=>{
-      let y=Math.max(vesselHeight(x,z),dockHeight(x,z));
+      let y=Math.max(vesselHeight(x,z),dockHeight(x,z),arrowHeight(x,z),stationRoof(x,z));
       for(const o of obstacles)if(Math.hypot(x-o.x,z-o.z)<o.r)y=Math.max(y,o.y);
       return y;
     };
   }
-  return {rects,elevation,applyTerrain,applyWater,finishIslandTerrain,createTrees,build,settlement,launches,landmarks};
+  return {rects,elevation,applyTerrain,applyWater,finishIslandTerrain,createTrees,blocksInfillTree,build,settlement,launches,landmarks};
 };
 
 // The hydrographic polygon crossed several headlands with straight chords.

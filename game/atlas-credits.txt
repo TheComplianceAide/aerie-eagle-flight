@@ -90,3 +90,11 @@ https://granit24a.sr.unh.edu/image/rest/services/ImageServices/NH_2021_2022_6in_
 https://www.arcgis.com/sharing/rest/content/items/00733f77f3244d7b8c057b77f879701e/info/metadata/metadata.xml?format=default&output=html
 https://www.fisheries.noaa.gov/inport/item/71770
 https://s3-us-west-2.amazonaws.com/usgs-lidar-public/USGS_LPC_CT_River_Lot6_Winnipesaulee_2015_LAS_2017/ept.json
+
+Weirs Beach, New Hampshire. Lakeside Avenue curbs, pavement classes, pedestrian islands, striped stalls and the open railway apron were registered to NH GRANIT's 2021–2022 six-inch statewide orthoimage. The red brick, asphalt and paint are original game surfaces. The entrance sign and pavilion elevations use 2015–2016 FEMA/USGS New Hampshire lidar. The operator's photographs informed the reconstructed 1956 arrow, open ticket pavilion and cupola. Their photographs are not included in the game.
+https://granit24a.sr.unh.edu/image/rest/services/ImageServices/NH_2021_2022_6in_RGB/ImageServer
+https://www.fisheries.noaa.gov/inport/item/71770
+https://weirsbeach.com/reasons-to-visit/atmosphere/weirs-beach-arrow-sign/
+https://weirsbeach.com/reasons-to-visit/boardwalk/4th-way-down/
+Liam Murray's public-domain photograph of the Weirs Beach illuminated sign was used as a visual reference for the two faces and lamp colors.
+https://commons.wikimedia.org/wiki/File:Weirs_Beach_Sign_New_Hampshire.jpg
