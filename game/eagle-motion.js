@@ -266,11 +266,13 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
     const fast = 1 - Math.exp(-step / .06), slow = 1 - Math.exp(-step / .4);
     fastL += (loadL - fastL) * fast; fastR += (loadR - fastR) * fast; fastN += (n - fastN) * fast;
     lowL += (fastL - lowL) * slow; lowR += (fastR - lowR) * slow; lowN += (fastN - lowN) * slow;
-    const rough = 1.2 * (Math.abs(fastL - lowL) + Math.abs(fastR - lowR)) + .8 * Math.abs(fastN - lowN);
+    // Each wingbeat swings the load factor too; that is not rough air.
+    const gliding = 1 - .85 * clamp(pose.effort ?? 0, 0, 1);
+    const rough = 1.2 * (Math.abs(fastL - lowL) + Math.abs(fastR - lowR)) + .8 * Math.abs(fastN - lowN) * gliding;
     turbulence += (clamp(rough + .3 * Math.abs(air.gust ?? 0), 0, 1.5) - turbulence) * (1 - Math.exp(-3 * step));
     const slip = clamp(air.yawSlip ?? 0, -.5, .5);
     // A gust's load spike, as opposed to the load of the player's own pull-up.
-    const gustLoad = clamp(fastN - lowN, -1.5, 1.5);
+    const gustLoad = clamp(fastN - lowN, -1.5, 1.5) * gliding;
     // Stall buffet: separated flow shakes wings and tail irregularly.
     const buffet = clamp(pose.stall ?? 0, 0, 1) * freeFlight;
     const rough2 = turbulence + 1.4 * buffet;
@@ -299,9 +301,10 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
     const pitchJ = drive(pitchOsc, -.025 * gustLoad * freeFlight, step, jitter.y * rough2 * 2.4 * freeFlight);
     const rollJ = drive(rollOsc, .55 * (loadL - loadR) * .08 * freeFlight + .012 * windLocal.x * windGust, step,
       jitter.z * (rough2 * 2.8 * freeFlight + windGust * .9));
-    chest.position.y += clamp(h, -.018, .018) * tune.body;
-    chest.rotation.x += clamp(pitchJ, -.08, .08) * tune.body;
-    chest.rotation.z += clamp(rollJ, -.09, .09) * tune.body;
+    // Kept small: the shoulder camera sits a hand's width from the mantle.
+    chest.position.y += clamp(h, -.010, .010) * tune.body;
+    chest.rotation.x += clamp(pitchJ, -.045, .045) * tune.body;
+    chest.rotation.z += clamp(rollJ, -.07, .07) * tune.body;
     // Breathing when perched (about 20 per minute) and an occasional rouse.
     perchedFor = perched ? perchedFor + step : 0;
     if (perched) {
@@ -311,7 +314,7 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
       if (time > shakeAt && shakeT < 0 && preenT < 0 && perchedFor > 3) { shakeT = 0; shakeAt = time + rand(25, 60); }
       if (time > preenAt && preenT < 0 && rouseT < 0 && perchedFor > 8) { preenT = 0; preenAt = time + rand(60, 120); preenDur = rand(2.2, 4); preenSide = Math.random() < .5 ? -1 : 1; }
     } else { peerT = wagT = shakeT = preenT = -1; }
-    let fluff = clamp((1 - n) * .45, 0, .5) * freeFlight;            // negative G floats the plumage
+    let fluff = clamp((1 - n) * .3, 0, .3) * freeFlight;             // negative G floats the plumage
     // A tailwind at the perch lifts the back and nape feathers.
     fluff = Math.max(fluff, clamp(-windLocal.z / 7, 0, 1) * folded * (.5 + .5 * windGust));
     if (rouseT >= 0) {
@@ -373,7 +376,7 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
     const wantRoll = Math.sign(turned) * .38 * smooth(.12, .55, lookDown) * smooth(.08, .4, Math.abs(turned));
     headRoll += (wantRoll - headRoll) * (1 - Math.exp(-step / .12));
     neck.quaternion.multiply(headRollQ.setFromAxisAngle(FORWARD, headRoll));
-    neckBase.position.y -= clamp(h, -.018, .018) * .6 * freeFlight;
+    neckBase.position.y -= clamp(h, -.010, .010) * .6 * freeFlight;
     // Peering: two or three quick head translations, side to side or up and
     // down, while the gaze direction holds.
     if (peerT >= 0) {
@@ -388,7 +391,7 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
     neckBase.position.y += .0068 * (pose.effort ?? 0) * Math.cos(air.phase ?? 0) * freeFlight;
     // Under G the neck shortens and the head sinks; at negative G it stretches.
     const gLoad = clamp(n - 1, -1.2, 2.5);
-    neckBase.position.y += clamp(drive(neckSink, (-.0045 * Math.max(0, gLoad) + .003 * Math.max(0, -gLoad)) * freeFlight, step), -.014, .006);
+    neckBase.position.y += clamp(drive(neckSink, (-.003 * Math.max(0, gLoad) + .003 * Math.max(0, -gLoad)) * freeFlight, step), -.008, .006);
 
     // ---- G posture and structural flex ------------------------------------------
     const g = gLoad;
@@ -411,7 +414,7 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
     const activity = (.25 + 1.2 * turbulence) * freeFlight * (1 - .7 * (pose.effort ?? 0));
     for (const {side, ray} of tailRays) ray.rotation.y += side * (.06 * clamp(g, 0, 2) * freeFlight + .03 * ctl.y * activity);
     rudder.rotation.y += -.25 * slip * freeFlight;
-    rudder.rotation.z += (.035 * ctl.x * activity - .6 * clamp(rollJ, -.09, .09) * freeFlight) * tune.posture;
+    rudder.rotation.z += (.035 * ctl.x * activity - .6 * clamp(rollJ, -.07, .07) * freeFlight) * tune.posture;
     for (const w of wings) w.wrist.rotation.y += .025 * ctl.z * activity;
 
     // ---- feather spring bones -----------------------------------------------------
@@ -499,11 +502,13 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
 
     // ---- plumage uniforms -------------------------------------------------------------
     const perchRuffle = clamp(windSpeed / 9, 0, 1) * (.35 + .65 * windGust);
-    uniforms.featherTurb.value += (clamp(turbulence + buffet, 0, 1.2) * freeFlight + perchRuffle - uniforms.featherTurb.value) * (1 - Math.exp(-6 * step));
+    // Capped well below the measured turbulence: from the shoulder camera a few
+    // millimetres of lift already reads as bristling.
+    uniforms.featherTurb.value += (clamp(turbulence + buffet, 0, .55) * freeFlight + .6 * perchRuffle - uniforms.featherTurb.value) * (1 - Math.exp(-6 * step));
     const perchSlip = clamp(windLocal.x / 8, -1, 1) * folded;
     uniforms.featherSlip.value += (slip * clamp(q, 0, 2) * freeFlight + perchSlip - uniforms.featherSlip.value) * (1 - Math.exp(-8 * step));
     uniforms.featherFluff.value += (fluff - uniforms.featherFluff.value) * (1 - Math.exp(-10 * step));
-    stats.turbulence = turbulence; stats.wind = +windSpeed.toFixed(2); stats.headRoll = +headRoll.toFixed(3); stats.drowsy = +drowsy.toFixed(2); stats.bill = +jaw.open.toFixed(3); stats.membranes = [+eyes[0].membrane.toFixed(2), +eyes[1].membrane.toFixed(2)];
+    stats.turbulence = turbulence; stats.wind = +windSpeed.toFixed(2); stats.headRoll = +headRoll.toFixed(3); stats.drowsy = +drowsy.toFixed(2); stats.bill = +jaw.open.toFixed(3); stats.plumage = [+uniforms.featherTurb.value.toFixed(3), +uniforms.featherSlip.value.toFixed(3), +uniforms.featherFluff.value.toFixed(3)]; stats.membranes = [+eyes[0].membrane.toFixed(2), +eyes[1].membrane.toFixed(2)];
     stats.tailBend = tailSprings.reduce((a, s) => a + s.offset, 0) / tailSprings.length;
     stats.primaryBend = primarySprings.reduce((a, s) => a + s.offset, 0) / primarySprings.length;
   }
