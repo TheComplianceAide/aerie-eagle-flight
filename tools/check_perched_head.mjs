@@ -12,6 +12,10 @@
 //   - leaving the perch, the head does not swing up at the sky;
 //   - no bone is ever invalid.
 //
+// A perched eagle left alone for a second and a half looks about on its own, and now and
+// then rouses, preens or peers. The check keeps a hand on the view and skips those frames,
+// so it measures only where the head goes when the player points it.
+//
 // usage: node tools/check_perched_head.mjs [--world moosehead] [--launch lookout]
 //          [--game <game dir>] [--chrome <path>]
 // Takes about a minute. Requires Node 22 or later and a local Chrome or Chromium.
@@ -95,7 +99,7 @@ const probe = `(() => {
     const turn = Math.atan2(-ahead.x, -ahead.z) - (air.yaw || 0);
     rows.push({t: performance.now() / 1000, stage: app.dataset.perch, pitch: Math.asin(Math.max(-1, Math.min(1, ahead.y))) * deg,
       turn: Math.atan2(Math.sin(turn), Math.cos(turn)) * deg, tilt: Math.asin(Math.max(-1, Math.min(1, side.y))) * deg,
-      askedPitch: (air.perchLookPitch || 0) * deg, askedTurn: (air.perchLook || 0) * deg,
+      askedPitch: (air.perchLookPitch || 0) * deg, askedTurn: (air.perchLook || 0) * deg, acts: window.aerieEagleMotionDebug.stats.acts || 0,
       bad: bones.reduce((n, b) => n + (Number.isFinite(b.quaternion.x + b.quaternion.y + b.quaternion.z + b.quaternion.w + b.position.x + b.position.y + b.position.z) ? 0 : 1), 0)});
   };
   requestAnimationFrame(sample);
@@ -103,6 +107,10 @@ const probe = `(() => {
   const point = (type, x, y) => view.dispatchEvent(new PointerEvent(type, {clientX: x, clientY: y, pointerId: 1, pointerType: 'mouse', button: 0, buttons: 1, bubbles: true, isPrimary: true}));
   // Drag the perched view by this many pixels, as a player would.
   window.__drag = (dx, dy) => { point('pointerdown', 480, 270); for (let i = 1; i <= 10; i++) point('pointermove', 480 + dx * i / 10, 270 + dy * i / 10); point('pointerup', 480 + dx, 270 + dy); };
+  // Left alone for a second and a half, a perched eagle starts looking about on its own. A hand that
+  // keeps nudging the view by a pixel each way holds its head where the player has pointed it.
+  let nudge = 1, holding = null;
+  window.__hold = on => { clearInterval(holding); holding = on ? setInterval(() => { window.__drag(nudge, 0); nudge = -nudge; }, 300) : null; };
   window.__key = code => { window.dispatchEvent(new KeyboardEvent('keydown', {code, key: code})); window.dispatchEvent(new KeyboardEvent('keyup', {code, key: code})); };
 })()`;
 
@@ -145,11 +153,11 @@ try {
   await delay(3500);                                   // settled, and any turn toward the way out is done
   const mark = name => evaluate(`(window.__marks = window.__marks || {})[${JSON.stringify(name)}] = performance.now() / 1000`);
   // Look steeply down, then add a turn each way, then back to level.
-  await evaluate('__drag(0, -480)'); await delay(1500); await mark('down');
+  await evaluate('__drag(0, -480)'); await evaluate('__hold(true)'); await delay(1500); await mark('down');
   await delay(1200); await mark('downEnd');
   await evaluate('__drag(110, 0)'); await delay(1500); await mark('aside');
   await delay(1000); await mark('asideEnd');
-  await evaluate('__drag(-110, 480)'); await delay(400); await evaluate('__drag(0, -170)'); await delay(1800);
+  await evaluate('__hold(false)'); await evaluate('__drag(-110, 480)'); await delay(400); await evaluate('__drag(0, -170)'); await delay(1800);
   // Leave the perch.
   await evaluate("__key('KeyF')");
   await until(() => evaluate("app.dataset.perch==='push'||app.dataset.perch==='free'"), 'leaving the perch', 30000);
@@ -157,7 +165,7 @@ try {
   const {rows, marks} = await evaluate('({rows: window.__head, marks: window.__marks})');
 
   const most = (list, f) => list.reduce((m, r) => Math.max(m, f(r)), -Infinity), least = (list, f) => list.reduce((m, r) => Math.min(m, f(r)), Infinity);
-  const between = (a, b) => rows.filter(r => r.t >= marks[a] && r.t <= marks[b]);
+  const between = (a, b) => rows.filter(r => r.t >= marks[a] && r.t <= marks[b] && !r.acts);
   const flare = rows.filter(r => r.stage === 'flare'), down = between('down', 'downEnd'), aside = between('aside', 'asideEnd');
   const left = rows.findIndex((r, i) => i > 0 && (r.stage === 'push' || r.stage === 'free') && rows[i - 1].stage === 'perched');
   const launch = left < 0 ? [] : rows.slice(left).filter(r => r.t <= rows[left].t + 1.2);
