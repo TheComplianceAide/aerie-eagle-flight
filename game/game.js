@@ -422,7 +422,7 @@
     const audible=soundOn&&started&&!paused;
     if(audible && !fieldAudio)fieldAudio=window.makeFieldAudio?.(audio,world.region);
     fieldAudio?.setEnabled(audible);
-    volume.gain.setTargetAtTime(audible?.12:0,audio.currentTime,.14);
+    volume.gain.setTargetAtTime(audible?.12*(window.aerieWindTrim??1):0,audio.currentTime,.14);
   }
   function toggleSound(){
     soundOn=!soundOn;
@@ -503,7 +503,7 @@
       if(region==="swiss"||region==="canyon"||region==="yosemite"||region==="dixville") updateTalus=window.addTalus?.(THREE,scene,world);
       if(region==="swiss" || region==="alaska" || world.useFirForest) updateForest=window.addForest?.(THREE,scene,world);
       updateMist=window.addValleyMist?.(THREE,scene,world);
-      eagle=makeEagle(THREE);scene.add(eagle.object);
+      eagle=makeEagle(THREE);scene.add(eagle.object);eagle.motion?.setWindSource?.(world.windField);
       el("viewport").replaceChildren(renderer.domElement);resize();
       world.regionalFieldScenery=fieldScenery=window.makeRegionalFieldScenery(THREE,scene,world);
       loadPromise=Promise.all([assets,world.ready,eagle.ready,geology.ready,fieldScenery.ready]);

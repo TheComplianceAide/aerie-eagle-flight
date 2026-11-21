@@ -198,6 +198,9 @@ window.makeEagle = function makeEagle(THREE) {
   // shell's skeleton, so their roots stay planted throughout a turn or stroke.
   const featherTime={value:0}, featherWind={value:1}, separatedFlow={value:0};
   const featherLoads={value:new THREE.Vector2()}, napeTwist={value:new THREE.Vector2()};
+  // Driven by eagle-motion.js: turbulence, sideslip airflow, plumage fluff, and
+  // per-eye nictitating membrane (x,y) and eyelid (z,w) closure.
+  const featherTurb={value:0}, featherSlip={value:0}, featherFluff={value:0}, eyeLids={value:new THREE.Vector4()};
   function addContourFeathers(skeleton) {
     const positions=[], normals=[], uv=[], indices=[], skinIndices=[], skinWeights=[], aero=[], colors=[];
     let seed=682197;
@@ -311,9 +314,9 @@ window.makeEagle = function makeEagle(THREE) {
     const material=new THREE.MeshStandardMaterial({map:atlas,alphaTest:.36,alphaToCoverage:true,
       vertexColors:true,side:THREE.DoubleSide,roughness:.69,bumpMap:atlas,bumpScale:.00021});
     material.onBeforeCompile=shader=>{
-      Object.assign(shader.uniforms,{featherTime,featherWind,separatedFlow,featherLoads,napeTwist});
+      Object.assign(shader.uniforms,{featherTime,featherWind,separatedFlow,featherLoads,napeTwist,featherTurb,featherSlip,featherFluff});
       shader.vertexShader=shader.vertexShader.replace('#include <common>',
-        '#include <common>\nattribute vec4 aero; uniform float featherTime,featherWind,separatedFlow; uniform vec2 featherLoads,napeTwist;')
+        '#include <common>\nattribute vec4 aero; uniform float featherTime,featherWind,separatedFlow,featherTurb,featherSlip,featherFluff; uniform vec2 featherLoads,napeTwist;')
         .replace('#include <beginnormal_vertex>',`#include <beginnormal_vertex>
         // Bend the normal as well as the vane: its reflection changes as the tip peels.
         float sideLoad=mix(featherLoads.x,featherLoads.y,step(0.,position.x));
@@ -329,14 +332,21 @@ window.makeEagle = function makeEagle(THREE) {
         float wave=sin(featherTime*6.8-position.z*30.+position.x*15.+aero.y*.43);
         float flutter=sin(featherTime*12.3+aero.y+position.x*28.);
         float gust=sin(featherTime*2.85-position.z*61.+position.x*17.);
-        float agitation=featherWind*(.25+.60*abs(sideLoad)*outerCovert);
+        float agitation=featherWind*(.25+.60*abs(sideLoad)*outerCovert)*(1.+.4*featherTurb);
         float bend=aero.x*aero.z*(.45+.33*wave+.18*flutter+.21*gust)*agitation;
         float lifting=aero.x*(outerCovert*reverseFlow*(.008+.004*sin(featherTime*18.+aero.y))
           +caught*(.004+.005*aero.z/.003));
         float neckSide=clamp(position.x/.045,-1.,1.);
         float outside=max(0.,neckSide*napeTwist.x);
         float hackle=aero.x*aero.w;
-        transformed+=normal*(bend+lifting+hackle*(outside*.0016+abs(napeTwist.y)*.0012));
+        // Crossflow lifts the windward feather edges; turbulence adds a fast,
+        // uncorrelated ruffle; negative G and rousing float the whole plumage.
+        float windward=max(0.,featherSlip*sign(position.x));
+        float ruffle=featherTurb*sin(featherTime*23.+aero.y*3.1+position.x*41.)*sin(featherTime*7.3+position.z*53.);
+        lifting+=aero.x*(windward*(.0025+.0015*sin(featherTime*15.+aero.y))+abs(ruffle)*.0016+featherFluff*(.0050+.0020*aero.z/.003));
+        // Nape hackles: gusts riffle them, crossflow raises the windward side.
+        float hackleWind=featherTurb*(.0005+.0004*sin(featherTime*31.+aero.y*2.3+position.x*60.))+windward*.0008+featherFluff*.0010;
+        transformed+=normal*(bend+lifting+hackle*(outside*.0016+abs(napeTwist.y)*.0012+hackleWind));
         transformed.z-=lifting*.31;
         transformed.x+=aero.x*aero.z*wave*.32*agitation+hackle*napeTwist.y*.0053;
         transformed.z+=hackle*(abs(napeTwist.y)*.0026-outside*.0020);
@@ -516,10 +526,10 @@ window.makeEagle = function makeEagle(THREE) {
       g.setAttribute('skinIndex',new THREE.Uint16BufferAttribute(skinIndex,4));g.setIndex(indices);g.computeVertexNormals();
       const mat=new THREE.MeshStandardMaterial({map:nape,vertexColors:true,bumpMap:nape,bumpScale:.00030,roughness:.75});
       mat.onBeforeCompile=shader=>{
-        shader.uniforms.sidePortrait={value:sidePortrait};
+        shader.uniforms.sidePortrait={value:sidePortrait};shader.uniforms.eyeLids=eyeLids;
         shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 skull;')
           .replace('#include <begin_vertex>','#include <begin_vertex>\nskull=position;');
-        shader.fragmentShader=shader.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 skull; uniform sampler2D sidePortrait;')
+        shader.fragmentShader=shader.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 skull; uniform sampler2D sidePortrait; uniform vec4 eyeLids;')
           .replace('#include <map_fragment>',`#include <map_fragment>
             vec2 px=vec2(499.+(skull.z-(${zAt(.136).toFixed(6)}))*3980.,257.-(skull.y-.040)*3550.);
             vec3 eye=texture2D(sidePortrait,vec2(px.x/960.,1.-px.y/640.)).rgb;
@@ -536,8 +546,29 @@ window.makeEagle = function makeEagle(THREE) {
             float lum=dot(eye,vec3(.2126,.7152,.0722));
             eye=mix(vec3(lum),eye,.78);
             eye=mix(eye,mix(vec3(lum*.99,lum*.92,lum*.65),eye,.64),billBase);
+            // Third eyelid: a translucent, bluish-white membrane sweeping from
+            // the front (rostral, toward the bill) corner back across the cornea.
+            // The lower lid rises for slow blinks and a squint in steep dives.
+            vec2 e=(px-vec2(496.,261.))/vec2(25.,22.);
+            float inEye=1.-smoothstep(.86,1.02,length(e));
+            float side=step(0.,skull.x);
+            float nict=mix(eyeLids.x,eyeLids.y,side),lid=mix(eyeLids.z,eyeLids.w,side);
+            float sweep=-1.15+2.35*nict-.22*e.y-.18*e.y*e.y;
+            float membrane=inEye*(1.-smoothstep(sweep-.16,sweep,e.x))*step(.002,nict);
+            float rim=inEye*smoothstep(sweep-.16,sweep-.05,e.x)*(1.-smoothstep(sweep-.05,sweep,e.x))*step(.002,nict);
+            vec3 film=mix(eye,vec3(.70,.76,.82)*(.78+.40*lum),.52)+vec3(.04,.05,.06)*(1.-length(e));
+            eye=mix(eye,film,membrane)*(1.-.18*rim);
+            float lidLine=1.-2.*lid*1.08;
+            float lidCover=(1.-smoothstep(1.,1.25,length(e)))*smoothstep(lidLine-.06,lidLine+.06,e.y)*step(.002,lid);
+            vec3 base=diffuseColor.rgb;
             diffuseColor.rgb=mix(diffuseColor.rgb,eye,mask);
-          `);
+            diffuseColor.rgb=mix(diffuseColor.rgb,base*.92,lidCover*mask);
+            // The lid margin is a fine dark line of bare skin.
+            float lidEdge=(1.-smoothstep(.0,.09,abs(e.y-lidLine)))*inEye*step(.02,lid);
+            diffuseColor.rgb*=1.-.45*lidEdge*mask;
+            // The cornea and the membrane over it are wet and glossy.
+            float cornea=inEye*mask*(1.-lidCover);
+          `).replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=mix(roughnessFactor,.10,cornea);');
       };
       const mesh=new THREE.SkinnedMesh(g,mat);mesh.name='Crown, cheeks and throat';mesh.frustumCulled=false;
       mesh.castShadow=true;rig.add(mesh);mesh.bind(skeleton,new THREE.Matrix4());
@@ -886,6 +917,8 @@ window.makeEagle = function makeEagle(THREE) {
     neckBase.rotation.set(neckPose.x*.37,neckPose.y*.36,neckPose.z*.29,'YXZ');
     neck.quaternion.copy(neckBase.quaternion).invert().multiply(neckOrientation.setFromEuler(neckPose));
   }
+  const motion=window.makeEagleMotion?.(THREE,{object,chest,neckBase,neck,rudder,tailRays,wings,
+    uniforms:{eyeLids,featherTurb,featherSlip,featherFluff}});
   function update(dt, time, flapping, pitch = 0, bank = 0, air = {}) {
     const step = clamp(dt, 0, .1);
     const approach = rate => 1 - Math.exp(-rate * step);
@@ -1079,6 +1112,7 @@ window.makeEagle = function makeEagle(THREE) {
     const neckVelocity=step>.0001&&!reset?(neckPose.y-priorYaw)/step:0;
     napeTwist.value.x=neckPose.y;
     napeTwist.value.y+=(clamp(neckVelocity*.60,-1,1)-napeTwist.value.y)*approach(12);
+    motion?.update(step,time,air,{folded,effort,tuck,stall,separation,reset});
   }
-  return {object, update};
+  return {object, update, motion};
 };
