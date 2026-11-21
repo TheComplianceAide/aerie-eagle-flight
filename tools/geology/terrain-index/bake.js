@@ -17,7 +17,7 @@ window.bakeTerrainIndexField=(scene,region)=>{
     const distance=Math.ceil(1600*error);
     // Keep every original slope crossing the physical waterline. Entirely
     // flat underwater runs can still collapse without moving their contour.
-    const water=mesh.material.uniforms.shoreLevel?.value;
+    const water=mesh.material.uniforms?.shoreLevel?.value;
     const shore=['crater','moosehead','winnipesaukee'].includes(region)&&Number.isFinite(water);
     const field=new Uint8Array(Math.ceil(count/8));let indices=0;
     layouts.squares(0,0,nx,nz,(ox,oz,size)=>{
