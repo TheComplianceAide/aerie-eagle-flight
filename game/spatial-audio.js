@@ -46,9 +46,21 @@ window.aerieShuffledLoop = function aerieShuffledLoop(context, buffer, output, o
   const fade = Math.min(1.4, buffer.duration * .1), steps = 33, up = new Float32Array(steps), down = new Float32Array(steps);
   for (let i = 0; i < steps; i++) { up[i] = Math.sin(.5 * Math.PI * i / (steps - 1)); down[i] = Math.cos(.5 * Math.PI * i / (steps - 1)); }
   const outputs = Array.isArray(output) ? output : [output];
-  let current = null, timer = 0, stopped = false, rate = opt.rate || 1;
+  let current = null, timer = 0, stopped = false, rate = opt.rate || 1, turn = 0;
+  // Several copies of one recording placed round the listener are a family.
+  // They change stretch at the same moments and each takes its own part of
+  // the recording, so two copies never play the same moment together, which
+  // would colour the sound. The family's shared seed gives every copy the
+  // same sequence without their having to talk to each other.
+  const family = opt.family, chance = (k, j) => { const v = Math.sin(family.seed * 12.9898 + k * 78.233 + j * 37.719) * 43758.5453; return v - Math.floor(v); };
+  const place = k => {
+    if (!family) return Math.random() * buffer.duration;
+    const slot = (opt.member + Math.floor(chance(k, 2) * family.size)) % family.size;
+    return (chance(k, 1) + (slot + .5 + .5 * (chance(k, 3 + opt.member) - .5)) / family.size) % 1 * buffer.duration;
+  };
   function stretch(when, offset) {
     if (stopped) return;
+    const k = turn++;
     const src = context.createBufferSource(), gain = context.createGain(), old = current;
     src.buffer = buffer; src.loop = true; src.playbackRate.value = rate;
     src.connect(gain); for (const o of outputs) gain.connect(o);
@@ -58,9 +70,9 @@ window.aerieShuffledLoop = function aerieShuffledLoop(context, buffer, output, o
       try { old.src.stop(when + fade + .05); } catch (e) {}
       old.src.onended = () => { try { old.src.disconnect(); old.gain.disconnect(); } catch (e) {} };
     }
-    src.start(when, offset ?? Math.random() * buffer.duration);
+    src.start(when, family ? place(k) : offset ?? place(k));
     current = {src, gain};
-    const next = when + Math.max(fade + .5, buffer.duration * (.35 + .35 * Math.random()));
+    const next = when + Math.max(fade + .5, buffer.duration * (.35 + .35 * (family ? chance(k, 0) : Math.random())));
     timer = setTimeout(() => stretch(Math.max(context.currentTime + .05, next)), Math.max(0, (next - context.currentTime - .3) * 1000));
   }
   stretch(context.currentTime + (opt.when || 0), opt.offset);
@@ -444,7 +456,7 @@ window.makeSpatialAudio = function makeSpatialAudio(context, world, options = {}
     // rhythm matters, loops as it is.
     const shuffle = opt.shuffle ?? buffer.duration >= 6;
     let src, node;
-    if (shuffle) { node = context.createGain(); src = window.aerieShuffledLoop(context, buffer, node, {rate: opt.rate, offset: opt.offset}); }
+    if (shuffle) { node = context.createGain(); src = window.aerieShuffledLoop(context, buffer, node, {rate: opt.rate, offset: opt.offset, family: opt.family, member: opt.member}); }
     else {
       src = node = context.createBufferSource(); src.buffer = buffer; src.loop = true;
       src.playbackRate.value = opt.rate || 1;
