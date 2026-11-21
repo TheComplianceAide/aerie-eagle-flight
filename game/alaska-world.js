@@ -382,6 +382,14 @@ class Water extends Mesh {
     if(a+b<1)return (grid[k]*(1-a-b)+grid[k+1]*a+grid[k+n]*b)/8;
     return (grid[k+n+1]*(a+b-1)+grid[k+n]*(1-a)+grid[k+1]*(1-b))/8;
   }
+  // The ecological margin follows the mapped outline; calved ice on the
+  // lake and the solid tongue have different optical and contact models.
+  const continentalMargin=Uint8Array.from(atob(window.mendenhallIceMargin),c=>c.charCodeAt(0));
+  function glacierDistance(x,z){
+    if(x<=-1200||x>=2800||z<=-4800||z>=-400)return 0;
+    return 4*continentalMargin[Math.round((z+4800)/20)*201+Math.round((x+1200)/20)];
+  }
+  function onGlacierMargin(x,z){const distance=glacierDistance(x,z);return distance>0&&distance<=68;}
   const undulations=Uint8Array.from(atob(survey.iceRelief),c=>c.charCodeAt(0));
   function iceRelief(x,z){
     if(x<=-1200||x>=2800||z<=-4800||z>=-400)return 0;
@@ -496,10 +504,10 @@ class Water extends Mesh {
   const shoreAtlas=map('mendenhall-shore.webp');
   const bankDepositMap=map('mendenhall-foreland.webp');
   const fieldGround=map('field-ground-scans.webp');
-  const ground=new THREE.ShaderMaterial({uniforms:{groundScan:{value:fieldGround},alpineRelief:{value:alpineRelief},ridgeRock:{value:ridgeRock},ridgeNormal:{value:ridgeNormal},lightMap:{value:terrainLight},iceDetail:{value:iceDetail},blueIce:{value:blueIce},face:{value:glacierFace},mountain:{value:mountain},localPhoto:{value:outerPhoto},photoRect:{value:new THREE.Vector4(-18000,-18000,36000,0)},outerPhoto:{value:outerPhoto},snow:{value:snow},earth:{value:earth},sun:{value:sun}},
+  const ground=new THREE.ShaderMaterial({uniforms:{groundScan:{value:fieldGround},alpineRelief:{value:alpineRelief},ridgeRock:{value:ridgeRock},ridgeNormal:{value:ridgeNormal},lightMap:{value:terrainLight},iceDetail:{value:iceDetail},crevasseSurvey:{value:map('alaska-surveyed-crevasses.webp')},blueIce:{value:blueIce},face:{value:glacierFace},mountain:{value:mountain},localPhoto:{value:outerPhoto},photoRect:{value:new THREE.Vector4(-18000,-18000,36000,0)},outerPhoto:{value:outerPhoto},snow:{value:snow},earth:{value:earth},sun:{value:sun}},
     vertexShader:`varying vec3 p,n;void main(){p=position;n=normal;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
     fragmentShader:`${window.aerieFieldShader('alaska')}
-    uniform sampler2D groundScan,alpineRelief,ridgeRock,ridgeNormal;uniform vec4 photoRect;varying vec3 p,n;uniform sampler2D lightMap,iceDetail,blueIce,face,mountain,localPhoto,outerPhoto,snow,earth;uniform vec3 sun;
+    uniform sampler2D groundScan,alpineRelief,ridgeRock,ridgeNormal;uniform vec4 photoRect;varying vec3 p,n;uniform sampler2D lightMap,iceDetail,crevasseSurvey,blueIce,face,mountain,localPhoto,outerPhoto,snow,earth;uniform vec3 sun;
 
 #ifdef MENDENHALL_BANK
     ${window.mendenhallSedimentGLSL}
@@ -758,6 +766,53 @@ class Water extends Mesh {
           base=mix(base,lower,lowerIce*.89);
         }
         base=mix(base,fractured,terminus*.76);
+      }
+      // Actual summer Sentinel-2 reflectance tracks the mineral belt across
+      // the tongue. Lidar supplies the metre-scale cut faces. A 5 cm local
+      // UAV specimen adds only sub-metre dirt and ice texture.
+      if(sheet>.025&&p.z< -1370.&&p.z> -4800.&&d<7200.){
+        vec2 measuredUV=clamp((p.xz-vec2(-1200.,-4800.))/vec2(4000.,4400.),.002,.998);
+        vec2 optical=texture2D(crevasseSurvey,vec2((2.+measuredUV.x)/3.,1.-measuredUV.y)).rg;
+        float highRes=0.,depression=0.,lip=0.;
+        vec3 iceFacet=nn;
+        bool northern=p.z< -3500.;
+        vec2 origin=northern?vec2(960.,-4700.):vec2(145.,-3000.);
+        vec2 iceOffset=p.xz-origin;
+        if(min(iceOffset.x,iceOffset.y)>0.&&max(iceOffset.x,iceOffset.y)<1100.){
+          vec2 texel=iceOffset+vec2(northern?10.:1130.,10.);
+          vec4 field=texture2D(crevasseSurvey,vec2(texel.x/3360.,1.-texel.y/1120.));
+          vec2 slope=field.rg*2.-1.;
+          vec3 recorded=normalize(vec3(slope.x,sqrt(max(.0001,1.-dot(slope,slope))),slope.y));
+          highRes=field.a;
+          iceFacet=normalize(mix(nn,recorded,highRes));
+          depression=smoothstep(.48,.85,field.b)*highRes;lip=(1.-smoothstep(.22,.55,field.b))*highRes;
+        }
+        float mineral=optical.g;
+        float incoming=max(0.,dot(iceFacet,sun));
+        float iceSky=(.66+.34*iceFacet.y)*(1.-.34*depression);
+        vec2 fine=vec2(.522,.488);
+        if(d<1400.){
+          vec2 fabric=mat2(.905,.425,-.425,.905)*p.xz/51.2;
+          // Mirroring prevents a seam along the edge of the 51.2 m specimen.
+          vec2 folded=clamp(1.-abs(2.*fract(fabric*.5)-1.),.001,.999);
+          fine=texture2D(crevasseSurvey,vec2((2.+folded.x)/3.,1.-folded.y)).ba;
+        }
+        vec3 crust=mix(vec3(.815,.888,.905),vec3(.623,.608,.577),mineral);
+        crust*=.39+.69*optical.r;
+        vec3 deep=mix(vec3(.30,.495,.56),vec3(.156,.301,.352),depression);
+        deep=mix(deep,vec3(.31,.338,.344)*(1.-.23*depression),mineral*.72);
+        float wall=max(depression*.84,smoothstep(.21,.85,1.-iceFacet.y)*.58);
+        vec3 frozen=mix(crust,deep,wall)*(.97+.045*lip);
+        float coarseGrain=texture2D(blueIce,p.xz/vec2(68.,92.)+.06*sin(p.zx*.018)).g;
+        float grainContrast=(.55+.44*(1.-smoothstep(22.,390.,d)))*(.83+.31*wall);
+        frozen*=clamp(1.+(fine.x-.522)*grainContrast+.076*(coarseGrain-.52),.67,1.22);
+        frozen*=mix(vec3(1.,.995,.983),vec3(1.045,.993,.936),smoothstep(.43,.58,fine.y)*(.43+.45*mineral));
+        vec3 skylit=vec3(.70,.80,.91)*iceSky+vec3(.079,.095,.101);
+        vec3 sunlight=vec3(.87,.67,.45)*beam*pow(incoming,.81);
+        vec3 fresh=frozen*(skylit+sunlight);
+        float footprint=sheet*smoothstep(1370.,1880.,-p.z)*(1.-smoothstep(4850.,7200.,d));
+        base=mix(base,fresh,footprint*(.72+.24*highRes));
+        faceN=normalize(mix(faceN,iceFacet,footprint*highRes));
       }
       vec3 V=normalize(cameraPosition-p),H=normalize(sun+V);
       float sheen=pow(max(0.,dot(H,faceN)),30.)*(1.-.85*forest);
@@ -1306,7 +1361,7 @@ class Water extends Mesh {
     if(!measuredCourse||!waterfalls.inChute(x,z,0))return -Infinity;
     return Math.max(lake.position.y,fallGround(x,z)+.10);
   }
-  return {landformMesh,region:"alaska",channelWater,bankDepositMap,localPerchStone,windTerrainHeight,treeGrid:{cells,size:48,cell},waterfalls,forestLightSpan:14400,elevation,clearance,height,trees,firTrees,sunMask,sunDirection:sun,skyTexture:skyMap,cloudDensityMap:'alaska-cirrus-density.webp',waterLevel:0,lakeLevel:0,lakePolygon:shore,altitudeOffset:18,spawn:lakeLaunch,
+  return {landformMesh,region:"alaska",glacierDistance,onGlacierMargin,channelWater,bankDepositMap,localPerchStone,windTerrainHeight,treeGrid:{cells,size:48,cell},waterfalls,forestLightSpan:14400,elevation,clearance,height,trees,firTrees,sunMask,sunDirection:sun,skyTexture:skyMap,cloudDensityMap:'alaska-cirrus-density.webp',waterLevel:0,lakeLevel:0,lakePolygon:shore,altitudeOffset:18,spawn:lakeLaunch,
     launches:{lake:lakeLaunch,ridge,shore:shoreLaunch,spruce:{x:173,y:26,z:1630,yaw:.38,lookDown:12},spray:sprayPass,spur:{x:612,y:68.4704,z:977,yaw:-.08159},alpine:{x:-2900,z:-2010,y:elevation(-2900,-2010)+58,yaw:-.28}},bounds:{minX:-6890,maxX:6890,minZ:-6890,maxZ:6890},
     landmarks:[{name:'West alpine crest',x:-2900,z:-2010},{name:'Upper crevasse field',x:1500,z:-4130},{name:'Blue Ice Passage',x:-116,z:-1010},{name:'Nugget Falls beach',x:473,z:927},{name:'Medial moraine',x:632,z:-2450},{name:'Mendenhall Glacier',x:40,z:-1400},{name:'Nugget Falls',x:518,z:658},{name:'Mendenhall Lake',x:-700,z:680},{name:'West Glacier Ridge',x:-860,z:-1890}],
     update(dt,time,player){updateTerrainLOD(player);updateLedges(player);updateShore(player);clock.value=time;lake.material.uniforms.time.value=time*.72;}
