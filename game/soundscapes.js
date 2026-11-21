@@ -740,10 +740,10 @@
     // Four decorrelated emitters 18 m around the listener form a diffuse bed.
     function makeBed(clip, gain, height = 4) {
       const b = typeof clip === 'string' ? buffers.get(clip) : clip; if (!b) return null;
-      const emitters = [];
+      const emitters = [], family = {seed: Math.random() * 997, size: 4};   // four copies round the listener, each kept to its own part of the recording
       for (let i = 0; i < 4; i++) {
         const a = i * Math.PI / 2 + Math.PI / 4;
-        const s = engine.loop(b, {x: engine.ear.x, y: engine.ear.y, z: engine.ear.z}, {gain: 0, ref: 18, spread: 'none', occlude: false, doppler: false, wet: .25, offset: (i * .27 * b.duration) % b.duration});
+        const s = engine.loop(b, {x: engine.ear.x, y: engine.ear.y, z: engine.ear.z}, {gain: 0, ref: 18, spread: 'none', occlude: false, doppler: false, wet: .25, offset: (i * .27 * b.duration) % b.duration, family, member: i});
         s.angle = a; s.height = height; emitters.push(s);
       }
       return {clip, emitters, gainFn: gain};
