@@ -513,7 +513,7 @@
       const name = id + '.m4a';
       // A hosted build short of space may leave recordings out; fetch those
       // from the public repository instead (offline builds embed them all).
-      const mirror = 'https://cdn.jsdelivr.net/gh/TheComplianceAide/aerie-eagle-flight@main/game/' + name;
+      const mirror = 'https://raw.githubusercontent.com/TheComplianceAide/aerie-eagle-flight/main/game/' + name;
       const get = url => fetch(url).then(r => { if (!r.ok) throw Error('missing ' + name); return r.arrayBuffer(); });
       const local = window.aerieAssetURL?.(name) || name;
       const task = get(local).catch(e => local.startsWith('blob:') || location.protocol === 'file:' ? Promise.reject(e) : get(mirror))
