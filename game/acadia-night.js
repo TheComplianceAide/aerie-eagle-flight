@@ -26,6 +26,7 @@ window.lightAcadiaNight = function lightAcadiaNight(T, scene, world) {
       }
     }
   });
+  world.acadiaLights?.lightWater();
   const sky = scene.children.find(o => o.renderOrder === -1000);
   if (!sky) return;
   const airglow = {value:1};

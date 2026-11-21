@@ -29,7 +29,7 @@
       crater:['crater-rim-data.js','crater-rim.js','crater-plaikni.js','crater-plaikni-meadow.js','regional-waterfalls.js','falls-terrain-crater.js','waterfall-system.js','crater-bathymetry.js','crater-weather.js','crater-phantom-ship.js'],
       dixville:['waterfall-system.js','dixville-brooks.js','dixville-lidar.js','talus-data.js','rocks.js','architecture.js','dixville-landmarks.js'],
       labrador:['architecture.js','labrador-narrows-survey.js','labrador-narrows.js','labrador-camp-ground.js','labrador-cabin.js','labrador-weather.js'],
-      acadia:['acadia-night.js','acadia-coast.js','acadia-ocean-path.js','acadia-sand-beach.js'],
+      acadia:['acadia-light-stations.js','acadia-station-optics.js','acadia-night.js','acadia-coast.js','acadia-ocean-path.js','acadia-sand-beach.js'],
       lofoten:['lofoten-sea-mask.js','lofoten-reine-data.js','lofoten-reine.js','lofoten-reinewest-data.js','lofoten-marken.js','lofoten-reinevatnet-data.js','lofoten-reinevatnet.js','lofoten-reinebringen-surface.js','regional-waterfalls.js','falls-terrain-lofoten.js','waterfall-system.js','lofoten-hamnoy.js'],
       yosemite:['yosemite-falls.js','yosemite-meadow-field.js','yosemite-meadow.js','terrain-indices.js','waterfall-system.js','atlas-yosemite-crowns.js','talus-data.js','rocks.js'],
       moosehead:['moosehead-rockwood-data.js','survey-parked-cars.js','moosehead-rockwood.js','moosehead-crowns.js','moosehead-shore-survey.js','moosehead-bank-growth.js','moosehead-uplands.js','kineo-terrain.js','regional-waterfalls.js','falls-terrain-moosehead.js','waterfall-system.js','architecture.js'],
@@ -42,8 +42,8 @@
     await Promise.all(assets.map(name=>name==='canopy-stream.js'
       ? Promise.all([open('close-tree-detail.js'),open('close-bark-material.js').catch(()=>{})]).then(()=>open(name)) : open(name)));
     const lakeBays=window.aerieLakeBankSites?.[region]||[];
-    const extraSurveys=region==='yosemite'?['yosemitefalls']:region==='crater'?['watchman','cleetwood']:region==='swiss'?[...lakeBays,'frunden']:region==='lofoten'?[...lakeBays,'korten','reine','reinebringen']:lakeBays;
+    const extraSurveys=region==='acadia'?['eggrock','bakerisland']:region==='yosemite'?['yosemitefalls']:region==='crater'?['watchman','cleetwood']:region==='swiss'?[...lakeBays,'frunden']:region==='lofoten'?[...lakeBays,'korten','reine','reinebringen']:lakeBays;
     const secondarySurvey={canyon:'canyonshelves',lofoten:'hamnoy',swiss:'swisswest',yosemite:'yosemitesummits'}[region];
-    await Promise.all([...extraSurveys.map(name=>window.aerieRegionalLandforms.prepare(name)),region==='acadia'?null:window.prepareRangeRelief(region),window.aerieRegionalLandforms.prepare(region),(region==='alaska'||region==='yosemite')?window.aerieTerrainIndices.prepare(region):null,secondarySurvey?window.aerieRegionalLandforms.prepare(secondarySurvey):null,region==='moosehead'?window.prepareMooseheadUplands():null]);
+    await Promise.all([...extraSurveys.map(name=>window.aerieRegionalLandforms.prepare(name)),region==='acadia'?window.prepareAcadiaStationCrowns():window.prepareRangeRelief(region),window.aerieRegionalLandforms.prepare(region),(region==='alaska'||region==='yosemite')?window.aerieTerrainIndices.prepare(region):null,secondarySurvey?window.aerieRegionalLandforms.prepare(secondarySurvey):null,region==='moosehead'?window.prepareMooseheadUplands():null]);
   };
 })();
