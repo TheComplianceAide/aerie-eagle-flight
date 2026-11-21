@@ -9,7 +9,12 @@ const vm = require('node:vm');
 const dir = path.join(__dirname, '../game');
 const clips = [];
 const disk = new Map();
+// Seeded randomness, so every run schedules the same calls.
+let seed = Number(process.env.SEED || 20261120) >>> 0;
+const math = Object.create(Math);
+math.random = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
 const browser = {
+  Math: math,
   window: {aerieEchoSurfaces: () => [], aerieCascadeSource: () => null, aerieSoundPath: () => 0, aerieWind: () => 0},
   THREE: {Vector3: class {}},
   fetch: async name => {
