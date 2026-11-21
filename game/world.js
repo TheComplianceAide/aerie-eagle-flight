@@ -448,8 +448,10 @@ class Water extends Mesh {
   const alpineVertex = `varying vec3 wp,norm;varying vec2 tileUv;
     void main(){wp=position;norm=normal;tileUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`;
   const fieldGround=texture('field-ground-scans.webp');
+  const wallPhotograph=texture(matchMedia('(pointer: coarse)').matches
+    ? 'oeschinen-east-limestone-mobile.webp' : 'oeschinen-east-limestone.webp');
   const alpineFragment = `${window.aerieFieldShader('swiss')}
-    uniform sampler2D groundScan;uniform sampler2D karstLight;uniform sampler2D photo,stone,normalMap,earth,sunMask,strata,strataNormal,surveyNormals;uniform vec3 sun;
+    uniform sampler2D wallPhotograph,groundScan;uniform sampler2D karstLight;uniform sampler2D photo,stone,normalMap,earth,sunMask,strata,strataNormal,surveyNormals;uniform vec3 sun;
     varying vec3 wp,norm;varying vec2 tileUv;
 
     // Sample a ninety-metre photographed turf and scree outcrop. The measured
@@ -533,6 +535,30 @@ class Water extends Mesh {
       float woodland=vegetation*(1.-smoothstep(230.,570.,wp.y));
       float meadow=(1.-rockMix)*(1.-snow)*smoothstep(.52,.91,n.y);
       rgb=regionalSoil(groundScan,wp,n,rgb,sun,d,woodland,1.-smoothstep(1.4,20.,abs(wp.y)),meadow);
+      // Register the field photography to the actual visible side of the eastern
+      // limestone wall. The packed ray range excludes hidden or outward-facing rock.
+      float wallCoverage=0.;
+      vec3 registeredWall=vec3(0.);
+      if(wp.x>150.&&wp.x<3900.&&wp.z> -1500.&&wp.z<2600.&&wp.y>2.&&n.y<.91){
+        vec3 ray=wp-vec3(-1104.492216,265.032841,350.411864);
+        float range=length(ray.xz),heading=degrees(atan(ray.x,-ray.z));
+        float u0=(heading-87.1353882)/229.6404732;
+        float u=u0/(1.-.00564685*u0*u0);
+        float row=267.4484402-6.9704107*degrees(ray.y/range)+(.00761974-.03737476*u)*u*1600.;
+        vec2 wallUv=vec2(((u+.5)*8192.-3100.)/2680.,1.-(row*5.12-420.)/1530.);
+        float edge=min(min(wallUv.x,wallUv.y),min(1.-wallUv.x,1.-wallUv.y));
+        if(edge>0.){
+          vec4 observed=texture2D(wallPhotograph,wallUv);
+          float facing=dot(n,normalize(-ray));
+          float photographedRange=(observed.a*255.-1.)*(7000./254.);
+          float visibility=smoothstep(0.,.048,edge)*smoothstep(.12,.64,facing);
+          visibility*=1.-smoothstep(42.,137.,abs(photographedRange-range));
+          float bareRock=smoothstep(.15,.62,rockMix)*(1.-smoothstep(.53,.84,n.y));
+          wallCoverage=visibility*bareRock*smoothstep(8.,40.,wp.y)*(1.-snow*.72)*(1.-vegetation*.28);
+          registeredWall=observed.rgb;
+          rgb=mix(rgb,registeredWall*(.92+.24*detail),wallCoverage*.91);
+        }
+      }
       lum=dot(rgb,vec3(.27,.60,.13));
       vec2 vd=(wp.xz+4000.)/8000.;
       float area=1.-smoothstep(.482,.500,max(abs(vd.x-.5),abs(vd.y-.5)));
@@ -558,6 +584,13 @@ class Water extends Mesh {
         float mica=max(dot(detailN,normalize(sun+normalize(cameraPosition-wp))),0.);
         rgb+=vec3(.09,.079,.066)*rockMix*exposure*pow(mica,23.)*smoothstep(.25,.71,detail);
       }
+      if(wallCoverage>.01){
+        // The field photo carries the metre-scale fracture pattern. The survey
+        // normal and current light determine warm ledges and blue shaded clefts.
+        float diffuseWall=clamp(.26+.74*dot(normalize(norm),sun),.08,1.);
+        vec3 wallLight=vec3(.63,.70,.83)*(.83+.17*skyView)+vec3(.66,.39,.18)*diffuseWall*mix(.49,1.,exposure);
+        rgb=mix(rgb,registeredWall*wallLight*(1.02+.06*detail),wallCoverage*.97);
+      }
       rgb+=vec3(.012,.019,.029)*(1.-exposure);
       float peak=max(rgb.r,max(rgb.g,rgb.b));
       if(peak>.74)rgb*= (.74+(peak-.74)/(1.+2.4*(peak-.74)))/peak;
@@ -565,7 +598,7 @@ class Water extends Mesh {
     }`;
   function terrainMaterial(photo) {
     return new THREE.ShaderMaterial({
-      uniforms:{groundScan:{value:fieldGround},karstLight:{value:karstLight},photo:{value:photo},stone:{value:stone},normalMap:{value:stoneNormal},earth:{value:earth},
+      uniforms:{wallPhotograph:{value:wallPhotograph},groundScan:{value:fieldGround},karstLight:{value:karstLight},photo:{value:photo},stone:{value:stone},normalMap:{value:stoneNormal},earth:{value:earth},
         sunMask:{value:visibility},strata:{value:strata},strataNormal:{value:strataNormal},surveyNormals:{value:surveyNormals},sun:{value:sun}},
       vertexShader:alpineVertex,fragmentShader:alpineFragment
     });
@@ -635,12 +668,18 @@ class Water extends Mesh {
   const rivers=[
     [[369,1730],[379,1560],[399,1395],[425,1220],[435,1115],[458,1008],[466,953],[478,883],[479,834],[492,776],[498,739]],
     [[720,1680],[720,1540],[690,1430],[662,1320],[613,1210],[568,1128],[531,1044],[504,1020],[480,1009],[458,1008]],
-    [[1890,824],[1780,786],[1670,772],[1560,786],[1440,746],[1320,680],[1230,630],[1150,600],[1090,580],[1040,570],[1010,560],[988,550],[975,550],[964,550]]
+    [[1934,927],[1882,918],[1863,908],[1820,899],[1771,896],[1731,863],[1703,847],[1682,841],[1639,813],[1615,804],[1595,786],[1548,769],[1538,770],[1537,765],[1518,760],[1494,745],[1477,743],[1470,752],[1462,753],[1454,768],[1459,780],[1458,788],[1439,804],[1428,795],[1413,796],[1386,775],[1384,767],[1367,770],[1353,765],[1338,769],[1295,717],[1280,714],[1275,710],[1266,711],[1260,705],[1250,706],[1236,697],[1227,697],[1221,689],[1163,669],[1131,646],[1113,637],[1093,634],[1087,637],[1089,646],[1064,655],[1055,654],[1040,640],[1033,645],[1016,647],[1000,649]]
   ];
   waterfalls.chute('Fründen Falls',rivers[0],14,{pool:true});
   waterfalls.chute('Fründen tributary',rivers[1],8,{pool:false});
   waterfalls.chute('Eastwall headwaters',rivers[2],12,{pool:false});
-  waterfalls.chute('Eastwall Cascade',[[964,550],[954,550],[944,552],[935,553],[924,555],[914,554],[900,553],[886,554],[873,556]],14);
+  // swissTLM3D channel CH0017910000 descends southeast of the older course.
+  // The two low-stage outlets follow dark braids visible in the 1999/2000
+  // SWISSIMAGE archive. Their widths depend on the modeled summer flow.
+  waterfalls.chute('Eastwall Cascade',[[1000,649],[992,647],[983,649],[982,660],[973,666],[969,664],[957,659],[955,655],[954,647],[947,641],[945,641],[935,632],[932,626],[931,618],[923,610],[914,603],[902,592]],8.8,{pool:false,foamRunout:9});
+  waterfalls.chute('Eastwall fan stream',[[902,592],[896,590],[890,587],[885,583],[879,578],[875,573],[871,568],[869,562],[867,556]],5.2,{pool:false});
+  waterfalls.chute('Eastwall west braid',[[867,556],[863,549],[859,545],[852,543],[846,542],[841,539],[835,533],[832,528],[824,524],[818,521],[811,519],[805,515],[801,510],[797,504],[791,498],[786,492],[781,489],[775,484],[769,480],[765,476]],2.3,{poolLevel:lake.position.y});
+  waterfalls.chute('Eastwall north braid',[[867,556],[873,551],[877,548],[877,542],[874,535],[871,530],[868,523],[865,515],[866,508],[869,502],[870,496],[871,488],[870,483],[865,475],[861,468],[857,460],[853,453],[852,447],[849,442],[844,435],[840,429],[837,424],[835,421]],3.4,{poolLevel:lake.position.y});
   waterfalls.couple(lake);
   // Regional canopy sequence is independent of spray density.
   let rng=2480920427;const rand=()=>((rng=(Math.imul(rng,1664525)+1013904223)>>>0)/4294967296);
@@ -708,7 +747,7 @@ class Water extends Mesh {
     waterfalls,height,elevation,clearance,spawn,launches,trees,skyTexture:skyMap,sunMask:visibility,sunDirection:sun,waterLevel:0,lakeLevel:0,lakePolygon:shore,altitudeOffset:survey.heightOffset,
     bounds:{minX:-3700,maxX:3700,minZ:-3700,maxZ:3700},
     landmarks:[{name:'Western gravel beach',x:-647,z:466},{name:'Lakeshore meadow',x:-688,z:497,discoveryRadius:42},{name:'Oeschinensee',x:30,z:260},{name:'Fründen Falls',x:472,z:922},
-      {name:'Eastwall Cascade',x:936,z:550},{name:'Fründenschnuer',x:978,z:264},{name:'Blüemlisalp Ridge',x:3135,z:-380}],
+      {name:'Eastwall Cascade',x:947,z:641,approach:[985,700,841,539,24,0,18]},{name:'Fründenschnuer',x:978,z:264},{name:'Blüemlisalp Ridge',x:3135,z:-380}],
     update(dt,time){clock.value=time;lake.material.uniforms.time.value=time*.52;}
   };
 };

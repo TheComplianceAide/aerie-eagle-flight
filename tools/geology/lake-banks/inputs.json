@@ -1,0 +1,110 @@
+{
+  "lily": {
+    "height": {
+      "sha256": "1019a16dfe248b3814b9c71cf0cb5e7cf57a5976c8be904bb722bf8f1959305a",
+      "url": "https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer/exportImage?bbox=457171.0%2C5049609.0%2C458773.0%2C5051211.0&bboxSR=32619&imageSR=32619&size=801%2C801&f=image&format=tiff&interpolation=RSP_BilinearInterpolation&pixelType=F32&renderingRule=%7B%22rasterFunction%22%3A%22None%22%7D",
+      "grid": [
+        801,
+        801
+      ]
+    },
+    "photo": {
+      "sha256": "e4f0ef866592c963035241a76f3bf0650c0c64edd614047b43f72a1e5b12aad3",
+      "url": "https://gis.maine.gov/image/rest/services/NAIP/orthoNaip2018/ImageServer/exportImage?bbox=457172%2C5049610%2C458772%2C5051210&bboxSR=32619&imageSR=32619&size=1600%2C1600&f=image&format=tiff&interpolation=RSP_BilinearInterpolation&pixelType=U8&bandIds=0%2C1%2C2%2C3&renderingRule=%7B%22rasterFunction%22%3A%22None%22%7D",
+      "grid": [
+        1600,
+        1600
+      ]
+    }
+  },
+  "spencer": {
+    "height": {
+      "sha256": "1f17d6dae4a589c60d1e380c9b3a75ccd86fd42851a923ac8421f53e68b3eb1c",
+      "url": "https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer/exportImage?bbox=453411.0%2C5059074.0%2C455013.0%2C5060676.0&bboxSR=32619&imageSR=32619&size=801%2C801&f=image&format=tiff&interpolation=RSP_BilinearInterpolation&pixelType=F32&renderingRule=%7B%22rasterFunction%22%3A%22None%22%7D",
+      "grid": [
+        801,
+        801
+      ]
+    },
+    "photo": {
+      "sha256": "8e5cec597d375b75e6e9254a04518c596c59894bdfa97626c998b97e2186563f",
+      "url": "https://gis.maine.gov/image/rest/services/NAIP/orthoNaip2018/ImageServer/exportImage?bbox=453412%2C5059075%2C455012%2C5060675&bboxSR=32619&imageSR=32619&size=1600%2C1600&f=image&format=tiff&interpolation=RSP_BilinearInterpolation&pixelType=U8&bandIds=0%2C1%2C2%2C3&renderingRule=%7B%22rasterFunction%22%3A%22None%22%7D",
+      "grid": [
+        1600,
+        1600
+      ]
+    }
+  },
+  "meredith": {
+    "height": {
+      "sha256": "74482a4069bb113aaca169832a290c25c47b2ef68c511f95e707145c2f02da11",
+      "url": "https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer/exportImage?bbox=299917.0%2C4833232.0%2C301919.0%2C4835234.0&bboxSR=32619&imageSR=32619&size=1001%2C1001&f=image&format=tiff&interpolation=RSP_BilinearInterpolation&pixelType=F32&renderingRule=%7B%22rasterFunction%22%3A%22None%22%7D",
+      "grid": [
+        1001,
+        1001
+      ]
+    },
+    "photo": {
+      "sha256": "e1380e593b6db67dda5f8cdee063cf06d5e8e86de3145ba47a2d87778af43fd8",
+      "url": "https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer/exportImage?bbox=299918%2C4833233%2C301918%2C4835233&bboxSR=32619&imageSR=32619&size=2000%2C2000&f=image&format=tiff&interpolation=RSP_BilinearInterpolation&pixelType=U8&bandIds=0%2C1%2C2%2C3&renderingRule=%7B%22rasterFunction%22%3A%22None%22%7D",
+      "grid": [
+        2000,
+        2000
+      ]
+    }
+  },
+  "wolfeboro": {
+    "height": {
+      "sha256": "2650bbd6974fc2de31c51ba92304b985e77e7fe075fa4818f856e46476e43cbc",
+      "url": "https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer/exportImage?bbox=320452.0%2C4826237.0%2C322254.0%2C4828039.0&bboxSR=32619&imageSR=32619&size=901%2C901&f=image&format=tiff&interpolation=RSP_BilinearInterpolation&pixelType=F32&renderingRule=%7B%22rasterFunction%22%3A%22None%22%7D",
+      "grid": [
+        901,
+        901
+      ]
+    },
+    "photo": {
+      "sha256": "11bab369ff6cb4b9ada20c34d3c6dad1c69cafb591b141485ff483bbaff3ced1",
+      "url": "https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer/exportImage?bbox=320453%2C4826238%2C322253%2C4828038&bboxSR=32619&imageSR=32619&size=1800%2C1800&f=image&format=tiff&interpolation=RSP_BilinearInterpolation&pixelType=U8&bandIds=0%2C1%2C2%2C3&renderingRule=%7B%22rasterFunction%22%3A%22None%22%7D",
+      "grid": [
+        1800,
+        1800
+      ]
+    }
+  },
+  "diamond": {
+    "height": {
+      "sha256": "1136ec6c00bb2e025eb4d4efa0a39492f5ca24047ecd1c66efac640aea8f7c47",
+      "url": "https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer/exportImage?bbox=311982.0%2C4826307.0%2C313284.0%2C4827609.0&bboxSR=32619&imageSR=32619&size=651%2C651&f=image&format=tiff&interpolation=RSP_BilinearInterpolation&pixelType=F32&renderingRule=%7B%22rasterFunction%22%3A%22None%22%7D",
+      "grid": [
+        651,
+        651
+      ]
+    },
+    "photo": {
+      "sha256": "bdc3e6a15521954a43d19819a948d162412df3177d5e7e412015038a7a4c256a",
+      "url": "https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer/exportImage?bbox=311983%2C4826308%2C313283%2C4827608&bboxSR=32619&imageSR=32619&size=1300%2C1300&f=image&format=tiff&interpolation=RSP_BilinearInterpolation&pixelType=U8&bandIds=0%2C1%2C2%2C3&renderingRule=%7B%22rasterFunction%22%3A%22None%22%7D",
+      "grid": [
+        1300,
+        1300
+      ]
+    }
+  },
+  "sleepers": {
+    "height": {
+      "sha256": "f2c006519fdb9fa5524944c5660a166fee8d2bc30ef31a062df933d726208696",
+      "url": "https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer/exportImage?bbox=314262.0%2C4824082.0%2C315564.0%2C4825384.0&bboxSR=32619&imageSR=32619&size=651%2C651&f=image&format=tiff&interpolation=RSP_BilinearInterpolation&pixelType=F32&renderingRule=%7B%22rasterFunction%22%3A%22None%22%7D",
+      "grid": [
+        651,
+        651
+      ]
+    },
+    "photo": {
+      "sha256": "7e438b6cd414fa7860e40fb9e13c44083c81ec1a2224f4aab7c127841c02f25d",
+      "url": "https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer/exportImage?bbox=314263%2C4824083%2C315563%2C4825383&bboxSR=32619&imageSR=32619&size=1300%2C1300&f=image&format=tiff&interpolation=RSP_BilinearInterpolation&pixelType=U8&bandIds=0%2C1%2C2%2C3&renderingRule=%7B%22rasterFunction%22%3A%22None%22%7D",
+      "grid": [
+        1300,
+        1300
+      ]
+    }
+  }
+}

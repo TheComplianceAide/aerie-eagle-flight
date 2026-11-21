@@ -84,6 +84,43 @@
             vec2 screenSlope=(viewMatrix*vec4(surfaceNormal.x,0.,surfaceNormal.z,0.)).xy;
             vec2 warp=screenSlope*distortionScale*(.063+.49/max(5.,distance));`);
       }
+      if(atlas&&region==='acadia'){
+        // Ocean Path's survey alpha supplies the measured tide depth. The 3D
+        // breaker skin handles whitewater where the NOAA soundings cover it.
+        shader=window.addAcadiaCoast.inletField+'\n'+shader;
+        shader=shader.replace('vec3 shore=texture2D(shoreField,basin).rgb;', `
+          vec4 shore=texture2D(shoreField,basin);
+          float gorge=inletShelter(p);
+          float soundings=step(127.75,shore.a*255.)*interior;
+          float tidalDepth=clamp((shore.a*255.-128.)/126.,0.,1.);`)
+          .replace('float shallow=exp(-.47*waterDepth);', `
+            waterDepth=mix(waterDepth,max(.065,24.*tidalDepth*tidalDepth),soundings);
+            // The NOAA offshore cell is wider than the fissure. Use a bounded
+            // low-tide channel depth where both walls enclose the water.
+            waterDepth=mix(waterDepth,max(waterDepth,1.15),gorge);
+            float shallow=exp(-.47*waterDepth);`)
+          .replace('vec3 h=normalize(v+sunDirection);',`
+            // Skylight reaches the rock floor over a narrow opening. Preserve
+            // wave reflection while attenuating the transmitted sand lighting.
+            vec3 wetGranite=dot(body,vec3(.21,.72,.07))*vec3(.19,.31,.39)+vec3(.002,.006,.009);
+            body=mix(body,wetGranite,gorge);
+            vec3 h=normalize(v+sunDirection);`)
+          .replace('float white=oceanSurf*','float white=oceanSurf*(1.-gorge)*(1.-.92*soundings)*')
+          .replace('incident*shoaling','incident*mix(1.,.16,soundings)*shoaling');
+      }
+      if(atlas&&region==='lofoten'){
+        // The register comes from the 2 m Hamnøy survey and the wider fjord.
+        // Its alpha is 255 outside the harbor. Retain wind ripples in the lee.
+        shader=shader.replace('vec3 shore=texture2D(shoreField,basin).rgb;', `
+          vec4 shore=texture2D(shoreField,basin);
+          float harborSwell=clamp((shore.a*255.-128.)/127.,0.,1.);`)
+          .replace('float coast=shoreExposure,', 'float coast=shoreExposure*mix(.11,1.,harborSwell),')
+          .replace('float incident=mix(', 'float incident=mix(.035,1.,harborSwell*harborSwell)*mix(')
+          .replace('float white=oceanSurf*', 'float white=oceanSurf*harborSwell*harborSwell*')
+          .replace('vec3 wave=waterWaves(p,time,footprint,energy);', `
+            energy*=mix(.065,1.,harborSwell);
+            vec3 wave=waterWaves(p,time,footprint,energy);`);
+      }
       mat.fragmentShader=atlas&&light?lowSunReflection(mat,shader,light):shader;mat.needsUpdate=true;
     });
   }

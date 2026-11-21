@@ -522,7 +522,7 @@
         {clip: 'scape-acadia-cobbles', ref: 12, reach: 275, gain: .67, where: fixed(-84, 1.4, 490)},
         {clip: 'scape-acadia-cove', ref: 11, reach: 360, gain: .38, where: fixed(61, .7, -26)}
       ],
-      surge: {clip: 'scape-acadia-chamber', where: fixed(52, 1.1, -45), ref: 40, reach: 1150},
+      surge: {clip: 'scape-acadia-chamber', where: c => c.world.acadiaCoast.thunder, ref: 40, reach: 1150},
       choruses: [
         {clip: 'scape-acadia-spruce', habitat: 'trees', count: 3, r: [18,145], ref: 12, reach: 235, gain: .43},
         {clip: 'scape-moosehead-field-crickets', habitat: 'forest-edge', count: 2, r: [10,78], ref: 6, reach: 95, gain: .25}

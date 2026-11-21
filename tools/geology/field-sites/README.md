@@ -25,3 +25,45 @@ The verified Python environment used NumPy 2.4.6, SciPy 1.17.1, Pillow 13.0.0, r
 The compressed XML is a 21 November 2026 extract of 103 building footprints, four road approaches and the bridge. It contains the original node coordinates and way IDs, with irrelevant features and contributor metadata removed. Both the extract and derived building and road tables are © OpenStreetMap contributors, available under the Open Database License 1.0. The bridge model uses the documented 60, 120 and 60 m spans. [OpenStreetMap bridge alignment](https://www.openstreetmap.org/way/75118310) · [OpenStreetMap contributors](https://www.openstreetmap.org/copyright) · [ODbL 1.0](https://opendatacommons.org/licenses/odbl/1-0/) · [Statens vegvesen bridge record](https://dokument.vegvesen.no/dokument/basis/fil/8561706)
 
 **Oeschinensee.** The 472 × 344 m western survey uses © Federal Office of Topography swisstopo, swissALTI3D 2025 (2 m) and SWISSIMAGE, LV95 E2621180–2621652 / N1149352–1149696. The modeled water elevation is 1,574.9 m. Dry gravel on the western fan is distinguished from the higher water stage in the orthophoto. The mesh has 8,799 triangles. Submerged bed material and depth are reconstructed. [swissALTI3D dataset](https://www.swisstopo.admin.ch/en/height-model-swissalti3d) · [SWISSIMAGE](https://www.swisstopo.admin.ch/en/orthoimage-swissimage) · [swisstopo terms](https://www.swisstopo.admin.ch/en/terms-of-use-free-geodata-and-geoservices)
+
+**Oeschinensee eastern limestone wall.** The field material uses two separately credited summer photographs. The first camera's skyline and central far shore were fitted to the game relief. The second photo was matched to the overlapping exposed face with 709 accepted image correspondences. A deterministic one-in-seven holdout had a 2.56 px median interpolation error on the 1,000 px-wide field photograph. The source files come from different positions, dates and times. Terrain outside the common view uses the first image or the original regional rock material. Each baked texel carries its camera range so an eagle flying behind a visible face does not see a projected forward face. This is a photographically registered surface texture on the surveyed geometry. Sub-pixel details and unseen surfaces are reconstructed.
+
+The two original photographs and the exported textures and paired-pixel table are CC BY-SA 4.0. Copyright Bob Tan and Deralpinbergsteiger. The in-game credits and both WebP files name the creators and link the sources and license. The two photographs were cropped, camera-registered, exposure balanced and blended. [Bob Tan, June 2022 panorama](https://commons.wikimedia.org/wiki/File:Oeschinen_Lake_(Oeschinensee)_panorama_from_above_140622.jpg) · [Deralpinbergsteiger, July 2022 shoreline](https://commons.wikimedia.org/wiki/File:Oeschinensee_panorama_view_with_turquoise_water.jpg) · [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)
+
+Run from the repository root with the dependencies listed above. The bake reads only the public images, the included correspondence table, and the existing game elevation fields. Its two outputs are `oeschinen-east-limestone.webp` (2100 × 1199) and `oeschinen-east-limestone-mobile.webp` (1050 × 600).
+
+```sh
+python tools/geology/field-sites/bake_oeschinen_wall.py --cache /path/to/cache --output /path/to/comparison
+```
+
+| Additional input | SHA-256 |
+| --- | --- |
+| `oeschinen-drone-june-2022.jpg` | `80dd8eac0aa10b27b1136036541377a241dadef923d0b56b94c5d55f6d9053c9` |
+| `oeschinen-shore-july-2022-3840.jpg` | `8c1650f6dee17742678fd6d55ed8f87c52d8ec759d543d0d71867795071abcfa` |
+
+**Hamnøy sheltered water.** `bake_hamnoy_shelter.py` packs wave exposure in the alpha of the existing fjord shore image. It casts 13 inbound bearings through the 2 m local terrain and surrounding fjord DEM up to 2.4 km. The map describes the modeled east-southeast wave field at this departure, with open water outside the local coverage. The original shore color payload is copied intact. Rebuild with `python tools/geology/field-sites/bake_hamnoy_shelter.py --game game --output /path/to/atlas-lofoten-shore.webp`. Original inputs are the credited installed Hamnøy terrain model, fjord survey and shore RGB. Comparison photography of the working harbor is reference only. [Kartverket national terrain model](https://kartverket.no/en/api-and-data/terrengdata) · [Kartverket terms](https://www.kartverket.no/en/api-and-data/terms-of-use) · [Harbor operator](https://rorbuer.no/history/)
+
+**Oeschinensee eastern low-stage fan.** The original high-stage photo and broad 15-triangle lake section hid exposed gravel under surface water color. The revised survey reconstructs the shoreline from 2025 swissALTI3D, adds 4,706 triangles across four existing sections, and updates the signed reach and modeled shoal depth. SWISSIMAGE's historic 2004 map selection contains color flights from 1999 and 2000 over sheet 1248-31. Its 50 cm orthophotography exposes the actual braided alluvium. It was sampled, balanced and clipped to the dry low-stage terrace. Exact archive-day stage, simulated summer flow, and subaqueous details remain estimates. [swisstopo open-data terms](https://www.swisstopo.admin.ch/en/terms-of-use-free-geodata-and-geoservices) · [Cantonal Oeschinensee monitoring and seasonal stage](https://www.bvd.be.ch/content/dam/bvd/dokumente/de/awa/wasser/gew%C3%A4sserschutz/gew%C3%A4sserqualit%C3%A4t/berichte-zur-gew%C3%A4sserqualit%C3%A4t/berichte-2025-2026/kleinseen/2023-kleinseen-oes-gbl.pdf)
+
+The east main stem follows swissTLM3D records 7324093, 7254911, 7722945, 7254910, 7324090, 7324089 and 7254909. They belong to CH0017910000. The 7254908 in-lake continuation was used only as far as the exposed fan. Its submerged, cartographic centerline does not give an active surface channel. The two lower braids instead follow the dark channels in the low-stage photograph to the 2025 contour. [swissTLM3D hydrography](https://www.swisstopo.admin.ch/en/landscape-model-swisstlm3d) · [Hydrography service](https://api3.geo.admin.ch/rest/services/api/MapServer/ch.swisstopo.swisstlm3d-gewaessernetz/7254909?geometryFormat=geojson&sr=2056)
+
+Run the following from a git checkout with the earlier pre-bake asset revision available. Install `shapely>=2` and the Python `triangle` package in the geology bake environment alongside the dependencies above. The runtime has no geometric processing dependency.
+
+```sh
+python tools/geology/field-sites/bake_oeschinen_fan.py --cache /path/to/cache --output /path/to/comparison
+```
+
+| Additional source | SHA-256 |
+| --- | --- |
+| 2025 east fan swissALTI3D 2 m tile | `e6908d6a1161868d27a02f63f383f68f500bd48b2291baa8cb6c4fbadf578470` |
+| Historical low-stage SWISSIMAGE WMS response | `e98ded8ed9f6c5035b5443b069df32b8eaae763d1d424c3361fba7fc9bf15412` |
+
+### Sand Beach and Beehive Lagoon
+
+Build the approximately 295 KB local material atlas with the script below. The script fetches a registered USDA aerial, a one-meter USGS terrain export the NPS/J. Cosgrove shell photograph and the NPS 2026 cultural landscape report. Its 2024 foreground photograph supplies flying-scale sand relief. Install pypdf in the documented bake environment. The script checks all four input SHA-256 digests. It also needs the released Acadia sky panorama in the game directory. Use the dataset URLs and geographic scope in the script to distinguish later NAIP coverage from the original export.
+
+```sh
+python tools/geology/field-sites/bake_acadia_sand_beach.py --cache /path/to/cache --output /path/to/comparison
+```
+
+The source and ODbL centerline for the mapped western staircase are credited in [Acadia scenery credits](../../../game/acadia-scenery-credits.txt). The shore-class texture's 0.5 m texels combine a resampled aerial with terrestrial elevation. They do not imply a 0.5 m ground survey of the lagoon bed. [NPS shell geology and photographs](https://www.nps.gov/articles/000/geologic-story-of-sand-beach.htm) · [NPS park cultural landscape inventory and as-built stair plan](https://irma.nps.gov/DataStore/Reference/Profile/2319481)

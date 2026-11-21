@@ -173,6 +173,12 @@ window.addHabitat = function addHabitat(THREE,scene,world,region) {
   // the triangles actually displayed, including coarse sections of the survey.
   const gridTiles=[];
   const terrainMaterials=new Set();
+  const eastFanMaterials=new Set();
+  if(region==='swiss')world.landformMesh?.traverse(mesh=>{
+    if(mesh.isMesh){terrainMaterials.add(mesh.material);eastFanMaterials.add(mesh.material);}
+  });
+  const eastFanPhoto=eastFanMaterials.size?loader.load('oeschinen-east-fan.webp'):null;
+  if(eastFanPhoto)eastFanPhoto.anisotropy=8;
   world.strandMesh?.traverse(mesh=>{if(mesh.isMesh)terrainMaterials.add(mesh.material);});
   for(const m of scene.children){
     const mat=m.material;
@@ -193,8 +199,25 @@ window.addHabitat = function addHabitat(THREE,scene,world,region) {
       const anchor=sw?'vec2 vd=(wp.xz+4000.)/8000.;':'float haze=';
       if(!mat.fragmentShader.includes(anchor))continue;
       Object.assign(mat.uniforms,marginUniforms,{beachScan:{value:glacial?world.bankDepositMap:loose}});
-      if(sw)mat.uniforms.strandPhoto={value:westernStrand};
+      const eastern=eastFanMaterials.has(mat);
+      if(sw)mat.uniforms.strandPhoto={value:eastern?eastFanPhoto:westernStrand};
       const layers=`
+        ${eastern?`
+        // The overhead image was taken at a higher lake stage. Where the
+        // surveyed lower-stage shore is exposed, grade the local limestone
+        // gravel from darker wet clasts to a pale, dry fan.
+        vec2 fanUv=(wp.xz-vec2(532.,314.))/vec2(450.,492.);
+        float fanEdge=min(min(fanUv.x,fanUv.y),min(1.-fanUv.x,1.-fanUv.y));
+        float eastFan=smoothstep(0.,.055,fanEdge)*smoothstep(.48,.88,n.y)*
+          smoothstep(-.03,.24,wp.y)*(1.-smoothstep(5.,9.,wp.y));
+        if(eastFan>.01){
+          vec3 floodGravel=texture2D(strandPhoto,vec2(fanUv.x,1.-fanUv.y)).rgb;
+          vec2 bedUv=(mat2(.88,-.48,.48,.88)*wp.xz)*.31;
+          vec3 wetClasts=texture2D(beachScan,bedUv).rgb;
+          float grain=dot(wetClasts,vec3(.27,.59,.14));
+          float close=1.-smoothstep(54.,275.,d);
+          rgb=mix(rgb,floodGravel*(1.+(grain-.35)*.59*close),eastFan*.99);
+        }`:''}
         if(d<250.){
           vec2 pos=${name}.xz;
           vec3 margin=marginAt(pos);float bank=-margin.x, gentle=smoothstep(.63,.94,${norm}.y);
@@ -211,7 +234,7 @@ window.addHabitat = function addHabitat(THREE,scene,world,region) {
           groundColor=mix(groundColor,groundColor*vec3(.65,.81,.83)+vec3(.017,.028,.035),thin*.81);
           groundColor+=vec3(.045,.061,.067)*(damp+.7*thin)*pow(max(0.,dot(normalize(cameraPosition-${name}),reflect(-sun,${norm}))),18.);
           ${col}=mix(${col},groundColor,(1.-smoothstep(42.,240.,d))*beach*.94);
-          ${sw?`
+          ${sw&&!eastern?`
             // SWISSIMAGE positions pale scree and darker gravel pockets on the
             // west fan. Keep individual tree crowns and open water out of the
             // ground material as the camera descends to the gravel berm.

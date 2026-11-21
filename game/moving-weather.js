@@ -24,6 +24,10 @@ window.makeMovingWeather = async function makeMovingWeather(THREE, scene, world)
   const lakePanorama = world.region === 'moosehead';
   const photographedDeck = lakePanorama || !!world.cloudDensityMap;
   const texture = lakePanorama ? world.skyTexture : await new THREE.TextureLoader().loadAsync(world.cloudDensityMap || 'cloud-field.png');
+  // The low Yosemite sun crosses a long column through the cloud deck.
+  // Its surface shadow samples the integrated density from that same field.
+  const penumbra=world.region==='yosemite'?{value:await new THREE.TextureLoader().loadAsync('yosemite-cloud-penumbra.webp')}:null;
+  if(penumbra)penumbra.value.wrapS=penumbra.value.wrapT=THREE.RepeatWrapping;
   if (!lakePanorama) texture.wrapS = THREE.RepeatWrapping;
   if (!photographedDeck) texture.wrapT = THREE.RepeatWrapping;
   const uniforms = {
@@ -158,6 +162,7 @@ window.makeMovingWeather = async function makeMovingWeather(THREE, scene, world)
       material.onBeforeCompile=function(shader,renderer){
         prior.call(this,shader,renderer);
         Object.assign(shader.uniforms,uniforms);
+        if(penumbra&&!sky)shader.uniforms.cloudField=penumbra;
         if(sky){
           if (photographedDeck) {
             // Preserve the sun's bearing and the photographic horizon as the
@@ -180,7 +185,7 @@ window.makeMovingWeather = async function makeMovingWeather(THREE, scene, world)
           // Survey grids and skinned/instanced meshes already have densely
           // spaced vertices. Sampling there preserves scarce fragment samplers
           // for the photographic terrain and multilayer feather materials.
-          const surveyedCliff=world.region==='milford'&&material.uniforms?.halfMap&&material.uniforms.terrainLight;
+          const surveyedCliff=(world.region==='milford'||penumbra)&&material.uniforms?.halfMap&&material.uniforms.terrainLight;
           const direct=surveyedCliff?'(.10+.90*sunlit*max(.0,dot(normal,sun)))':'1.';
           const shadeRGB='gl_FragColor.rgb*=vec3(1.)-vec3(1.,.85,.65)*cloudShade*'+direct+';';
           if(water){

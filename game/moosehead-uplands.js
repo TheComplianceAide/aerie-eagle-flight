@@ -73,7 +73,115 @@
       }
       return null;
     }
-    function add(T,scene,ranges,horizon,sun,haze,bays,ground){
+    // Carve the fine waterfall survey out of the drawn uplands. Source
+    // triangles stay available to sample() so the fine grid can meet the
+    // coarse surface along its outer contour.
+    function reserveGround(T,geometry,[left,top,right,bottom]){
+      const position=Array.from(geometry.attributes.position.array);
+      const normal=Array.from(geometry.attributes.normal.array);
+      const exposure=Array.from(geometry.attributes.skyVisibility.array);
+      const old=geometry.index.array,next=[],crossings=new Map();
+      const planes=[[0,left,1],[0,right,-1],[2,top,1],[2,bottom,-1]];
+      function cross(a,b,axis,edge){
+        const av=position[3*a+axis],bv=position[3*b+axis];
+        if(av===edge)return a;
+        if(bv===edge)return b;
+        const key=Math.min(a,b)+','+Math.max(a,b)+','+axis+','+edge;
+        const known=crossings.get(key);
+        if(known!==undefined)return known;
+        const t=(edge-av)/(bv-av),id=position.length/3;
+        for(let i=0;i<3;i++){
+          position.push(i===axis?edge:position[3*a+i]*(1-t)+position[3*b+i]*t);
+          normal.push(normal[3*a+i]*(1-t)+normal[3*b+i]*t);
+        }
+        exposure.push(Math.round(exposure[a]*(1-t)+exposure[b]*t));
+        crossings.set(key,id);
+        return id;
+      }
+      function triangulate(poly){
+        for(let j=1;j+1<poly.length;j++){
+          if(poly[0]!==poly[j]&&poly[0]!==poly[j+1]&&poly[j]!==poly[j+1])
+            next.push(poly[0],poly[j],poly[j+1]);
+        }
+      }
+      for(let k=0;k<old.length;k+=3){
+        const a=old[k],b=old[k+1],c=old[k+2],ax=3*a,bx=3*b,cx=3*c;
+        if(Math.max(position[ax],position[bx],position[cx])<=left||
+           Math.min(position[ax],position[bx],position[cx])>=right||
+           Math.max(position[ax+2],position[bx+2],position[cx+2])<=top||
+           Math.min(position[ax+2],position[bx+2],position[cx+2])>=bottom){
+          next.push(a,b,c);continue;
+        }
+        let inside=[a,b,c];
+        for(const [axis,edge,sign] of planes){
+          if(inside.length<3)break;
+          const remaining=[],outside=[];
+          for(let j=0;j<inside.length;j++){
+            const v=inside[j],w=inside[(j+1)%inside.length];
+            const va=(position[3*v+axis]-edge)*sign,wa=(position[3*w+axis]-edge)*sign;
+            if(va>=0)remaining.push(v);
+            if(va<=0)outside.push(v);
+            if(va*wa<0){
+              const split=cross(v,w,axis,edge);
+              remaining.push(split);outside.push(split);
+            }
+          }
+          triangulate(outside);
+          inside=remaining;
+        }
+      }
+      geometry.setIndex(next);
+      geometry.setAttribute('position',new T.Float32BufferAttribute(position,3));
+      geometry.setAttribute('normal',new T.Float32BufferAttribute(normal,3));
+      geometry.setAttribute('skyVisibility',new T.Uint8BufferAttribute(exposure,1,true));
+    }
+    function shadeColdStream(material,survey,bank){
+      const photo=bank?'detailOrtho':'woodland',soil=bank?'bankMaterial':'ground';
+      const half=survey.woodlandHalf.toFixed(1),span=(2*survey.woodlandHalf).toFixed(1);
+      // Use the same irradiance and forest-floor projection on both the
+      // one-metre brook and its adjoining uplands. The July aerial takes
+      // over at distance; underneath, shade follows the measured tree crowns.
+      const source=`
+        vec2 coldUv(vec2 q,vec2 cell){
+          return .5*(cell+.014+.972*(1.-abs(2.*fract(.5*q)-1.)));
+        }
+        vec3 coldWood(vec3 base,vec3 position,vec3 normal,float distanceToEye,float bankWeight){
+          vec2 delta=position.xz-vec2(${survey.x.toFixed(1)},${survey.z.toFixed(1)});
+          float extent=max(abs(delta.x),abs(delta.y));
+          if(extent>=${half}||bankWeight<.0001)return base;
+          vec4 stand=texture2D(${photo},vec2(delta.x,-delta.y)/${span}+.5);
+          float edge=1.-smoothstep(${half}-57.,${half},extent);
+          vec2 q=delta;
+          float standMix=.5+.24*sin(q.x*.071+q.y*.047)+.17*cos(q.y*.088-q.x*.039);
+          // Two rotated photo footprints break up mirror bands on sloping
+          // ground. Their grain stays fixed in metres as the eagle banks.
+          vec2 qa=mat2(.86,.510,-.510,.86)*q*.213;
+          vec2 qb=mat2(.277,-.961,.961,.277)*q*.167+vec2(.97,.43);
+          vec3 duff=mix(texture2D(${soil},coldUv(qa,vec2(1.,1.))).rgb,
+                        texture2D(${soil},coldUv(qb,vec2(1.,1.))).rgb,standMix);
+          vec3 mineral=texture2D(${soil},coldUv(qb*.83+.18,vec2(0.,1.))).rgb;
+          float moss=.5+.24*sin(q.x*.045+q.y*.031)+.18*sin(q.x*.039-q.y*.081);
+          float rocky=(1.-smoothstep(.48,.91,normal.y))*.75+.12*moss;
+          vec3 floorPhoto=mix(duff*vec3(.83,.94,.85),mineral,rocky);
+          float canopyLuma=dot(stand.rgb,vec3(.23,.60,.17));
+          // Leaf-off first returns describe potential direct gaps. Retain
+          // ambient skylight under the canopy and reflected green light.
+          vec3 ambient=vec3(.54,.64,.70)*(.73+.24*normal.y);
+          vec3 direct=vec3(1.10,.99,.79)*(.11+max(dot(normal,sun),0.))*(.22+.78*stand.a);
+          float closure=.68+.28*stand.a+.12*clamp(canopyLuma,0.,.75);
+          vec3 floorLit=pow(max(floorPhoto,vec3(.022)),vec3(2.2))*closure*(ambient+direct);
+          vec3 aerialLit=pow(stand.rgb,vec3(2.18))*(ambient+direct*.90);
+          vec3 wooded=mix(floorLit,aerialLit,smoothstep(75.,430.,distanceToEye));
+          return mix(base,wooded,edge*bankWeight);
+        }
+      `;
+      material.fragmentShader=(bank?'':'uniform sampler2D woodland;\n')+material.fragmentShader
+        .replace(/void main\(\)\s*\{/,source+'\nvoid main(){')
+        .replace(bank?'float dep=1.-exp':'float air=1.-exp',
+          (bank?'c=coldWood(c,wp,normal,d,smoothstep(4.,14.,brookDistance));\nfloat dep=1.-exp':
+          'earth=coldWood(earth,wp,n,d,1.);\nfloat air=1.-exp'));
+    }
+    function add(T,scene,ranges,horizon,sun,haze,bays,ground,survey,woodland,bankSurveys=[]){
       const material=new T.ShaderMaterial({
         uniforms:{ranges:{value:ranges},horizon:{value:horizon},bays:{value:bays},ground:{value:ground},sun:{value:sun},haze:{value:haze}},
         vertexShader:`attribute float skyVisibility;
@@ -122,6 +230,11 @@
             #include <colorspace_fragment>
           }`
       });
+      const forestMaterial=woodland?material.clone():null;
+      if(forestMaterial){
+        forestMaterial.uniforms={...material.uniforms,woodland:{value:woodland}};
+        shadeColdStream(forestMaterial,survey,false);
+      }
       const groups=new Map();
       for(const t of tiles.values()){
         const key=Math.floor(t.i/2)+','+Math.floor(t.j/2);
@@ -149,8 +262,20 @@
         const g=new T.BufferGeometry();
         g.setIndex(new T.BufferAttribute(index,1));
         g.setAttribute('position',new T.BufferAttribute(pos,3));g.setAttribute('normal',new T.BufferAttribute(norm,3));
-        g.setAttribute('skyVisibility',new T.BufferAttribute(light,1,true));g.computeBoundingSphere();
-        const mesh=new T.Mesh(g,material);
+        g.setAttribute('skyVisibility',new T.BufferAttribute(light,1,true));
+        if(survey&&group.some(({i,j})=>axes[i]<survey.x+survey.half&&axes[i+1]>survey.x-survey.half&&
+           axes[j]<survey.z+survey.half&&axes[j+1]>survey.z-survey.half))
+          reserveGround(T,g,[survey.x-survey.half,survey.z-survey.half,survey.x+survey.half,survey.z+survey.half]);
+        for(const bank of bankSurveys){
+          const [left,top,right,bottom]=bank.rect;
+          if(group.some(({i,j})=>axes[i]<right&&axes[i+1]>left&&axes[j]<bottom&&axes[j+1]>top))
+            reserveGround(T,g,bank.rect);
+        }
+        g.computeBoundingSphere();
+        const nearStream=forestMaterial&&group.some(({i,j})=>
+          axes[i]<survey.x+survey.woodlandHalf&&axes[i+1]>survey.x-survey.woodlandHalf&&
+          axes[j]<survey.z+survey.woodlandHalf&&axes[j+1]>survey.z-survey.woodlandHalf);
+        const mesh=new T.Mesh(g,nearStream?forestMaterial:material);
         mesh.userData.terrainCaster=true;
         mesh.name='Maine uplands · USGS terrain';scene.add(mesh);
       }
@@ -159,20 +284,33 @@
       const u=Math.floor((x/64000+.5)*forestSize),v=Math.floor((z/64000+.5)*forestSize);
       return u>=0&&v>=0&&u<forestSize&&v<forestSize?percent[v*forestSize+u]*.01:0;
     }
-    function woods(T,scene,world,clock){
+    function woods(T,scene,world,clock,survey,bankSurveys=[]){
       const canopy=window.mooseheadCrowns(T,scene,clock),tiles=new Map();
       const {treeGrid}=world;
       if(!canopy)return ()=>{};
-      for(let k=0;k<rootCount;k++){
-        const at=rootStart+k*8,x=forestView.getInt16(at,true),z=forestView.getInt16(at+2,true),y=sample(x,z);
-        if(y===null||y<world.waterLevel+.5)continue;
-        const tree={x,y,z,height:forestView.getUint8(at+4)/8,width:forestView.getUint8(at+5)/8,conifer:!!forestView.getUint8(at+6),seed:forestView.getUint8(at+7)/255};
-        const cell=treeGrid.cell(x,z);
+      function register(tree){
+        const {x,z}=tree,cell=treeGrid.cell(x,z);
         if(!treeGrid.cells.has(cell))treeGrid.cells.set(cell,[]);
         treeGrid.cells.get(cell).push(tree);
         const area=Math.floor(x/3600)+64*Math.floor(z/3600);
         if(!tiles.has(area))tiles.set(area,[]);
         tiles.get(area).push(tree);
+      }
+      if(survey?.woodland){
+        const data=new Int16Array(Uint8Array.from(atob(survey.woodland),c=>c.charCodeAt(0)).buffer);
+        for(let i=0;i<data.length;i+=5){
+          const x=survey.x+data[i]*.5,z=survey.z+data[i+1]*.5;
+          register({x,z,y:world.elevation(x,z),height:data[i+2]/8,width:data[i+3]/8,
+            conifer:data[i+4]===1,seed:((Math.imul(i,2654435761)>>>0)%65521)/65521});
+        }
+      }
+      for(let k=0;k<rootCount;k++){
+        const at=rootStart+k*8,x=forestView.getInt16(at,true),z=forestView.getInt16(at+2,true),insideBank=bankSurveys.some(b=>b.edge(x,z)>0);
+        const y=insideBank?world.elevation(x,z):sample(x,z);
+        if(y===null||y<world.waterLevel+.5)continue;
+        const tree={x,y,z,height:forestView.getUint8(at+4)/8,width:forestView.getUint8(at+5)/8,conifer:!!forestView.getUint8(at+6),seed:forestView.getUint8(at+7)/255};
+        if(survey?.woodland&&Math.max(Math.abs(x-survey.x),Math.abs(z-survey.z))<survey.woodlandHalf-20)continue;
+        register(tree);
       }
       const quad=new T.PlaneGeometry(1,1),material=canopy.material(false),bounds=new T.Box3(),point=new T.Vector3(),stands=[];
       // Maintain each root through the crossover to fully branched regional 3D.
@@ -197,6 +335,6 @@
         for(const m of stands){const b=m.geometry.boundingSphere;m.visible=b.center.distanceToSquared(eye)<(b.radius+18000)**2;}
       };
     }
-    window.mooseheadUplands={sample,add,cover,woods};
+    window.mooseheadUplands={sample,add,cover,woods,shadeColdStream};
   }
 })();

@@ -1,6 +1,6 @@
 // Connect the mapped lake outline to the land triangles. Narrow beaches and
 // small islands frequently fall between vertices in a regional height survey.
-window.joinAtlasShore=function(T,scene,{region,survey,elevation,level,terrain}){
+window.joinAtlasShore=function(T,scene,{region,survey,elevation,level,terrain,bankSurveys=[]}){
   const tileBins=new Map(),chunks=new Map(),faces=new Map();
   const key=(x,z)=>x+z*16384;
   function indexBox(bins,size,x0,z0,x1,z1,item){
@@ -31,7 +31,9 @@ window.joinAtlasShore=function(T,scene,{region,survey,elevation,level,terrain}){
   function section(x,z,nx,nz){
     const y=ground(x,z),near=ground(x+3*nx,z+3*nz),toLand=ground(x+12*nx,z+12*nz);
     // Intact high banks occlude the lake naturally. Only fill the missing shelf.
-    const needed=y<level+.12&&near<level+.22;
+    const surveyed=bankSurveys.some(bank=>bank.edge(x,z)>.45)||
+      (region==='winnipesaukee'&&window.makeWinnipesaukeeWaterfront?.islandBed(x,z));
+    const needed=!surveyed&&y<level+.12&&near<level+.22;
     const width=Math.min(32,Math.max(7,9+(level-toLand)*1.6));
     const grade=Math.max(.042,Math.min(.23,(toLand-level)/12+.078));
     const xyz=[];

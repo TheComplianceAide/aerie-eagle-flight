@@ -557,8 +557,17 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
   let landformMesh=null;
   if(landmarkTerrain&&landmarkGroundMaterials.size){
     const reference=landmarkGroundMaterials.values().next().value;
-    landformMesh=landmarkTerrain.add(THREE,scene,reference,nativeElevation,texture);
-    for(const source of landmarkGroundMaterials)landmarkTerrain.maskOriginal(source);
+    const [left,top,right,bottom]=landmarkTerrain.spec.holes[0];
+    // The alcove stays under its native five-metre triangles. At the open
+    // edge, match those exact triangles at every surveyed perimeter station.
+    function adjacentGround(x,z){
+      const vertical=(x===left||x===right)&&z>=top&&z<=bottom;
+      const horizontal=(z===top||z===bottom)&&x>=left&&x<=right;
+      return vertical||horizontal?rockSurface(x,z):nativeElevation(x,z);
+    }
+    landformMesh=landmarkTerrain.add(THREE,scene,reference,adjacentGround,texture);
+    // A ten-centimetre underlap covers multisampled edge fragments.
+    for(const source of landmarkGroundMaterials)landmarkTerrain.maskOriginal(source,.10);
   }
   return {landformMesh,height:elevation,elevation,rockSurface,rockLight:shared.terrainField,clearance,spawn,launches:{lake:spawn,ridge,shore,wall:{x:-920,y:67.814,z:-72,yaw:1.7984}},trees:[],
     skyTexture,sunDirection:sun,altitudeOffset:950,bounds:{minX:-2950,maxX:2950,minZ:-2950,maxZ:2950},

@@ -169,6 +169,10 @@ window.makePerchHabitat=function makePerchHabitat(T,scene,world,region){
   }
   function rockSite(x,z,hint,route=false){
     if(!boundsOK(x,z,5))return null;
+    if(region==='acadia'&&window.acadiaSandOpening(x,z)){
+      if(window.acadiaLagoonAt(x,z)&&ground(x,z)<2.38)return null;
+      return terrainPerch(x,z,hint,'Sand Beach landing');
+    }
     if(region==='dixville'&&x>-17&&x<35&&z>325&&z<367){
       const run=(x+5)*.8660254-(z-354)*.5,cross=(x+5)*.5+(z-354)*.8660254;
       if(run>-4&&run<34&&cross>-.9&&cross<4.8)return terrainPerch(x,z,hint);
@@ -208,7 +212,7 @@ window.makePerchHabitat=function makePerchHabitat(T,scene,world,region){
       return finish({id,type:'rock',label:dryRock?'Sandstone ledge':'Rock ledge',x,y:height,z,seed,radius:radial,root:{x,y,z}},dx,dz,slope);
     });
   }
-  function terrainPerch(x,z,hint){
+  function terrainPerch(x,z,hint,label='Rock shelf'){
     const y=ground(x,z);
     if(!Number.isFinite(y)||wet(x,z,y)||floor(x,z)>y+.11)return null;
     for(const [dx,dz] of [[.30,0],[-.30,0],[0,.25],[0,-.25],[.24,.18],[-.24,-.18]]){
@@ -217,7 +221,7 @@ window.makePerchHabitat=function makePerchHabitat(T,scene,world,region){
     const seed=noise(Math.round(x*5),Math.round(z*5),59);
     return orient(seed,hint,(dx,dz)=>{
       const slope=corridor(x,y,z,dx,dz);
-      return slope===null?null:finish({id:'terrain:'+x.toFixed(2)+','+z.toFixed(2),type:'rock',label:'Rock shelf',
+      return slope===null?null:finish({id:'terrain:'+x.toFixed(2)+','+z.toFixed(2),type:'rock',label,
         x,y,z,radius:.31,seed,root:{x,y,z},existingSurface:true},dx,dz,slope);
     });
   }

@@ -79,6 +79,27 @@ window.makeWinnipesaukeeWaterfront=function(T,scene,texture){
     ).replace('vec3 c=mix(photo,stoneColor,materialWeight);','vec3 c=mix(photo,stoneColor,materialWeight*(1.-shorelineView*.82));');
   }
 
+  function finishIslandTerrain(group){
+    const material=group?.children.find(mesh=>mesh.isMesh)?.material;
+    if(!material)return;
+    // This material is private to the Rattlesnake inset. Its Weirs sampler
+    // has zero influence 14 km from the wharf, so reuse the existing unit.
+    material.uniforms.waterfront0={value:texture('winnipesaukee-rattlesnake-bank.webp')};
+    material.fragmentShader=material.fragmentShader.replace('float skyView=occ.g,',`
+      float islandCoverage=0.;
+      vec2 islandUv=(xz-vec2(740.,1760.))/vec2(610.,400.);
+      if(all(greaterThan(islandUv,vec2(0.)))&&all(lessThan(islandUv,vec2(1.)))){
+        vec4 bankPhoto=texture2D(waterfront0,vec2(islandUv.x,1.-islandUv.y));
+        islandCoverage=bankPhoto.a;
+        if(bankPhoto.a>.002){
+          vec3 stoneGrain=texture2D(trackBallast,mat2(.67,.31,-.31,.67)*xz+wp.y*vec2(.21,.37)).rgb;
+          vec3 localStone=bankPhoto.rgb*clamp(.69+1.1*stoneGrain,vec3(.7),vec3(1.4));
+          c=mix(c,localStone,bankPhoto.a*(1.-smoothstep(550.,2300.,d)));
+        }
+      }
+      float skyView=occ.g,`).replace('beachColor*shade,strip*local.y','beachColor*shade,strip*(1.-islandCoverage)*local.y');
+  }
+
   function applyWater(material){
     injectMaps(material,'shore','vec3 v=normalize(eye-worldPosition.xyz);','water');
     material.fragmentShader=material.fragmentShader.replace(
@@ -404,6 +425,75 @@ window.makeWinnipesaukeeWaterfront=function(T,scene,texture){
     const mesh=new T.Mesh(geo,mat);mesh.position.set(f.x,deckY,f.z);mesh.name='Alton Bay signal flags and name board';root.add(mesh);
   }
 
+  function campDocks(parent,waterLevel,deck,elevation){
+    // Landside and lakeside endpoints measured on the NH GRANIT 2021–22 ortho.
+    // Several adjacent camps have separate fingers pointing in different directions.
+    const lines=[
+      [1265.3,1803.2,1263.1,1815.8,1.6],[1258.8,1803.7,1257.6,1812.1,0.8],[1242.6,1804.8,1242.9,1815.5,1.5],
+      [1221.4,1812,1226.5,1821.1,1.5],[1135.5,1835.3,1140.5,1842.5,1.5],[1059.3,1911.6,1066.3,1918.6,1.8],
+      [1000.8,1968.6,1006.9,1979.6,1.6],[982.7,1984.6,991.8,1993.1,1.6],[965.2,2006.8,974.3,2015.2,1.5],
+      [948,2022.7,955.7,2030.1,1.3],[922.7,2048.2,929.4,2054.2,2.2],[879.6,2073.8,884,2080.2,1.6],
+      [829.1,2127.8,829.7,2137,1],[1284.2,1803.1,1282.6,1813.6,1.15],[1138.7,1829.3,1142.9,1836.1,1.05],
+      [1104.1,1849.2,1113.5,1858.6,1.65],[1086.7,1880.7,1099.4,1883.8,1.55],[1071.6,1899.3,1078,1908.4,1.15],
+      [1054.5,1916.1,1060.7,1923,1.15],[1023.8,1946.7,1033.5,1954,1.3],[858.8,2087.7,864.4,2094.3,1.2],
+      [834.9,2115,841.9,2116.9,1.3],[833.8,2117.8,841.9,2120,1.15]
+    ];
+    const boards=[],supports=[],tones=[],bounds=[];
+    const transform=new T.Matrix4(),translation=new T.Vector3(),rotation=new T.Quaternion(),scale=new T.Vector3();
+    const vertical=new T.Vector3(0,1,0);
+    for(const [x,z,tipX,tipZ,width] of lines){
+      const dx=tipX-x,dz=tipZ-z,length=Math.hypot(dx,dz),ux=dx/length,uz=dz/length;
+      const direction=-Math.atan2(uz,ux),level=waterLevel+.59;
+      const count=Math.ceil(length/.27),pitch=length/count;
+      rotation.setFromAxisAngle(vertical,direction);
+      function piece(collection,u,y,v,l,h,w){
+        translation.set(x+ux*u-uz*v,y,z+uz*u+ux*v);scale.set(l,h,w);
+        collection.push(transform.compose(translation,rotation,scale).clone());
+      }
+      for(let j=0;j<count;j++){
+        piece(boards,pitch*(j+.5),level,0,pitch-.009,.074,width);
+        const shade=.91+.11*(.5+.5*Math.sin(38.1*j+z));
+        tones.push(new T.Color(shade,shade*.982,shade*.933));
+      }
+      // A short gangway meets the measured ground behind the deck. Its
+      // shore end follows the grade where the main finger clears the water.
+      let back=1.0;
+      while(back<4.0&&elevation(x-ux*back,z-uz*back)<waterLevel+.44)back+=.5;
+      const landing=Math.max(waterLevel+.37,elevation(x-ux*back,z-uz*back)+.055);
+      const gangwayWidth=Math.min(width,.98),pieces=Math.ceil(back/.25);
+      for(let j=0;j<pieces;j++){
+        const t=(j+.5)/pieces;
+        piece(boards,-t*back,level+(landing-level)*t,0,back/pieces-.01,.069,gangwayWidth);
+        tones.push(new T.Color(.94,.925,.875));
+      }
+      for(const side of [-1,1]){
+        piece(supports,length*.5,level-.15,width*.39*side,length,.23,.12);
+        const spans=Math.ceil(length/3.2);
+        for(let j=0;j<=spans;j++)
+          piece(supports,.27+(length-.55)*j/spans,level-.79,width*.38*side,.13,1.60,.14);
+      }
+      bounds.push({x,z,ux,uz,length,half:width*.5,top:level+.037,back,landing,gangwayWidth});
+    }
+    const unit=new T.BoxGeometry(),timber=new T.MeshStandardMaterial({map:deck,color:0xf5f0e4,roughness:.95});
+    const stringers=new T.MeshStandardMaterial({color:0x71695a,roughness:.97});
+    for(const [name,poses,mat] of [['deck boards',boards,timber],['pilings and stringers',supports,stringers]]){
+      const mesh=new T.InstancedMesh(unit,mat,poses.length);
+      for(let i=0;i<poses.length;i++){mesh.setMatrixAt(i,poses[i]);if(mat===timber)mesh.setColorAt(i,tones[i]);}
+      mesh.computeBoundingSphere();mesh.name='Rattlesnake Island camp '+name;parent.add(mesh);
+    }
+    return (x,z)=>{
+      if(x<745||x>1340||z<1780||z>2150)return -Infinity;
+      for(const b of bounds){
+        const dx=x-b.x,dz=z-b.z,along=dx*b.ux+dz*b.uz;
+        const across=Math.abs(dz*b.ux-dx*b.uz);
+        if(along>=0&&along<=b.length&&across<=b.half)return b.top;
+        if(along<0&&along>=-b.back&&across<=b.gangwayWidth*.5)
+          return b.top-(b.landing+.0345-b.top)*along/b.back;
+      }
+      return -Infinity;
+    };
+  }
+
   function build(elevation,waterLevel,clock){
     const deck=texture('lakeside-dock.webp',true),shingles=texture('lakeside-roof.webp',true);
     deck.colorSpace=shingles.colorSpace=T.SRGBColorSpace;
@@ -437,6 +527,7 @@ window.makeWinnipesaukeeWaterfront=function(T,scene,texture){
     materials.ballast=new T.MeshStandardMaterial({map:ballastMap,color:0xa8a69d,roughness:.97,side:T.DoubleSide});
     const root=new T.Group();root.name='Weirs Beach and Alton Bay waterfronts';scene.add(root);
     const vesselHeight=buildMountWashington(root,waterLevel);
+    const dockHeight=campDocks(root,waterLevel,deck,elevation);
     const unit=new T.BoxGeometry(1,1,1),column=new T.CylinderGeometry(.5,.5,1,9);
     const shapes=new Map(),sections=new Map(),obstacles=[];
     function batch(mat,geometry,matrix){
@@ -620,7 +711,9 @@ window.makeWinnipesaukeeWaterfront=function(T,scene,texture){
         f.box('trim',u,top-2.05,k*(f.width/2+.13),1.66,.11,.25);
       }
     }
-    for(const set of [weirs.boats,alton.boats])for(const [x,z,l,w,angle] of set||[]){
+    // White runabout alongside the rocky camp landing on the six-inch ortho.
+    const islandBoat=[[1076.8,1906.25,5.2,2.02,2.284]];
+    for(const set of [weirs.boats,alton.boats,islandBoat])for(const [x,z,l,w,angle] of set||[]){
       const cs=Math.cos(angle),sn=-Math.sin(angle),y=waterLevel+.49;
       const at=(u,h,v)=>[x+u*cs-v*sn,h,z+u*sn+v*cs];
       const edge=[[-l*.49,y,-w*.42],[l*.14,y,-w*.50],[l*.49,y,0],[l*.14,y,w*.50],[-l*.49,y,w*.42]];
@@ -709,10 +802,175 @@ window.makeWinnipesaukeeWaterfront=function(T,scene,texture){
       instances.forEach((m,i)=>mesh.setMatrixAt(i,m));mesh.computeBoundingSphere();root.add(mesh);
     }
     return (x,z)=>{
-      let y=vesselHeight(x,z);
+      let y=Math.max(vesselHeight(x,z),dockHeight(x,z));
       for(const o of obstacles)if(Math.hypot(x-o.x,z-o.z)<o.r)y=Math.max(y,o.y);
       return y;
     };
   }
-  return {rects,elevation,applyTerrain,applyWater,createTrees,build,settlement,launches,landmarks};
+  return {rects,elevation,applyTerrain,applyWater,finishIslandTerrain,createTrees,build,settlement,launches,landmarks};
+};
+
+// The hydrographic polygon crossed several headlands with straight chords.
+// The 2021–22 NH GRANIT six-inch ortho resolves the coves, stone frontage
+// and water between the private docks on Rattlesnake's southeast side.
+(()=>{
+  const coast=[
+    [1329,1796],[1324.2,1797.8],[1319.6,1800.9],[1314.9,1803.8],[1307.4,1805.2],
+    [1302,1806.2],[1298.4,1806.2],[1294.5,1806.2],[1291.2,1805.6],[1287.9,1805.9],
+    [1285.5,1806.5],[1283.4,1805.6],[1281.3,1805],[1279.2,1805],[1276.8,1804.7],
+    [1273.5,1805.3],[1270.8,1804.7],[1267.8,1803.8],[1265.4,1804.1],[1263,1804.1],
+    [1260.3,1804.4],[1256.8,1804.7],[1253.2,1804.7],[1250.2,1805],[1247.2,1806.8],
+    [1244.5,1807.1],[1242.1,1805.6],[1240.6,1805],[1239.1,1805.6],[1231.5,1809.7],
+    [1223.4,1812.2],[1214.8,1816],[1211.5,1819.2],[1205,1822],[1200.5,1826.4],
+    [1194,1824.9],[1188.8,1823.8],[1183.6,1823.7],[1178.4,1823.7],[1172.2,1822.5],
+    [1170.7,1823.7],[1164.3,1823.4],[1158.3,1822.9],[1153.7,1825.3],[1149.3,1827.7],
+    [1144.5,1833.2],[1140.8,1835.1],[1138,1835.3],[1134.2,1836.8],[1124.5,1837.1],
+    [1120,1839.2],[1115.5,1840.1],[1112.5,1841.6],[1110.7,1844.3],[1108.6,1846.7],
+    [1105.9,1849.4],[1102.3,1851.8],[1099.3,1853.3],[1098.7,1855.1],[1096.9,1857.2],
+    [1095.7,1861.4],[1094.8,1865.3],[1094.5,1867.1],[1092.7,1869.8],[1090.3,1871.6],
+    [1088.2,1871.9],[1084.6,1870.7],[1082.8,1869.2],[1080.7,1869.2],[1080.7,1870.4],
+    [1082.8,1872.5],[1085.2,1873.4],[1087.6,1874.3],[1088.5,1875.5],[1088.2,1877.6],
+    [1087.6,1880.3],[1087.3,1882.4],[1087.3,1884.8],[1087.6,1887.5],[1086.7,1889.6],
+    [1085.8,1892.3],[1084,1894.1],[1081.9,1895.9],[1079.2,1897.1],[1077.1,1897.7],
+    [1074.7,1898.3],[1072.9,1899.5],[1071.1,1900.7],[1068.4,1901.9],[1066.3,1903.7],
+    [1064.8,1905.8],[1063.9,1907.6],[1061.5,1909.7],[1060,1912.4],[1058.5,1913.3],
+    [1057.3,1912.4],[1055.8,1913.6],[1055.2,1916.9],[1054,1918.4],[1051.6,1919.3],
+    [1050.1,1919.9],[1048,1921.4],[1046.5,1924.1],[1043.5,1925.3],[1042,1928],
+    [1039.3,1930.5],[1038.1,1934.4],[1036,1936.5],[1034.8,1939.5],[1032.7,1941.9],
+    [1030.3,1943.4],[1027.6,1946.1],[1024.9,1947],[1022.5,1949.4],[1019.8,1951.5],
+    [1017.4,1954.5],[1015.9,1956.6],[1012.9,1958.4],[1009.3,1959.9],[1006.6,1959.6],
+    [1004.8,1957.8],[1002.4,1956.9],[999.4,1958.4],[997.9,1960.5],[997.3,1962.9],
+    [998.5,1964.1],[1002.1,1964.4],[1004.2,1967.1],[1002.1,1969.2],[999.4,1970.1],
+    [997,1970.1],[995.5,1971.9],[993.4,1972.8],[991.3,1972.5],[989.8,1974.6],
+    [990.4,1976.4],[988.3,1978.2],[987.4,1981.5],[984.7,1983.6],[982.6,1986],
+    [980.8,1986.6],[979,1988.7],[976.9,1989],[976,1987.5],[974.5,1986.3],
+    [971.8,1985.7],[969.4,1986.6],[968.5,1988.7],[968.5,1992],[970.3,1994.1],
+    [970.9,1997.1],[970,1999.5],[968.5,2001.3],[967.6,2004.3],[967.3,2006.4],
+    [965.8,2007.6],[964,2009.7],[961.6,2011.2],[958.3,2011.8],[956.5,2013.3],
+    [953.2,2015.7],[951.4,2018.7],[949.9,2020.8],[948.4,2023.8],[946,2025.9],
+    [943.6,2027.7],[939.9,2033.1],[937.3,2036.9],[929.6,2042.2],[925.9,2047.4],
+    [920.1,2051],[913.8,2050.6],[911.3,2051.5],[907.8,2053.8],[903.4,2058],
+    [900.2,2064.1],[896.6,2066.3],[893.8,2066.6],[889.9,2068.4],[884.2,2072.1],
+    [878.4,2075.9],[873.8,2080.9],[869.2,2085.2],[863.8,2086.9],[859.4,2088.3],
+    [855.5,2091.7],[852.5,2098.5],[848.4,2106.4],[845.7,2108.5],[844.5,2110.3],
+    [842.4,2112.1],[839.7,2113.6],[836.7,2114.5],[834.9,2116.3],[834.6,2118.7],
+    [834.9,2119.6],[833.7,2121.7],[831.9,2124.1],[830.7,2127.1],[829.2,2129.2],
+    [827.4,2131],[825.3,2131.3],[822.2,2134],[815.4,2136.6],[809.5,2136.1],
+    [804.4,2135.5],[797.7,2133.8],[792,2131.5],[787.3,2127.6],[784.9,2126.4],
+    [779.8,2125.7],[775.5,2126.2],[769.7,2124.8],[764.8,2122.2],[759.4,2117.4],
+    [756,2116]
+  ];
+  // A metre-scale shore surface replaces the old hydroflat/deep-bottom
+  // transition only along this surveyed arc. Keep height queries local.
+  const bins=new Map(),near=23,cell=32,key=(x,z)=>x+z*128;
+  for(let i=1;i<coast.length;i++){
+    const a=coast[i-1],b=coast[i],dx=b[0]-a[0],dz=b[1]-a[1];
+    const edge=[a[0],a[1],dx,dz,1/(dx*dx+dz*dz)];
+    for(let x=Math.floor((Math.min(a[0],b[0])-near)/cell);x<=Math.floor((Math.max(a[0],b[0])+near)/cell);x++)
+      for(let z=Math.floor((Math.min(a[1],b[1])-near)/cell);z<=Math.floor((Math.max(a[1],b[1])+near)/cell);z++){
+        const id=key(x,z);
+        if(!bins.has(id))bins.set(id,[]);
+        bins.get(id).push(edge);
+      }
+  }
+  window.makeWinnipesaukeeWaterfront.islandBed=(x,z)=>{
+    if(x<725||x>1355||z<1770||z>2165)return false;
+    for(const [a,b,dx,dz,inv] of bins.get(key(Math.floor(x/cell),Math.floor(z/cell)))||[]){
+      const u=Math.max(0,Math.min(1,((x-a)*dx+(z-b)*dz)*inv));
+      const h=x-a-u*dx,v=z-b-u*dz;
+      if(h*h+v*v<near*near)return true;
+    }
+    return false;
+  };
+  // Light open ground extends from this camp to its stone landing in the
+  // six-inch ortho. Regional 10 m land cover classifies it as woodland.
+  const landing=[[1059.8,1892.6], [1064.4,1892.2], [1069.0,1889.9], [1072.8,1887.9], [1076.0,1886.2], [1079.6,1883.8], [1082.6,1883.0], [1085.1,1885.1], [1082.9,1888.8], [1081.5,1893.6], [1077.9,1897.2], [1073.6,1898.5], [1070.4,1901.0], [1066.9,1904.3], [1063.0,1904.6], [1060.0,1901.5], [1060.3,1898.9], [1059.0,1895.8]];
+  window.makeWinnipesaukeeWaterfront.openCampLanding=(x,z)=>{
+    if(x<1057||x>1086||z<1880||z>1907)return false;
+    let inside=false;
+    for(let i=0,j=landing.length-1;i<landing.length;j=i++){
+      const a=landing[i],b=landing[j];
+      if((a[1]>z)!==(b[1]>z)&&x<(b[0]-a[0])*(z-a[1])/(b[1]-a[1])+a[0])inside=!inside;
+    }
+    return inside;
+  };
+  // Leave a narrow underwater overlap behind the registered wet edge. The
+  // measured bank, including its stones, now meets a continuous water plane.
+  // Wildlife and shallow-water optics continue to use the actual shore ring.
+  window.makeWinnipesaukeeWaterfront.wetMargin=function(ring){
+    const start=ring.findIndex(p=>p[0]===coast[0][0]&&p[1]===coast[0][1]);
+    if(start<0||ring.length<coast.length)return ring;
+    const result=ring.slice();
+    for(let j=1;j<coast.length-1;j++){
+      const a=coast[j-1],p=coast[j],b=coast[j+1],dx=b[0]-a[0],dz=b[1]-a[1],m=Math.hypot(dx,dz);
+      if(m<.01)continue;
+      const inset=Math.min(2.6,j*.65,(coast.length-1-j)*.65);
+      result[start+j]=[p[0]-dz*inset/m,p[1]+dx*inset/m];
+    }
+    return result;
+  };
+  window.makeWinnipesaukeeWaterfront.refineShoreline=function(holes){
+  const same=(p,q)=>Math.abs(p[0]-q[0])<.25&&Math.abs(p[1]-q[1])<.25;
+  for(const ring of holes||[]){
+    const start=ring.findIndex(p=>same(p,coast[0]));
+    if(start<0)continue;
+    const finish=ring.findIndex((p,i)=>i>start&&same(p,coast[coast.length-1]));
+    if(finish<0||same(ring[start+1],coast[1]))continue;
+    ring.splice(start+1,finish-start-1,...coast.slice(1,-1));
+    return;
+  }
+  };
+})();
+
+// Actual low surface peaks from classified FEMA/USGS ground returns. The
+// adjoining ortho distinguishes the mineral bank from docks and vegetation.
+window.makeWinnipesaukeeWaterfront.shoreStones=function(T,world,sheet,entries){
+  const ledges=[
+    [1254,1800,155.42,1.25,1.54,0.23],[1256,1800.5,155.14,1.25,1.46,0.17],[1275,1800.5,154.84,1.35,1.35,0.1],[1248,1801,154.82,1.39,1.39,0.12],
+    [1277,1801,154.77,1.39,1.39,0.12],[1281,1801.5,154.65,1,1.37,0.11],[1262.5,1802,154.52,1.37,1.37,0.12],[1236,1803,154.21,1.52,1.52,0.22],
+    [1291.5,1803,154.61,1.37,1.37,0.11],[1254,1803.5,154.31,1.25,1.65,0.3],[1250,1803.5,154.17,1.47,1.47,0.18],[1257,1803.5,154.26,1,1.45,0.17],
+    [1295.5,1804,154.29,0.75,1.71,0.34],[1244.5,1804,154.18,1.56,1.56,0.24],[1273,1804,154.38,1.5,1.55,0.23],[1247.5,1804,154.22,1.51,1.51,0.21],
+    [1275,1804.5,154.01,1.45,1.45,0.17],[1262.5,1804.5,154.07,0.75,1.36,0.11],[1289,1805,154.36,1.51,1.51,0.21],[1269.5,1805,154.07,1.32,1.32,0.08],
+    [1230,1806,153.65,1.33,1.33,0.09],[1226,1806.5,153.82,1.43,1.43,0.15],[1222.5,1808,153.91,1.5,1.5,0.2],[1234,1808,153.55,1.25,1,0.09],
+    [1217.5,1810,154.32,1.65,1.5,0.3],[1211,1814,154.04,1.42,1.42,0.15],[1156,1819.5,154,1.51,1,0.21],[1131.5,1833.5,154.04,1.46,1.46,0.17],
+    [1129.5,1836,154.05,1.45,1.45,0.17],[1112,1836.5,154.2,1.41,1.25,0.14],[1126.5,1837,154.01,1,1.59,0.26],[1122,1837.5,154.16,1.64,1.5,0.3],
+    [1114.5,1841.5,154.08,1.25,1.38,0.12],[1111.5,1845.5,153.89,1.37,1.25,0.12],[1110,1846.5,153.88,0.75,1.39,0.13],[1101,1852,153.82,1.33,1.33,0.08],
+    [1097.5,1853,153.85,1.32,1.32,0.08],[1093,1855.5,154.08,1.48,1.25,0.19],[1098,1858,154.03,1.41,1.41,0.14],[1093,1858,154.03,1.36,1.36,0.1],
+    [1095.5,1861,154.14,1.48,1.48,0.19],[1092,1864,154.5,1.58,1.25,0.25],[1090,1865.5,154.53,1.54,1.5,0.23],[1083.5,1867,154.01,1.46,1.46,0.17],
+    [1085,1868.5,153.81,1.37,1.37,0.11],[1081,1869.5,154.06,1.66,1.25,0.3],[1088.5,1870,153.86,1.25,1.48,0.18],[1088.5,1871.5,153.73,1.25,1.44,0.16],
+    [1091.5,1872,153.6,1.34,1,0.09],[1081.5,1872.5,154.11,1.47,1.47,0.18],[1085.5,1874,153.93,1.57,1.57,0.25],[1083,1875,154.44,1.54,1.54,0.23],
+    [1080.5,1875.5,154.62,1.39,1.25,0.12],[1088,1876.5,153.85,1.43,1.43,0.15],[1088,1878.5,154.08,1.4,1.4,0.13],[1084,1883.5,154.48,1.4,1,0.13],
+    [1087.5,1883.5,154.08,1.38,1.38,0.12],[1087,1886.5,154.24,1.51,1.51,0.2],[1083,1888,154.56,1.36,1.25,0.11],[1087.5,1890,154.36,1.43,1.43,0.15],
+    [1082,1891,154.85,1.46,1.25,0.17],[1079.5,1893,154.71,1.39,1.39,0.12],[1086.5,1893.5,154.48,1.57,1.57,0.25],[1081,1893.5,154.58,1.37,1.37,0.11],
+    [1075.5,1893.5,154.75,1.35,1.35,0.1],[1072.5,1895,154.65,1.41,1.41,0.14],[1083.5,1895.5,154.31,1,1.46,0.17],[1069.5,1897,154.75,1.49,1.49,0.2],
+    [1069,1902.5,154.16,1.49,1.49,0.19],[1065,1906,154.14,1.48,1.48,0.18],[1059.5,1906,155.08,1.41,1.41,0.14],[1063,1908.5,154.25,1.45,1.45,0.17],
+    [1050.5,1916,154.36,1.48,1.25,0.19],[1049,1918.5,153.97,1,1.42,0.15],[1044,1922.5,154.5,1.25,1.5,0.26],[1041.5,1924.5,154.09,1.47,1.47,0.18],
+    [1037.5,1926.5,153.95,1.43,1.43,0.15],[1037,1928,153.92,1.42,1.42,0.14],[1035,1931,154.32,1.42,1.42,0.15],[1033.5,1933.5,154.63,1.55,1.25,0.23],
+    [1036,1933.5,154.28,1.48,1,0.19],[1026.5,1941.5,154.25,1.5,1.5,0.25],[1021.5,1947.5,154.29,1.48,1.48,0.19],[1019,1949.5,154.27,1.54,1.54,0.23],
+    [1017,1952.5,154.22,1.5,1.54,0.22],[1007.5,1954,153.96,1.4,1,0.13],[1015.5,1955,154.15,1.46,1.46,0.18],[1011.5,1957,154.18,1.38,1.38,0.12],
+    [1008,1959,153.96,1.44,1.44,0.16],[999.5,1965,154.09,1.25,1.56,0.24],[993.5,1967,154.04,1.25,1.25,0.14],[996.5,1969,154.19,1.46,1,0.17],
+    [993.5,1970,154.34,1.53,1.5,0.22],[993.5,1972,154.29,1.49,1.49,0.19],[992,1974,154.34,1.5,1.6,0.27],[989,1978,154.28,1.25,1.68,0.32],
+    [984,1981.5,153.87,1.34,1.34,0.09],[985,1983.5,153.97,1.45,1.45,0.17],[968,1984.5,154.13,1.32,1.32,0.08],[981.5,1988,154.09,1.5,1.5,0.2],
+    [966,1991.5,154.24,1.33,1.33,0.09],[971.5,1994.5,154.07,1,1.34,0.09],[968.5,1996,154.61,1.5,1.5,0.2],[971,1996,154.37,1.42,1.42,0.15],
+    [968.5,1998,154.63,1.32,1.32,0.08],[969,2004,155,1.75,1.78,0.39],[964,2004,155.41,1.5,1.25,0.21],[963.5,2008.5,155.01,1.39,1.39,0.13],
+    [962,2009,155.15,1.4,1.4,0.13],[952.5,2013.5,155.74,1.47,1.47,0.18],[956,2015,155.12,1.38,1.38,0.12],[949,2019,155.79,1.75,1.75,0.58],
+    [879.5,2070,154.16,1.45,1.45,0.17],[861.5,2083,154.3,1.25,1.52,0.21],[855,2086.5,154.36,1.49,1.49,0.19],[852,2089.5,154.36,1.52,1.52,0.21],
+    [851.5,2091.5,154.26,1.4,1.4,0.14],[836.5,2110,154.25,1.42,1,0.15],[835,2111.5,154.36,1.47,1.47,0.18],[773.5,2121.5,154.1,1.37,1.37,0.11],
+    [764,2122.5,154.32,1.25,1.5,0.25]
+  ];
+  const up=new T.Vector3(0,1,0),pose=new T.Quaternion();
+  for(const [x,z,top,rx,rz,relief] of ledges){
+    const stamp=Math.imul(Math.round(x*2),73856093)^Math.imul(Math.round(z*2),19349663),cell=(stamp>>>0)%16;
+    const specimen=sheet.specimens[cell],yaw=((stamp>>>4)%1021)*Math.PI*2/1021;
+    const length=Math.min(2*rx,.38+3.8*relief),depth=Math.min(2*rz,.43+3.4*relief);
+    const height=Math.max(.22,Math.min(.87,.12+1.42*relief));
+    // The middle-detail mesh keeps one continuous silhouette from open lake
+    // to the bank. Its base is embedded below the registered dry surface.
+    const y=Math.max(world.elevation(x,z)-height*.55,top-height*.74);
+    const [sx,sy,sz]=specimen.extent;
+    const matrix=new T.Matrix4().compose(new T.Vector3(x,y,z),pose.setFromAxisAngle(up,yaw),
+      new T.Vector3(length/sx,height/sy,depth/sz));
+    entries.push({sheet:sheet.id,cell,x,y,z,width:length,height,depth,yaw,matrix,length:Math.max(length,depth),
+      wetStage:world.waterLevel+.16,anchor:'Rattlesnake Island surveyed shore',fixedShore:true});
+  }
 };

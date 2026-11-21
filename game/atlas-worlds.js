@@ -468,6 +468,8 @@ class Water extends Mesh {
 
   const survey=window.ATLAS_SURVEYS[region];
   if(region==='moosehead')window.refineMooseheadShore(survey);
+  if(region==='moosehead'||region==='winnipesaukee')window.refineLakeBays(region,survey);
+  if(region==='winnipesaukee')window.makeWinnipesaukeeWaterfront?.refineShoreline(survey.shoreHoles);
   const settings={
     yosemite:{sky:'alaska-evening.jpg',sun:[-.62,.46,.53],stone:[.64,.61,.57],treeH:30,top:2840,cover:.91,launch:[-4600,1780,2300,0,150],low:[-1700,1110,1560,-490,70]},
     crater:{sky:'alaska-evening.jpg',sun:[-.37,.53,-.71],water:1880.62,sea:0x123951,stone:[.43,.385,.337],treeH:21,top:2430,cover:.96,launch:[-3410,1770,-960,-230,315],low:[-2360,1720,600,1630,57]},
@@ -514,7 +516,16 @@ class Water extends Mesh {
   const kineo=region==='moosehead'?window.kineoSurvey:null;
   const landmarkTerrain=window.aerieRegionalLandforms?.get(region);
   const harborTerrain=region==='lofoten'?window.aerieRegionalLandforms.get('hamnoy'):null;
-  const measuredTerrain=[landmarkTerrain,harborTerrain].filter(Boolean);
+  const easternSummits=region==='yosemite'?window.aerieRegionalLandforms.get('yosemitesummits'):null;
+  const namedBays=window.aerieLakeBankSites?.[region]||[];
+  const bankSurveys=namedBays.map(name=>window.aerieRegionalLandforms.get(name)).filter(Boolean);
+  const measuredTerrain=[landmarkTerrain,harborTerrain,easternSummits,...bankSurveys].filter(Boolean);
+  function bayAt(x,z){
+    for(const bank of bankSurveys){
+      const [l,t,r,b]=bank.rect;
+      if(x>l&&x<r&&z>t&&z<b)return bank;
+    }
+  }
   const campSurface=region==='labrador'&&survey.cabin?landmarkTerrain?.surfacePatch(survey.cabin.x,survey.cabin.z,72,(x,z)=>regionalElevation(x,z,false)):null;
   function elevation(x,z,includeIslet=true){
     if(campSurface){const y=campSurface(x,z);if(y!==null)return y;}
@@ -527,6 +538,8 @@ class Water extends Mesh {
     const native=regionalElevation(x,z,includeIslet);
     let base=landmarkTerrain?landmarkTerrain.height(x,z,native):native;
     if(harborTerrain)base=harborTerrain.height(x,z,base);
+    if(easternSummits)base=easternSummits.height(x,z,base);
+    if(bankSurveys.length){const bank=bayAt(x,z);if(bank)base=bank.height(x,z,base);}
     if(!brookGrid||!insideBrook(x,z))return kineo?kineo.elevation(x,z,base):base;
     const dx=x-localDEM.x,dz=z-localDEM.z,h=localDEM.half;
     return lerp(sample(brookGrid,h,dx,dz),base,smoothstep(Math.max(Math.abs(dx),Math.abs(dz)),h-18,h));
@@ -772,7 +785,7 @@ class Water extends Mesh {
     const granite=texture('atlas-yosemite-cathedral.webp');
     granite.wrapS=granite.wrapT=THREE.MirroredRepeatWrapping;
     terrain.uniforms.cathedralGranite={value:granite};
-    terrain.uniforms.westFace={value:texture('atlas-yosemite-west-face.webp')};
+    terrain.uniforms.westFace={value:texture('atlas-yosemite-tunnel-walls.webp')};
     terrain.uniforms.valleyCover={value:texture('yosemite-valley-cover.webp')};
     terrain.fragmentShader='uniform sampler2D cathedralGranite,westFace,valleyCover;\n'+terrain.fragmentShader.replace(
       '/* exposed field geology */',`
@@ -790,8 +803,11 @@ class Water extends Mesh {
         float exposed=face*bare*smoothstep(1193.,1315.,wp.y);
         // The dark mineral seams sit between broad slabs, with pale, fresh
         // broken edges resolving only as the bird approaches.
-        vec2 split=mix(slabZ,slabX,axis);
-        float flake=texture2D(cathedralGranite,split*3.51+vec2(.24,.17)).r;
+        // Blend the photographed values from each projection. Interpolating
+        // their kilometre-offset UVs before lookup folds closely spaced
+        // contour-like strains down a curved Cathedral Rocks face.
+        float flake=mix(texture2D(cathedralGranite,slabZ*3.51+vec2(.24,.17)).r,
+                        texture2D(cathedralGranite,slabX*3.51+vec2(.24,.17)).r,axis);
         graniteColor=vec3(.99,.972,.949)*(.18+.84*joints)*(.69+.48*flake+.22*cliff);
         lithology=mix(lithology,graniteColor,exposed*(.55+.37*cathedral));
         // Calibrated against the west-buttress skyline in the Tunnel View
@@ -802,11 +818,34 @@ class Water extends Mesh {
         float t=dot(ray.xz,vec2(-forward.y,forward.x))/max(along,1.);
         float tanAltitude=ray.y/max(horizontal,1.);
         vec2 projection=vec2(.5+3.0464*t,.5+4.0619*(tanAltitude*along/horizontal-.123576)/(1.+tanAltitude*.123576));
-        vec4 cliffImage=texture2D(westFace,clamp(projection,0.,1.));
+        vec4 cliffImage=texture2D(westFace,clamp(projection,0.,1.)*vec2(.625,1.));
         float inner=step(0.,min(projection.x,projection.y))*step(max(projection.x,projection.y),1.);
         float local=1.-smoothstep(1250.,1820.,length(wp.xz-vec2(-1100.,-120.)));
         float visible=smoothstep(.01,.26,dot(normal,normalize(-ray)))*local*inner*exposed;
         lithology=mix(lithology,cliffImage.rgb*(1.01+.20*(cliff-.45)),cliffImage.a*visible);
+        // NPS/C. Jacoby's Tunnel View provides a second, much wider oblique
+        // record of the Cathedral and Bridalveil side walls. The alpha value
+        // stores its nearest surveyed rock depth. Geometry behind that first
+        // visible face cannot inherit the foreground spur's photographic mark.
+        vec3 valleyRay=wp-vec3(-4628.,1338.978,1787.);
+        float valleyDepth=dot(valleyRay,vec3(.987007,.144950,-.069329));
+        vec2 fieldRay=vec2(dot(valleyRay,vec3(.076185,-.042292,.996196)),
+                          dot(valleyRay,vec3(-.141467,.988535,.052785)))/max(1.,valleyDepth);
+        vec2 fieldFilm=vec2(.5)+vec2(.805838,1.43260)*fieldRay*(1.+.0154145*dot(fieldRay,fieldRay));
+        vec4 fieldWall=texture2D(westFace,vec2(.625,.55)+vec2(.375,.45)*clamp(fieldFilm,.0002,.9998));
+        float filmEdge=min(min(fieldFilm.x,fieldFilm.y),min(1.-fieldFilm.x,1.-fieldFilm.y));
+        float recordedDepth=1500.*exp(2.590267*(fieldWall.a-.10)/.86);
+        float mismatch=abs(recordedDepth-valleyDepth)/max(55.,.026*valleyDepth);
+        float registeredWall=(1.-smoothstep(.45,2.9,mismatch))*smoothstep(.085,.115,fieldWall.a)
+                  *smoothstep(.0,.010,filmEdge)*smoothstep(.04,.28,dot(normal,normalize(-valleyRay)));
+        registeredWall*=smoothstep(.13,.52,1.-normal.y)*(1.-smoothstep(.32,.80,veg));
+        // Original El Capitan already has its closer buttress record. Extend
+        // that view onto adjacent outcrops while preserving its named seams.
+        registeredWall*=1.-.80*cliffImage.a*visible;
+        vec3 closeMineral=fieldWall.rgb*(.91+.25*cliff+.18*(grit-.45));
+        lithology=mix(lithology,closeMineral,.95*registeredWall);
+        materialWeight=max(materialWeight,.93*registeredWall);
+
       `);
     terrain.fragmentShader=terrain.fragmentShader.replace('/* canopy transmission */',`
       // Re-light the surveyed oblique photographs with the same western sun
@@ -814,6 +853,44 @@ class Water extends Mesh {
       float wallMask=exposed*(1.-smoothstep(4800.,16000.,d));
       vec3 granite=graniteColor*(.86+.25*unitCover.b);
       granite=mix(granite,cliffImage.rgb*(.94+.17*cliff),visible*cliffImage.a);
+      granite=mix(granite,closeMineral,registeredWall*.98);
+      wallMask=max(wallMask,registeredWall*.97);
+      if(wp.x>6800.&&wp.x<9352.&&wp.z>-2856.&&wp.z<-400.){
+        // NPS historic plate RL_00603, from Glacier Point, records the two
+        // exposed sides of Half Dome. Reproject the single dry-rock patch.
+        vec3 domeRay=wp-vec3(4460.,2184.52173,515.);
+        float domeDepth=dot(domeRay,vec3(.925089,-.040974,-.377534));
+        vec2 slopeOnFilm=vec2(dot(domeRay,vec3(.379319,.052292,.923787)),
+                             dot(domeRay,vec3(.018109,.997791,-.063917)))/max(1.,domeDepth);
+        vec2 film=vec2(571.,800.)+vec2(3201.7508,-3201.7508)*slopeOnFilm*(1.+.0260584*dot(slopeOnFilm,slopeOnFilm));
+        vec2 crop=(film-vec2(234.,235.))/vec2(716.,612.);
+        float border=min(min(crop.x,crop.y),min(1.-crop.x,1.-crop.y));
+        vec2 filmPos=(vec2(2560.5,896.5)+vec2(715.,611.)*clamp(crop,0.,1.))/vec2(4096.,1920.);
+        vec4 visor=texture2D(westFace,vec2(filmPos.x,1.-filmPos.y));
+        float tracedDepth=3200.*exp(.46609*(visor.a-.12)/.82);
+        float shape=(1.-smoothstep(25.,105.,abs(tracedDepth-domeDepth)))
+              *smoothstep(.10,.13,visor.a)*smoothstep(0.,.007,border)*smoothstep(.025,.27,dot(normal,normalize(-domeRay)));
+        granite=mix(granite,visor.rgb*(.97+.11*(cliff-.4)),shape*.98);
+        wallMask=max(wallMask,shape*.985);
+      }
+      if(exposed>.03&&d<200.){
+        // Named granite was photographed vertically from afar. Scale the
+        // jointed rock scan independently to restore the meter-scale fractures.
+        float nearJoints=lum(mix(texture2D(rockScan,wp.xy*.082+warp*.064).rgb,
+                                texture2D(rockScan,wp.zy*.088+warp*.075).rgb,axis));
+        float seams=clamp(.78+.61*cliff+.42*(nearJoints-.47),.55,1.25);
+        granite*=mix(1.,seams,1.-smoothstep(36.,200.,d));
+        if(d<18.){
+          // NPS/G. Stock's granite specimen uses a penny for scale. Sample
+          // its fine crystals only at the distances where they can resolve.
+          vec2 tiled=vec2(.173,.189);
+          vec2 uv1=(vec2(3316.5,900.5)+vec2(335.,367.)*fract(wp.xy/tiled))/vec2(4096.,1920.);
+          vec2 uv2=(vec2(3316.5,900.5)+vec2(335.,367.)*fract(wp.zy/tiled))/vec2(4096.,1920.);
+          float crystal=lum(mix(texture2D(westFace,vec2(uv1.x,1.-uv1.y)).rgb,
+                                texture2D(westFace,vec2(uv2.x,1.-uv2.y)).rgb,axis));
+          granite*=1.+(crystal-.72)*(.51*(1.-smoothstep(3.,18.,d)));
+        }
+      }
       float convex=clamp(.86+.42*relief,.63,1.18);
       float fill=.43+.23*skyView+.10*max(relieved.y,0.);
       vec3 wallLight=vec3(.85,.98,1.17)*fill+vec3(1.73,1.11,.64)*sunlit*(.12+1.01*incidence);
@@ -1360,7 +1437,8 @@ class Water extends Mesh {
     }
   }
   const maineGround=uplands?texture('moosehead-bank-ground.webp'):null;
-  if(uplands)uplands.add(THREE,scene,ranges,texture('moosehead-horizon.webp'),sun,color,texture('moosehead-bays.webp'),maineGround);
+  const streamWoodland=uplands&&localDEM?.woodland?texture('cold-stream-woodland.webp'):null;
+  if(uplands)uplands.add(THREE,scene,ranges,texture('moosehead-horizon.webp'),sun,color,texture('moosehead-bays.webp'),maineGround,localDEM,streamWoodland,bankSurveys);
   else ring(h,farH,Math.max(32,farH/570),0,0,waterfront?.rects||fjordRects);
   if(waterfront)for(const area of waterfront.rects)subdivide(...area,4.5);
   const core=tight?1450:h;
@@ -1506,13 +1584,17 @@ class Water extends Mesh {
     if(survey.shore?.length){
       const vec=([x,z])=>new THREE.Vector2(x,-z);
       const outline=new THREE.Shape(survey.shore.map(vec));
-      for(const hole of survey.shoreHoles||[])outline.holes.push(new THREE.Path(hole.map(vec)));
+      for(const hole of survey.shoreHoles||[]){
+        const wetEdge=waterfront?window.makeWinnipesaukeeWaterfront.wetMargin(hole):hole;
+        outline.holes.push(new THREE.Path(wetEdge.map(vec)));
+      }
       g=new THREE.ShapeGeometry(outline);
     }else{
       // Two triangles spanning 43 km lose depth precision when clipped at
       // the eagle's near plane. Shorter coplanar spans keep the fjord's
-      // waterline attached to the same granite as the camera banks.
-      const divisions=region==='lofoten'?64:1;
+      // waterline attached to the granite. At Thunder Hole they also keep
+      // the lower surface from cutting diagonally through the 4 m surf grid.
+      const divisions=region==='lofoten'||acadia?64:1;
       g=new THREE.PlaneGeometry(farH*2.4,farH*2.4,divisions,divisions);
     }
     const waterColors={acadia:0x101c29,moosehead:0x25505c,winnipesaukee:0x20505e,surry:0x454d49,crater:0x0a3977,milford:0x163d49,lofoten:0x215364};
@@ -1529,17 +1611,17 @@ class Water extends Mesh {
       bedSand:{value:shoreSand},foamCells:{value:saltFoam}
     });
     waterfront?.applyWater(water.material);
-    if(region==='lofoten'){
+    if(region==='lofoten'||acadia){
       // With a shoulder camera centimetres from the feathers, the sea and
       // low coastal rock can share a depth value several kilometres away.
       // The land shader clips below sea level. Resolve the remaining ties
-      // in favor of the exposed rock, including the far side of the fjord.
+      // in favor of exposed rock and the moving film of breaking surf.
       water.renderOrder=-500;
       water.material.polygonOffset=true;
       water.material.polygonOffsetUnits=2;
     }
     water.rotation.x=-Math.PI/2;water.position.y=settings.water+.16;scene.add(water);
-    if(survey.shore?.length)shoreFloor=window.joinAtlasShore?.(THREE,scene,{region,survey,elevation,level:water.position.y,terrain});
+    if(survey.shore?.length)shoreFloor=window.joinAtlasShore?.(THREE,scene,{region,survey,elevation,level:water.position.y,terrain,bankSurveys});
   }
   const waterfallViews=new Map();
   const waterfalls=(brook||['milford','yosemite','dixville'].includes(region))?window.makeWaterfallSystem(THREE,scene,{clock,ground:elevation,level:dixville||brook?undefined:water?.position.y,sun,texture,sky:skyMap}):null;
@@ -1572,6 +1654,7 @@ class Water extends Mesh {
   }
   if(brook){
     chute(brook.name,brook.rail,brook.width,{brook:true});
+    if(region==='crater')waterfallViews.get(brook.name).approach=[6225,4113,6130,4040,38,-9,6];
     window.makeRegionalBrook(THREE,scene,{brook,elevation,clock,texture,sky:skyMap,sun,region});
   }
   if(!dixville&&!brook)waterfalls?.couple(water);
@@ -1599,6 +1682,8 @@ class Water extends Mesh {
     return (y<settings.water+margin&&inLake(x,z))||Number.isFinite(dam.riverHeight(x,z));
   }
   function plant(tree,isFir){
+    if(acadia&&window.acadiaSandOpening(tree.x,tree.z))return;
+    if(acadia&&window.thunderHoleBareLedge(tree.x,tree.z))return;
     // Heath and coastal grass are green in the imagery too. Only mapped tree
     // cover supports tall birch crowns; the habitat layer supplies low scrub.
     if(birchCover){
@@ -1714,6 +1799,11 @@ class Water extends Mesh {
   for(const [key,tuple] of Object.entries(waterfront?.launches||settings.extraLaunches||{}))launches[key]=start(tuple);
   let landmarks=waterfront?[...survey.landmarks.filter(mark=>!waterfront.landmarks.some(local=>local.name===mark.name)),...waterfront.landmarks]:survey.landmarks;
   if(dixville)landmarks=[...landmarks,{name:'Mount Gloriette',x:-1150,z:1512,approach:[-540,930,-1150,1512,164,0,4]}];
+  if(acadia){
+    // Glide downhill beside the viewing steps. The chasm and its foam are
+    // in front of the starboard shoulder, with clear Atlantic water beyond.
+    landmarks=landmarks.map(p=>p.name==='Thunder Hole'?{...p,approach:[32,-57,71,-25,6,0,16]}:p);
+  }
   if(region==='lofoten'){
     landmarks=landmarks.map(mark=>mark.name==='Hamnøy'?{...mark,approach:[3746,3196,3867,2894,32,0,7]}:mark);
     landmarks.push({name:'Olstinden',x:1570,z:1780,approach:[2570,2250,1570,1780,370,0,2]});
@@ -1729,7 +1819,8 @@ class Water extends Mesh {
     landmarks.push({name:'Rainbow overlook',x:rainbow[0],z:rainbow[1],approach:rainbow});
   }
   function blockVegetationAt(x,z,y=elevation(x,z)){
-    return !!(resort?.inClearing(x,z)||cabin?.inClearing(x,z)||wetGround(x,z,y,.45)||dam?.onDam(x,z)||
+    if(waterfront&&window.makeWinnipesaukeeWaterfront.openCampLanding(x,z))return true;
+    return !!((acadia&&window.thunderHoleBareLedge(x,z))||resort?.inClearing(x,z)||cabin?.inClearing(x,z)||wetGround(x,z,y,.45)||dam?.onDam(x,z)||
       Number.isFinite(roofHeight?.(x,z))||Number.isFinite(waterfrontHeight?.(x,z)));
   }
   function groundCover(x,z){
@@ -1743,9 +1834,12 @@ class Water extends Mesh {
   if(!survey.shore?.length&&shoreDetail)world.fieldBankAt=shoreDetail.closestBank;
   if(dam){world.riverSurfaceAt=dam.riverHeight;world.surryArmorPerch=dam.armorPerch;}
   world.geologyGround=shoreFloor?(x,z)=>Math.max(shoreFloor.ground(x,z),shoreFloor(x,z)):null;
-  const updateUplandWoods=uplands?.woods(THREE,scene,world,clock);
+  const updateUplandWoods=uplands?.woods(THREE,scene,world,clock,localDEM,bankSurveys);
   if(bankGrowth)world.shoreThickets=bankGrowth;
+  for(const bank of bankSurveys)bank.add(THREE,scene,terrain,(x,z)=>regionalElevation(x,z,false),texture);
   if(landmarkTerrain)world.landformMesh=landmarkTerrain.add(THREE,scene,terrain,(x,z)=>regionalElevation(x,z,false),texture);
+  if(easternSummits)world.easternSummits=easternSummits.add(THREE,scene,terrain,(x,z)=>regionalElevation(x,z,false),texture);
+  waterfront?.finishIslandTerrain(world.landformMesh);
   if(harborTerrain){
     const harbor=harborTerrain.add(THREE,scene,terrain,(x,z)=>regionalElevation(x,z,false),texture);
     harbor.traverse(mesh=>{if(mesh.isMesh)shoreDetail.terrainEdges(mesh.geometry,false);});
@@ -1757,11 +1851,21 @@ class Water extends Mesh {
     // Reuse the lit regional rock and forest shader. Only the local photograph's
     // coordinates change, so even the busiest waterfront stays in its texture budget.
     const material=terrain.clone(),{x,z,half}=localDEM;
-    material.uniforms={...terrain.uniforms,aerial:{value:texture('falls-'+region+'-ortho.webp')}};
+    material.uniforms={...terrain.uniforms,aerial:{value:texture(region==='crater'?'crater-plaikni-banks.webp':'falls-'+region+'-ortho.webp')}};
     material.fragmentShader=terrain.fragmentShader.replace(/vec3 photo=mix\(texture2D\(aerial,photoUv\).*?;/,
       'vec3 photo=texture2D(aerial,(vec2(xz.x,-xz.y)-vec2('+x+'.0,'+(-z)+'.0))/'+(half*2)+'.0+.5).rgb;');
     window.shadeRegionalBrook(THREE,material,brookMeshes,brook);
+    if(streamWoodland){
+      // Kineo's core-only detail sampler has no coverage at Cold Stream.
+      // Share its texture unit with the local stand image on these four tiles.
+      material.uniforms.detailOrtho={value:streamWoodland};
+      uplands.shadeColdStream(material,localDEM,true);
+    }
     for(const mesh of brookMeshes){mesh.material=material;mesh.userData.prepareFlightMaterial=true;mesh.name=brook.name+' · surveyed stream bed';}
+    if(region==='crater'){
+      window.shadePlaikniBanks(material);
+      window.addPlaikniMeadow(THREE,scene,elevation);
+    }
   }
   if(tableHeight)buildTable();
   return world;

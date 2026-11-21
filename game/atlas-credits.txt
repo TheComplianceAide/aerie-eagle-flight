@@ -76,3 +76,17 @@ https://ucckeene.org/about/our-history/
 https://www.cheshiremen.org/where-we-meet
 https://keenenh.gov/wp-content/uploads/2025/03/part10.pdf
 https://www.flickr.com/photos/keenepubliclibrary/2533397331/
+
+Lily Bay and Spencer Bay, Maine; Meredith Bay, Wolfeboro Bay, Diamond Island and Sleepers Island, New Hampshire
+Two-metre bare-earth terrain from USGS 3DEP, registered with the existing USGS NHD lake chart. Near-infrared USDA NAIP measurements refine the land-water boundary. USDA NAIP RGB imagery supplies the local bank colors. Maine imagery is the 2018 NAIP mosaic served by the Maine GeoLibrary. Submerged slopes are reconstructed and lake stage is fixed.
+https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer
+https://hydro.nationalmap.gov/arcgis/rest/services/nhd/MapServer/12
+https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer
+https://gis.maine.gov/image/rest/services/NAIP/orthoNaip2018/ImageServer
+
+Rattlesnake Island, Lake Winnipesaukee
+NH GRANIT's 2021–2022 six-inch orthophotography registers the southeast shoreline, open camp landing and dock centerlines. The bank material incorporates a local color-balanced section of this imagery. NH GRANIT's metadata lists unrestricted use and requests acknowledgment. The fitted dry ground and the locations of low stone exposures use the USGS/FEMA Connecticut and Winnipesaukee watersheds 2015–2016 classified lidar. The submerged slope is estimated from the adjacent surveyed bank. The wooden docks and stone forms are original reconstructions.
+https://granit24a.sr.unh.edu/image/rest/services/ImageServices/NH_2021_2022_6in_RGB/ImageServer
+https://www.arcgis.com/sharing/rest/content/items/00733f77f3244d7b8c057b77f879701e/info/metadata/metadata.xml?format=default&output=html
+https://www.fisheries.noaa.gov/inport/item/71770
+https://s3-us-west-2.amazonaws.com/usgs-lidar-public/USGS_LPC_CT_River_Lot6_Winnipesaulee_2015_LAS_2017/ept.json

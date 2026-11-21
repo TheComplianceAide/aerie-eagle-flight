@@ -67,6 +67,7 @@ class Water extends Mesh {
 		mirrorCamera.userData.lakeReflection = true;
 
 		const renderTarget = new WebGLRenderTarget( textureWidth, textureHeight );
+		const domain=window.makeLakeReflectionDomain(THREE,geometry,textureWidth,textureHeight);
 
 		const mirrorShader = {
 
@@ -339,7 +340,12 @@ class Water extends Mesh {
 			renderer.state.buffers.depth.setMask( true ); // make sure the depth buffer is writable so it can be properly cleared, see #18897
 
 			if ( renderer.autoClear === false ) renderer.clear();
-			renderer.render( scene, mirrorCamera );
+			domain.fit(scene,scope,mirrorCamera,cameraWorldPosition.y-mirrorWorldPosition.y,distortionScale);
+			try {
+				renderer.render(scene,mirrorCamera);
+			} finally {
+				domain.restore();
+			}
 
 			scope.visible = true;
 
@@ -404,22 +410,27 @@ class Water extends Mesh {
     const local=sample(near,961,4800,x,z)+iceRelief(x,z)+crestHeight(x,z);
     return reliefHeight(x,z)+(d>4650?THREE.MathUtils.lerp(local,sample(far,601,18000,x,z),(d-4650)/150):local);
   }
-  const flow=[[1080,895],[1000,870],[946,821],[890,765],[819,711],[754,732],[696,743],[660,734],[636,696],[602,670],[567,653],[539,643],[522,644],[507,656],[493,669],[474,680]];
+  const landmarkTerrain=window.aerieRegionalLandforms?.get('alaska');
+  const flow=landmarkTerrain?.watercourse||[[1080,895],[1000,870],[946,821],[890,765],[819,711],[754,732],[696,743],[660,734],[636,696],[602,670],[567,653],[539,643],[522,644],[507,656],[493,669],[474,680]];
   // A treetop or protruding DEM triangle in a narrow chute can put a dry
   // triangular wall through the water. Constrain only the incised channel to
   // a downhill bed; the surrounding ridge retains its original elevation.
-  const channel=[];
-  let downstream=surveyElevation(...flow[0]);
+  const channelBands=new Map();
+  let downstream=surveyElevation(flow[0][0],flow[0][1]);
   for(let i=1;i<flow.length;i++){
     const [ax,az]=flow[i-1],[bx,bz]=flow[i],dx=bx-ax,dz=bz-az;
     const bottom=Math.max(-.35,Math.min(downstream,surveyElevation(bx,bz)));
-    channel.push({ax,az,dx,dz,inv:1/(dx*dx+dz*dz),top:downstream,bottom});
+    const reach={ax,az,dx,dz,inv:1/(dx*dx+dz*dz),top:downstream,bottom};
+    for(let band=Math.floor((Math.min(ax,bx)-34)/64);band<=Math.floor((Math.max(ax,bx)+34)/64);band++){
+      if(!channelBands.has(band))channelBands.set(band,[]);
+      channelBands.get(band).push(reach);
+    }
     downstream=bottom;
   }
   function channelAt(x,z){
     if(x<435||x>1120||z<605||z>933)return null;
     let nearest=34*34,hit=null;
-    for(const reach of channel){
+    for(const reach of channelBands.get(Math.floor(x/64))||[]){
       const u=clamp(((x-reach.ax)*reach.dx+(z-reach.az)*reach.dz)*reach.inv,0,1);
       const distance2=(x-reach.ax-u*reach.dx)**2+(z-reach.az-u*reach.dz)**2;
       if(distance2<nearest){nearest=distance2;hit={distance:Math.sqrt(distance2),bed:reach.top+(reach.bottom-reach.top)*u};}
@@ -439,7 +450,6 @@ class Water extends Mesh {
     const bar=.105*Math.sin(.46*x+.31*z)+.049*Math.cos(.68*z-.29*x);
     return y+mask*(smoothed-y+bar);
   }
-  const landmarkTerrain=window.aerieRegionalLandforms?.get('alaska');
   const landmarkGroundMaterials=new Set();
   function elevation(x,z){
     const base=nativeElevation(x,z);
@@ -563,18 +573,22 @@ class Water extends Mesh {
       float sheet=irr.b*float(p.x>-1200.&&p.x<2800.&&p.z<-400.&&p.z>-4800.);
       float ice=sheet;float snowfield=smoothstep(.56,.8,max(base.b,base.r))*smoothstep(.39,.63,base.g);
       vec3 weights=pow(abs(nn),vec3(4.));weights/=max(.001,weights.x+weights.y+weights.z);
-      vec3 stone=soilCapture(groundScan,p.zy*.088,4.).rgb*weights.x+soilCapture(groundScan,p.xz*.088,4.).rgb*weights.y+soilCapture(groundScan,p.xy*.088,4.).rgb*weights.z;
       float forest=smoothstep(.004,.05,base.g-base.r)*smoothstep(.012,.085,base.g-base.b);
-      vec3 substrate=mix(stone,texture2D(earth,p.xz*.14).rgb,forest);
-      float fleck=dot(substrate,vec3(.30,.54,.16));base*=mix(.73+fleck*.68,1.,smoothstep(120.,1900.,d));
-      vec3 ridgeTex=texture2D(mountain,p.zy/94.).rgb*weights.x+texture2D(mountain,p.xz/94.).rgb*weights.y+texture2D(mountain,p.xy/94.).rgb*weights.z;
-      float rockiness=(1.-snowfield)*(1.-ice)*smoothstep(.23,.87,1.-nn.y+.36*(1.-forest));
-      float slabs=smoothstep(.095,.45,1.-nn.y)*(1.-ice)*(1.-forest*.72)*(1.-snowfield)*(1.-smoothstep(180.,1150.,d));
-      vec3 stratum=texture2D(mountain,vec2((p.x+.4*p.z)/186.,(p.y+.23*p.x)/91.)).rgb;
-      float chips=dot(ridgeTex,vec3(.23,.64,.13)),stripes=dot(stratum,vec3(.23,.64,.13));
-      vec3 outcrop=mix(vec3(.14,.16,.18),vec3(.69,.67,.62),smoothstep(.19,.66,.57*chips+.43*stripes));
-      base=mix(base,outcrop*clamp(.6+.9*dot(base,vec3(.24,.60,.16)),.7,1.35),slabs*.75);
-      base=mix(base,mix(base,vec3(dot(base,vec3(.3,.59,.11))),.28)*(.53+ridgeTex*1.67),rockiness*.64*(1.-smoothstep(260.,1400.,d)));
+      if(d<1900.) {
+        vec3 stone=soilCapture(groundScan,p.zy*.088,4.).rgb*weights.x+soilCapture(groundScan,p.xz*.088,4.).rgb*weights.y+soilCapture(groundScan,p.xy*.088,4.).rgb*weights.z;
+        vec3 substrate=mix(stone,texture2D(earth,p.xz*.14).rgb,forest);
+        float fleck=dot(substrate,vec3(.30,.54,.16));base*=mix(.73+fleck*.68,1.,smoothstep(120.,1900.,d));
+      }
+      if(d<1400.) {
+        vec3 ridgeTex=texture2D(mountain,p.zy/94.).rgb*weights.x+texture2D(mountain,p.xz/94.).rgb*weights.y+texture2D(mountain,p.xy/94.).rgb*weights.z;
+        float rockiness=(1.-snowfield)*(1.-ice)*smoothstep(.23,.87,1.-nn.y+.36*(1.-forest));
+        float slabs=smoothstep(.095,.45,1.-nn.y)*(1.-ice)*(1.-forest*.72)*(1.-snowfield)*(1.-smoothstep(180.,1150.,d));
+        vec3 stratum=texture2D(mountain,vec2((p.x+.4*p.z)/186.,(p.y+.23*p.x)/91.)).rgb;
+        float chips=dot(ridgeTex,vec3(.23,.64,.13)),stripes=dot(stratum,vec3(.23,.64,.13));
+        vec3 outcrop=mix(vec3(.14,.16,.18),vec3(.69,.67,.62),smoothstep(.19,.66,.57*chips+.43*stripes));
+        base=mix(base,outcrop*clamp(.6+.9*dot(base,vec3(.24,.60,.16)),.7,1.35),slabs*.75);
+        base=mix(base,mix(base,vec3(dot(base,vec3(.3,.59,.11))),.28)*(.53+ridgeTex*1.67),rockiness*.64*(1.-smoothstep(260.,1400.,d)));
+      }
       // In shade, a sky-facing granite surface retains its cool diffuse albedo.
       // Project two scales of photographic rock and its measured normal onto the cut face.
       float rocky=max(smoothstep(.16,.55,1.-nn.y)*(1.-forest*.73),smoothstep(490.,870.,p.y)*.68);
@@ -595,29 +609,38 @@ class Water extends Mesh {
       // Stable aerial colour anchors the broad formations. Fine side-projected
       // fractures remain visible on a rock wall during the last part of an approach.
       base=mix(base,gray,rocky*nearFace*(.78-.30*smoothstep(240.,1600.,d)));
-      float crag=soilCapture(groundScan,p.xz/43.+p.y*.003,4.).r;
-      base*=1.+(crag-.47)*.40*(1.-snowfield)*(1.-ice)*(1.-smoothstep(1700.,5000.,d));
-      vec2 snowUV=p.xz*.12;float grain=texture2D(snow,snowUV).r;
+      if(d<5000.) {
+        float crag=soilCapture(groundScan,p.xz/43.+p.y*.003,4.).r;
+        base*=1.+(crag-.47)*.40*(1.-snowfield)*(1.-ice)*(1.-smoothstep(1700.,5000.,d));
+      }
+      float grain=.65;
+      if(d<1200.)grain=texture2D(snow,p.xz*.12).r;
       base*=1.+(.25*(grain-.65))*max(ice,snowfield)*(1.-smoothstep(70.,1200.,d));
-      float front=texture2D(lightMap,uv).b*(1.-smoothstep(4500.,4800.,q));
+      vec3 measuredLight=texture2D(lightMap,uv).rgb;
+      float front=measuredLight.b*(1.-smoothstep(4500.,4800.,q));
       float vert=smoothstep(.05,.86,1.-nn.y);
-      vec3 wall=texture2D(face,vec2((p.x+.68*p.z)/208.,p.y/53.)).rgb;
-      vec3 serration=texture2D(face,vec2((p.x+.34*p.z)/124.,p.z/110.+p.y/80.)).rgb;
-      base=mix(base,mix(serration,wall,vert)*vec3(.92,1.,1.02),smoothstep(.03,.34,front)*(.72+.28*vert));
-      vec2 coords=p.xz/132.+vec2(.18*sin(p.z/124.),.19*cos(p.x/170.));
-      vec3 icephoto=texture2D(blueIce,coords).rgb;
-      float braid=dot(icephoto,vec3(.23,.63,.14));float light=dot(nn,sun);
-      vec3 oldIce=base;
-      vec3 clearIce=mix(vec3(.16,.47,.59),vec3(.88,.94,.94),smoothstep(.31,.91,braid));
-      vec3 milk=mix(clearIce,oldIce,.32);
-      milk=mix(milk,vec3(.09,.30,.39)*(.8+.24*braid),irr.r*(.48+.2*(1.-irr.g)));
-      milk*=mix(vec3(.72,.85,.94),vec3(1.14,1.045,.935),smoothstep(-.48,.74,light));
-      float cutBand=texture2D(iceDetail,iuv).r*sheet;
-      float inBasin=smoothstep(450.,1600.,-p.z);
-      milk=mix(milk,base*vec3(.76,.98,1.05),inBasin*.79);
-      milk*=1.-.24*cutBand;
-      base=mix(base,milk,sheet*(.46+.38*(1.-smoothstep(420.,2400.,d))));
-      vec2 lightmap=texture2D(lightMap,uv).rg;
+      if(front>.03) {
+        vec3 wall=texture2D(face,vec2((p.x+.68*p.z)/208.,p.y/53.)).rgb;
+        vec3 serration=texture2D(face,vec2((p.x+.34*p.z)/124.,p.z/110.+p.y/80.)).rgb;
+        base=mix(base,mix(serration,wall,vert)*vec3(.92,1.,1.02),smoothstep(.03,.34,front)*(.72+.28*vert));
+      }
+      float light=dot(nn,sun);
+      if(sheet>0.) {
+        vec2 coords=p.xz/132.+vec2(.18*sin(p.z/124.),.19*cos(p.x/170.));
+        vec3 icephoto=texture2D(blueIce,coords).rgb;
+        float braid=dot(icephoto,vec3(.23,.63,.14));
+        vec3 oldIce=base;
+        vec3 clearIce=mix(vec3(.16,.47,.59),vec3(.88,.94,.94),smoothstep(.31,.91,braid));
+        vec3 milk=mix(clearIce,oldIce,.32);
+        milk=mix(milk,vec3(.09,.30,.39)*(.8+.24*braid),irr.r*(.48+.2*(1.-irr.g)));
+        milk*=mix(vec3(.72,.85,.94),vec3(1.14,1.045,.935),smoothstep(-.48,.74,light));
+        float cutBand=irr.r*sheet;
+        float inBasin=smoothstep(450.,1600.,-p.z);
+        milk=mix(milk,base*vec3(.76,.98,1.05),inBasin*.79);
+        milk*=1.-.24*cutBand;
+        base=mix(base,milk,sheet*(.46+.38*(1.-smoothstep(420.,2400.,d))));
+      }
+      vec2 lightmap=measuredLight.rg;
       float sunlit=mix(1.,lightmap.r,1.-smoothstep(4400.,4800.,q));
       vec3 diffuse=mix(vec3(.82,.88,.95),vec3(1.12,1.04,.94),clamp(.34+.66*light,0.,1.)*sunlit);
       base*=mix(diffuse,vec3(1.),sheet*.51)*(.90+.10*lightmap.g);
@@ -625,10 +648,12 @@ class Water extends Mesh {
       base=clamp((base-.37)*1.035+.373,0.,1.);
       // Talus and mineral grains break into smaller scales at low altitude, with a
       // blue-grey ambient contribution on ridges away from the setting sun.
-      vec3 micro=mix(soilCapture(groundScan,p.zy*.29,4.).rgb,soilCapture(groundScan,p.xy*.29,4.).rgb,axis);
-      float granule=dot(micro,vec3(.26,.58,.16));
-      float scree=clamp((granule-.38)*.91+(vein-.45)*.54,-.33,.37);
-      base*=1.+rocky*scree*(1.-smoothstep(65.,520.,d));
+      if(d<520.) {
+        vec3 micro=mix(soilCapture(groundScan,p.zy*.29,4.).rgb,soilCapture(groundScan,p.xy*.29,4.).rgb,axis);
+        float granule=dot(micro,vec3(.26,.58,.16));
+        float scree=clamp((granule-.38)*.91+(vein-.45)*.54,-.33,.37);
+        base*=1.+rocky*scree*(1.-smoothstep(65.,520.,d));
+      }
       base*=1.+snowfield*.28*(grain-.47)*(1.-smoothstep(120.,1050.,d));
       float alpineFloor=(1.-forest)*(1.-max(sheet,snowfield))*smoothstep(220.,710.,p.y)
                         *smoothstep(.45,.88,nn.y)*(1.-smoothstep(450.,1380.,d));
@@ -670,12 +695,14 @@ class Water extends Mesh {
       }
       // Signed local slope and curvature from the 3 m ArcticDEM. Lighting
       // follows the measured rock fins and ice cuts across the entire approach.
-      vec2 stride=vec2(.0014,0.);
-      float surround=.25*(texture2D(alpineRelief,ridgeUV+stride).g+texture2D(alpineRelief,ridgeUV-stride).g
-        +texture2D(alpineRelief,ridgeUV+stride.yx).g+texture2D(alpineRelief,ridgeUV-stride.yx).g);
-      float facetDetail=(measured.g-surround)*2.;
-      float rockExposure=max(exposed,.52*(1.-forest)*smoothstep(.14,.42,1.-nn.y));
-      base*=exp2(facetDetail*surveyed*(.21+1.25*rockExposure+.70*sheet));
+      if(surveyed>0.) {
+        vec2 stride=vec2(.0014,0.);
+        float surround=.25*(texture2D(alpineRelief,ridgeUV+stride).g+texture2D(alpineRelief,ridgeUV-stride).g
+          +texture2D(alpineRelief,ridgeUV+stride.yx).g+texture2D(alpineRelief,ridgeUV-stride.yx).g);
+        float facetDetail=(measured.g-surround)*2.;
+        float rockExposure=max(exposed,.52*(1.-forest)*smoothstep(.14,.42,1.-nn.y));
+        base*=exp2(facetDetail*surveyed*(.21+1.25*rockExposure+.70*sheet));
+      }
       float till=(1.-max(snowfield,sheet))*(1.-smoothstep(.29,.85,exposed))*smoothstep(.51,.90,nn.y);
       float lowWood=forest*(1.-smoothstep(320.,650.,p.y));
       base=regionalSoil(groundScan,p,nn,base,sun,d,lowWood,1.-smoothstep(2.,26.,abs(p.y)),till);
@@ -700,36 +727,38 @@ class Water extends Mesh {
       // An oblique photograph retains the vertical seams and dirty mineral
       // bands which cannot be resolved in the overhead glacier survey.
       float terminus=smoothstep(.21,.65,front)*smoothstep(.20,.74,1.-nn.y);
-      vec2 frontUV=vec2((p.x+.51*p.z)/179.,(p.y+3.5*sin(p.x*.016))/33.);
-      float slab=texture2D(face,frontUV).g;
-      frontUV.x+=(slab-.59)*.014*normalize(cameraPosition-p).x;
-      // Directionally project the photographed Mendenhall fracture planes.
-      // The raked, dusty top breaks into clean ice on the lee side of each cut.
-      vec2 localCrack=vec2((p.x+.39*p.z)/114.,(p.y+.065*p.x)/32.);
-      vec3 rake=texture2D(face,localCrack+vec2(.09*sin(p.z*.014),.06*sin(p.x*.021))).rgb;
-      vec3 fractured=mix(texture2D(face,frontUV).rgb,rake,.57);
-      float darkSeam=1.-smoothstep(.24,.52,dot(fractured,vec3(.22,.64,.14)));
-      vec3 iceSky=diffuseSky+warmDirect+vec3(.115,.136,.146);
-      fractured*=iceSky*mix(vec3(1.),vec3(.63,.84,.91),darkSeam);
       float lowerIce=sheet*smoothstep(-2140.,-1590.,p.z);
-      if(lowerIce>.012){
-        // Oblique moraine bands on the dusty surface turn into blue joint
-        // planes on the calving face. Keep the measured cuts at their true
-        // ground positions rather than stamping a serac silhouette per tile.
-        vec2 flowPlane=vec2(.91*p.x+.42*p.z,-.42*p.x+.91*p.z);
-        vec3 crust=texture2D(face,flowPlane/vec2(192.,69.)+
-                    vec2(.075*sin(p.z*.011),.101*sin(p.x*.016))).rgb;
-        float grainField=texture2D(blueIce,flowPlane/vec2(69.,46.)).g;
-        float joint=smoothstep(.20,.82,irr.r)*(.42+.58*(1.-irr.g));
-        float lamp=clamp(.76+.23*viewSky+.18*max(0.,dot(nn,sun)),.76,1.16);
-        vec3 cap=mix(vec3(.66,.73,.76),crust,.69)*lamp;
-        cap*=.83+.33*grainField+.14*(irr.g-.5);
-        cap*=mix(vec3(1.),vec3(.42,.64,.73),joint*.86);
-        float vertical=smoothstep(.12,.71,1.-nn.y);
-        vec3 lower=mix(cap,fractured,vertical*.90);
-        base=mix(base,lower,lowerIce*.89);
+      if(terminus>0. || lowerIce>.012) {
+        vec2 frontUV=vec2((p.x+.51*p.z)/179.,(p.y+3.5*sin(p.x*.016))/33.);
+        float slab=texture2D(face,frontUV).g;
+        frontUV.x+=(slab-.59)*.014*normalize(cameraPosition-p).x;
+        // Directionally project the photographed Mendenhall fracture planes.
+        // The raked, dusty top breaks into clean ice on the lee side of each cut.
+        vec2 localCrack=vec2((p.x+.39*p.z)/114.,(p.y+.065*p.x)/32.);
+        vec3 rake=texture2D(face,localCrack+vec2(.09*sin(p.z*.014),.06*sin(p.x*.021))).rgb;
+        vec3 fractured=mix(texture2D(face,frontUV).rgb,rake,.57);
+        float darkSeam=1.-smoothstep(.24,.52,dot(fractured,vec3(.22,.64,.14)));
+        vec3 iceSky=diffuseSky+warmDirect+vec3(.115,.136,.146);
+        fractured*=iceSky*mix(vec3(1.),vec3(.63,.84,.91),darkSeam);
+        if(lowerIce>.012){
+          // Oblique moraine bands on the dusty surface turn into blue joint
+          // planes on the calving face. Keep the measured cuts at their true
+          // ground positions rather than stamping a serac silhouette per tile.
+          vec2 flowPlane=vec2(.91*p.x+.42*p.z,-.42*p.x+.91*p.z);
+          vec3 crust=texture2D(face,flowPlane/vec2(192.,69.)+
+                      vec2(.075*sin(p.z*.011),.101*sin(p.x*.016))).rgb;
+          float grainField=texture2D(blueIce,flowPlane/vec2(69.,46.)).g;
+          float joint=smoothstep(.20,.82,irr.r)*(.42+.58*(1.-irr.g));
+          float lamp=clamp(.76+.23*viewSky+.18*max(0.,dot(nn,sun)),.76,1.16);
+          vec3 cap=mix(vec3(.66,.73,.76),crust,.69)*lamp;
+          cap*=.83+.33*grainField+.14*(irr.g-.5);
+          cap*=mix(vec3(1.),vec3(.42,.64,.73),joint*.86);
+          float vertical=smoothstep(.12,.71,1.-nn.y);
+          vec3 lower=mix(cap,fractured,vertical*.90);
+          base=mix(base,lower,lowerIce*.89);
+        }
+        base=mix(base,fractured,terminus*.76);
       }
-      base=mix(base,fractured,terminus*.76);
       vec3 V=normalize(cameraPosition-p),H=normalize(sun+V);
       float sheen=pow(max(0.,dot(H,faceN)),30.)*(1.-.85*forest);
       base+=vec3(.125,.124,.108)*beam*sheen*(.38*rocky+sheet);
@@ -835,13 +864,71 @@ class Water extends Mesh {
   const waters=map('waternormals.jpg',true);
   const lake=new Water(new THREE.ShapeGeometry(outline),{textureWidth:960,textureHeight:640,waterNormals:waters,sunDirection:sun,sunColor:0xffe9cd, waterColor:0x396c70,distortionScale:1.82,fog:true});
   lake.name="Lake surface";lake.rotation.x=-Math.PI/2;lake.position.y=.18;lake.material.uniforms.size.value=3.1;scene.add(lake);
+  if(landmarkTerrain?.watercourse)window.nuggetShallows(lake.material,map('alaska-nugget-shoal.webp'));
   const treeSections=[unpack(survey.trees),landmarkTerrain?.woodland||[]];
-  const trees=[],cells=new Map(),cell=(x,z)=>Math.floor(x/48)*1024+Math.floor(z/48);
+  const trees=[],firTrees=[],alderCrowns=[],cells=new Map(),cell=(x,z)=>Math.floor(x/48)*1024+Math.floor(z/48);
+  const nuggetAlder={name:'Sitka alder',family:'shrub',shape:[.91,1,.95,.65,.16],aspect:1.04,tint:[.89,1.03,.72],stature:1};
   for(const treeData of treeSections)for(let i=0;i<treeData.length;i+=3){
-    const x=treeData[i],z=treeData[i+1],h=treeData[i+2],y=elevation(x,z),seed=((i*1583)%65521)/65521;
+    const x=treeData[i],z=treeData[i+1],packed=treeData[i+2];
+    const measured=!!landmarkTerrain?.canopyObserved&&treeData===landmarkTerrain.woodland;
+    if(!measured&&landmarkTerrain?.canopyObserved?.(x,z))continue;
+    const h=measured?(Math.abs(packed)%128)*.5:packed;
+    const seed=measured?((Math.imul(x,73856093)^Math.imul(z,19349663))>>>0)/4294967296:((i*1583)%65521)/65521;
     const stream=channelAt(x,z);
-    if(stream && stream.distance<10+h*.20)continue;
-    const t={x,y,z,height:h,width:h*(.30+.13*seed),seed};trees.push(t);const id=cell(x,z);if(!cells.has(id))cells.set(id,[]);cells.get(id).push(t);
+    if(stream&&stream.distance<10+h*.20)continue;
+    const y=elevation(x,z),alder=measured&&packed<0;
+    const width=measured?Math.floor(Math.abs(packed)/128)*.5:h*(.30+.13*seed);
+    const t={x,y,z,height:h,width,seed};
+    if(alder){
+      // These short, spreading forms are heights/widths of observed cover.
+      // Sitka alder is the representative shrub recorded at the cascade.
+      t.aerieSpecies=nuggetAlder;
+      alderCrowns.push(t);
+    }else firTrees.push(t);
+    trees.push(t);
+    const id=cell(x,z);if(!cells.has(id))cells.set(id,[]);cells.get(id).push(t);
+  }
+  if(alderCrowns.length){
+    const card=new THREE.PlaneGeometry(1,1);
+    const geo=new THREE.InstancedBufferGeometry();
+    geo.index=card.index;geo.setAttribute('position',card.attributes.position);geo.setAttribute('uv',card.attributes.uv);
+    const roots=new Float32Array(alderCrowns.length*3),traits=new Float32Array(alderCrowns.length*3);
+    alderCrowns.forEach((t,i)=>{
+      roots.set([t.x,t.y-.09,t.z],i*3);traits.set([t.width,t.height,t.seed],i*3);
+    });
+    geo.setAttribute('crownRoot',new THREE.InstancedBufferAttribute(roots,3));
+    geo.setAttribute('crownTrait',new THREE.InstancedBufferAttribute(traits,3));geo.instanceCount=alderCrowns.length;
+    const material=new THREE.ShaderMaterial({side:THREE.DoubleSide,
+      uniforms:{plates:{value:map('regional-crowns.webp')},surveyLight:{value:map('alaska-tree-light.webp')}},
+      vertexShader:`attribute vec3 crownRoot,crownTrait;uniform sampler2D surveyLight;
+        varying vec2 card;varying vec4 angles;varying float tone;
+        void main(){
+          vec3 center=crownRoot+vec3(0.,.50*crownTrait.y,0.);
+          vec3 view=normalize(cameraPosition-center),right=normalize(vec3(view.z+.000001,0.,-view.x)),up=cross(view,right);
+          float h=max(0.,view.y),span=sqrt(crownTrait.y*crownTrait.y*(1.-h*h)+crownTrait.x*crownTrait.x*h*h);
+          vec3 pos=center+1.32*(right*position.x*crownTrait.x+up*position.y*span);
+          float side=.5-.5*cos(atan(view.x,view.z)-6.283*crownTrait.z),tilt=smoothstep(.12,.59,h),over=smoothstep(.58,.96,h);
+          angles=vec4((1.-tilt)*(1.-side),(1.-tilt)*side,tilt*(1.-over),over);
+          card=clamp(uv,.005,.995);
+          tone=(.84+.28*crownTrait.z)*(.75+.25*texture2D(surveyLight,.5+vec2(crownRoot.x,-crownRoot.z)/14400.).r);
+          gl_Position=projectionMatrix*viewMatrix*vec4(pos,1.);
+        }`,
+      fragmentShader:`uniform sampler2D plates;varying vec2 card;varying vec4 angles;varying float tone;
+        vec4 plate(float column){return texture2D(plates,vec2((column+card.x)*.25,(1.+card.y)*.125));}
+        void main(){vec4 a=plate(0.),b=plate(1.),c=plate(2.),d=plate(3.);
+          vec4 weights=angles*vec4(a.a,b.a,c.a,d.a);float coverage=dot(weights,vec4(1.));
+          if(coverage<.19)discard;
+          vec3 color=(weights.x*a.rgb+weights.y*b.rgb+weights.z*c.rgb+weights.w*d.rgb)/coverage;
+          gl_FragColor=vec4(color*vec3(.83,.96,.72)*tone,1.);
+        }`});
+    const thickets=new THREE.Mesh(geo,material);thickets.name='Nugget Falls · measured riparian thickets';
+    // The small local array has one immutable draw. Clip it outside the survey
+    // instead of re-filling a changing buffer each time the eagle banks.
+    const box=new THREE.Box3();for(const t of alderCrowns){
+      box.expandByPoint(new THREE.Vector3(t.x-t.width,t.y-1,t.z-t.width));
+      box.expandByPoint(new THREE.Vector3(t.x+t.width,t.y+t.height+2,t.z+t.width));
+    }
+    geo.boundingBox=box;geo.boundingSphere=box.getBoundingSphere(new THREE.Sphere());scene.add(thickets);
   }
   // Calved blocks have a fractured crown, a sloping leeward shoulder, and a
   // wave-cut waterline. Collision queries use their actual upper triangles.
@@ -1172,8 +1259,20 @@ class Water extends Mesh {
   }
   const clock={value:0};
   // The measured Nugget Creek bed splits over rock shelves and empties into the lake.
-  const waterfalls=window.makeWaterfallSystem(THREE,scene,{clock,ground:elevation,level:lake.position.y,sun,texture:map,sky:skyMap});
-  waterfalls.chute('Nugget Falls',flow,15,{pool:true,poolLevel:lake.position.y});
+  const measuredCourse=landmarkTerrain?.watercourse;
+  const scouredBed=measuredCourse?landmarkTerrain.surfacePatch(638,704,194,nativeElevation):null;
+  const fallGround=scouredBed?(x,z)=>scouredBed(x,z)??elevation(x,z):elevation;
+  const waterfalls=window.makeWaterfallSystem(THREE,scene,{clock,ground:fallGround,level:lake.position.y,sun,texture:map,sky:skyMap,streamSurvey:measuredCourse?{map:map('alaska-nugget-current.webp'),bounds:new THREE.Vector4(448,572,656,360)}:null});
+  // Stations run from upper Nugget Creek to its broad outlet. Interpolate
+  // the measured active width at each modeled cross-section on the spline.
+  function observedWidth(x){
+    let i=0;
+    while(i+2<measuredCourse.length&&x<measuredCourse[i+1][0])i++;
+    const a=measuredCourse[i],b=measuredCourse[i+1],f=clamp((a[0]-x)/(a[0]-b[0]),0,1);
+    return a[2]+f*(b[2]-a[2]);
+  }
+  waterfalls.chute('Nugget Falls',flow,measuredCourse?24:15,{pool:true,poolLevel:lake.position.y,
+    widthAt:measuredCourse?observedWidth:null});
   waterfalls.couple(lake);
   // Approach the two steps from the lake, across the outwash fan. The
   // upper creek is inland and behind the visitor-facing side of the falls.
@@ -1201,7 +1300,13 @@ class Water extends Mesh {
     landformMesh=landmarkTerrain.add(THREE,scene,reference,nativeElevation,map);
     for(const source of landmarkGroundMaterials)landmarkTerrain.maskOriginal(source);
   }
-  return {landformMesh,region:"alaska",bankDepositMap,localPerchStone,windTerrainHeight,treeGrid:{cells,size:48,cell},waterfalls,forestLightSpan:14400,elevation,clearance,height,trees,sunMask,sunDirection:sun,skyTexture:skyMap,cloudDensityMap:'alaska-cirrus-density.webp',waterLevel:0,lakeLevel:0,lakePolygon:shore,altitudeOffset:18,spawn:lakeLaunch,
+  function channelWater(x,z){
+    // Use the rendered banks to keep perch stones and dry-land wildlife out
+    // of the active historical flow. The surveyed rock islands stay in the bed.
+    if(!measuredCourse||!waterfalls.inChute(x,z,0))return -Infinity;
+    return Math.max(lake.position.y,fallGround(x,z)+.10);
+  }
+  return {landformMesh,region:"alaska",channelWater,bankDepositMap,localPerchStone,windTerrainHeight,treeGrid:{cells,size:48,cell},waterfalls,forestLightSpan:14400,elevation,clearance,height,trees,firTrees,sunMask,sunDirection:sun,skyTexture:skyMap,cloudDensityMap:'alaska-cirrus-density.webp',waterLevel:0,lakeLevel:0,lakePolygon:shore,altitudeOffset:18,spawn:lakeLaunch,
     launches:{lake:lakeLaunch,ridge,shore:shoreLaunch,spruce:{x:173,y:26,z:1630,yaw:.38,lookDown:12},spray:sprayPass,spur:{x:612,y:68.4704,z:977,yaw:-.08159},alpine:{x:-2900,z:-2010,y:elevation(-2900,-2010)+58,yaw:-.28}},bounds:{minX:-6890,maxX:6890,minZ:-6890,maxZ:6890},
     landmarks:[{name:'West alpine crest',x:-2900,z:-2010},{name:'Upper crevasse field',x:1500,z:-4130},{name:'Blue Ice Passage',x:-116,z:-1010},{name:'Nugget Falls beach',x:473,z:927},{name:'Medial moraine',x:632,z:-2450},{name:'Mendenhall Glacier',x:40,z:-1400},{name:'Nugget Falls',x:518,z:658},{name:'Mendenhall Lake',x:-700,z:680},{name:'West Glacier Ridge',x:-860,z:-1890}],
     update(dt,time,player){updateTerrainLOD(player);updateLedges(player);updateShore(player);clock.value=time;lake.material.uniforms.time.value=time*.72;}

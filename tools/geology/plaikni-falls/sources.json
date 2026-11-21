@@ -1,0 +1,93 @@
+{
+  "report": "https://irma.nps.gov/DataStore/FileSource/Get/2299081?filename=2022+CRLA+Rehabiltiate+Plaikni+Falls+Trail+Landscape+Annual+Report.pdf",
+  "reportSHA256": "9479b8fef56831e9ccb4280018322f53f7c616495ee6327fca6cbc20553d9657",
+  "credits": "Carrie Wyler / National Park Service, 2022. NPS Crater Lake field photograph.",
+  "tiles": [
+    {
+      "id": "or_m_4212208_se_10_030_20220923",
+      "acquired": "2022-09-23T16:00:00Z",
+      "href": "https://naipeuwest.blob.core.windows.net/naip/v002/or/2022/or_030cm_2022/42122/m_4212208_se_10_030_20220923.tif",
+      "sourceResolution": 0.3
+    }
+  ],
+  "orthoGridMeters": 0.5,
+  "crs": 32610,
+  "trail": {
+    "service": "https://mapservices.nps.gov/arcgis/rest/services/NationalDatasets/NPS_Public_Trails/FeatureServer/0/query",
+    "objectID": 15152,
+    "method": "EOS Arrow Gold+",
+    "editDate": 1766020531000,
+    "samples": 157
+  },
+  "registeredWater": {
+    "observedCells": 57,
+    "observedCenters": [
+      [
+        6162.5,
+        4011.75
+      ],
+      [
+        6163.25,
+        4012.25
+      ],
+      [
+        6163.5,
+        4012.75
+      ],
+      [
+        6163.75,
+        4013.25
+      ],
+      [
+        6164.5,
+        4013.75
+      ],
+      [
+        6164.75,
+        4014.25
+      ],
+      [
+        6164.5,
+        4014.75
+      ],
+      [
+        6164.25,
+        4015.25
+      ],
+      [
+        6163.25,
+        4015.75
+      ]
+    ],
+    "feature": "Connected bright water across registered 2022 aerial, at 0.5 m resampling. Upstream transition and foot reconnection inferred from existing 3DEP channel."
+  },
+  "material": {
+    "points": 215,
+    "photoSamples": {
+      "cliff": [
+        272,
+        119,
+        365,
+        162
+      ],
+      "talus": [
+        443,
+        224,
+        520,
+        261
+      ],
+      "meadow": [
+        30,
+        202,
+        105,
+        244
+      ]
+    },
+    "extent": [
+      6009,
+      3852,
+      6301,
+      4144
+    ]
+  }
+}
