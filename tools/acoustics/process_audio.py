@@ -2,7 +2,11 @@
 
 For each manifest entry chosen in PLAN: decode (afconvert), trim to the
 selected excerpt, remove sub-audio rumble, fold point sources to mono, match
-loudness, fade or crossfade the loop seam, and encode AAC (afconvert).
+loudness, fade or crossfade the loop seam, and encode HE-AAC (afconvert).
+
+The hosted game has a fixed size budget, so loops are capped (45 s for stereo
+beds, 32 s for mono loops; layered instances start at random offsets) and
+everything is encoded as HE-AAC: 48 kbit/s stereo, 32 kbit/s mono.
 Writes game/scape-<world>-<role>.m4a and soundscape-credits.txt.
 """
 import json, os, subprocess, sys, tempfile
@@ -14,6 +18,7 @@ SRC = sys.argv[1]          # audio-src directory
 GAME = sys.argv[2]         # game directory
 PLAN = json.load(open(sys.argv[3]))  # {world: {role: {file, start, end, loop, mono, hp, gain_db}}}
 FS = 44100
+MAX_LOOP = {2: 45.0, 1: 32.0}   # seconds, by channel count
 
 def decode(path):
     tmp = tempfile.mktemp(suffix='.wav')
@@ -26,7 +31,7 @@ def decode(path):
 def encode(x, out, stereo):
     tmp = tempfile.mktemp(suffix='.wav')
     wavfile.write(tmp, FS, (np.clip(x, -1, 1) * 32767).astype(np.int16))
-    subprocess.run(['afconvert', '-f', 'm4af', '-d', 'aac', '-b', '128000' if stereo else '80000', tmp, out], check=True, capture_output=True)
+    subprocess.run(['afconvert', '-f', 'm4af', '-d', 'aach', '-b', '48000' if stereo else '32000', tmp, out], check=True, capture_output=True)
     os.remove(tmp)
 
 def process(world, role, cfg):
@@ -45,6 +50,10 @@ def process(world, role, cfg):
         x = sosfilt(butter(4, cfg['lp'], 'lowpass', fs=fs, output='sos'), x, axis=0)
     loop = cfg.get('loop', False)
     if loop:
+        cap = int((MAX_LOOP[x.shape[1]] + 1.5) * fs)
+        if len(x) > cap: x = x[:cap]
+    used = len(x) / fs                     # seconds of the source excerpt actually used
+    if loop:
         # Equal-power crossfade of the last `xf` seconds into the start.
         xf = int(min(1.5, len(x) / fs / 6) * fs)
         head, tail = x[:xf], x[-xf:]
@@ -60,15 +69,15 @@ def process(world, role, cfg):
     if peak > .98: x *= .98 / peak
     out = os.path.join(GAME, f'scape-{world}-{role}.m4a')
     encode(x, out, x.shape[1] == 2)
-    return out, len(x) / fs
+    return out, len(x) / fs, used
 
 credits = []
 for world, roles in PLAN.items():
     manifest = {e['file']: e for e in json.load(open(os.path.join(SRC, world, 'manifest.json'))) if e.get('file')}
     for role, cfg in roles.items():
-        out, dur = process(world, role, cfg)
+        out, dur, used = process(world, role, cfg)
         m = manifest.get(cfg['file'], {})
-        span = f"{cfg.get('start', 0):.2f} to {cfg['end']:.2f} seconds" if cfg.get('end') else 'full length'
+        span = f"{cfg.get('start', 0):.2f} to {cfg.get('start', 0) + used:.2f} seconds"
         credits.append((world, f"{os.path.basename(out)} — “{m.get('title','')}.” {m.get('author','')}. {m.get('location','')}. {m.get('license','')}.\n"
                                f"{m.get('source_url','')}\n{m.get('license_url','')}\nExcerpt: {span}; {'loop seam crossfaded' if cfg.get('loop') else 'faded'}; rumble removed; level matched.\n"))
         print(f'{world:14} {role:28} {dur:6.1f}s  {os.path.getsize(out)//1024} KB')
