@@ -187,7 +187,7 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
   let rainSource = null, rainAt = -1, rainTarget = 0, rain = 0, wet = 0, rainShakeAt = Infinity, dryShakeAt = Infinity, airShakeT = -1;
 
   // ---- state --------------------------------------------------------------------------
-  let lowL = 0, lowR = 0, lowN = 1, fastL = 0, fastR = 0, fastN = 1, turbulence = 0, rouseT = -1, rouseAt = rand(30, 70);
+  let lowL = 0, lowR = 0, lowN = 1, fastL = 0, fastR = 0, fastN = 1, turbulence = 0, rouseT = -1, rouseAt = rand(60, 150);
   // Perched behaviour: peering (head bobs that give motion parallax) and a
   // tail wag after a rouse.
   let peerT = -1, peerAt = rand(8, 20), peerAxis = 0, wagT = -1, perchedFor = 0, settleWagAt = -1;
@@ -240,7 +240,7 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
   function rearm(time) {
     blinkAt = time + rand(1.5, 4); eyes.forEach(e => { e.active = false; e.membrane = 0; });
     lidBlinkAt = time + rand(20, 50); lidT = -1; saccadeCooldown = 0; drowsy = 0;
-    rouseAt = time + rand(30, 70); peerAt = time + rand(8, 20); shakeAt = time + rand(20, 45); preenAt = time + rand(40, 80);
+    rouseAt = time + rand(60, 150); peerAt = time + rand(8, 20); shakeAt = time + rand(20, 45); preenAt = time + rand(40, 80);
     rouseT = peerT = wagT = shakeT = preenT = airShakeT = -1; perchedFor = 0; settleWagAt = -1;
     rain = rainTarget = wet = 0; rainAt = -1; rainShakeAt = dryShakeAt = Infinity;
     scan.t = -1; scan.next = time + rand(1, 3); scan.gain = 0; scan.quiet = 0; scan.yaw = scan.pitch = 0;
@@ -341,10 +341,14 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
     if (perched && settleWagAt > 0 && time >= settleWagAt) { wagT = 0; settleWagAt = -1; }
     if (perched) {
       chest.position.y += .0016 * Math.sin(time * 2 * Math.PI * .33);
-      if (time > rouseAt && rouseT < 0) { rouseT = 0; rouseAt = time + rand(35, 80); }
-      if (time > peerAt && peerT < 0 && perchedFor > 2) { peerT = 0; peerAt = time + rand(10, 28); peerAxis = Math.random() < .65 ? 0 : 1; }
-      if (time > shakeAt && shakeT < 0 && preenT < 0 && perchedFor > 3) { shakeT = 0; shakeAt = time + rand(25, 60); }
-      if (time > preenAt && preenT < 0 && rouseT < 0 && perchedFor > 8) { preenT = 0; preenAt = time + rand(60, 120); preenDur = rand(2.2, 4); preenSide = Math.random() < .5 ? -1 : 1; }
+      // One thing at a time, and nothing new while the eagle is calling.
+      const calling = !!(jaw.env || jaw.pending), idle = rouseT < 0 && preenT < 0 && shakeT < 0 && !calling;
+      if (time > rouseAt && idle) { rouseT = 0; rouseAt = time + rand(90, 240); }
+      else if (time > preenAt && idle && perchedFor > 8) { preenT = 0; preenAt = time + rand(60, 120); preenDur = rand(2.2, 4); preenSide = Math.random() < .5 ? -1 : 1; }
+      else if (time > shakeAt && idle && perchedFor > 3) { shakeT = 0; shakeAt = time + rand(40, 110); }
+      if (time > peerAt && peerT < 0 && idle && perchedFor > 2) { peerT = 0; peerAt = time + rand(10, 28); peerAxis = Math.random() < .65 ? 0 : 1; }
+      // A call cuts a preening bout short.
+      if (calling && preenT >= 0) preenT = Math.max(preenT, .82 * preenDur);
     } else { peerT = preenT = -1; }
     let fluff = clamp((1 - n) * .3, 0, .3) * freeFlight;             // negative G floats the plumage
     // Aerial shake: a half-second shiver along the body that throws water off.
@@ -569,7 +573,8 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
     const perchSlip = clamp(windLocal.x / 8, -1, 1) * folded;
     uniforms.featherSlip.value += (slip * clamp(q, 0, 2) * freeFlight + perchSlip - uniforms.featherSlip.value) * (1 - Math.exp(-8 * step));
     uniforms.featherFluff.value += (fluff * sleek - uniforms.featherFluff.value) * (1 - Math.exp(-10 * step));
-    stats.turbulence = turbulence; stats.wind = +windSpeed.toFixed(2); stats.headRoll = +headRoll.toFixed(3); stats.drowsy = +drowsy.toFixed(2); stats.bill = +jaw.open.toFixed(3); stats.rain = +rain.toFixed(2); stats.wet = +wet.toFixed(2); stats.plumage = [+uniforms.featherTurb.value.toFixed(3), +uniforms.featherSlip.value.toFixed(3), +uniforms.featherFluff.value.toFixed(3)]; stats.membranes = [+eyes[0].membrane.toFixed(2), +eyes[1].membrane.toFixed(2)];
+    stats.turbulence = turbulence; stats.wind = +windSpeed.toFixed(2); stats.headRoll = +headRoll.toFixed(3); stats.drowsy = +drowsy.toFixed(2); stats.bill = +jaw.open.toFixed(3);
+    stats.acts = (rouseT >= 0 ? 1 : 0) | (peerT >= 0 ? 2 : 0) | (shakeT >= 0 ? 4 : 0) | (preenT >= 0 ? 8 : 0) | (wagT >= 0 ? 16 : 0) | (airShakeT >= 0 ? 32 : 0) | (jaw.env ? 64 : 0) | (scan.t >= 0 ? 128 : 0); stats.rain = +rain.toFixed(2); stats.wet = +wet.toFixed(2); stats.plumage = [+uniforms.featherTurb.value.toFixed(3), +uniforms.featherSlip.value.toFixed(3), +uniforms.featherFluff.value.toFixed(3)]; stats.membranes = [+eyes[0].membrane.toFixed(2), +eyes[1].membrane.toFixed(2)];
     stats.tailBend = tailSprings.reduce((a, s) => a + s.offset, 0) / tailSprings.length;
     stats.primaryBend = primarySprings.reduce((a, s) => a + s.offset, 0) / primarySprings.length;
   }
