@@ -851,7 +851,9 @@
     cameraYaw+=Math.atan2(Math.sin(sightYaw-cameraYaw),Math.cos(sightYaw-cameraYaw))*easing(14,dt);
     cameraPath+=(view.pitch-cameraPath)*easing(12,dt);
     if(mounted){
-      cameraTarget.set(.17,.285,.125);
+      // A standing eagle carries its head higher and further back than a
+      // flying one, more so upright on a limb than on a ledge. The mount goes with it.
+      if(s.perchOnRock)cameraTarget.set(.17,.312,.152);else cameraTarget.set(.17,.332,.183);
       camera.position.copy(cameraTarget.applyQuaternion(eagle.object.quaternion)).add(player);
       camera.rotation.set(cameraPath-.045,cameraYaw,0,"YXZ");
     }else{

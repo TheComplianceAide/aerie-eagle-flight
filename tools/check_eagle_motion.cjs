@@ -194,4 +194,28 @@ function fly(motion, parts, fps, seconds, airAt, poseAt, onFrame) {
   assert.ok(wetRun.wet < .45, 'still soaked after shaking off');
 }
 
-console.log('Passed eagle motion checks: frame-rate independence, no drift, blink rate, bill hinge, clock restart, wingbeat load, perched feathers, rain.');
+// 9. Perched upright, the idle scan turns the head about the world's vertical.
+// With the breast at 66 degrees a turn about the breast's own axis would roll
+// the head onto its side; a level gaze must stay level as it swings.
+{
+  const {parts, motion} = load(57);
+  const {chest, neckBase, neck} = parts;
+  const air = {loadFactor: 1, indicatedAirspeed: 0, gust: 0, perchLook: 0, perchLookPitch: 0};
+  const q = new THREE.Quaternion(), side = new THREE.Vector3(), ahead = new THREE.Vector3(), X = new THREE.Vector3(1, 0, 0);
+  let roll = 0, turned = 0, frames = 0;
+  for (let i = 0; i < 60 * 360; i++) {
+    basePose(parts); chest.rotation.x = 1.15; neck.quaternion.setFromAxisAngle(X, -1.15);   // level head on an upright breast
+    motion.update(1 / 60, i / 60, air, {folded: 1, effort: 0, tuck: 0, stall: 0, separation: 0, reset: i === 0});
+    if (motion.stats.acts & ~128) continue;                                                // scanning or still, nothing else
+    q.copy(chest.quaternion).multiply(neckBase.quaternion).multiply(neck.quaternion);
+    ahead.set(0, 0, -1).applyQuaternion(q); side.set(1, 0, 0).applyQuaternion(q);
+    const yaw = Math.abs(Math.atan2(ahead.x, -ahead.z));
+    turned = Math.max(turned, yaw);
+    if (yaw > .4 && ahead.y > -.1) { frames++; roll = Math.max(roll, Math.abs(side.y)); }  // looking down may cock the head
+  }
+  assert.ok(turned > .8, `the perched head only turned ${turned} rad`);
+  assert.ok(frames > 30, `too few level, turned frames to judge (${frames})`);
+  assert.ok(roll < .12, `the head rolled ${roll.toFixed(2)} as it turned on an upright breast`);
+}
+
+console.log('Passed eagle motion checks: frame-rate independence, no drift, blink rate, bill hinge, clock restart, wingbeat load, perched feathers, rain, level head on an upright perch.');
