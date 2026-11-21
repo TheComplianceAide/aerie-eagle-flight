@@ -382,9 +382,11 @@ class Water extends Mesh {
   }
   const landmarkTerrain=window.aerieRegionalLandforms?.get('swiss');
   const strandSurvey=window.aerieRegionalLandforms?.get('swisswest');
-  const groundMaterials=new Map([landmarkTerrain,strandSurvey].filter(Boolean).map(area=>[area,new Set()]));
+  const forefield=window.aerieRegionalLandforms?.get('frunden');
+  const groundMaterials=new Map([landmarkTerrain,strandSurvey,forefield].filter(Boolean).map(area=>[area,new Set()]));
   function elevation(x,z){
     const base=nativeElevation(x,z);
+    if(forefield?.edge(x,z))return forefield.height(x,z,base);
     if(strandSurvey?.edge(x,z))return strandSurvey.height(x,z,base);
     return landmarkTerrain?landmarkTerrain.height(x,z,base):base;
   }
@@ -714,8 +716,10 @@ class Water extends Mesh {
     if(!treeCells.has(key))treeCells.set(key,[]);
     treeCells.get(key).push(tree);
   }
+  const hut=window.makeFrundenHut?.(THREE,scene,texture,skyMap,sun,clock,elevation);
   function clearance(x,z) {
-    let surface=height(x,z);
+    const terrainHeight=height(x,z);
+    let surface=hut?hut.clearance(x,z,terrainHeight):terrainHeight;
     const col=Math.floor(x/32),row=Math.floor(z/32);
     for(let i=col-1;i<=col+1;i++)for(let j=row-1;j<=row+1;j++){
       const batch=treeCells.get(i*1024+j);
@@ -734,20 +738,28 @@ class Water extends Mesh {
     falls:{x:790,y:elevation(790,900)+54,z:900,yaw:-.10},
     forest:{x:-1280,y:clearance(-1280,420)+43,z:420,yaw:-1.61}
   };
-  let landformMesh=null,strandMesh=null;
+  let landformMesh=null,strandMesh=null,glacierMesh=null;
   for(const [survey,materials] of groundMaterials){
     if(!materials.size)continue;
     const reference=materials.values().next().value;
     const mesh=survey.add(THREE,scene,reference,nativeElevation,texture);
     for(const source of materials)survey.maskOriginal(source);
-    if(survey===strandSurvey)strandMesh=mesh;else landformMesh=mesh;
+    if(survey===strandSurvey)strandMesh=mesh;else if(survey===forefield)glacierMesh=mesh;else landformMesh=mesh;
   }
-  return {landformMesh,strandMesh,strandSurvey,
+  const rockSurface=(x,z)=>{
+    // The photographed hut terrace and the mapped meltpools are individually resolved.
+    // Omit random talus examples there and on the exposed ice tongue.
+    if((x>1244&&x<1320&&z>1880&&z<1960)||(x>1268&&x<1452&&z>1986&&z<2042)||
+       (x>1315&&x<1675&&z>2195&&z<2370))return NaN;
+    return height(x,z);
+  };
+  return {landformMesh,strandMesh,strandSurvey,glacierMesh,frundenHut:hut,rockSurface,
     treeGrid:{cells:treeCells,size:32,cell:(x,z)=>Math.floor(x/32)*1024+Math.floor(z/32)},
     waterfalls,height,elevation,clearance,spawn,launches,trees,skyTexture:skyMap,sunMask:visibility,sunDirection:sun,waterLevel:0,lakeLevel:0,lakePolygon:shore,altitudeOffset:survey.heightOffset,
     bounds:{minX:-3700,maxX:3700,minZ:-3700,maxZ:3700},
     landmarks:[{name:'Western gravel beach',x:-647,z:466},{name:'Lakeshore meadow',x:-688,z:497,discoveryRadius:42},{name:'Oeschinensee',x:30,z:260},{name:'Fründen Falls',x:472,z:922},
-      {name:'Eastwall Cascade',x:947,z:641,approach:[985,700,841,539,24,0,18]},{name:'Fründenschnuer',x:978,z:264},{name:'Blüemlisalp Ridge',x:3135,z:-380}],
+      {name:'Eastwall Cascade',x:947,z:641,approach:[985,700,841,539,24,0,18]},{name:'Fründenschnuer',x:978,z:264},{name:'Fründenhütte',x:1284,z:1918,approach:[1340,1876,1284,1918,69,0,12]},
+      {name:'Fründen glacier tarns',x:1435,z:2028,approach:[1311,1929,1435,2028,28,0,16]},{name:'Blüemlisalp Ridge',x:3135,z:-380}],
     update(dt,time){clock.value=time;lake.material.uniforms.time.value=time*.52;}
   };
 };

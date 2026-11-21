@@ -26,6 +26,7 @@
     canyon:{name:'Horseshoe Bend · central promontory and inner wall',asset:'canyon',style:'canyon',holes:[[-592,-336,-456,-240]],source:'USGS 3DEP and USDA NAIP, Glen Canyon, Arizona'},
     alaska:{name:'Nugget Falls · wall and scoured bedrock',asset:'alaska',style:'alaska',water:0,source:'USGS Southeast Alaska Landslides D22 elevation, Juneau 2012 and 2013 canopy lidar and registered 2013 Juneau RGB at colorized returns'},
     swiss:{name:'Fründenschnuer · limestone shelf and east wall',asset:'swiss',style:'swiss',water:0,source:'swisstopo swissALTI3D and SWISSIMAGE, Oeschinensee, Switzerland'},
+    frunden:{name:'Fründenhütte and the glacier terminus',asset:'frunden',style:'swiss',source:'Federal Office of Topography swisstopo, swissALTI3D, swissBUILDINGS3D and SWISSIMAGE'},
     swisswest:{name:'Oeschinensee · western strand and scree fan',asset:'swisswest',style:'swiss',water:0,source:'Federal Office of Topography swisstopo, swissALTI3D 2025 and SWISSIMAGE, Oeschinensee, Switzerland'}
   };
   const available=new Map(),pending=new Map();
@@ -195,6 +196,30 @@
       }else if(hasDetail)material.fragmentShader=material.fragmentShader.replace('photo=mix(photo,texture2D(detailOrtho,vec2(focus.x,-focus.y)/2900.+.5).rgb,blend);',
         'photo=mix(photo,texture2D(detailOrtho,'+localUV+').rgb,landformHorizon.w);');
       else material.fragmentShader=material.fragmentShader.replace('texture2D(aerial,photoUv)','texture2D(aerial,'+localUV+')');
+      if(spec.asset==='frunden'){
+        material.uniforms.hutApron={value:texture('frunden-apron.webp')};
+        material.fragmentShader='uniform sampler2D hutApron;\n'+material.fragmentShader;
+        const uv=localUV.replace(/xz\./g,'wp.xz.');
+        // Federal aerial imagery resolves bare, polished moraine and old grey ice here.
+        // Preserve the measured ice margin, medial debris and flow-following crevasses.
+        material.fragmentShader=material.fragmentShader
+          .replace('vec3 n=normalize(norm);',`vec4 moraineSource=texture2D(photo,${uv});
+            vec2 apronUv=vec2((wp.x-1240.)/80.,1.-(wp.z-1880.)/80.);
+            float apronEdge=min(min(apronUv.x,1.-apronUv.x),min(apronUv.y,1.-apronUv.y));
+            moraineSource.rgb=mix(moraineSource.rgb,texture2D(hutApron,clamp(apronUv,0.,1.)).rgb,smoothstep(.0,.12,apronEdge));
+            float glacialCover=smoothstep(.128,.984,moraineSource.a)*landformHorizon.w;
+            vec3 n=normalize(norm);`)
+          .replace('n=normalize(mix(n,geomNormal,surveyWeight*','n=normalize(mix(n,geomNormal,(1.-landformHorizon.w)*surveyWeight*')
+          .replace('vec3 underfoot=',`rgb=mix(rgb,moraineSource.rgb,landformHorizon.w*(.71+.26*glacialCover));
+            vec3 underfoot=`)
+          .replace('if(alpineFloor>.001)','alpineFloor*=1.-landformHorizon.w;if(alpineFloor>.001)')
+          .replace('rgb*=1.+(1.-rockMix)*closeup*.65*(soilTexture-.38);','rgb*=1.+(1.-landformHorizon.w)*(1.-rockMix)*closeup*.65*(soilTexture-.38);')
+          .replace('rgb=regionalSoil(groundScan,wp,n,rgb,sun,d,woodland,1.-smoothstep(1.4,20.,abs(wp.y)),meadow);',
+            'if(landformHorizon.w<.998)rgb=mix(regionalSoil(groundScan,wp,n,rgb,sun,d,woodland,1.-smoothstep(1.4,20.,abs(wp.y)),meadow),rgb,landformHorizon.w);')
+          .replace('float irradiance=exposure*diffuse;',`float iceGlance=pow(1.-max(0.,dot(normalize(cameraPosition-wp),n)),3.);
+            rgb=mix(rgb,rgb*vec3(.94,.992,1.055)+vec3(.012,.019,.026)*iceGlance,glacialCover*.73);
+            float irradiance=exposure*diffuse;`);
+      }
       if(spec.asset==='acadia'){
         // At the inset the point cloud resolves the two sides of the chasm.
         // The broader cliff-normal map averages across this narrow opening.
@@ -284,7 +309,8 @@
       const point=(spec.style==='alaska'?'p':'wp')+'.xz';
       const bounds=(l,t,r,b)=>'all(greaterThanEqual('+point+',vec2('+l.toFixed(3)+','+t.toFixed(3)+')))&&all(lessThanEqual('+point+',vec2('+r.toFixed(3)+','+b.toFixed(3)+')))';
       const test=bounds(...rect)+holes.map(([l,t,r,b])=>'&&!('+bounds(l-holeOverlap,t-holeOverlap,r+holeOverlap,b+holeOverlap)+')').join('');
-      material.userData.terrainShadowCut=test.split(point).join('shadowGround.xz');
+      const shadowCut=test.split(point).join('shadowGround.xz');
+      material.userData.terrainShadowCut=material.userData.terrainShadowCut?'('+material.userData.terrainShadowCut+')||('+shadowCut+')':shadowCut;
       material.fragmentShader=material.fragmentShader.replace(/void main\(\)\s*\{/,m=>m+'if('+test+')discard;');
       material.needsUpdate=true;
     }

@@ -5,7 +5,7 @@
   const scripts = {
     alaska: ['lake-reflection-domain.js','terrain-indices.js','alaska-cove.js','alaska-sediment.js','nugget-surface.js','waterfall-system.js','alaska-survey.js','alaska-world.js','talus-data.js','habitat.js',...trees],
     canyon: ['canyon-survey.js','canyon.js','habitat.js','talus-data.js','rocks.js'],
-    swiss: ['waterfall-system.js','alpine-survey.js','alpine-headwall.js','world.js','talus-data.js','rocks.js','habitat.js',...trees]
+    swiss: ['swiss-frunden-data.js','swiss-frunden.js','waterfall-system.js','alpine-survey.js','alpine-headwall.js','world.js','talus-data.js','rocks.js','habitat.js',...trees]
   };
   const loaded=new Map();
   function open(name){
@@ -42,7 +42,8 @@
     await Promise.all(assets.map(name=>name==='canopy-stream.js'
       ? Promise.all([open('close-tree-detail.js'),open('close-bark-material.js').catch(()=>{})]).then(()=>open(name)) : open(name)));
     const lakeBays=window.aerieLakeBankSites?.[region]||[];
+    const extraSurveys=region==='swiss'?[...lakeBays,'frunden']:lakeBays;
     const secondarySurvey={lofoten:'hamnoy',swiss:'swisswest',yosemite:'yosemitesummits'}[region];
-    await Promise.all([...lakeBays.map(name=>window.aerieRegionalLandforms.prepare(name)),region==='acadia'?null:window.prepareRangeRelief(region),window.aerieRegionalLandforms.prepare(region),(region==='alaska'||region==='yosemite')?window.aerieTerrainIndices.prepare(region):null,secondarySurvey?window.aerieRegionalLandforms.prepare(secondarySurvey):null,region==='moosehead'?window.prepareMooseheadUplands():null]);
+    await Promise.all([...extraSurveys.map(name=>window.aerieRegionalLandforms.prepare(name)),region==='acadia'?null:window.prepareRangeRelief(region),window.aerieRegionalLandforms.prepare(region),(region==='alaska'||region==='yosemite')?window.aerieTerrainIndices.prepare(region):null,secondarySurvey?window.aerieRegionalLandforms.prepare(secondarySurvey):null,region==='moosehead'?window.prepareMooseheadUplands():null]);
   };
 })();
