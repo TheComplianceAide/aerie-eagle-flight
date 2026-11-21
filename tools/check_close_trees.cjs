@@ -12,7 +12,11 @@ window.matchMedia = () => ({ matches: false });
 window.getCanopyWind = () => ({ glsl: '', uniforms: {} });
 window.aerieCanopyProfile = () => ({});
 global.fetch = async name => new Response(await fs.readFile(path.join(game, name)));
-THREE.TextureLoader.prototype.loadAsync = async () => new THREE.Texture();
+THREE.TextureLoader.prototype.loadAsync = async name => {
+  const texture = new THREE.Texture();
+  texture.name = name;
+  return texture;
+};
 require('../game/moosehead-crowns.js');
 require('../game/close-tree-detail.js');
 require('../game/close-bark-material.js');
@@ -28,6 +32,7 @@ async function checkRegion(region) {
     assert.ok(stats.ready, region + ': ' + stats.error);
     const sheets = catalog.filter(sheet => sheet.region === region);
     if (region === 'moosehead') sheets.push(window.mooseheadMatureCanopy);
+    const byId = new Map(sheets.map(sheet => [sheet.id, sheet]));
     const pending = new Set(sheets.flatMap(s => s.cells.map((_, i) => s.id + '/' + i)));
     const count = pending.size;
     scene.traverse(mesh => {
@@ -37,11 +42,21 @@ async function checkRegion(region) {
       const detail = geometry.userData.closeTreeDetail;
       if (source.lod !== 'near') {
         assert.equal(detail, undefined, 'Approach geometry changed on a more distant tree');
+        assert.equal(mesh.material.defines.CLOSE_SCANNED_BARK, undefined);
         return;
       }
       const label = source.sheet + '/' + source.cell;
       assert.ok(pending.delete(label), 'Unexpected or duplicate near mesh ' + label);
       assert.ok(detail?.addedTriangles > 0, 'Missing close foliage on ' + label);
+      const sheet = byId.get(source.sheet);
+      const family = sheet.families?.[source.cell] || sheet.family;
+      const bark = mesh.material.uniforms.closeBark?.value;
+      if (family === 'brush') assert.equal(bark, undefined, label);
+      else {
+        const expected = family === 'broad' ? 'hardwood' : 'pine';
+        assert.equal(bark?.name, 'canopy-data/close-bark-' + expected + '.webp', label);
+        assert.equal(bark.wrapT, THREE.RepeatWrapping, label);
+      }
       const vertices = geometry.getAttribute('position').count;
       assert.equal(geometry.getAttribute('normal').count, vertices, label);
       assert.equal(geometry.getAttribute('uv').count, vertices, label);
@@ -56,6 +71,13 @@ async function checkRegion(region) {
 }
 
 (async () => {
+  const fallback = await window.aerieCloseBark.load(async name => {
+    if (name.includes('pine')) throw new Error('Optional texture unavailable');
+    return new THREE.Texture();
+  }, THREE);
+  assert.equal(fallback.pine, null);
+  assert.equal(fallback.hardwood.wrapS, THREE.RepeatWrapping);
+  fallback.hardwood.dispose();
   const regions = new Set(catalog.map(s => s.region));
   let count = 0;
   for (const region of regions) count += await checkRegion(region);

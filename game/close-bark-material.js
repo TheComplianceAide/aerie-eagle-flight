@@ -18,11 +18,11 @@
   }
 
   const pars = `
-    #ifdef CLOSE_SCANNED_BARK
+    #if defined(CLOSE_SCANNED_BARK) && !defined(CLOSE_NEEDLE_SHOOT)
     uniform sampler2D closeBark;
     #endif`;
   const apply = `
-    #ifdef CLOSE_SCANNED_BARK
+    #if defined(CLOSE_SCANNED_BARK) && !defined(CLOSE_NEEDLE_SHOOT)
     if(abs(barkUV.z - 3.) < .1) {
       // Tangent-space normal XY in RG. B is the scan's median-centred
       // luminance. The triplanar projection stays attached as the tree moves.

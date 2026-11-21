@@ -50,6 +50,42 @@
                       mix(branchHash(base+vec2(0.,1.)),branchHash(base+vec2(1.)),f.x),f.y);
       return clamp((noise-.20)*1.34+.11*local.y,.001,.999);
     }`;
+  const closeBoughWind=`
+    #ifdef CLOSE_BOUGH_WIND
+    void bendCloseBough(inout vec3 p,inout vec3 n,vec2 offset,float h,float height,float phase,vec2 front){
+      float arm=length(offset);
+      float flex=smoothstep(.06,.84,arm/max(.32,.24*height))*smoothstep(.015,.24,h);
+      vec2 across=vec2(-canopyDownwind.y,canopyDownwind.x);
+      float along=dot(offset,canopyDownwind),side=dot(offset,across);
+      // The field supplies both current wind pressure and its recent history.
+      // Outer limbs take the leading gust first and spring back in its wake.
+      float load=clamp(.65*front.x+.35*front.y,0.,1.);
+      float impulse=clamp(front.x-front.y,-.5,.5);
+      float spring=sin(2.07*clock+phase+4.1*h-.48*along+.29*side);
+      float turn=flex*side/max(.15,arm)*(.007+.103*load+.048*impulse+(.005+.038*load)*spring);
+      vec2 rot=vec2(1.,turn)*inversesqrt(1.+turn*turn);
+      p.xz+=offset*(rot.x-1.)+vec2(offset.y,-offset.x)*rot.y;
+      n.xz=n.xz*rot.x+vec2(n.z,-n.x)*rot.y;
+      float pitch=flex*(.004+.044*load+.031*impulse+(.003+.024*load)*spring);
+      // A short wave travels through the connected shoot. Sampling position
+      // continuously keeps coincident leaf bases and fine woody forks welded.
+      #ifdef REGIONAL_BROADLEAF
+      const float flutterHz=7.4,flutterSize=.014;
+      #else
+      const float flutterHz=5.3,flutterSize=.006;
+      #endif
+      vec2 wave=canopyDownwind*6.2+across*3.7;
+      float ripple=clock*flutterHz+phase*2.7-dot(offset,wave)+h*height*3.1;
+      float amplitude=flex*min(1.,height*.6)*(.001+flutterSize*load);
+      p.y+=-along*pitch+amplitude*sin(ripple);
+      // Tilt the surface with the animated shoot. Its sunward and shaded
+      // faces now exchange light without a change to the world exposure.
+      float gradient=amplitude*cos(ripple);
+      n.xz+=n.y*(canopyDownwind*pitch+wave*gradient);
+      n.y*=1.-3.1*gradient;
+      n=normalize(n);
+    }
+    #endif`;
   const vertex=`
     #ifdef MAINE_CROWN
     varying vec3 canopyLocal;
@@ -58,6 +94,7 @@
     uniform float envRows, clock, nativeRadius[9], lightSpan, useSurveyLight;
     uniform sampler2D terrainIllumination;
     attribute float surface;
+    ${window.aerieCloseTreeDetail.shootAttributes||''}
     varying float fadeLow;
     #ifdef REGIONAL_BATCH
     #include <batching_pars_vertex>
@@ -72,6 +109,7 @@
     varying vec3 localMetres;
     #endif
     varying vec4 barkUV, foliage, lighting;
+    ${closeBoughWind}
     void main(){
       #ifdef REGIONAL_BATCH
       mat4 rootTransform=getBatchingMatrix(batchId);
@@ -87,6 +125,10 @@
       #else
       vec3 localPosition=position;
       vec2 materialUV=uv;
+      #endif
+      vec3 sourceNormal=normal;
+      #ifdef CLOSE_NEEDLE_SHOOT
+      localPosition=shootOrigin.xyz;
       #endif
       float h=clamp(localPosition.y,0.,1.);
       float azimuth=atan(localPosition.z,localPosition.x)+traits.y;
@@ -108,6 +150,7 @@
       localMetres=localPosition*vec3(width,traits.x,width);
       #endif
       #endif
+      ${window.aerieCloseTreeDetail.shootTransform||''}
       mat2 yaw=mat2(cos(traits.y),sin(traits.y),-sin(traits.y),cos(traits.y));
       vec2 offset=yaw*localPosition.xz*width;
       wp=anchor+vec3(offset.x,h*traits.x,offset.y);
@@ -118,10 +161,14 @@
       vec2 movement=plantMotion(anchor.xz,front,clock,.16);
       wp.xz+=movement*.23*traits.x*h*h;
       float leaf=1.-mod(surface,2.);
+      vec2 nxz=yaw*sourceNormal.xz;
+      wn=normalize(vec3(nxz.x,sourceNormal.y*width/traits.x,nxz.y));
+      #ifdef CLOSE_BOUGH_WIND
+      bendCloseBough(wp,wn,offset,h,traits.x,traits.y,front);
+      #else
       float flutter=sin(clock*2.9+traits.y+dot(offset,vec2(1.6,1.05)));
       wp.y+=length(offset)*leaf*(.004+.023*front.x)*flutter;
-      vec2 nxz=yaw*normal.xz;
-      wn=normalize(vec3(nxz.x,normal.y*width/traits.x,nxz.y));
+      #endif
       barkUV=vec4(materialUV,surface,leaf);
       foliage=vec4(tone.rgb,traits.w);fadeLow=coverageLow;
       float illumination=1.;
@@ -177,6 +224,7 @@
     ${window.aerieCloseTreeDetail.colorShader}`;
   const fragment=`
     ${sampleSurface}
+    ${window.aerieCloseBark?.pars||''}
     uniform sampler2D relief;
     uniform vec3 sunlight, sunVector, aerialTint;
     uniform float fogStrength,leafSeason;
@@ -188,7 +236,9 @@
       vec4 albedo=sampleCanopyColor();
       if(barkUV.w>.5&&albedo.a<canopyAlphaCut)discard;
       vec3 n=normalize(wn)*(gl_FrontFacing?1.:-1.);
+      #ifndef CLOSE_SCANNED_BARK
       ${window.aerieCloseTreeDetail.normalShader}
+      #endif
       #if !defined(MENDENHALL_SITKA) && !defined(REGIONAL_SPECIMEN)
       vec3 dx=dFdx(wp),dy=dFdy(wp);
       vec2 du=dFdx(barkUV.xy),dv=dFdy(barkUV.xy);
@@ -198,6 +248,7 @@
       n=normalize(n*max(.5,bump.z)+.36*inv*(t*bump.x+b*bump.y)*sign(du.x*dv.y-du.y*dv.x));
       #endif
       vec3 c=albedo.rgb;
+      ${window.aerieCloseBark?.apply||''}
       #ifdef MENDENHALL_SITKA
       c*=mix(vec3(1.02),vec3(1.17,1.06,.99),barkUV.w);
       #endif
@@ -242,7 +293,15 @@
       float cosine=dot(n,sunVector),sky=.5+.5*n.y;
       float ao=mix(.62,1.,clamp(.51*lighting.x+.58*lighting.y,0.,1.));
       float transmission=barkUV.w*.18*max(0.,-cosine);
-      float rim=pow(1.-abs(dot(n,normalize(cameraPosition-wp))),2.)*barkUV.w;
+      vec3 toEye=normalize(cameraPosition-wp);
+      float rim=pow(1.-abs(dot(n,toEye)),2.)*barkUV.w;
+      #ifdef CLOSE_BOUGH_WIND
+      // Thin sun-facing margins transmit warm light through an exposed leaf;
+      // dense interior leaves and bark retain their normal canopy shade.
+      float through=max(0.,-dot(toEye,sunVector));
+      float exposed=smoothstep(.22,1.,.53*lighting.x+.64*lighting.y);
+      transmission+=.24*barkUV.w*exposed*through*through*(.22+.78*max(0.,-cosine));
+      #endif
       vec3 light=vec3(.65,.72,.80)+sky*.09+lit*sunlight*(.54*max(0.,cosine)+.43*(.52+.48*cosine)+transmission+rim*.10);
       float dist=distance(wp,cameraPosition);
       gl_FragColor=vec4(mix(c*light*ao,aerialTint,clamp(dist*fogStrength,0.,.25)),1.);
@@ -408,6 +467,7 @@
     const loader=new T.TextureLoader(new T.LoadingManager());
     const foliageGroup=new T.Group(),shadowScene=new T.Scene(),camera=new T.OrthographicCamera(-53,53,53,-53,.1,280);
     foliageGroup.name='Regional close canopy';scene.add(foliageGroup);
+    const fineShoots=window.aerieCloseTreeDetail.makeShootPass?.(T,foliageGroup,mobile);
     const wind=window.getCanopyWind(T,scene),sun=(world.sunDirection||new T.Vector3(.4,.62,-.45)).clone().normalize();
     const squall=scene.userData.calderaCanopy;
     const size=mobile?512:1024;
@@ -432,6 +492,7 @@
       measuredCrowns:0,ordinaryCrowns:0,addedCrowns:0,species:{},sitkaReady:false,sitkaForms:{},regionalSheets:[],regionalForms:{},lod:[0,0,0],shadowDraws:0,lastBuildMs:0,cacheCells:0,indexedTrees:grid?trees.length:0,maskedMaterials:0};
     let stopped=false,offset=grid?trees.length:0,lastCheck=-Infinity,lastBuild=-Infinity,lastShadow=-Infinity,dirty=true,pendingAssets=false,assetRetry=0;
     const previous=new T.Vector3(Infinity,Infinity,Infinity),eye=new T.Vector3(),shadowEye=new T.Vector3(Infinity,Infinity,Infinity);
+    const detailEye=new T.Vector3(),lastDetailEye=new T.Vector3(Infinity,Infinity,Infinity);
     const lead=new T.Vector2();
     let lodState=new Map(),idleIndex=null;
     function maskMaterial(material,rootExpression){
@@ -550,8 +611,12 @@
               return null;
             })
           : null;
-        const [bytes,color,normal,sitka,packs]=await Promise.all([
-          unpack('specimens.bin',ab.signal),photo('surfaces.webp'),photo('relief.webp'),localForms,regionalAssets()
+        const closeBark=Promise.resolve().then(()=>window.aerieCloseBark?.load(photo,T)).catch(error=>{
+          if(!stopped)console.warn('Close tree bark:',error.message||error);
+          return null;
+        });
+        const [bytes,color,normal,sitka,packs,bark]=await Promise.all([
+          unpack('specimens.bin',ab.signal),photo('surfaces.webp'),photo('relief.webp'),localForms,regionalAssets(),closeBark
         ]);
         if(stopped)return;
         common.photo.value=color;common.relief.value=normal;
@@ -603,6 +668,15 @@
           // filtering. Preserve crown mass as the player crosses each LOD.
           uniforms.canopyAlphaCut={value:regional?[.34,.27,.17][record.l]:.34};
           const defines=regional?{REGIONAL_SPECIMEN:1}:pilot?{MENDENHALL_SITKA:1}:{};
+          if(record.l===0){
+            defines.CLOSE_BOUGH_WIND=1;
+            const scan=regional&&regional.family!=='brush'&&(regional.family==='broad'?bark?.hardwood:bark?.pine);
+            if(scan){
+              defines.CLOSE_SCANNED_BARK=1;uniforms.closeBark={value:scan};
+              if(/birch/i.test(regional.sheet)||regional.sheet==='lofoten-tree'||
+                 regional.sheet==='moosehead-mature'&&regional.cell===13)defines.CLOSE_BIRCH_BARK=1;
+            }
+          }
           if(regional&&record.l===0&&g.userData.closeTreeDetail){
             defines.CLOSE_TREE_DETAIL=1;
             window.aerieCloseTreeDetail.useShootPhoto(world,defines,uniforms);
@@ -839,6 +913,7 @@
     const treeSphere=new T.Sphere();
     function draw(t,lod,record,lo,hi){
       const group=groups[t.model*3+lod];
+      if(lod===0&&!group.batch)fineShoots?.collect(group,t,record,hi);
       if(group.batch){group.batch.queue.push({tree:t,form:group.form,record,low:lo,high:hi});return;}
       const j=group.used++,attrs=group.g.attributes;
       attrs.anchor.setXYZ(j,t.x,t.y,t.z);
@@ -848,11 +923,11 @@
       if(group.radial){
         const width=t.h*clamp((t.env[13]/255*1.7)/group.nativeWidth,.24,1.65);
         const r=group.radial*width;
-        // The vertex shader clamps height to [0,h]. Wind displaces the crown
-        // horizontally by <.16h and vertically by at most .027r. The margin
-        // covers both bounds for every color, reflection and light camera.
+        // The close bough rotation preserves horizontal radius. Vertical
+        // flex is bounded by .091r plus 1.5 cm, and coarser flutter by .027r.
+        // The same conservative sphere serves eye, reflection and sun.
         treeSphere.center.set(t.x,t.y+.5*t.h,t.z);
-        treeSphere.radius=Math.hypot(r+.17*t.h,.5*t.h+.03*r)+.12;
+        treeSphere.radius=Math.hypot(r+.17*t.h,.5*t.h+(lod===0?.10:.03)*r)+.14;
         if(j===0)group.g.boundingSphere.copy(treeSphere);else group.g.boundingSphere.union(treeSphere);
       }
     }
@@ -922,6 +997,7 @@
       const move=(value,target,step)=>value+clamp(target-value,-step,step);
       let measured=0,ordinary=0,added=0,drawn=0,animating=false;
       for(const g of groups)if(g)g.used=0;
+      fineShoots?.begin(detailEye);
       maskBytes.fill(0);maskStart.value.set(Math.floor(eye.x/maskStep)*maskStep-maskWorld*.5,Math.floor(eye.z/maskStep)*maskStep-maskWorld*.5);
       for(const {t,d,old} of selected){
         const lod=nearRoots.has(t)?0:middleRoots.has(t)?1:2;
@@ -964,6 +1040,7 @@
         nextState.set(id,{...entry,opacity});animating=true;
       }
       for(const batch of regionalBatches)batch.finish();
+      if(fineShoots)Object.assign(counters,fineShoots.finish());
       for(const g of groups){
         if(!g||g.batch)continue;
         g.g.instanceCount=g.used;g.mesh.visible=g.used>0;g.caster.visible=g.used>0;
@@ -976,7 +1053,7 @@
         }
       }
       envelope.needsUpdate=drawn+outgoing>0;mask.needsUpdate=true;maskEnabled.value=drawn+outgoing>0?1:0;
-      lodState=nextState;lastBuild=seconds;previous.copy(eye);dirty=remaining||animating;
+      lodState=nextState;lastBuild=seconds;previous.copy(eye);lastDetailEye.copy(detailEye);dirty=remaining||animating;
       Object.assign(counters,{activeTiles:active.filter(a=>cells.has(a.id)).length,surveyTiles:active.filter(a=>cells.get(a.id)?.survey).length,
         drawnCrowns:drawn,measuredCrowns:measured,ordinaryCrowns:ordinary,addedCrowns:added,species,sitkaForms,regionalForms,lod:counts,cacheCells:cells.size,lastBuildMs:Math.round((performance.now()-started)*10)/10});
     }
@@ -997,9 +1074,9 @@
       }
       shadowEye.copy(eye);lastShadow=seconds;shadows.regionalCanopyShadowOn.value=1;counters.shadowDraws++;
     }
-    function update(position,seconds){
+    function update(position,seconds,view=position){
       if(stopped||!Number.isFinite(position?.y))return;
-      eye.copy(position);common.clock.value=seconds;
+      eye.copy(position);detailEye.copy(view||position);common.clock.value=seconds;
       if(offset<trees.length)buildIndex();
       const now=performance.now();
       if(!counters.ready){if(!pendingAssets&&now>=assetRetry)assets();return;}
@@ -1008,7 +1085,8 @@
         lastCheck=lastBuild=lastShadow=-Infinity;dirty=true;
         for(const cell of cells.values())for(const t of cell.rows)if(t.solidAfter!=null){t.solidAfter=seconds+.48;t.armed=false;}
       }
-      if(seconds-lastCheck>=(mobile?.07:.055)&&(dirty||previous.distanceToSquared(eye)>3||seconds-lastBuild>1.25)){
+      if(seconds-lastCheck>=(mobile?.07:.055)&&(dirty||previous.distanceToSquared(eye)>3||
+          lastDetailEye.distanceToSquared(detailEye)>.36||seconds-lastBuild>1.25)){
         refresh(now,seconds);lastCheck=seconds;
       }
       shadowPass(seconds);
@@ -1017,6 +1095,7 @@
       stopped=true;if(idleIndex!=null)window.cancelIdleCallback?.(idleIndex);ab.abort();maskEnabled.value=shadows.regionalCanopyShadowOn.value=0;
       for(const [mat,hooks] of patched){mat.onBeforeCompile=hooks.old;mat.customProgramCacheKey=hooks.oldKey;mat.needsUpdate=true;}
       for(const batch of regionalBatches)batch.dispose();
+      fineShoots?.dispose();
       for(const resource of owned)resource.dispose();
       patched.clear();photos.clear();index.clear();cells.clear();obstacles.clear();measurements.clear();lodState.clear();scene.remove(foliageGroup);
       foliageGroup.clear();shadowScene.clear();

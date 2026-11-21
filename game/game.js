@@ -907,7 +907,7 @@
     if(fieldAudio&&soundOn)fieldAudio.update(s,world,dt,camera,perching.stage);
     updateWeather(elapsed);
     world.update(dt,elapsed,player);updateLight?.(player,elapsed);updateMist?.(player,elapsed);updateOptics?.(player,elapsed);
-    canopy?.update(player,elapsed);
+    canopy?.update(player,elapsed,camera.position);
     geology?.update(player,elapsed);
     fieldScenery?.update(player,elapsed);
     renderer.render(scene,camera);updatePerchHUD(s);gameVision.update(player,camera,elapsed);
