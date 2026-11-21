@@ -38,7 +38,9 @@
     }[region]||[];
     if(['surry','dixville','yosemite','lofoten'].includes(region))surveyDetail.push('regional-field-fixtures.js');
     const streams=region==='yosemite'?['river-'+region+'.js']:[];
-    await Promise.all([...streams,...base,'habitat-data/'+region+'.js',...files,...surveyDetail].map(open));
+    const assets=[...streams,...base,'habitat-data/'+region+'.js',...files,...surveyDetail];
+    await Promise.all(assets.map(name=>name==='canopy-stream.js'
+      ? open('close-tree-detail.js').then(()=>open(name)) : open(name)));
     await Promise.all([window.prepareRangeRelief(region),region==='moosehead'?window.prepareMooseheadUplands():null]);
   };
 })();

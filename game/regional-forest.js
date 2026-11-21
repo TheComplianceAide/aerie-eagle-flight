@@ -16,11 +16,15 @@
   window.makeRegionalForest=function makeRegionalForest(T,scene,world,loader){
     const mobile=matchMedia('(pointer: coarse)').matches;
     const reach=mobile?920:1740,cap=mobile?3600:13200;
+    // Mixed survey cells already have their distant canopy. Seed only a short
+    // approach band for the extra roots that grow in its gaps.
+    const gapInner=mobile?106:155,gapOuter=mobile?166:232;
+    const gapPrepare=gapOuter+CELL*.71+56,gapSlots=mobile?1050:2400;
     const cover=window.aerieCanopyProfile(world),image=loader.load('regional-crowns.webp');
     image.anisotropy=4;image.colorSpace=T.NoColorSpace;
-    const root=new T.InstancedBufferAttribute(new Float32Array(3*cap),3).setUsage(T.DynamicDrawUsage);
-    const traits=new T.InstancedBufferAttribute(new Float32Array(4*cap),4).setUsage(T.DynamicDrawUsage);
-    const tint=new T.InstancedBufferAttribute(new Float32Array(3*cap),3).setUsage(T.DynamicDrawUsage);
+    const root=new T.InstancedBufferAttribute(new Float32Array(3*(cap+gapSlots)),3).setUsage(T.DynamicDrawUsage);
+    const traits=new T.InstancedBufferAttribute(new Float32Array(4*(cap+gapSlots)),4).setUsage(T.DynamicDrawUsage);
+    const tint=new T.InstancedBufferAttribute(new Float32Array(3*(cap+gapSlots)),3).setUsage(T.DynamicDrawUsage);
     const plane=new T.PlaneGeometry(1,1),geo=new T.InstancedBufferGeometry();geo.setIndex(plane.index);
     geo.setAttribute('position',plane.attributes.position);geo.setAttribute('uv',plane.attributes.uv);
     geo.setAttribute('rootPosition',root);geo.setAttribute('dimensions',traits);geo.setAttribute('crownTone',tint);geo.instanceCount=0;
@@ -39,9 +43,9 @@
       sunMap:{value:world.sunMask||null},span:{value:world.forestLightSpan||8000},
       haze:{value:scene.fog?.color.clone()||new T.Color(.64,.68,.69)},season:{value:world.region==='dixville'?1:world.region==='surry'?2:0}},
       vertexShader:`attribute vec3 rootPosition,crownTone;attribute vec4 dimensions;uniform float span,season;uniform sampler2D sunMap,nearLandscape,farLandscape;
-        varying vec2 card;varying vec4 blend;varying vec3 tint,landTone;varying float range,kind;
+        varying vec2 card;varying vec4 blend;varying vec3 tint,landTone;varying float range,kind,gap;
         void main(){
-          float h=dimensions.x,w=dimensions.y;kind=dimensions.w;
+          float h=dimensions.x,w=dimensions.y;gap=step(8.,dimensions.w);kind=dimensions.w-8.*gap;
           vec3 center=rootPosition+vec3(0.,h*.49,0.);
           vec3 view=normalize(cameraPosition-center);
           vec3 right=normalize(vec3(view.z+.000001,0.,-view.x)),up=cross(view,right);
@@ -63,14 +67,15 @@
           gl_Position=projectionMatrix*viewMatrix*vec4(p,1.);
         }`,
       fragmentShader:`uniform sampler2D captures;uniform vec3 haze;uniform float season;
-        varying vec2 card;varying vec4 blend;varying vec3 tint,landTone;varying float range,kind;
+        varying vec2 card;varying vec4 blend;varying vec3 tint,landTone;varying float range,kind,gap;
         vec4 capture(float side){return texture2D(captures,vec2((side+.006+.988*card.x)*.25,(7.-kind+.006+.988*card.y)*.125));}
         void main(){
           vec4 a=capture(0.),b=capture(1.),c=capture(2.),d=capture(3.);
           vec4 weight=blend*vec4(a.a,b.a,c.a,d.a);float cover=dot(weight,vec4(1.));
           float edge=1.-smoothstep(${Math.round(reach*.71)}.,${reach}.,range);
+          if(gap>.5)edge=1.-smoothstep(${gapInner}.,${gapOuter}.,range);
           float dither=fract(dot(floor(gl_FragCoord.xy),vec2(.75487767,.5698403)));
-          if(cover<mix(.19,.085,smoothstep(320.,1000.,range))||dither>edge)discard;
+          if(cover<mix(.19,.085,smoothstep(320.,1000.,range))||dither>=edge)discard;
           vec3 foliage=(a.rgb*weight.x+b.rgb*weight.y+c.rgb*weight.z+d.rgb*weight.w)/max(cover,.001);
           if(kind<2.5&&season>.5){
             float l=dot(foliage,vec3(.25,.61,.14));float green=smoothstep(.009,.065,foliage.g-min(foliage.r,foliage.b));
@@ -86,9 +91,11 @@
         }`});
     material.userData.canopyRoot='rootPosition';
     const mesh=new T.Mesh(geo,material);mesh.name='Regional forest beyond original crowns';mesh.frustumCulled=false;mesh.visible=false;scene.add(mesh);
-    const cells=new Map();let queue=[],visible=[],lastBuild=-Infinity,nextScan=-Infinity,installed=false,dirty=false;
+    const cells=new Map(),mixed=new Set(),deferred=new Set();
+    let queue=[],visible=[],lastBuild=-Infinity,nextScan=-Infinity,installed=false,dirty=false;
     let lastX=Infinity,lastZ=Infinity,lastY=Infinity,instances=0,occupied=0,sampled=0;
-    const stats=()=>({instances,cached:cells.size,pending:queue.length,sampled,occupied,reach,capacity:cap});
+    let gapInstances=0;
+    const stats=()=>({instances,cached:cells.size,pending:queue.length,sampled,occupied,reach,capacity:cap,gapInstances,gapSlots});
     world.regionalForestStats=stats;
     const inBounds=(x,z)=>{const b=world.bounds;return !b||x+CELL>b.minX&&z+CELL>b.minZ&&x<b.maxX&&z<b.maxZ;};
     function arrange(eye,now){
@@ -101,12 +108,19 @@
         if(d>(reach+CELL*.45)**2)continue;
         const k=i+','+j;locations.push({i,j,k,d});within.add(k);
       }
-      locations.sort((a,b)=>a.d-b.d);visible=locations;queue=locations.filter(it=>!cells.has(it.k));
-      for(const k of cells.keys())if(!within.has(k))cells.delete(k);
+      locations.sort((a,b)=>a.d-b.d);visible=locations;
+      queue=locations.filter(it=>!cells.has(it.k)||(deferred.has(it.k)&&it.d<gapPrepare*gapPrepare));
+      for(const k of cells.keys())if(!within.has(k)){cells.delete(k);mixed.delete(k);deferred.delete(k);}
       lastX=eye.x;lastZ=eye.z;lastY=eye.y;nextScan=now+150;dirty=true;
     }
     function derive(it,canopy){
-      if(canopy.hasOriginalCell(it.i,it.j)){occupied++;return null;}
+      if(canopy.hasOriginalCell(it.i,it.j)){
+        if(!mixed.has(it.k))occupied++;
+        mixed.add(it.k);
+        if(canopy.isSurveyCell(it.i,it.j))return null;
+        if(it.d>=gapPrepare*gapPrepare){deferred.add(it.k);return null;}
+        deferred.delete(it.k);
+      }
       const neighbors=canopy.getCanopyNeighbors(it.i,it.j);
       const trees=cover.fillCell(it.i,it.j,CELL,neighbors);if(!trees.length)return null;
       const a=new Float32Array(trees.length*10);let n=0;
@@ -121,9 +135,16 @@
     }
     function upload(eye){
       let written=0,available=0;
-      for(const it of visible)available+=(cells.get(it.k)?.length||0)/10;
+      function put(rows,i,isGap){
+        const v=written*3,t=written*4;
+        root.array[v]=rows[i];root.array[v+1]=rows[i+1];root.array[v+2]=rows[i+2];
+        traits.array[t]=rows[i+3];traits.array[t+1]=rows[i+4];traits.array[t+2]=rows[i+5];traits.array[t+3]=rows[i+6]+(isGap?8:0);
+        tint.array[v]=rows[i+7];tint.array[v+1]=rows[i+8];tint.array[v+2]=rows[i+9];written++;
+      }
+      for(const it of visible)if(!mixed.has(it.k))available+=(cells.get(it.k)?.length||0)/10;
       const density=Math.min(1,cap/(available*.29||1));
       for(const it of visible){
+        if(mixed.has(it.k))continue;
         const rows=cells.get(it.k);if(!rows)continue;
         for(let i=0;i<rows.length;i+=10){
           // Small shrubs below the visual footprint of a display pixel yield their
@@ -137,13 +158,22 @@
           const keep=Math.exp(-3.45*fade**1.22)*(1-fade*(1-density));
           if(rows[i+5]/(Math.PI*2)>keep)continue;
           if(written>=cap)break;
-          const v=written*3,t=written*4;
-          root.array[v]=rows[i];root.array[v+1]=rows[i+1];root.array[v+2]=rows[i+2];
-          traits.array[t]=h;traits.array[t+1]=rows[i+4];traits.array[t+2]=rows[i+5];traits.array[t+3]=rows[i+6];
-          tint.array[v]=rows[i+7];tint.array[v+1]=rows[i+8];tint.array[v+2]=rows[i+9];written++;
+          put(rows,i,false);
         }
         if(written>=cap)break;
       }
+      const baseCount=written;
+      // Separate capacity preserves the composition of the distant hillside.
+      for(const it of visible){
+        if(it.d>gapPrepare*gapPrepare||written-baseCount>=gapSlots)break;
+        if(!mixed.has(it.k))continue;
+        const rows=cells.get(it.k);if(!rows)continue;
+        for(let i=0;i<rows.length&&written-baseCount<gapSlots;i+=10){
+          const dx=rows[i]-eye.x,dy=rows[i+1]+rows[i+3]*.49-eye.y,dz=rows[i+2]-eye.z;
+          if(dx*dx+dy*dy+dz*dz<(gapOuter+56)**2)put(rows,i,true);
+        }
+      }
+      gapInstances=written-baseCount;
       for(const attr of [root,traits,tint]){attr.clearUpdateRanges();attr.addUpdateRange(0,written*attr.itemSize);attr.needsUpdate=true;}
       geo.instanceCount=instances=written;mesh.visible=!!written;dirty=false;
     }

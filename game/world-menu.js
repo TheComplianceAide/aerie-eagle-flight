@@ -9,7 +9,7 @@
     surry: {name:['Surry Dam','& Keene'],region:'New Hampshire, USA',description:'Skim the dam and its wooded reservoir, then follow the Ashuelot River valley to downtown Keene.',launches:{lake:'Surry Mountain Dam',ridge:'Keene Main Street',valley:'Ashuelot Valley overlook'}},
     dixville: {name:['Dixville','Notch'],region:'Dawn · New Hampshire, USA',description:'Cross Lake Gloriette toward the red roofs of the Balsams. Dawn lights the autumn hardwoods above Route 26 and the split ledge of Table Rock.',launches:{dawn:'First light on Table Rock',lake:'Dawn over Lake Gloriette',hotel:'The Balsams flyby',highway:'Route 26 through the notch',ridge:'Table Rock overlook',panorama:'Resort and notch panorama'}},
     labrador: {name:['Lac','Berté'],region:'Côte-Nord, Québec, Canada',description:'A sun shower crosses the narrows. Follow the rainbow over the spruce islands or skim the white cabin and log steps on the point.',launches:{rainbow:'Rainbow over the narrows',cabin:'Cabin flyby',lake:'Lake overlook',ridge:'Spruce narrows'}},
-    moosehead: {name:['Moosehead','Lake'],region:'Maine, USA',description:'Bank past the cliffs of Mount Kineo, then follow the forested shoreline toward Rockwood.',launches:{lake:'Mount Kineo cliffs',ridge:'Rockwood crossing',reeds:'Wind across the reeds'}},
+    moosehead: {name:['Moosehead','Lake'],region:'Maine, USA',description:'Bank past the cliffs of Mount Kineo, then follow the forested shoreline toward Rockwood.',launches:{lake:'Mount Kineo cliffs',ridge:'Rockwood crossing',reeds:'Wind across the reeds',canopy:'Balsam fir flyby'}},
     yosemite: {name:['Yosemite','Valley'],region:'California, USA',description:'Bank between granite walls above the Merced River and its forested valley floor.',launches:{lake:'El Capitan overlook',ridge:'Valley floor'}},
     crater: {name:['Crater','Lake'],region:'Oregon, USA',description:'Fly from the golden caldera rim toward Wizard Island. A red-lit storm front advances across the far shore.',launches:{lake:'Caldera overlook',ridge:'Wizard Island'}},
     lofoten: {name:['Lofoten','Islands'],region:'Reinefjorden, Norway',description:'Trace the saltwater fjord between sheer mountain faces and narrow islands.',launches:{lake:'Fjord overlook',ridge:'Reinefjorden channel'}},
@@ -71,6 +71,7 @@
       spruce:'Follow the spruce-lined bank, then bank left toward the lake for a view of the exposed rock.',
       spur:'Glide around the spur with sound on. Listen for the high hiss of Nugget Falls as the cascade comes into view.',
       reeds:'Follow the dark ripples toward the sedge beds and watch the gust reach the trees along the shore.',
+      canopy:'Glide straight past a lakeshore balsam fir for a close look at its branches.',
       spray:'Follow the shoreline toward Nugget Falls. Watch the spray lift off the ledges and bend downwind.'
     };
     document.querySelector('.intro p').textContent=descriptions[launch.value]||

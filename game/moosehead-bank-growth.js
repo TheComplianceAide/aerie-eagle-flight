@@ -194,7 +194,7 @@ window.makeMooseheadBankGrowth=function(T,scene,{survey,ground,waterLevel,growth
   }
   const last=new T.Vector3(Infinity,Infinity,Infinity);
   let queue=[];
-  return {update(eye){
+  return {shootAtlas:material.uniforms.atlas.value,update(eye){
     if(eye.distanceToSquared(last)>36){
       last.copy(eye);queue=[];
       for(const p of patches){

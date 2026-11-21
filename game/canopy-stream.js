@@ -2,7 +2,7 @@
    The far forest stays with each world's original renderer. A coverage texture identifies
    individual original roots replaced by finished, visible specimen geometry. */
 (() => {
-  const CELL = 128, TAU = Math.PI * 2, maskSide = 160;
+  const CELL = 128, TAU = Math.PI * 2, maskSide = 256;
   const key = (x,z) => x + ',' + z;
   const clamp = (n,lo,hi) => Math.min(hi,Math.max(lo,n));
   const rangeFade = (a,b,n) => {
@@ -173,7 +173,8 @@
       if(slot>2.5)st=fract(barkUV.xy);
       return (mix(vec2(inset),vec2(1.-inset),st)+vec2(mod(slot,2.),floor(slot*.5)))*.5;
       #endif
-    }`;
+    }
+    ${window.aerieCloseTreeDetail.colorShader}`;
   const fragment=`
     ${sampleSurface}
     uniform sampler2D relief;
@@ -184,9 +185,10 @@
     ${shadowGLSL}
     void main(){
       if((foliage.a<.998||fadeLow>.0)&&(COVERAGE_VALUE>=foliage.a||COVERAGE_VALUE<fadeLow))discard;
-      vec4 albedo=texture2D(photo,atlas(.005859375));
+      vec4 albedo=sampleCanopyColor();
       if(barkUV.w>.5&&albedo.a<canopyAlphaCut)discard;
       vec3 n=normalize(wn)*(gl_FrontFacing?1.:-1.);
+      ${window.aerieCloseTreeDetail.normalShader}
       #if !defined(MENDENHALL_SITKA) && !defined(REGIONAL_SPECIMEN)
       vec3 dx=dFdx(wp),dy=dFdy(wp);
       vec2 du=dFdx(barkUV.xy),dv=dFdy(barkUV.xy);
@@ -249,7 +251,7 @@
     ${sampleSurface}
     void main(){
       if((foliage.a<.998||fadeLow>.0)&&(COVERAGE_VALUE>=foliage.a||COVERAGE_VALUE<fadeLow))discard;
-      if(barkUV.w>.5&&texture2D(photo,atlas(.005859375)).a<canopyAlphaCut+.06)discard;
+      if(barkUV.w>.5&&sampleCanopyColor().a<canopyAlphaCut+.06)discard;
       gl_FragColor=vec4(1.);
     }`;
   // UVs, normal, vertex positions and material selector are packed together on disk.
@@ -343,15 +345,15 @@
     }
     function finish(){
       epoch++;
-      for(const q of queue){const slot=live.get(q.tree.seed);if(slot)slot.epoch=epoch;}
-      for(const [seed,slot] of live){
+      for(const q of queue){const slot=live.get(q.tree.id);if(slot)slot.epoch=epoch;}
+      for(const [id,slot] of live){
         if(slot.epoch===epoch)continue;
-        slot.chunk.mesh.setVisibleAt(slot.id,false);spares.push(slot);live.delete(seed);
+        slot.chunk.mesh.setVisibleAt(slot.id,false);spares.push(slot);live.delete(id);
       }
       for(const c of chunks)c.used=0;
       for(const q of queue){
         const {tree:t,form,record,low,high}=q;
-        let slot=live.get(t.seed);
+        let slot=live.get(t.id);
         if(!slot){
           const same=spares.findIndex(s=>s.cell===form.cell);
           slot=same>=0?spares.splice(same,1)[0]:spares.pop();
@@ -363,7 +365,7 @@
           }else if(slot.cell!==form.cell){
             slot.chunk.mesh.setGeometryAt(slot.id,form.geometry);slot.cell=form.cell;
           }
-          slot.chunk.mesh.setVisibleAt(slot.id,true);live.set(t.seed,slot);
+          slot.chunk.mesh.setVisibleAt(slot.id,true);live.set(t.id,slot);
         }
         const c=slot.chunk,id=slot.id,base=id*8;
         const yaw=(t.seed%104729)/104729*TAU;
@@ -392,7 +394,7 @@
     const mobile=window.matchMedia('(pointer: coarse)').matches;
     const maine=world.region==='moosehead';
     const limit=mobile?150:350,far=mobile?99:146;
-    const capacity=maine?[mobile?3:6,mobile?20:64,limit]:[mobile?2:4,mobile?12:26,limit];
+    const capacity=maine?[mobile?4:10,mobile?20:64,limit]:[mobile?4:8,mobile?12:26,limit];
     const spill=mobile?32:72,envCapacity=limit+spill;
     const surveyRegion=world.region;
     const profile=window.aerieCanopyProfile(world);
@@ -417,9 +419,10 @@
     const shadowAPI={uniforms:shadows,glsl:shadowGLSL};
     scene.userData.regionalCanopyShadow=shadowAPI;
     const envelopeBytes=new Uint8Array(9*5*envCapacity),envelope=new T.DataTexture(envelopeBytes,9,5*envCapacity,T.RedFormat);
-    const maskBytes=new Uint8Array(maskSide*maskSide),mask=new T.DataTexture(maskBytes,maskSide,maskSide,T.RedFormat);
-    for(const map of [envelope,mask]){map.minFilter=map.magFilter=T.LinearFilter;map.unpackAlignment=1;map.needsUpdate=true;}
-    const maskWorld=2*(far+18),maskStart={value:new T.Vector2()},maskEnabled={value:0};
+    const maskBytes=new Uint8Array(4*maskSide*maskSide),mask=new T.DataTexture(maskBytes,maskSide,maskSide,T.RGBAFormat);
+    envelope.minFilter=envelope.magFilter=T.LinearFilter;mask.minFilter=mask.magFilter=T.NearestFilter;
+    for(const map of [envelope,mask]){map.unpackAlignment=1;map.needsUpdate=true;}
+    const maskStep=mobile?1:2,maskWorld=maskSide*maskStep,maskStart={value:new T.Vector2()},maskEnabled={value:0};
     const sunlight=new T.Color(.69,.57,.38).lerp(new T.Color(.58,.64,.67),rangeFade(.15,.60,sun.y));
     const common={...wind.uniforms,...squall?.uniforms,...shadows,envelope:{value:envelope},envRows:{value:5*envCapacity},
       leafSeason:{value:surveyRegion==='dixville'?1:surveyRegion==='surry'?2:0},clock:{value:0},photo:{value:null},relief:{value:null},sunVector:{value:sun},sunlight:{value:sunlight},
@@ -429,6 +432,7 @@
       measuredCrowns:0,ordinaryCrowns:0,addedCrowns:0,species:{},sitkaReady:false,sitkaForms:{},regionalSheets:[],regionalForms:{},lod:[0,0,0],shadowDraws:0,lastBuildMs:0,cacheCells:0,indexedTrees:grid?trees.length:0,maskedMaterials:0};
     let stopped=false,offset=grid?trees.length:0,lastCheck=-Infinity,lastBuild=-Infinity,lastShadow=-Infinity,dirty=true,pendingAssets=false,assetRetry=0;
     const previous=new T.Vector3(Infinity,Infinity,Infinity),eye=new T.Vector3(),shadowEye=new T.Vector3(Infinity,Infinity,Infinity);
+    const lead=new T.Vector2();
     let lodState=new Map(),idleIndex=null;
     function maskMaterial(material,rootExpression){
       if(!material||!rootExpression||patched.has(material))return;
@@ -437,12 +441,35 @@
         old.call(this,shader,engine);
         Object.assign(shader.uniforms,{regionalMask:{value:mask},regionalMaskStart:maskStart,regionalMaskOn:maskEnabled});
         const main=/void\s+main\s*\(\s*(?:void)?\s*\)\s*\{/;
-        shader.vertexShader='varying vec2 regionalRootXZ;\n'+shader.vertexShader.replace(main,match=>match+' regionalRootXZ=('+rootExpression+').xz;');
-        shader.fragmentShader='uniform sampler2D regionalMask;uniform vec2 regionalMaskStart;uniform float regionalMaskOn;varying vec2 regionalRootXZ;\n'+shader.fragmentShader.replace(main,match=>match+`
-          if(regionalMaskOn>.5){
-            vec2 coverUV=(regionalRootXZ-regionalMaskStart)/${maskWorld.toFixed(1)};
-            if(all(greaterThan(coverUV,vec2(0.)))&&all(lessThan(coverUV,vec2(1.)))&&texture2D(regionalMask,coverUV).r>${maine?'.5':screenHash})discard;
-          }`);
+        const maskLookup=`
+          uniform sampler2D regionalMask;uniform vec2 regionalMaskStart;uniform float regionalMaskOn;
+          float regionalRootCover(vec2 root){
+            if(regionalMaskOn<.5)return 0.;
+            vec2 grid=(root-regionalMaskStart)/${maskStep.toFixed(1)};
+            if(all(greaterThanEqual(grid,vec2(0.)))&&all(lessThan(grid,vec2(${maskSide}.)))){
+              vec4 stem=texture2D(regionalMask,(floor(grid)+.5)/${maskSide}.);
+              vec2 error=abs(fract(grid)-stem.gb);
+              float exact=max(error.x,error.y)<.024?stem.r:0.;
+              return max(exact,stem.a);
+            }
+            return 0.;
+          }`;
+        const cut=maine&&shader.fragmentShader.includes('float branchCoverage(')?'branchCoverage(canopyLocal)':screenHash;
+        if(rootExpression==='root'||rootExpression==='rootPosition'){
+          // Card corners all belong to one stem. Test its coverage four times,
+          // before sampling its atlas, and clip a completely replaced card.
+          const varying='varying float regionalCardCover;\n';
+          shader.vertexShader=maskLookup+varying+shader.vertexShader.replace(main,match=>match+`
+            regionalCardCover=regionalRootCover((${rootExpression}).xz);
+            if(regionalCardCover>=1.){gl_Position=vec4(2.,2.,2.,1.);return;}`);
+          shader.fragmentShader=varying+shader.fragmentShader.replace(main,match=>match+`
+            if(regionalCardCover>0.&&regionalCardCover>${cut})discard;`);
+        }else{
+          shader.vertexShader='varying vec2 regionalRootXZ;\n'+shader.vertexShader.replace(main,match=>match+' regionalRootXZ=('+rootExpression+').xz;');
+          shader.fragmentShader=maskLookup+'varying vec2 regionalRootXZ;\n'+shader.fragmentShader.replace(main,match=>match+`
+            float regionalCover=regionalRootCover(regionalRootXZ);
+            if(regionalCover>0.&&regionalCover>${cut})discard;`);
+        }
       };
       material.customProgramCacheKey=()=>oldId+'-regional-canopy-'+rootExpression;
       patched.set(material,{old,oldKey});material.needsUpdate=true;counters.maskedMaterials=patched.size;
@@ -551,6 +578,17 @@
           regionalSpecies.set(meta.species,entry);
           for(const rec of models){
             const cell=rec.m;
+            if(rec.l===0){
+              // Close shoots are optional. Their builder validates its private
+              // arrays before attaching them; retain the source form on error.
+              const source={...rec.geometry.attributes},index=rec.geometry.index,v=rec.v,i=rec.i;
+              try{window.aerieCloseTreeDetail.enrich(rec,meta,cell);}
+              catch(error){
+                rec.geometry.attributes=source;rec.geometry.setIndex(index);rec.v=v;rec.i=i;
+                delete rec.geometry.userData.closeTreeDetail;
+                console.warn('Close tree '+meta.id+'/'+cell+':',error.message||error);
+              }
+            }
             rec.m=nextModel+cell;rec.map=map;
             modelSources.set(rec.m,{sheet:meta.id,cell,label:meta.cells[cell],family:meta.families?.[cell]||meta.family});
           }
@@ -565,6 +603,10 @@
           // filtering. Preserve crown mass as the player crosses each LOD.
           uniforms.canopyAlphaCut={value:regional?[.34,.27,.17][record.l]:.34};
           const defines=regional?{REGIONAL_SPECIMEN:1}:pilot?{MENDENHALL_SITKA:1}:{};
+          if(regional&&record.l===0&&g.userData.closeTreeDetail){
+            defines.CLOSE_TREE_DETAIL=1;
+            window.aerieCloseTreeDetail.useShootPhoto(world,defines,uniforms);
+          }
           if(maine)defines.MAINE_CROWN=1;
           if(maine&&(regional?.sheet==='moosehead-birch'||(regional?.sheet==='moosehead-mature'&&regional.cell===13)))defines.MAINE_PAPER_BIRCH=1;
           if(regional?.family==='broad')defines.REGIONAL_BROADLEAF=1;
@@ -591,16 +633,24 @@
             b.forms.push(form);allocated.push(g);continue;
           }
           for(const [attr,n] of [['anchor',3],['traits',4],['tone',4],['coverageLow',1]]){
-            g.setAttribute(attr,new T.InstancedBufferAttribute(new Float32Array((2*capacity[record.l]+spill)*n),n).setUsage(T.DynamicDrawUsage));
+            g.setAttribute(attr,new T.InstancedBufferAttribute(new Float32Array(envCapacity*n),n).setUsage(T.DynamicDrawUsage));
           }
           const vs=(squall?'#define CANOPY_CALDERA\n'+squall.glsl:'')+wind.glsl+vertex;
           const material=new T.ShaderMaterial({side:T.DoubleSide,defines,vertexShader:vs,fragmentShader:fragment,uniforms});
           const depth=new T.ShaderMaterial({side:T.DoubleSide,defines,vertexShader:vs,fragmentShader:depthFragment,uniforms});
           const mesh=new T.Mesh(g,material),caster=new T.Mesh(g,depth);
           if(regional)mesh.userData.aerieRegional={sheet:regional.sheet,cell:regional.cell,lod:['near','mid','far'][record.l]};
-          g.instanceCount=0;mesh.frustumCulled=caster.frustumCulled=false;
+          g.instanceCount=0;mesh.frustumCulled=caster.frustumCulled=!!(regional||pilot);
+          let radial=0;
+          if(mesh.frustumCulled){
+            // These vertices are positioned in world space by the shader.
+            // Include the actual enriched tip extents, not the unbranched LOD.
+            const p=g.attributes.position.array,unit=regional?1/22000:1;
+            for(let i=0;i<p.length;i+=3)radial=Math.max(radial,p[i]*p[i]+p[i+2]*p[i+2]);
+            radial=Math.sqrt(radial)*unit;g.boundingSphere=new T.Sphere();
+          }
           mesh.visible=caster.visible=false;foliageGroup.add(mesh);shadowScene.add(caster);
-          groups[record.m*3+record.l]={g,mesh,caster,used:0};
+          groups[record.m*3+record.l]={g,mesh,caster,used:0,radial,nativeWidth:Math.max(.10,record.r[0])};
           allocated.push(g,material,depth);
         }
         for(const b of batchInputs.values()){
@@ -679,7 +729,7 @@
         leafTone=(variant+.12+.73*leafTone)/4;
       }
       const gain=t.photoGain||(.90+(seed%997)/997*.19);
-      return {leafTone,x:t.x,y:y-Math.min(.16,h*.025),z:t.z,h,seed,model,env,kind,species:s.name||s.family,broad:s.family==='broad',
+      return {id:(kind==='survey'?'s':'')+key(t.x,t.z),leafTone,x:t.x,y:y-Math.min(.16,h*.025),z:t.z,h,seed,model,env,kind,species:s.name||s.family,broad:s.family==='broad',
         color:s.tint.map(v=>clamp(v*gain,.25,2.4)),radius,shrub};
     }
     const obstacleSize=16;
@@ -747,9 +797,15 @@
     function makeCell(ix,iz){
       const id=key(ix,iz),original=originalTrees(ix,iz),survey=measurements.get(id)?.rows;
       const supplemental=survey?[]:profile.fillCell(ix,iz,CELL,getNearby(ix,iz))||[];
-      const rows=[];
-      for(const t of survey||original){const tree=style(t,survey?'survey':'original');if(tree)rows.push(tree);}
-      for(const t of supplemental){const tree=style(t,'fill');if(tree)rows.push(tree);}
+      const rows=[],seen=new Set();
+      function add(t,kind){
+        const id=key(t.x,t.z);
+        if(seen.has(id))return;
+        const tree=style(t,kind);
+        if(tree){seen.add(id);rows.push(tree);}
+      }
+      for(const t of survey||original)add(t,survey?'survey':'original');
+      for(const t of supplemental)add(t,'fill');
       return {ix,iz,id,rows,links:indexObstacles(rows),survey:!!survey};
     }
     function fetchSurvey(ix,iz,now){
@@ -762,13 +818,25 @@
       }).catch(()=>{if(!stopped)measurements.set(id,{retry:performance.now()+15000});}).finally(()=>requests.delete(id));
     }
     function stampRoot(t,value,spread){
-      const uvx=(t.x-maskStart.value.x)*maskSide/maskWorld-.5,uvz=(t.z-maskStart.value.y)*maskSide/maskWorld-.5;
-      const x=Math.round(uvx),z=Math.round(uvz),r=spread?2:1,q=Math.round(255*value);
-      for(let j=-r;j<=r;j++)for(let i=-r;i<=r;i++){
-        if(x+i<0||z+j<0||x+i>=maskSide||z+j>=maskSide)continue;
-        const a=(z+j)*maskSide+x+i;maskBytes[a]=Math.max(maskBytes[a],q);
+      const u=(Math.fround(t.x)-maskStart.value.x)/maskStep,v=(Math.fround(t.z)-maskStart.value.y)/maskStep;
+      const x=Math.floor(u),z=Math.floor(v),q=Math.round(255*value);
+      if(x<0||z<0||x>=maskSide||z>=maskSide)return;
+      const at=4*(z*maskSide+x);
+      // A neighbor in the same map texel keeps its own crown. The green and
+      // blue channels identify the actual stem down to a fraction of a metre.
+      if(q>=maskBytes[at]){
+        maskBytes[at]=q;maskBytes[at+1]=Math.round(255*(u-x));maskBytes[at+2]=Math.round(255*(v-z));
+      }
+      if(!spread)return;
+      // Only the independent lidar survey can replace a different inferred
+      // stem. Keep its approximate match separate from exact-root coverage.
+      const r=Math.ceil(4/maskStep);
+      for(let j=Math.max(0,z-r);j<=Math.min(maskSide-1,z+r);j++)for(let i=Math.max(0,x-r);i<=Math.min(maskSide-1,x+r);i++){
+        const d=maskStep*Math.hypot(i+.5-u,j+.5-v),a=4*(j*maskSide+i)+3;
+        maskBytes[a]=Math.max(maskBytes[a],Math.round(q*(1-rangeFade(2,4,d))));
       }
     }
+    const treeSphere=new T.Sphere();
     function draw(t,lod,record,lo,hi){
       const group=groups[t.model*3+lod];
       if(group.batch){group.batch.queue.push({tree:t,form:group.form,record,low:lo,high:hi});return;}
@@ -777,17 +845,44 @@
       attrs.traits.setXYZW(j,t.h,(t.seed%104729)/104729*TAU,record,hi);
       attrs.tone.setXYZW(j,t.color[0],t.color[1],t.color[2],t.leafTone);
       attrs.coverageLow.setX(j,lo);
+      if(group.radial){
+        const width=t.h*clamp((t.env[13]/255*1.7)/group.nativeWidth,.24,1.65);
+        const r=group.radial*width;
+        // The vertex shader clamps height to [0,h]. Wind displaces the crown
+        // horizontally by <.16h and vertically by at most .027r. The margin
+        // covers both bounds for every color, reflection and light camera.
+        treeSphere.center.set(t.x,t.y+.5*t.h,t.z);
+        treeSphere.radius=Math.hypot(r+.17*t.h,.5*t.h+.03*r)+.12;
+        if(j===0)group.g.boundingSphere.copy(treeSphere);else group.g.boundingSphere.union(treeSphere);
+      }
+    }
+    function drawLevels(t,record,opacity,near,solid){
+      // These cumulative weights survive a reversal mid-transition. Each
+      // representation gets a disjoint coverage interval at the same root.
+      const a=opacity*near,b=opacity*solid;
+      if(a>.001)draw(t,0,record,0,a);
+      if(b-a>.001)draw(t,1,record,a,b);
+      if(opacity-b>.001)draw(t,2,record,b,opacity);
     }
     function refresh(now,seconds){
       const started=performance.now(),cx=Math.floor(eye.x/CELL),cz=Math.floor(eye.z/CELL),active=[],rows=[];
-      const bounds=world.bounds;
-      for(let iz=cz-2;iz<=cz+2;iz++)for(let ix=cx-2;ix<=cx+2;ix++){
+      const elapsed=seconds-lastBuild,dx=eye.x-previous.x,dz=eye.z-previous.z;
+      if(elapsed>0&&elapsed<=.65&&Math.hypot(dx,dz)<=90){
+        // Prepare roots about 1.5 flight seconds ahead, but build current
+        // cells first after launch, a fast turn, or a landmark teleport.
+        const scale=Math.min(1.5/elapsed,(mobile?62:96)/Math.max(.001,Math.hypot(dx,dz)));
+        const mix=1-Math.exp(-elapsed*5);
+        lead.x+=(dx*scale-lead.x)*mix;lead.y+=(dz*scale-lead.y)*mix;
+      }else lead.set(0,0);
+      const bounds=world.bounds,lookX=eye.x+lead.x,lookZ=eye.z+lead.y;
+      const distanceToCell=(px,pz,x,z)=>Math.hypot(Math.max(x-px,px-x-CELL,0),Math.max(z-pz,pz-z-CELL,0));
+      for(let iz=cz-3;iz<=cz+3;iz++)for(let ix=cx-3;ix<=cx+3;ix++){
         const x=ix*CELL,z=iz*CELL;
         if(bounds&&(x>bounds.maxX||x+CELL<bounds.minX||z>bounds.maxZ||z+CELL<bounds.minZ))continue;
-        const d=Math.hypot(Math.max(x-eye.x,eye.x-x-CELL,0),Math.max(z-eye.z,eye.z-z-CELL,0));
-        if(d<far+32)active.push({ix,iz,id:key(ix,iz),d});
+        const d=distanceToCell(eye.x,eye.z,x,z),ahead=distanceToCell(lookX,lookZ,x,z);
+        if(d<far+32||ahead<far+20)active.push({ix,iz,id:key(ix,iz),d,priority:Math.min(d,ahead+34)});
       }
-      active.sort((a,b)=>a.d-b.d);
+      active.sort((a,b)=>a.priority-b.priority||a.d-b.d);
       for(const a of active)if(inSurvey(surveyRegion,a.ix,a.iz))fetchSurvey(a.ix,a.iz,now);
       let made=0,remaining=false;
       for(const a of active){
@@ -796,43 +891,49 @@
           cells.set(a.id,makeCell(a.ix,a.iz));made++;
         }
         const cell=cells.get(a.id);cell.lastUse=now;
+        if(a.d>=far+32)continue;
         for(const t of cell.rows){
           const dx=t.x-eye.x,dz=t.z-eye.z;
           if(t.armed===false&&seconds>=t.solidAfter&&(dx*dx+dz*dz>(t.innerRadius+2)**2||eye.y>t.y+t.h+2))t.armed=true;
           const dy=Math.max(t.y-eye.y,eye.y-(t.y+t.h),0);
           const d=Math.hypot(Math.max(0,Math.hypot(dx,dz)-t.radius*.6),dy*.90);
-          if(d<far)rows.push({t,d});
+          if(d<far)rows.push({t,d,old:lodState.get(t.id)});
         }
       }
       for(const [id,cell] of cells)if(Math.abs(cx-cell.ix)>3||Math.abs(cz-cell.iz)>3||now-cell.lastUse>35000)evict(id);
-      rows.sort((a,b)=>a.d-b.d);
-      const selected=rows.slice(0,limit),highLimit=maine?(mobile?15:24):(mobile?13:18);
+      // A small incumbent advantage prevents adjoining crowns from swapping
+      // the last resident slot as the eagle circles or shifts by centimetres.
+      rows.sort((a,b)=>(a.d-(a.old?2.5:0))-(b.d-(b.old?2.5:0))||a.t.seed-b.t.seed);
+      const selected=rows.slice(0,limit),highLimit=maine?(mobile?22:36):(mobile?20:32);
       const midLimit=maine?(mobile?43:76):(mobile?32:48);
-      const capEdge=rows.length>limit?Math.max(14,selected[limit-1].d):far;
-      const nextState=new Map(),counts=[0,0,0],species={},sitkaForms={},regionalForms={},timeStep=Number.isFinite(lastBuild)?clamp(seconds-lastBuild,.01,.12):.055;
+      const capEdge=rows.length>limit?clamp(selected[limit-1].d,14,far):far;
+      for(const row of selected){
+        const size=clamp(Math.sqrt(row.t.h/15),.68,1.25);
+        row.detailDistance=row.d/size-(row.old?.lod===0?4:0);
+      }
+      const high=selected.filter(r=>r.detailDistance<highLimit).sort((a,b)=>a.detailDistance-b.detailDistance);
+      const nearRoots=new Set(high.slice(0,capacity[0]).map(r=>r.t));
+      const middle=selected.filter(r=>!nearRoots.has(r.t)&&r.d<(midLimit+(r.old?.lod===1?6:0)));
+      middle.sort((a,b)=>(a.d-(a.old?.lod===1?5:0))-(b.d-(b.old?.lod===1?5:0)));
+      const middleRoots=new Set(middle.slice(0,capacity[1]).map(r=>r.t));
+      // After holding still the previous rebuild can be over a second old.
+      // Spend at most one visible blend increment on the first moving frame.
+      const nextState=new Map(),counts=[0,0,0],species={},sitkaForms={},regionalForms={},timeStep=Number.isFinite(lastBuild)?clamp(elapsed,0,.08):.05;
+      const move=(value,target,step)=>value+clamp(target-value,-step,step);
       let measured=0,ordinary=0,added=0,drawn=0,animating=false;
       for(const g of groups)if(g)g.used=0;
-      maskBytes.fill(0);maskStart.value.set(eye.x-maskWorld*.5,eye.z-maskWorld*.5);
-      for(const {t,d} of selected){
-        const old=lodState.get(t.seed);
-        let lod=2;
-        if(counts[0]<capacity[0]&&d<(highLimit+(old?.lod===0?3:0)))lod=0;
-        else if(counts[1]<capacity[1]&&d<(midLimit+(old?.lod===1?6:0)))lod=1;
+      maskBytes.fill(0);maskStart.value.set(Math.floor(eye.x/maskStep)*maskStep-maskWorld*.5,Math.floor(eye.z/maskStep)*maskStep-maskWorld*.5);
+      for(const {t,d,old} of selected){
+        const lod=nearRoots.has(t)?0:middleRoots.has(t)?1:2;
         const outer=Math.min(far,capEdge),fadeDist=Math.max(9,outer*.18);
-        // Rather than leaving a whole crown permanently checkerboarded along a
-        // dense lake shore, stagger the boundary among stable stem locations.
-        // A crossing tree still blends briefly between levels in motion.
         const reach=outer-fadeDist*((t.seed%997)/997);
-        const wanted=maine?(d<reach+(old?.opacity>.98?2:0)?1:0):1-rangeFade(outer-fadeDist,outer,d);
-        if(wanted<.005)continue;
-        const opacity=Math.min(wanted,(old?.opacity||0)+timeStep*2.9);
-        if(opacity+.012<wanted)animating=true;
-        let from=old?.from,started=old?.started;
-        if(old&&old.lod!==lod){from=old.lod;started=seconds;}
-        if(from!=null&&from!==lod&&seconds-started<.27){
-          const split=opacity*rangeFade(-.045,.27,seconds-started);
-          draw(t,from,drawn,split,opacity);draw(t,lod,drawn,0,split);animating=true;
-        }else{from=null;draw(t,lod,drawn,0,opacity);}
+        const wanted=maine?1-rangeFade(reach-4,reach+4,d):1-rangeFade(outer-fadeDist,outer,d);
+        const opacity=move(old?.opacity||0,wanted,timeStep*2.5);
+        if(opacity<.004)continue;
+        const near=move(old?.near??(lod===0?1:0),lod===0?1:0,timeStep*2.4);
+        const solid=move(old?.solid??(lod<2?1:0),lod<2?1:0,timeStep*2.4);
+        if(Math.abs(opacity-wanted)>.003||near!==(lod===0?1:0)||solid!==(lod<2?1:0))animating=true;
+        drawLevels(t,drawn,opacity,near,solid);
         envelopeBytes.set(t.env,drawn*45);drawn++;counts[lod]++;
         species[t.species]=(species[t.species]||0)+1;
         const source=modelSources.get(t.model);
@@ -847,7 +948,7 @@
         // The measured inventory needs a wider root match; infill uses its exact
         // seeded root so distant regional stand cards also give way to the live specimen.
         stampRoot(t,opacity,t.kind==='survey');
-        nextState.set(t.seed,{t,lod,opacity,from,started});
+        nextState.set(t.id,{t,lod,opacity,near,solid});
       }
       // A measured tile can finish while its inferred stand is on screen. Let the old
       // silhouettes recede over several frames while the surveyed crowns appear.
@@ -855,12 +956,12 @@
       for(const [id,entry] of lodState){
         if(nextState.has(id)||outgoing>=spill)continue;
         const {t,lod}=entry;
-        const opacity=entry.opacity-timeStep*3.4;
-        if(opacity<=.012||Math.abs(t.x-eye.x)>far||Math.abs(t.z-eye.z)>far||eye.y-t.y-t.h>far)continue;
+        const opacity=entry.opacity-timeStep*2.5;
+        if(opacity<=.004||Math.abs(t.x-eye.x)>far+20||Math.abs(t.z-eye.z)>far+20||eye.y-t.y-t.h>far+20)continue;
         const slot=drawn+outgoing++;
-        envelopeBytes.set(t.env,slot*45);draw(t,lod,slot,0,opacity);
+        envelopeBytes.set(t.env,slot*45);drawLevels(t,slot,opacity,entry.near,entry.solid);
         stampRoot(t,opacity,t.kind==='survey');
-        nextState.set(id,{t,lod,opacity,from:null});animating=true;
+        nextState.set(id,{...entry,opacity});animating=true;
       }
       for(const batch of regionalBatches)batch.finish();
       for(const g of groups){
@@ -907,7 +1008,7 @@
         lastCheck=lastBuild=lastShadow=-Infinity;dirty=true;
         for(const cell of cells.values())for(const t of cell.rows)if(t.solidAfter!=null){t.solidAfter=seconds+.48;t.armed=false;}
       }
-      if(seconds-lastCheck>=.09&&(dirty||previous.distanceToSquared(eye)>3||seconds-lastBuild>1.25)){
+      if(seconds-lastCheck>=(mobile?.07:.055)&&(dirty||previous.distanceToSquared(eye)>3||seconds-lastBuild>1.25)){
         refresh(now,seconds);lastCheck=seconds;
       }
       shadowPass(seconds);
@@ -922,11 +1023,12 @@
       mask.dispose();envelope.dispose();target.depthTexture.dispose();target.dispose();
       if(scene.userData.regionalCanopyShadow===shadowAPI)delete scene.userData.regionalCanopyShadow;
     }
-    installTags();indexDuringLoad();assets();
+    installTags();indexDuringLoad();
+    const ready=assets();
     function hasOriginalCell(ix,iz){
       // Outer silhouettes wait until coverage is known, including independent lidar cells.
       return offset<trees.length||inSurvey(surveyRegion,ix,iz)||originalTrees(ix,iz,0,true);
     }
-    return {getCanopyNeighbors:getNearby,hasOriginalCell,clearance,update,dispose,maskMaterial,stats:()=>({...counters,lod:[...counters.lod],species:{...counters.species},sitkaForms:{...counters.sitkaForms},regionalSheets:[...counters.regionalSheets],regionalForms:Object.fromEntries(Object.entries(counters.regionalForms).map(([k,v])=>[k,[...v]]))})};
+    return {ready,getCanopyNeighbors:getNearby,hasOriginalCell,isSurveyCell:(ix,iz)=>inSurvey(surveyRegion,ix,iz),clearance,update,dispose,maskMaterial,stats:()=>({...counters,lod:[...counters.lod],species:{...counters.species},sitkaForms:{...counters.sitkaForms},regionalSheets:[...counters.regionalSheets],regionalForms:Object.fromEntries(Object.entries(counters.regionalForms).map(([k,v])=>[k,[...v]]))})};
   };
 })();

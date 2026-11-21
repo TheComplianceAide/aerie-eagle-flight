@@ -63,12 +63,14 @@
       const mature=matureCell(species[family],mix,tree.height);
       return [model+128*(mature+1),h,width,raw%104729/104729*6.2831853];
     }
-    function material(fir,regional=false){
+    function material(fir,regional=false,hardwood=false){
       const mat=new T.ShaderMaterial({side:T.DoubleSide,uniforms,vertexShader:`
         ${wind.glsl}
+        ${window.aerieCrownTransition}
         attribute vec4 crownForm;attribute vec3 rootPosition;
         ${regional?'attribute vec2 lodFade;varying vec2 coverBounds;':''}
-        ${fir?'attribute float promoted,reachSquared;':''}
+        ${fir?'attribute vec2 promoted;attribute float reachSquared;':''}
+        ${hardwood?'attribute float nearResident;attribute vec4 form;':''}
         uniform float clock,nearHalf,farSpan,matureReady;uniform vec3 sun;
         uniform sampler2D photo,ranges,light;
         varying vec2 tileUV;varying vec4 viewIds,lightTint;varying vec3 weights,land;
@@ -77,7 +79,11 @@
           ${regional?'coverBounds=lodFade;':''}
           vec3 root=rootPosition,center=root+vec3(0.,crownForm.y*.5,0.);
           vec3 delta=cameraPosition-center;distanceToTree=length(delta);
-          ${fir?'if(promoted>.5||dot(delta,delta)>reachSquared*1.06){gl_Position=vec4(2.,2.,2.,1.);return;}':''}
+          cover=0.;
+          ${fir?`if(promoted.x>0.)cover=crownDetail(distance(cameraPosition,root+vec3(0.,promoted.y*.5,0.)),promoted.x*.78,promoted.x);
+            if(dot(delta,delta)>reachSquared*1.06){gl_Position=vec4(2.,2.,2.,1.);return;}`:''}
+          ${hardwood?'cover=nearResident*crownDetail(distance(cameraPosition,root+vec3(0.,form.y*.5-.12,0.)),80.,110.);':''}
+          if(cover>=1.){gl_Position=vec4(2.,2.,2.,1.);return;}
           vec3 direction=delta/max(.1,distanceToTree);
           vec3 right=normalize(vec3(direction.z+.00001,0.,-direction.x)),up=cross(direction,right);
           sunSide=dot(right.xz,normalize(sun.xz));standVariation=.92+.17*fract(crownForm.w*3.724);
@@ -112,7 +118,6 @@
           float direct=texture2D(light,uvMap).r,phase=dot(direction.xz,sun.xz);
           skyGlow=pow(max(0.,dot(-direction,normalize(sun))),2.5);
           lightTint=vec4(mix(vec3(.56,.64,.68),vec3(.91,.95,.87),direct),.95+.07*phase);
-          cover=${fir||regional?'1.':'step(83.+20.*fract(dot(root.xz,vec2(.3761,.5723))),distanceToTree)'};
           tileUV=uv;gl_Position=projectionMatrix*viewMatrix*vec4(wp,1.);
         }`,fragmentShader:`
           uniform sampler2D plate,maturePlate;uniform vec3 haze,sun;
@@ -120,6 +125,7 @@
           varying vec2 tileUV;varying vec4 viewIds,lightTint;varying vec3 weights,land;
           varying vec3 canopyLocal;varying float distanceToTree,cover,skyGlow,matureId,sunSide,standVariation;varying vec4 matureViews;varying vec2 matureMix;
           ${window.aerieCanopyBranchCoverage}
+          ${window.aerieCrownTransition}
           vec4 tap(float view){
             float cell=viewIds.w+view;
             vec2 origin=vec2(mod(cell,26.),25.-floor(cell/26.));
@@ -132,7 +138,7 @@
           }
           void main(){
             ${regional?'if(coverBounds.x>.001||coverBounds.y<.999){float cut=branchCoverage(canopyLocal);if(cut>=coverBounds.y||cut<coverBounds.x)discard;}':''}
-            if(cover<1.&&fract(dot(floor(gl_FragCoord.xy),vec2(.7548777,.5698403)))>cover)discard;
+            if(cover>crownPixel(gl_FragCoord.xy))discard;
             float density;
             vec3 foliage;
             if(distanceToTree>330.&&matureId>=0.){

@@ -506,6 +506,7 @@
       eagle=makeEagle(THREE);scene.add(eagle.object);eagle.motion?.setWindSource?.(world.windField);
       el("viewport").replaceChildren(renderer.domElement);resize();
       world.regionalFieldScenery=fieldScenery=window.makeRegionalFieldScenery(THREE,scene,world);
+      world.canopyStream=canopy=window.makeCanopyStream(THREE,renderer,scene,world);
       loadPromise=Promise.all([assets,world.ready,eagle.ready,geology.ready,fieldScenery.ready]);
       await loadPromise;
       if(region==='milford'){
@@ -518,7 +519,13 @@
       if(region==="surry")window.lightKeeneStreet(THREE,renderer,scene,world,eagle.object);
       updateWeather=await window.makeMovingWeather(THREE,scene,world);
       updateOptics=window.addAtmosphericOptics(THREE,scene,world);
-      world.canopyStream=canopy=window.makeCanopyStream(THREE,renderer,scene,world);
+      if(launchPicker.value==='canopy'&&canopy.ready){
+        // Start this departure beside its authored branches when bandwidth allows.
+        // A slow optional pack can still hand over naturally in flight.
+        let timer;
+        try{await Promise.race([canopy.ready,new Promise(resolve=>{timer=setTimeout(resolve,1500);})]);}
+        finally{clearTimeout(timer);}
+      }
     } catch(error) {
       disposeCanopy();
       loadPromise=null;world=null;eagle=null;renderer.dispose();renderer=null;

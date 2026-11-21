@@ -1485,7 +1485,11 @@ class Water extends Mesh {
   const start=([x,z,tx,tz,agl,glance=0,lookDown=0])=>({x,z,y:clearance(x,z)+agl,yaw:Math.atan2(x-tx,z-tz),glance,lookDown});
   const spawn=start(settings.launch),low=start(settings.low);
   const launches={lake:spawn,ridge:low};
-  if(region==='moosehead')launches.reeds={x:-1108,y:316.1,z:-2298,yaw:-1.560,glance:-25,lookDown:9};
+  if(region==='moosehead'){
+    launches.reeds={x:-1108,y:316.1,z:-2298,yaw:-1.560,glance:-25,lookDown:9};
+    // Fly west alongside a surveyed balsam fir with the shoulder camera clear of its trunk.
+    launches.canopy={x:1855.753,y:334.262,z:4123.347,yaw:Math.PI/2,glance:0,lookDown:0};
+  }
   for(const [key,tuple] of Object.entries(waterfront?.launches||settings.extraLaunches||{}))launches[key]=start(tuple);
   let landmarks=waterfront?[...survey.landmarks.filter(mark=>!waterfront.landmarks.some(local=>local.name===mark.name)),...waterfront.landmarks]:survey.landmarks;
   if(brook)landmarks=[...landmarks,{name:brook.name}];
