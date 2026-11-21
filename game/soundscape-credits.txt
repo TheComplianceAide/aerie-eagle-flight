@@ -474,3 +474,8 @@ https://freesound.org/people/TRP/sounds/568810/
 eagle-wing-b.m4a — “baldeagle-flap_and_cry.ogg,” stackpool, Freesound. One wing stroke of a bald eagle (1.03 to 1.31 seconds), band-limited 70 Hz to 3.2 kHz and faded. CC0 1.0.
 https://freesound.org/people/stackpool/sounds/39338/
 https://creativecommons.org/publicdomain/zero/1.0/
+
+RAIN
+rain-steady.m4a — “woodlands downpour Ekelund part 1,” forestfjord, Freesound. A summer downpour in forest outside Ekelund, Sweden, recorded from a cabin terrace. Twenty seconds from 2:35, band-limited 55 Hz to 9.5 kHz, mono, loop seam crossfaded. It carries the body of the rain in every world that has rain. CC0 1.0.
+https://freesound.org/people/forestfjord/sounds/818932/
+https://creativecommons.org/publicdomain/zero/1.0/

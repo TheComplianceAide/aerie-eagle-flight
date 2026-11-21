@@ -647,6 +647,7 @@
     load('ir-' + (air.ir || 'lake')).then(b => engine.setImpulse(b, (irLevel[air.ir || 'lake'] || .0002) * 7.5));
     if (spec.shower) { load('scape-' + region + '-rain-on-lake'); load('scape-' + region + '-rain-on-spruce'); }
     if (spec.storm) load('scape-' + region + '-rain-approach');
+    if (spec.storm || spec.shower) load('rain-steady');
     if (spec.storm) { load('scape-crater-thunder-near'); load('scape-crater-thunder-far'); }
 
     // Existing regional beds handed over by field-audio.js become 3D sources.
@@ -1045,19 +1046,24 @@
       });
       // Rain at the eagle: recorded rain plus synthesised near drops on the surface below.
       const rain = ctx.rain ?? window.aerieRainAt(world, region, ear.x, ear.z, t);
+      // A flight can begin under the storm, before the recording has decoded:
+      // start the bed again with it once it is there.
+      if (state.rain && !state.rain.real && buffers.get('rain-steady')) { state.rain.emitters.forEach(e => e.stop(1.2)); state.rain = null; }
       if (rain > .01 && !state.rain) {
         const below = isWet(world, ear.x, ear.z) ? 'water' : (world.habitat?.nearestTree?.(ear.x, ear.z, 25) ? 'leaves' : 'rock');
         const rec = buffers.get('scape-' + region + (below === 'water' ? '-rain-on-lake' : '-rain-on-spruce')) || buffers.get('scape-' + region + '-rain-approach');
         const emitters = [];
-        const tex = rainTexture(below, region === 'crater' ? 900 : 420);
+        // A recording of a woodland downpour carries the body of the rain; the
+        // synthesised texture only stands in until it has loaded.
+        const tex = buffers.get('rain-steady') || rainTexture(below, region === 'crater' ? 900 : 420);
         for (let i = 0; i < 4; i++) {
           const opt = {gain: 0, ref: 18, spread: 'none', occlude: false, doppler: false, wet: .2, offset: i * .9};
           const e = engine.loop(i % 2 && rec ? rec : tex, {x: ear.x, y: ear.y, z: ear.z}, opt);
           e.angle = i * Math.PI / 2 + Math.PI / 4; e.height = i % 2 ? -12 : -4; emitters.push(e);
         }
-        state.rain = {emitters};
+        state.rain = {emitters, real: !!buffers.get('rain-steady')};
       }
-      if (state.rain && rain > .2) {
+      if (state.rain && rain > .2 && eagleEars) {      // synthesised drops on the eagle: Eagle Ears only
         ticks = ticks || synthTicks(context);
         const n = Math.floor(rain * rand(1, 6));
         for (let i = 0; i < n; i++) {

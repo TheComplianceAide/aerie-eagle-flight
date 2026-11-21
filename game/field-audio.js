@@ -432,6 +432,8 @@
         const s=scape.engine.play(buffer,{x:anchor.x,y:anchor.y,z:anchor.z},{label:id,id:who,follows:!!anchor.actor,gain:gain*1.1,ref:clamp(anchor.reach*.18,12,95),
           reach:anchor.reach*1.3,wet:.42,echo:anchor.reach>=220,rate:random(.982,1.015)});
         if(s&&anchor.actor)s.onUpdate=()=>{s.x=anchor.actor.x;s.y=anchor.actor.y;s.z=anchor.actor.z;};
+        // A songbird or frog that is already singing stops if the eagle closes inside its hush radius.
+        if(s&&hushOf(id))scape.hush?.(s,hushOf(id));
         return !!s;
       }
       const c=channel(buffer,anchor);
