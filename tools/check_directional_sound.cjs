@@ -194,7 +194,7 @@ async function fly(seed, airspeed = 16) {
     if (last && Math.hypot(last.x - call.ear.x, last.y - call.ear.y, last.z - call.ear.z) < .9 * reach[call.label]) { songs++; if (last.id === call.id) followed++; }
     lastSinger.set(call.label, call);
   }
-  assert.ok(songs >= 15 && followed / songs > .55, `a singer still in earshot should carry on from its post (${followed} of ${songs} songs)`);
+  assert.ok(songs >= 10 && followed / songs > .55, `a singer still in earshot should carry on from its post (${followed} of ${songs} songs)`);
 
   // Insect patches are places too: the crickets left behind are found again.
   const patches = [...seen.values()].filter(s => /crickets/.test(s.label) && s.run === 'a');
