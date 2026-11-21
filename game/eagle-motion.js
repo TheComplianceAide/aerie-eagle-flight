@@ -13,17 +13,30 @@
 //    noise) and stall buffet; gravity and the local wind when perched.
 //  - Wing structure: a damped second-order flex per wing (about 2 Hz) driven
 //    by load factor and gust pressure, so rough air makes the wings "breathe".
-//  - Body: heave, pitch and roll respond to vertical gusts while the head is
-//    held still in space (avian gaze stabilisation).
+//    Primaries wash out (leading edge down) as they bend up; soaring carries
+//    slow steering corrections in the tail twist, tail spread and hand sweep.
+//  - Body: heave, pitch and roll answer gust load spikes (not the player's
+//    own pull-ups) while the head is held still in space; the head also rides
+//    level through each wingbeat while the thorax pumps under it.
 //  - G posture: positive load sweeps the hand, spreads the tail and settles
 //    the head into the shoulders; negative load droops the wings and lets the
 //    body plumage float.
-//  - Eyes: nictitating-membrane blinks (front-to-back sweep, ~0.2 s), often
-//    triggered by head saccades; a half-drawn membrane in fast dives; slow
-//    eyelid blinks when perched.
-//  - Perched: breathing at about 20 breaths/min, an occasional rouse
-//    (whole-body feather shake), and plumage, tail and balance that answer
+//  - Head: looking down and to one side, it cocks to bring that eye to the
+//    ground, as raptors inspect terrain with one fovea.
+//  - Eyes: nictitating-membrane blinks (front-to-back sweep, ~0.2 s) of both
+//    eyes or one, often triggered by head saccades; a half-drawn membrane in
+//    fast dives; slow eyelid blinks and drowsy lower lids on a long perch.
+//  - Voice: the lower mandible opens with the loudness of each of the eagle's
+//    own calls (announced by field-audio.js), with a head-throw on a perch.
+//  - Perched: breathing at about 20 breaths/min; head scans paced from field
+//    studies of perched hawks; peering head bobs; preening; head shakes; an
+//    occasional rouse with a tail wag; plumage, tail and balance that answer
 //    the wind at the perch.
+//
+// eagle.js sets most bone channels afresh every frame. The few it leaves
+// alone are restored to rest before this layer adds to them (see
+// restoreUnanimated), so nothing accumulates. tools/check_eagle_motion.cjs
+// checks frame-rate independence, drift, blink rate and the bill hinge.
 window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
   const {object, chest, neckBase, neck, rudder, tailRays, wings, uniforms} = parts;
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
