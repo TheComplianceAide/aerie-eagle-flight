@@ -1142,7 +1142,7 @@
           if (!buffers.has(id) && !loading.has(id)) load(id);
           const b = buffers.get(id);
           if (!b) continue;
-          src = engine.loop(b, {x: a.x, y: a.feetY ?? a.y, z: a.z}, {label: deer ? 'move-deer' : id, follows: true, gain: 0, ref: deer ? 6 : 9, reach: deer ? 130 : 190, wet: .3});
+          src = engine.loop(b, {x: a.x, y: a.feetY ?? a.y, z: a.z}, {label: deer ? 'move-deer' : id, follows: true, gain: 0, ref: deer ? 6 : 9, reach: deer ? 130 : 190, wet: .3, shuffle: false});
           if (!src) continue;
           state.steps.set(a, src);
         }

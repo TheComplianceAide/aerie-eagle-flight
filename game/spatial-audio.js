@@ -21,6 +21,44 @@
 // What is left of a sound arriving at a given level once wind noise at the
 // ears (the masker, on the same scale) is taken into account.
 window.aerieWindMasking = (arrived, masker) => masker > 0 && arrived > 0 ? arrived * arrived / (arrived + masker) : arrived;
+// A bed that never comes round again. A looped recording repeats itself
+// exactly: sixteen seconds of lapping water is the same sixteen seconds every
+// time. This plays a stretch from one place in the recording and crossfades,
+// at equal power, into a stretch from another, so no pattern returns on a
+// fixed beat. If its timer is ever late the stretch in hand simply loops on.
+window.aerieShuffledLoop = function aerieShuffledLoop(context, buffer, output, opt = {}) {
+  const fade = Math.min(1.4, buffer.duration * .1), steps = 33, up = new Float32Array(steps), down = new Float32Array(steps);
+  for (let i = 0; i < steps; i++) { up[i] = Math.sin(.5 * Math.PI * i / (steps - 1)); down[i] = Math.cos(.5 * Math.PI * i / (steps - 1)); }
+  const outputs = Array.isArray(output) ? output : [output];
+  let current = null, timer = 0, stopped = false, rate = opt.rate || 1;
+  function stretch(when, offset) {
+    if (stopped) return;
+    const src = context.createBufferSource(), gain = context.createGain(), old = current;
+    src.buffer = buffer; src.loop = true; src.playbackRate.value = rate;
+    src.connect(gain); for (const o of outputs) gain.connect(o);
+    if (old) {
+      gain.gain.setValueAtTime(0, when); gain.gain.setValueCurveAtTime(up, when, fade);
+      old.gain.gain.setValueAtTime(1, when); old.gain.gain.setValueCurveAtTime(down, when, fade);
+      try { old.src.stop(when + fade + .05); } catch (e) {}
+      old.src.onended = () => { try { old.src.disconnect(); old.gain.disconnect(); } catch (e) {} };
+    }
+    src.start(when, offset ?? Math.random() * buffer.duration);
+    current = {src, gain};
+    const next = when + Math.max(fade + .5, buffer.duration * (.35 + .35 * Math.random()));
+    timer = setTimeout(() => stretch(Math.max(context.currentTime + .05, next)), Math.max(0, (next - context.currentTime - .3) * 1000));
+  }
+  stretch(context.currentTime + (opt.when || 0), opt.offset);
+  return {
+    get playbackRate() { return current.src.playbackRate; },
+    stop(when = context.currentTime) {
+      if (stopped) return; stopped = true; clearTimeout(timer);
+      const last = current; if (!last) return;
+      try { last.src.stop(when); } catch (e) {}
+      last.src.onended = () => { try { last.src.disconnect(); last.gain.disconnect(); } catch (e) {} this.onended?.(); };
+    },
+    onended: null
+  };
+};
 window.makeSpatialAudio = function makeSpatialAudio(context, world, options = {}) {
   const coarse = matchMedia('(pointer: coarse)').matches;
   const order = options.order || (coarse ? 1 : 3);
@@ -385,18 +423,26 @@ window.makeSpatialAudio = function makeSpatialAudio(context, world, options = {}
   // Continuous recording at a (possibly moving) position.
   function loop(buffer, position, opt = {}) {
     if (!buffer) return null;
-    const src = context.createBufferSource(); src.buffer = buffer; src.loop = true;
-    src.playbackRate.value = opt.rate || 1;
-    const s = createSource(src, Object.assign({}, opt, position));
-    src.start(context.currentTime, opt.offset ?? Math.random() * buffer.duration);
+    // A recording long enough to have a pattern is shuffled so that it never
+    // repeats (see aerieShuffledLoop); a short texture, or footsteps whose
+    // rhythm matters, loops as it is.
+    const shuffle = opt.shuffle ?? buffer.duration >= 6;
+    let src, node;
+    if (shuffle) { node = context.createGain(); src = window.aerieShuffledLoop(context, buffer, node, {rate: opt.rate, offset: opt.offset}); }
+    else {
+      src = node = context.createBufferSource(); src.buffer = buffer; src.loop = true;
+      src.playbackRate.value = opt.rate || 1;
+    }
+    const s = createSource(node, Object.assign({}, opt, position));
+    if (!shuffle) src.start(context.currentTime, opt.offset ?? Math.random() * buffer.duration);
     s.source = src;
     s.stop = (fade = .6) => {
       const now = context.currentTime;
       s.level.gain.cancelScheduledValues(now); s.level.gain.setTargetAtTime(0, now, fade / 3);
       s.send.gain.setTargetAtTime(0, now, fade / 3);
       s.gain = 0;
-      try { src.stop(now + fade + .1); } catch (e) {}
       src.onended = () => s.release();
+      try { src.stop(now + fade + .1); } catch (e) {}
     };
     return s;
   }
