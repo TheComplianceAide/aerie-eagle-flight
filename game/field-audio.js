@@ -256,6 +256,8 @@
     // Regional 3D soundscape (soundscapes.js): created once the world exists.
     let scape=null,scapeExtras={},scapeBeds=new Set();
     let eagleDue=0, birdDue=0, animalDue=0, birdIndex=0, animalIndex=0, wildlifeUntil=0;
+    let alarmCheck=0;
+    const alarms=new Map(), alarmIds=[...profile.birds,...profile.animals].filter(id=>species[id]);
     const nextPhrase=new Map();
     let previousStage=null,pending=null,quietUntil=0,loonTake=0;
     let lastEncounter=-Infinity,nextWildlifeScan=0;
@@ -559,6 +561,32 @@
         const call=callWildlife(profile.birds,birdIndex,s,world,lastShore,waterY,agl);
         birdDue=now+(call?random(8,17):1.3);
         if(call){birdIndex=call.index;wildlifeUntil=now+call.duration+.6;}
+      }
+      // Approach alarm. Birds and small mammals call out when the eagle comes
+      // close, without waiting for their usual turn: within about half their
+      // audible range the nearest one calls at once and repeats while the
+      // eagle stays near. Geese honk over one another as it passes a flock.
+      // After a quarter of a minute beside the same animals they settle to an
+      // occasional call.
+      if(now>=alarmCheck){
+        alarmCheck=now+.3;
+        let voiced=false;
+        for(const id of alarmIds){
+          const [,reach,gain]=species[id],goose=birds[id]?.[0]==='goose',range=goose?160:clamp(reach*.45,40,130);
+          const near=world.wildlife?.nearest(id,s,range);
+          if(!near)continue;
+          const state=alarms.get(id)||alarms.set(id,{seen:-Infinity,began:-Infinity,due:0}).get(id);
+          if(now-state.seen>6)state.began=now;
+          state.seen=now;
+          if(now<state.due||voiced)continue;
+          const d=Math.hypot(s.x-near.x,s.y-near.y,s.z-near.z),close=1-clamp((d-.2*range)/(.8*range),0,1);
+          const settled=now-state.began>15,length=buffers.get(id)?.duration||2;
+          if(voice(id,gain*(settled?.5:.62+.38*close),0,14000,{...near,reach,gain})){
+            state.due=now+(goose?(settled?random(6,11):random(1.9,3.3)-1.2*close):length+(settled?random(8,14):random(1.2,3.5)));
+            wildlifeUntil=Math.max(wildlifeUntil,now+Math.min(length,1.4)+.2);
+            voiced=true;
+          }
+        }
       }
     }
     return {setEnabled,update,resetEncounters,output:master};
