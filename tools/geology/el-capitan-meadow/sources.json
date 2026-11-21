@@ -1,0 +1,92 @@
+{
+  "aerial": {
+    "naip": [
+      {
+        "href": "https://naipeuwest.blob.core.windows.net/naip/v002/ca/2022/ca_060cm_2022/37119/m_3711919_ne_11_060_20220807.tif",
+        "id": "ca_m_3711919_ne_11_060_20220807",
+        "date": "2022-08-07T16:00:00Z",
+        "nativeMetres": 0.6
+      }
+    ],
+    "site": [
+      -1520,
+      800,
+      -480,
+      1360
+    ],
+    "originUTM11N": [
+      268678,
+      4179436
+    ],
+    "vegetation": "https://services2.arcgis.com/Uq9r85Potqm3MfRV/arcgis/rest/services/biosds200_fpu/FeatureServer/0",
+    "count": 27,
+    "report": "https://www.nps.gov/yose/learn/nature/vegetation-map.htm"
+  },
+  "plants": {
+    "polygons": [
+      79057,
+      79058,
+      79117,
+      79118
+    ],
+    "hectares": 15.353,
+    "fieldShape": [
+      140,
+      260
+    ],
+    "vegetationTexelM": 4,
+    "coverPixels": 648806,
+    "range": "August orthophotography resolves vegetation patches; individual stems are modeled"
+  },
+  "canopy": {
+    "source": "https://opentopography.s3.sdsc.edu/pc-bulk/CA06_Stock/ot_m266400_4176800.laz",
+    "sha256": "a28ac8bc206c0dd4228a561991d5a8552e61246099a29f156f931f1e11a0c4f2",
+    "credit": "Stock, G. (2006), Yosemite, CA: El Portal, Mariposa Grove, Yosemite Canyon & Tuolumne Meadows. National Center for Airborne Laser Mapping; OpenTopography. https://doi.org/10.5069/G9GQ6VP3. CC BY 4.0.",
+    "year": 2006,
+    "classes": {
+      "1": 1031164,
+      "2": 338780
+    },
+    "points": 1369944,
+    "accepted": 858,
+    "shipped": {
+      "meadowAndBorderM": 60,
+      "photoOnlyBefore": 187,
+      "matchedPriorTrees": 109,
+      "unsupportedPhotoBlobs": 1,
+      "retainedPhotoOnly": 77,
+      "insertedMeasured": 418,
+      "rangeTotalBefore": 110924,
+      "rangeTotalAfter": 111232
+    },
+    "mapCodes": {
+      "3066": 449,
+      "2050": 54,
+      "3060": 72,
+      "2025": 176,
+      "3050": 20,
+      "8000": 87
+    },
+    "heightPercentiles": [
+      7.9625,
+      26.75,
+      53.5
+    ],
+    "widthPercentiles": [
+      5.5,
+      9.25,
+      22.0
+    ]
+  },
+  "groundMaterial": {
+    "item": "https://polyhaven.com/a/withered_grass",
+    "author": "Charlotte Baglioni",
+    "license": "CC0 1.0",
+    "sizeM": 2,
+    "roles": [
+      "Diffuse",
+      "nor_gl"
+    ],
+    "registeredToSite": false
+  }
+}

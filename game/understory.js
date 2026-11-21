@@ -412,6 +412,10 @@
           }else result.push([x,y-.025,z,baseHeights[kind]*scale*(.57+rand()*.93),rand()*6.283,rand(),kind,records[kind].span]);
         }
       }
+      // The summer-drying El Capitan opening carries actual sedges and grass
+      // rather than the valley floor's fallback shade ferns. Filter after the
+      // seeded sequence, preserving every neighboring woodland placement.
+      if(world.elCapitanMeadowCover)return result.filter(p=>world.elCapitanMeadowCover(p[0],p[2])<.65||p[6]===7);
       return result;
     }
     function put(g,p,full=false){

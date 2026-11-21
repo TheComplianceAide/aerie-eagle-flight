@@ -192,6 +192,7 @@ window.makePerchHabitat=function makePerchHabitat(T,scene,world,region){
       }
     }
     // Roof heights are in clearance. Exclude the paved downtown core as well.
+    if(world.elCapitanMeadowCover?.(x,z)>.63)return null;
     if(region==='surry'&&x>1785&&x<2200&&z>4240&&z<4860)return null;
     const surveyed=ground(x,z),y=surface(x,z);
     if(!Number.isFinite(y)||wet(x,z,surveyed)||floor(x,z)>surveyed+.38||Math.abs(y-surveyed)>1.6)return null;

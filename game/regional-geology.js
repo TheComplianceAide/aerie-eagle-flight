@@ -351,6 +351,7 @@
         const models=readModels(T,bytes),members=seed(T,world,api.regions,sheet,profile),groups=new Map();
         const small=sheet.kind==='pebbles'||sheet.kind==='beach';const span=permanent?(small?55:115):small?16:60;
         for(const e of members){
+          if(world.elCapitanMeadowCover?.(e.x,e.z)>.63)continue;
           entries.push(e);
           const binSize=e.fixedShore?112:span;
           const tile=(e.fixedShore?'shore:':'')+Math.floor(e.x/binSize)+':'+Math.floor(e.z/binSize);

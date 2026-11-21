@@ -824,13 +824,15 @@ class Water extends Mesh {
       }
       float dep=1.-exp(-d`);
   }
+  const meadowField=region==='yosemite'?window.readElCapitanField():null;
   if(region==='yosemite'){
     const granite=texture('atlas-yosemite-cathedral.webp');
     granite.wrapS=granite.wrapT=THREE.MirroredRepeatWrapping;
     terrain.uniforms.cathedralGranite={value:granite};
     terrain.uniforms.westFace={value:texture('atlas-yosemite-tunnel-walls.webp')};
     terrain.uniforms.valleyCover={value:texture('yosemite-valley-cover.webp')};
-    terrain.fragmentShader='uniform sampler2D cathedralGranite,westFace,valleyCover;\n'+terrain.fragmentShader.replace(
+    terrain.uniforms.meadowPlantField={value:texture('yosemite-meadow-sward.webp',true)};
+    terrain.fragmentShader='uniform sampler2D cathedralGranite,westFace,valleyCover,meadowPlantField;\n'+terrain.fragmentShader.replace(
       '/* exposed field geology */',`
         // Oblique field photographs restore the cliff-scale joints which a
         // downward-looking orthophoto cannot capture on a near-vertical wall.
@@ -941,10 +943,36 @@ class Water extends Mesh {
       // Sedges follow the floodplain, cottonwood/willow strips follow mapped
       // watercourses and dry summer meadow grasses pick up grazing sunlight.
       float floodplain=smoothstep(.89,.999,normal.y)*(1.-smoothstep(1260.,1325.,wp.y));
-      float grass=unitCover.r*floodplain;
+      bool withinMeadow=xz.x>-1520.&&xz.x< -480.&&xz.y>800.&&xz.y<1360.;
+      vec2 meadowPlants=withinMeadow?texture2D(meadowPlantField,(xz-vec2(-1520.,800.))/vec2(1040.,560.)).rg:vec2(0.);
+      float grass=max(unitCover.r,meadowPlants.r)*floodplain;
       vec3 dry=vec3(.57,.50,.29)*(.79+.40*lum(photo)+.19*(lum(soilCapture(sod,xz*.44,6.).rgb)-.37));
       dry=mix(dry,vec3(.29,.39,.22)*(.87+.30*lum(photo)),unitCover.g);
       c=mix(c,pow(dry,vec3(2.18))*(ambient+direct),grass*.78);
+      // Mapped wet-meadow ground is a continuous stand of fine leaves. Preserve
+      // the August NAIP pattern of bronze swales and greener moist strips; the
+      // basin's large dry mineral clasts should not shine through a dense sward.
+      if(meadowPlants.r>.23){
+        float stand=smoothstep(.23,.79,meadowPlants.r)*floodplain;
+        float moisture=smoothstep(.07,.80,meadowPlants.g);
+        vec3 straw=mix(vec3(.714,.609,.404),vec3(.413,.506,.301),moisture);
+        float pattern=clamp(.72+.52*lum(photo),.77,1.13);
+        // The same sampler carries the registered meadow stand in RG and
+        // the two-metre dry-grass specimen in BA. Windrows break up the
+        // repeating ground at a scale that survives a low flight.
+        vec2 axis=vec2(.91*xz.x+.42*xz.y,-.42*xz.x+.91*xz.y);
+        vec2 settle=axis+vec2(.22*sin(axis.y*.20)+.33*sin(axis.y*.079),.31*cos(axis.x*.11));
+        vec2 dryMat=texture2D(meadowPlantField,settle*.50).ba;
+        vec2 drift=mat2(.762,.648,-.648,.762)*settle;
+        vec2 laid=texture2D(meadowPlantField,drift*.113+.28*sin(drift.yx*.069)).ba;
+        float scratch=dryMat.x-.51,nap=(dryMat.y-.525)*1.7;
+        float fleck=laid.x-.51;
+        vec3 sward=straw*pattern*clamp(1.+.98*scratch+.59*fleck,.54,1.40);
+        float crownOcclusion=0. /* meadow tree shade */;
+        vec3 skylight=ambient*(1.08+.22*nap);
+        vec3 sidelight=direct*(1.-.61*crownOcclusion)*clamp(1.+.82*nap,.5,1.46);
+        c=mix(c,pow(sward,vec3(2.06))*(skylight+sidelight),stand*.97);
+      }
       // Relative to the measured wet line, newly exposed bars are coarser
       // and paler than the organic floor immediately under alder and willow.
       float nearBank=(1.-smoothstep(.71,.98,riparianSurvey.a))*floodplain;
@@ -1819,6 +1847,7 @@ class Water extends Mesh {
     region==='crater'?window.addCraterWeather(THREE,scene,{sun,clock,sky,terrain,water}):
     surry?window.addKeeneWeather(THREE,scene,{sun,clock,sky,terrain}):null;
   window.shadeAtlasForest(THREE,terrain,trees,sun,h);
+  if(meadowField)terrain.fragmentShader=terrain.fragmentShader.replace('0. /* meadow tree shade */','texture2D(crownShadowField,xz/11000.+.5).r');
   const updateHardwoods=broadTrees.length?window.addHardwoods(THREE,scene,broadTrees,{region,sun,sunMask,half:h,fogColor:color,clock}):null;
   function inLoop(x,z,pts){
     if(!pts?.length)return true;
@@ -1915,7 +1944,7 @@ class Water extends Mesh {
     harbor.traverse(mesh=>{if(mesh.isMesh)shoreDetail.terrainEdges(mesh.geometry,false);});
   }
   if(kineo){world.kineoTerrainMaterial=terrain;world.kineoBase=(x,z)=>regionalElevation(x,z,false);}
-  if(region==='yosemite')world.talusFans=survey.talusFans;
+  if(region==='yosemite'){world.talusFans=survey.talusFans;world.elCapitanMeadowCover=meadowField.cover;}
   const rainTrace=window.makeRainTrace(THREE,scene,{world,terrain,water,cabin,survey,inLake,ground:(x,z)=>Math.max(shoreFloor?.ground(x,z)??elevation(x,z),shoreFloor?.(x,z)??-Infinity)});
   if(landmarkTerrain&&region==='labrador'){
     // The camp's finite rain volume must be in the shader before the ortho

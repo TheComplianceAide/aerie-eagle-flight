@@ -31,7 +31,7 @@
       labrador:['architecture.js','labrador-narrows-survey.js','labrador-narrows.js','labrador-camp-ground.js','labrador-cabin.js','labrador-weather.js'],
       acadia:['acadia-night.js','acadia-coast.js','acadia-ocean-path.js','acadia-sand-beach.js'],
       lofoten:['lofoten-sea-mask.js','regional-waterfalls.js','falls-terrain-lofoten.js','waterfall-system.js','lofoten-hamnoy.js'],
-      yosemite:['terrain-indices.js','waterfall-system.js','atlas-yosemite-crowns.js','talus-data.js','rocks.js'],
+      yosemite:['yosemite-meadow-field.js','yosemite-meadow.js','terrain-indices.js','waterfall-system.js','atlas-yosemite-crowns.js','talus-data.js','rocks.js'],
       moosehead:['moosehead-crowns.js','moosehead-shore-survey.js','moosehead-bank-growth.js','moosehead-uplands.js','kineo-terrain.js','regional-waterfalls.js','falls-terrain-moosehead.js','waterfall-system.js','architecture.js'],
       winnipesaukee:['regional-waterfalls.js','falls-terrain-winnipesaukee.js','waterfall-system.js','architecture.js','winnipesaukee-waterfront-data.js','winnipesaukee-waterfront.js','winnipesaukee-town-docks-data.js','survey-parked-cars.js','winnipesaukee-town-docks.js'],
       surry:['regional-waterfalls.js','falls-terrain-surry.js','waterfall-system.js','architecture.js','keene-weather.js','keene-river-park.js','surry-dam.js','keene-city-data.js','keene-frontages.js','survey-parked-cars.js','keene-streetscape.js','keene-city.js','keene-light.js']
