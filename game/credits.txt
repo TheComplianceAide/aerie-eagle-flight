@@ -834,3 +834,11 @@ https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer
 https://granit24a.sr.unh.edu/image/rest/services/ImageServices/NH_2021_2022_6in_RGB/ImageServer
 https://keeneparks.recdesk.com/Community/Facility/Detail?facilityId=73
 https://keenenh.gov/wp-content/uploads/2025/03/2020_Keene_SpringFinalSet-High-part1.pdf
+
+Reine church and fishing village at 67.93369° N, 13.08821° E, Moskenes. Bare terrain and surface returns © Kartverket, National elevation model DTM/DOM, one-metre export in EPSG:25833, CC BY 4.0. OpenStreetMap geometry © OpenStreetMap contributors, ODbL 1.0. The shipped derivative footprint, wharf and fish-flake database remains ODbL. The source extract and rebuild are supplied under tools/geology/field-sites. Adapted from Reine vista dal Reinebringen (Cappo80, August 2022, CC BY 4.0): terrain colour and some roofs projected from the viewpoint with occlusion repair. Adapted from Reine Kirche lub 2025-07-21 img01 (Lukas Beck, July 2025, CC BY 4.0): rectified, exposure-balanced belfry and nave textures. Ordinary windows, summer-rack construction and siding away from the two photos are modelled.
+https://www.kartverket.no/en/api-and-data/terms-of-use
+https://www.openstreetmap.org/copyright
+https://opendatacommons.org/licenses/odbl/1-0/
+https://commons.wikimedia.org/wiki/File:Reine_vista_dal_Reinebringen.JPG
+https://commons.wikimedia.org/wiki/File:Reine_Kirche_lub_2025-07-21_img01.jpg
+https://creativecommons.org/licenses/by/4.0/

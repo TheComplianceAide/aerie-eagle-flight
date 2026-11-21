@@ -14,6 +14,7 @@
     moosehead:{name:'Mount Kineo',asset:'kineo',rock:'rhyolite',water:312.23,holes:[[236,-1260,344,-1040],[360,-964,416,-880]],
       source:'USGS 3DEP Western Mountains B24 and USDA NAIP, eastern and southern Mount Kineo, Maine'},
     lofoten:{name:'Olstinden · fjord-facing wall',asset:'lofoten',water:0,source:'Kartverket national terrain model and Copernicus Sentinel-2, Lofoten, Norway'},
+    reine:{name:'Reine · stockfish harbour and church',asset:'reine',water:0,source:'Kartverket ground and surface models, OpenStreetMap contributors, Cappo80 (CC BY 4.0)'},
     korten:{name:'Korten · tidal skerries east of Hamnøy',asset:'korten',water:0,source:'Kartverket two-metre DTM and Copernicus Sentinel-2, 16 July 2025'},
     hamnoy:{name:'Hamnøy · fishing harbor and tidal ledges',asset:'hamnoy',water:0,source:'Kartverket national terrain model and Copernicus Sentinel-2 summer imagery, Moskenes, Norway'},
     milford:{name:'Rahotu Mitre Peak · crest and Sinbad wall',asset:'milford',water:0,source:'LINZ NZ 8m Digital Elevation Model (2012) and Southland 0.75m Rural Aerial Photos (2005–2011)'},
@@ -222,6 +223,16 @@
             rgb=mix(rgb,rgb*vec3(.94,.992,1.055)+vec3(.012,.019,.026)*iceGlance,glacialCover*.73);
             float irradiance=exposure*diffuse;`);
       }
+      if(spec.asset==='reine'){
+        const uv=localUV;
+        material.fragmentShader=material.fragmentShader.replace('float skyView=occ.g,relief=',`
+          vec4 villageSurface=texture2D(aerial,${uv});
+          float surfaced=smoothstep(.13,.99,villageSurface.a);
+          float roadGrain=soilCapture(sod,wp.xz*.31,3.).r;
+          vec3 photographed=villageSurface.rgb*(1.+surfaced*.19*(roadGrain-.46)*(1.-smoothstep(50.,240.,d)));
+          c=mix(c,photographed,landformHorizon.w*(.77+.21*surfaced)*smoothstep(.35,.85,normal.y));
+          float skyView=occ.g,relief=`);
+      }
       if(spec.asset==='acadia'){
         // At the inset the point cloud resolves the two sides of the chasm.
         // The broader cliff-normal map averages across this narrow opening.
@@ -256,7 +267,7 @@
           }
           /* lake bank surface */`);
       }
-      if(spec.asset==='yosemite-summits'||spec.asset==='korten'||(spec.lakeBank&&!hasDetail)){
+      if(spec.asset==='yosemite-summits'||spec.asset==='korten'||spec.asset==='reine'||(spec.lakeBank&&!hasDetail)){
         // The entire survey sits outside the valley's original aerial. Blend
         // the registered 2022 NAIP image at its edges with the true far region.
         material.fragmentShader=material.fragmentShader.replace(

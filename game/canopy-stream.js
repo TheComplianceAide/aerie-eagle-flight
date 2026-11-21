@@ -272,6 +272,14 @@
       if(abs(barkUV.z-4.)<.1)c=albedo.rgb*vec3(1.50,1.08,.70);
       #endif
       float lit=regionalCanopySun(wp+n*.05,.00034)*mix(.12,1.,lighting.w);
+      #ifdef LOFOTEN_LEAF_ON
+      // July birch and willow in Reine's field photograph have a cool dark
+      // interior. The photographed heath's older wood keeps its own colour.
+      float leafLight=clamp(.39*lighting.x+.38*lighting.y+.23*lit,0.,1.);
+      vec3 leafResponse=mix(vec3(.42,.56,.48),vec3(.67,.80,.62),leafLight);
+      vec3 coastalLeaf=mix(vec3(dot(c,vec3(.25,.61,.14))),c,.32)*leafResponse;
+      c=mix(c,coastalLeaf,barkUV.w);
+      #endif
       #ifdef OESCHINEN_SUMMER_NEEDLES
       // Under the high valley wall the summer canopy reflects mainly cool sky.
       // Keep the lighter new growth on the outer sprays in direct sunlight.
@@ -683,6 +691,7 @@
           uniforms.canopyAlphaCut={value:regional?[.34,.27,.17][record.l]:.34};
           const defines=regional?{REGIONAL_SPECIMEN:1}:pilot?{MENDENHALL_SITKA:1}:{};
           if(surveyRegion==='acadia')defines.STARLIT_CANOPY=1;
+          if(surveyRegion==='lofoten'&&regional)defines.LOFOTEN_LEAF_ON=1;
           if(surveyRegion==='swiss'&&regional&&['swiss-tree','swiss-spruce','swiss-stone-pine'].includes(regional.sheet))defines.OESCHINEN_SUMMER_NEEDLES=1;
           if(record.l===0){
             defines.CLOSE_BOUGH_WIND=1;
