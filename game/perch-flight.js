@@ -9,7 +9,7 @@ window.makePerchFlight=function(T,world,habitat,route){
   const xyz=p=>new T.Vector3(p.x,p.y,p.z);
   const contactHeight=.20;
   let routeTarget=null,selected=null,usingRoute=false,stage='free',track,along=0;
-  let strokeForce=0,limbTravel=0;
+  let strokeForce=0,limbTravel=0,drive=0,beat=0,brakeBeat=0;
   let stance=null,arrivalYaw=0,nextFoot=1,stepPause=0,stepStart=0,stepEnd=0,stepDuration=0,exitLook=0;
   let settleTime=0,openYaw=0,selectionRange=750,lookYaw=0,lookPitch=0,baseYaw=0,pushTime=0,refresh=0,selection=[],selectionTime=-99;
   const station=new T.Vector3(),ahead=new T.Vector3(),velocity=new T.Vector3();
@@ -164,6 +164,7 @@ window.makePerchFlight=function(T,world,habitat,route){
     velocity.set(-Math.sin(s.yaw)*s.airspeed*Math.cos(s.path),s.verticalSpeed,-Math.cos(s.yaw)*s.airspeed*Math.cos(s.path));
     s.perchFold=s.perchGrip=s.perchFlare=0;
     s.perchOnRock=selected.type==='rock';strokeForce=0;
+    drive=s.effort||0;beat=s.phase||0;brakeBeat=0;
   }
   function cancel(s,planFlight){
     if(stage==='approach'||stage==='flare'){
@@ -253,7 +254,11 @@ window.makePerchFlight=function(T,world,habitat,route){
       s.x=p.x;s.y=p.y;s.z=p.z;
     };
     s.elapsed+=dt;s.stall=s.tuck=s.rollRate=0;s.contact=false;
-    if(s.effort>.035)s.phase=(s.phase+dt*Math.PI*2*2.5)%(Math.PI*2);
+    // An approach's energy balance keeps a stroke of its own (drive, beat). The
+    // stroke that is shown and heard follows s.effort and s.phase.
+    const arriving=stage==='approach'||stage==='flare';
+    if(arriving&&drive>.035)beat=(beat+dt*Math.PI*2*2.5)%(Math.PI*2);
+    if(s.effort>.035)s.phase=(s.phase+dt*Math.PI*2*(arriving?2.5+1.1*brakeBeat:2.5))%(Math.PI*2);
     s.strokeBeat=s.effort*Math.sin(s.phase);
     if(stage==='perched'){
       settleTime+=dt;
@@ -337,8 +342,15 @@ window.makePerchFlight=function(T,world,habitat,route){
       // Preserve its sign as the force builds and reverses between strokes.
       const demand=clamp(requested-gravity+drag,-14,10);
       strokeForce+=(demand-strokeForce)*ease(9,dt);
-      s.effort+=(clamp(Math.abs(strokeForce)/10,0,1)-s.effort)*ease(7,dt);
-      const down=Math.max(0,Math.sin(s.phase));
+      drive+=(clamp(Math.abs(strokeForce)/10,0,1)-drive)*ease(7,dt);
+      // In the last half second an eagle checks what speed is left with one or
+      // two quick strokes against its line of flight. Here they are shown and
+      // heard only: speed, path and touchdown come from the balance above.
+      const starting=brakeBeat===0;
+      brakeBeat=smooth(pitchUp,.30,.70);
+      if(starting&&brakeBeat>0&&s.effort<.2)s.phase=0;
+      s.effort=brakeBeat>0?s.effort+(Math.max(drive,.85*brakeBeat)-s.effort)*ease(12,dt):drive;
+      const down=Math.max(0,Math.sin(beat));
       const thrust=strokeForce*(.92+.32*down*down);
       s.airspeed=Math.max(.2,v+(gravity-drag+thrust)*dt);
       along=Math.min(track.length,along+(v+s.airspeed)*.5*dt);
@@ -364,7 +376,7 @@ window.makePerchFlight=function(T,world,habitat,route){
         stance={leftYaw:s.yaw,rightYaw:s.yaw,moving:0,progress:0,
           supportAt:selected.type==='branch'?habitat.clearance:null};
         s.perchStep=stance;
-        s.y=selected.y+contactHeight;s.bank=s.path=s.verticalSpeed=s.airspeed=s.effort=0;
+        s.y=selected.y+contactHeight;s.bank=s.path=s.verticalSpeed=s.airspeed=s.effort=0;brakeBeat=0;
         s.perchGrip=1;s.perchFlare=1;s.perchCompression=0;s.mode='Perched';
       }
     }
