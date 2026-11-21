@@ -244,7 +244,7 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
   // below it. Nothing here steers, and the player's own look always wins.
   let intentWorld = null;
   const intent = {target: null, aim: null, kind: '', name: '', until: 0, bearing: 0, distance: 0, below: 0,
-    side: 0, weight: 0, tail: 0, wing: 0, feet: 0, nextPick: 0, suppressUntil: 0, lastLandmark: -Infinity, sightAt: 0};
+    side: 0, weight: 0, tail: 0, wing: 0, feet: 0, nextPick: 0, suppressUntil: 0, lastLandmark: -Infinity, sightAt: 0, leaveAt: Infinity};
   const intentCooldown = new Map();          // what was attended -> when it may be attended again
   const here = {x: 0, y: 0, z: 0};
   // A landmark is itself terrain, so only the first three quarters of the way
@@ -268,7 +268,7 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
     // A perch keeps its own object so the head does not re-acquire it when
     // eagle.js hands tracking between its landing gaze and this hold.
     intent.aim = target.kind === 'perch' ? target.source : {x: target.source.x, y: target.y ?? target.source.y, z: target.source.z};
-    intent.until = time + hold; intent.sightAt = time + .5;
+    intent.until = time + hold; intent.sightAt = time + .5; intent.leaveAt = Infinity;
     try { window.dispatchEvent(new CustomEvent('aerie-eagle-intent', {detail: {kind: intent.kind, name: intent.name}})); } catch (e) {}
   }
   function attend(step, time, air, bank = 0) {
@@ -282,19 +282,25 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
     };
     if (Math.abs(air.gazeLook ?? 0) > .02) intent.suppressUntil = time + 1.5;   // the player is looking for themselves
     const t = intent.target;
+    const banking = Math.abs(bank) > .22 || Math.abs(air.gazeTurn ?? 0) > .06, inside = Math.sign(bank || -(air.gazeTurn ?? 0));
     if (t) {
       if (t.kind !== 'perch') { intent.aim.x = t.source.x; intent.aim.z = t.source.z; intent.aim.y = t.y ?? t.source.y; }
       intent.bearing = measure(intent.aim);
-      // Never let go in the middle of a bank: that is when the hold matters.
-      if (Math.abs(bank) > .22 || Math.abs(air.gazeTurn ?? 0) > .06) intent.until = Math.max(intent.until, time + .7);
-      let lost = !flying || time < intent.suppressUntil || time > intent.until || Math.abs(intent.bearing) > 1.3
+      // A bank toward or around the target is when the hold matters most: the
+      // eagle never lets go in the middle of it. A landmark the turn is leaving
+      // behind gets a last look, and then the eagle looks where it is going.
+      // An animal or a perch is held either way.
+      const leaving = t.kind === 'landmark' && banking && intent.bearing * inside < -.1;
+      if (!leaving) intent.leaveAt = Infinity; else if (intent.leaveAt === Infinity) intent.leaveAt = time + .45;
+      if (banking && !leaving) intent.until = Math.max(intent.until, time + .7);
+      let lost = !flying || time < intent.suppressUntil || time > intent.until || time > intent.leaveAt || Math.abs(intent.bearing) > 1.3
         || intent.distance > t.range * 1.15 || (t.kind === 'perch' && air.gazeTarget !== t.source);
       if (!lost && t.kind !== 'perch' && time >= intent.sightAt) { intent.sightAt = time + .5; lost = !sightline(intent.aim, t.kind === 'landmark' ? .75 : 1); }
       if (lost) release(time);
     }
     // A bank is itself a statement of intent: the eagle looks to what lies on
-    // the inside of the turn, even something it looked at a few seconds ago.
-    const banking = Math.abs(bank) > .22 || Math.abs(air.gazeTurn ?? 0) > .06, inside = Math.sign(bank || -(air.gazeTurn ?? 0));
+    // the inside of the turn, even something it looked at a few seconds ago,
+    // and takes up no landmark on the outside.
     const rested = (source, rest, turning = 4) => time - (intentCooldown.get(source) ?? -Infinity) > (banking ? turning : rest);
     const favour = bearing => banking && bearing * inside > 0 ? 1.8 : 1;
     if (!intent.target && flying && time >= intent.suppressUntil && time >= intent.nextPick) {
@@ -320,7 +326,7 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
             if (!Number.isFinite(place.x) || !Number.isFinite(place.z)) continue;
             const y = (Number.isFinite(place.y) ? place.y : floor ? floor(place.x, place.z) : here.y) + 6;
             const bearing = measure({x: place.x, y, z: place.z}), off = Math.abs(bearing), far = intent.distance > 2600;
-            if (off > 1.1 || intent.distance < 70 || intent.distance > 9000) continue;
+            if (off > 1.1 || intent.distance < 70 || intent.distance > 9000 || (banking && bearing * inside < -.1)) continue;
             // Beyond a few kilometres only what stands on the skyline draws the
             // eye: a peak or a wall rising above eye level, not a far bay. It
             // gets a glance now and then, not the study a near place does.
