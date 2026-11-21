@@ -460,7 +460,8 @@
         {clip: 'scape-surry-town-church-bell', repeat: [3, 7], spacing: 3.4, every: [140, 280], ref: 220, reach: 7000, gain: .6, wet: .7, where: c => ({x: 1860, y: ground(c.world, 1860, 4290) + 24, z: 4290})},
         {clip: 'scape-surry-gray-catbird', every: [20, 45], ref: 12, reach: 300, gain: .5, where: inTrees(30, 220, .25)},
         {clip: 'scape-surry-song-sparrow', every: [16, 38], ref: 12, reach: 320, gain: .5, where: onGround(30, 250)},
-        {clip: 'scape-surry-gray-treefrog', every: [40, 90], ref: 12, reach: 280, gain: .45, where: inTrees(20, 200, .15)}
+        {clip: 'scape-surry-gray-treefrog', every: [40, 90], ref: 12, reach: 280, gain: .45, where: inTrees(20, 200, .15)},
+        {clip: 'scape-winnipesaukee-chipmunk', every: [35, 80], ref: 6, reach: 150, gain: .45, where: onGround(20, 120)}
       ]
     },
     dixville: {
@@ -471,7 +472,9 @@
         {clip: 'scape-dixville-ruffed-grouse-drum', every: [60, 140], ref: 25, reach: 700, gain: .55, where: onGround(80, 500)},
         {clip: 'scape-dixville-canada-geese-migrating', every: [120, 280], ref: 60, reach: 2500, gain: .55, moving: true, where: inSky([150, 380], [50, 600], 3000, 18)},
         {clip: 'scape-dixville-pileated-woodpecker', every: [50, 120], ref: 30, reach: 900, gain: .55, where: inTrees(80, 500, .6)},
-        {clip: 'scape-dixville-blue-jay', every: [24, 55], ref: 20, reach: 500, gain: .55, where: inTrees(40, 350, .7)}
+        {clip: 'scape-dixville-blue-jay', every: [24, 55], ref: 20, reach: 500, gain: .55, where: inTrees(40, 350, .7)},
+        // Eastern chipmunks are still above ground in late autumn, but call less.
+        {clip: 'scape-winnipesaukee-chipmunk', every: [70, 160], ref: 6, reach: 150, gain: .42, where: onGround(20, 120)}
       ]
     },
     labrador: {
@@ -491,11 +494,35 @@
         {clip: 'scape-moosehead-mosquitoes', every: [18, 40], ref: 1.2, reach: 20, gain: .35, when: lowAndLeafy, where: nearEar()},
         {clip: 'scape-moosehead-ovenbird', every: [16, 36], ref: 16, reach: 420, gain: .55, where: inTrees(40, 300, .15)},
         {clip: 'scape-moosehead-black-throated-green', every: [20, 45], ref: 12, reach: 300, gain: .5, where: inTrees(40, 260, .8)},
-        {clip: 'scape-moosehead-red-breasted-nuthatch', every: [24, 55], ref: 8, reach: 200, gain: .45, where: inTrees(30, 200, .7)}
+        {clip: 'scape-moosehead-red-breasted-nuthatch', every: [24, 55], ref: 8, reach: 200, gain: .45, where: inTrees(30, 200, .7)},
+        {clip: 'scape-winnipesaukee-chipmunk', every: [35, 80], ref: 6, reach: 150, gain: .45, where: onGround(20, 120)}
       ]
     }
   };
   window.aerieSoundscapes = scapes;
+
+  function stormDepth(storm, x, z, t) {
+    const [ax, az] = storm.front, sx = -az, sz = ax, side = x * sx + z * sz;
+    const edge = 175 * Math.sin(side * .00073) + 112 * Math.sin(side * .00181 + .7) + 43 * Math.sin(side * .0031);
+    const raw = x * ax + z * az - (storm.head - t * storm.speed) - edge;
+    return ((raw + 7000) % storm.period + storm.period) % storm.period - 7000;
+  }
+  // Rain at a point, 0 to 1: inside the Lac Berte sun shower or the Crater
+  // Lake storm bank. The eagle's motion uses this too, with or without sound.
+  window.aerieRainAt = function aerieRainAt(world, region, x, z, t) {
+    const spec = scapes[region] || {};
+    if (spec.shower) {
+      const mark = landmark(world, /rainbow|shower|arc-en-ciel/i); if (!mark || !world.windField) return 0;
+      const f = world.windField, shift = 240 * Math.sin(t * f.advection / 240);
+      const cx = mark.x + f.direction.x * shift, cz = mark.z + f.direction.z * shift;
+      const sun = world.sunDirection, ax = -sun.x, az = -sun.z, al = Math.hypot(ax, az) || 1;
+      const axisX = ax / al, axisZ = az / al, sideX = -axisZ, sideZ = axisX;
+      const dx = x - cx, dz = z - cz, across = dx * sideX + dz * sideZ, along = dx * axisX + dz * axisZ;
+      return (1 - smooth(140, 470, Math.abs(along))) * (1 - smooth(650, 1600, Math.abs(across)));
+    }
+    if (spec.storm) { const d = stormDepth(spec.storm, x, z, t); return smooth(-310, 330, d) * (1 - smooth(4700, 7400, d)); }
+    return 0;
+  };
 
   window.makeSoundscape = function makeSoundscape(context, world, region, destination) {
     const spec = scapes[region] || {}, air = climate[region] || {};
@@ -513,7 +540,7 @@
       const name = id + '.m4a';
       // A hosted build short of space may leave recordings out; fetch those
       // from the public repository instead (offline builds embed them all).
-      const mirror = 'https://cdn.jsdelivr.net/gh/TheComplianceAide/aerie-eagle-flight@main/game/' + name;
+      const mirror = 'https://raw.githubusercontent.com/TheComplianceAide/aerie-eagle-flight/main/game/' + name;
       const get = url => fetch(url).then(r => { if (!r.ok) throw Error('missing ' + name); return r.arrayBuffer(); });
       const local = window.aerieAssetURL?.(name) || name;
       const task = get(local).catch(e => local.startsWith('blob:') || location.protocol === 'file:' ? Promise.reject(e) : get(mirror))
@@ -570,7 +597,7 @@
       return null;
     }
     let enabled = false;
-    const state = {falls: new Map(), water: [], beds: [], loops: [], choruses: [], movers: new Set(), rain: null, due: new Map()};
+    const state = {falls: new Map(), water: [], beds: [], loops: [], choruses: [], movers: new Set(), steps: new Map(), rain: null, due: new Map()};
     const rainTex = {};
     function rainTexture(surface, density) {
       const key = surface + density;
@@ -583,8 +610,9 @@
       for (const l of state.loops) l.source?.stop(.4);
       for (const c of state.choruses) c.forEach(e => e.stop(.4));
       for (const m of state.movers) m.source.stop(.3);
+      for (const src of state.steps.values()) src.stop(.3);
       if (state.rain) state.rain.emitters.forEach(s => s.stop(.4));
-      state.falls.clear(); state.water = []; state.beds = []; state.loops = []; state.choruses = []; state.movers.clear(); state.rain = null;
+      state.falls.clear(); state.water = []; state.beds = []; state.loops = []; state.choruses = []; state.movers.clear(); state.steps.clear(); state.rain = null;
     }
     function setEnabled(value) {
       if (enabled === value) return; enabled = value;
@@ -706,12 +734,6 @@
       });
     }
     installControls();
-    function stormDepth(storm, x, z, t) {
-      const [ax, az] = storm.front, sx = -az, sz = ax, side = x * sx + z * sz;
-      const edge = 175 * Math.sin(side * .00073) + 112 * Math.sin(side * .00181 + .7) + 43 * Math.sin(side * .0031);
-      const raw = x * ax + z * az - (storm.head - t * storm.speed) - edge;
-      return ((raw + 7000) % storm.period + storm.period) % storm.period - 7000;
-    }
     function strike(storm, t) {
       // Search the rain bank for a cell 1.5-12 km away.
       for (let i = 0; i < 60; i++) {
@@ -734,19 +756,7 @@
       if (far && Math.random() < .55) engine.play(far, pos, {gain: .45, ref: 1500, reach: 30000, wet: 1, occlude: false, when: rand(.6, 2.2)});
       window.dispatchEvent(new CustomEvent('aerie-lightning', {detail: {x: s.x, z: s.z, cloudY: storm.cloudY, distance: synth.nearest}}));
     }
-    function rainLevel(s, t) {
-      if (spec.shower) {
-        const mark = landmark(world, /rainbow|shower|arc-en-ciel/i); if (!mark || !world.windField) return 0;
-        const f = world.windField, shift = 240 * Math.sin(t * f.advection / 240);
-        const cx = mark.x + f.direction.x * shift, cz = mark.z + f.direction.z * shift;
-        const sun = world.sunDirection, ax = -sun.x, az = -sun.z, al = Math.hypot(ax, az) || 1;
-        const axisX = ax / al, axisZ = az / al, sideX = -axisZ, sideZ = axisX;
-        const dx = s.x - cx, dz = s.z - cz, across = dx * sideX + dz * sideZ, along = dx * axisX + dz * axisZ;
-        return (1 - smooth(140, 470, Math.abs(along))) * (1 - smooth(650, 1600, Math.abs(across)));
-      }
-      if (spec.storm) { const d = stormDepth(spec.storm, s.x, s.z, t); return smooth(-310, 330, d) * (1 - smooth(4700, 7400, d)); }
-      return 0;
-    }
+    const rainLevel = (s, t) => window.aerieRainAt(world, region, s.x, s.z, t);
 
     let nextScan = 0, shore = null;
     function update(s, camera, dt, extras = {}) {
@@ -861,6 +871,34 @@
     }
     function tickEvents(now) {
       const ear = engine.ear;
+      // Hoofed animals on the move. A looping source rides with each walking
+      // moose or deer near the eagle (the three nearest): brush and steps for
+      // a walk, quicker and louder when it bolts, wading where a moose stands
+      // in water. It stops when the animal stands still.
+      const walkers = [];
+      for (const a of world.wildlife?.land?.drawn || []) {
+        const kind = a.id === 'moose' ? 'moose' : /deer/.test(a.id || '') ? 'deer' : null;
+        if (!kind || !(a.speed > .22)) continue;
+        const d = Math.hypot(a.x - ear.x, a.y - ear.y, a.z - ear.z);
+        if (d < (kind === 'moose' ? 190 : 130)) walkers.push({a, kind, d});
+      }
+      walkers.sort((p, q) => p.d - q.d); walkers.length = Math.min(walkers.length, 3);
+      for (const [a, src] of state.steps) if (!walkers.some(w => w.a === a)) { src.stop(.8); state.steps.delete(a); }
+      for (const {a, kind} of walkers) {
+        let src = state.steps.get(a);
+        if (!src) {
+          const id = kind === 'moose' && isWet(world, a.x, a.z) ? 'move-moose-wade' : 'move-' + kind;
+          for (const want of new Set([id, 'move-' + kind])) if (buffers.get(want) === undefined && !loading.has(want)) load(want);
+          const b = buffers.get(id) || buffers.get('move-' + kind);
+          if (!b) continue;
+          src = engine.loop(b, {x: a.x, y: a.feetY ?? a.y, z: a.z}, {gain: 0, ref: kind === 'moose' ? 9 : 6, reach: kind === 'moose' ? 190 : 130, wet: .3});
+          if (!src) continue;
+          state.steps.set(a, src);
+        }
+        src.x = a.x; src.y = a.feetY ?? a.y; src.z = a.z;
+        src.gain = (kind === 'moose' ? .8 : .6) * clamp((a.speed - .15) / .45, 0, 1.3);
+        src.source?.playbackRate.setTargetAtTime(clamp(.86 + .24 * a.speed, .9, 1.45), now, .3);
+      }
       // Moving sources follow their paths.
       for (const m of state.movers) {
         const p = m.path, u = clamp((now - m.start) * p.speed / Math.hypot(p.bx - p.ax, p.bz - p.az), 0, 1);
