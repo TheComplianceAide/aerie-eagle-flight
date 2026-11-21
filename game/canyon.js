@@ -23,9 +23,23 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
   }
   const landmarkTerrain=window.aerieRegionalLandforms?.get('canyon');
   const landmarkGroundMaterials=new Set();
-  function elevation(x,z){
+  const shelfSurvey=window.aerieRegionalLandforms?.get('canyonshelves');
+  function surroundingGround(x,z){
     const base=nativeElevation(x,z);
     return landmarkTerrain?landmarkTerrain.height(x,z,base):base;
+  }
+  function elevation(x,z){
+    const base=surroundingGround(x,z);
+    return shelfSurvey?shelfSurvey.height(x,z,base):base;
+  }
+  function surveyedShelf(x,z){
+    if(!shelfSurvey)return false;
+    const amount=shelfSurvey.edge(x,z);
+    if(amount<=0)return false;
+    // Transverse joints and detached-looking projections are already present
+    // in the local 1 m surface. Fade loose specimen scatter at its perimeter.
+    const cell=Math.imul(Math.floor(x*8),73856093)^Math.imul(Math.floor(z*8),19349663);
+    return amount>(cell>>>0)/4294967296;
   }
   function nativeElevation(x,z){
     const ground=surveyedElevation(x,z);
@@ -390,8 +404,9 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
     }
   }
   function patch(left,north,width,steps,mat,photoX,photoZ,photoSize){
-    if(landmarkTerrain){
-      const [l,t,r,b]=landmarkTerrain.rect;
+    const nearbySurvey=landmarkTerrain||shelfSurvey;
+    if(nearbySurvey){
+      const [l,t,r,b]=nearbySurvey.rect;
       if(left<r&&left+width>l&&north<b&&north+width>t)landmarkGroundMaterials.add(mat);
     }
 
@@ -538,8 +553,10 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
     }
     outcrops.push({minX,maxX,minZ,maxZ,cols,grid});
   }
-  outcrop(-478,-140,34,7.5,5,false,1.3);
-  outcrop(-489,-188,25,9,5.7,false,2.1);
+  if(!shelfSurvey){
+    outcrop(-478,-140,34,7.5,5,false,1.3);
+    outcrop(-489,-188,25,9,5.7,false,2.1);
+  }
   outcrop(-527,-288,25,11,13,true,1.0);
   function clearance(x,z){
     let surface=elevation(x,z);
@@ -569,7 +586,35 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
     // A ten-centimetre underlap covers multisampled edge fragments.
     for(const source of landmarkGroundMaterials)landmarkTerrain.maskOriginal(source,.10);
   }
-  return {landformMesh,height:elevation,elevation,rockSurface,rockLight:shared.terrainField,clearance,spawn,launches:{lake:spawn,ridge,shore,wall:{x:-920,y:67.814,z:-72,yaw:1.7984}},trees:[],
+  if(shelfSurvey){
+    const surface=landmarkTerrain?.surfacePatch(-506,-112,131,nativeElevation);
+    const oldSkin=(x,z)=>surface?.(x,z)??surroundingGround(x,z);
+    shelfSurvey.add(THREE,scene,horizon,oldSkin,texture);
+    landformMesh?.traverse(o=>{if(o.isMesh)shelfSurvey.maskOriginal(o.material);});
+    if(!landmarkTerrain)for(const source of landmarkGroundMaterials)shelfSurvey.maskOriginal(source);
+  }
+  // Merged regional specimens use absolute local positions. Sample the same
+  // four-metre surveyed horizon and reflected bank light as their intact bed.
+  function lightLooseSandstone(shader){
+    shader.uniforms.rockHorizon=shared.terrainField;
+    shader.uniforms.rockBank=shared.bankRadiance;
+    shader.vertexShader='uniform sampler2D rockHorizon,rockBank; varying vec4 rockSite; varying float rockSun;\n'+
+      shader.vertexShader.replace('#include <begin_vertex>',`#include <begin_vertex>
+        vec2 stoneSite=vec2(position.x,-position.z)/6400.+.5;
+        float insideSite=1.-smoothstep(2960.,3195.,max(abs(position.x),abs(position.z)));
+        rockSun=mix(1.,texture2D(rockHorizon,stoneSite).b,insideSite);
+        rockSite=texture2D(rockBank,stoneSite);`);
+    shader.fragmentShader='varying vec4 rockSite; varying float rockSun;\n'+
+      shader.fragmentShader.replace('#include <lights_fragment_end>',`#include <lights_fragment_end>
+        reflectedLight.directDiffuse*=rockSun;
+        reflectedLight.directSpecular*=rockSun;
+        vec3 openSky=vec3(.48,.57,.70)*(.71+.29*rockSite.a);
+        vec3 bankBounce=vec3(.13,.053,.024)*(1.-rockSite.a);
+        vec3 indirect=mix(openSky+bankBounce,vec3(1.),rockSun);
+        reflectedLight.indirectDiffuse*=indirect;
+        reflectedLight.indirectSpecular*=indirect;`);
+  }
+  return {landformMesh,height:elevation,elevation,rockSurface,surveyedShelf,lightLooseSandstone,rockLight:shared.terrainField,clearance,spawn,launches:{lake:spawn,ridge,shore,wall:{x:-920,y:67.814,z:-72,yaw:1.7984}},trees:[],
     skyTexture,sunDirection:sun,altitudeOffset:950,bounds:{minX:-2950,maxX:2950,minZ:-2950,maxZ:2950},
     landmarks:[{name:'Horseshoe Bend',x:-925,z:-235},{name:'Horseshoe Bend Overlook',x:0,z:80},
       {name:'Colorado River',x:-950,z:-2450},{name:'Glen Canyon Rim',x:-1830,z:500},

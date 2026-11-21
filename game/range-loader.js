@@ -43,7 +43,7 @@
       ? Promise.all([open('close-tree-detail.js'),open('close-bark-material.js').catch(()=>{})]).then(()=>open(name)) : open(name)));
     const lakeBays=window.aerieLakeBankSites?.[region]||[];
     const extraSurveys=region==='crater'?['watchman','cleetwood']:region==='swiss'?[...lakeBays,'frunden']:region==='lofoten'?[...lakeBays,'korten','reine','reinebringen']:lakeBays;
-    const secondarySurvey={lofoten:'hamnoy',swiss:'swisswest',yosemite:'yosemitesummits'}[region];
+    const secondarySurvey={canyon:'canyonshelves',lofoten:'hamnoy',swiss:'swisswest',yosemite:'yosemitesummits'}[region];
     await Promise.all([...extraSurveys.map(name=>window.aerieRegionalLandforms.prepare(name)),region==='acadia'?null:window.prepareRangeRelief(region),window.aerieRegionalLandforms.prepare(region),(region==='alaska'||region==='yosemite')?window.aerieTerrainIndices.prepare(region):null,secondarySurvey?window.aerieRegionalLandforms.prepare(secondarySurvey):null,region==='moosehead'?window.prepareMooseheadUplands():null]);
   };
 })();

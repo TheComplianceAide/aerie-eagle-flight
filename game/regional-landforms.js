@@ -30,6 +30,8 @@
     winnipesaukee:{name:'Rattlesnake Island · high spine and shore ledges',asset:'winnipesaukee',water:153.11,source:'USGS 3DEP and USDA NAIP, Lake Winnipesaukee, New Hampshire'},
     dixville:{name:'Mount Gloriette · western notch wall',asset:'dixville',source:'USGS 3DEP and USDA NAIP, Dixville Notch, New Hampshire'},
     surry:{name:'Surry Mountain Dam · crest and spillway approach',asset:'surry',water:152.33,source:'USGS 3DEP and USDA NAIP, Surry, New Hampshire'},
+    canyonshelves:{name:'Sandstone Shelves · inner Colorado River slickrock',asset:'canyonshelves',style:'canyon',
+      source:'USGS 3DEP Northeastern Arizona one-metre lidar and USDA 30 cm NAIP, July 14, 2023'},
     canyon:{name:'Horseshoe Bend · central promontory and inner wall',asset:'canyon',style:'canyon',holes:[[-592,-336,-456,-240]],source:'USGS 3DEP and USDA NAIP, Glen Canyon, Arizona'},
     alaska:{name:'Nugget Falls · wall and scoured bedrock',asset:'alaska',style:'alaska',water:0,source:'USGS Southeast Alaska Landslides D22 elevation, Juneau 2012 and 2013 canopy lidar and registered 2013 Juneau RGB at colorized returns'},
     swiss:{name:'Fründenschnuer · limestone shelf and east wall',asset:'swiss',style:'swiss',water:0,source:'swisstopo swissALTI3D and SWISSIMAGE, Oeschinensee, Switzerland'},
@@ -240,6 +242,32 @@
             }`:''}
             c=mix(c,pow(max(localRock,vec3(.014)),vec3(2.2))*rimLight,landformHorizon.w);
             float squallShade=craterShade(wp);`);
+      }
+      if(spec.asset==='canyonshelves'){
+        const local=localUV.replace(/xz\./g,'wp.xz.');
+        material.fragmentShader=material.fragmentShader
+          .replace('vec3 aerial=texture2D(photo,'+local+').rgb;',`vec4 bankSurvey=texture2D(photo,${local});vec3 aerial=bankSurvey.rgb;`)
+          .replace('dry*=indirect+sunward;',`
+            // The 30 cm aerial separates pavement, oxidized joint seams and
+            // sandy swales. Its low-frequency slope exposure was removed at bake.
+            float stone=bankSurvey.a*(1.-wet);
+            float closeStone=stone*(1.-smoothstep(24.,130.,dist));
+            // The nearby overlook provides a photographed specimen of the same
+            // formation: fine, fretted stone with local sand stuck in its grooves.
+            // Work in metres, including the sloping surface seen obliquely.
+            vec2 siteUV=mat2(.93,-.37,.37,.93)*wp.xz;
+            float dish=.22*sin(.17*siteUV.y)+.11*sin(.31*siteUV.x+.46*siteUV.y);
+            vec2 exposureUV=vec2(siteUV.x*.41,(siteUV.y+.38*wp.y+dish)*.478);
+            vec2 slab=1.-abs(mod(exposureUV,2.)-1.);
+            float grit=lum(texture2D(crossbeds,vec2(.504+.490*slab.x,.014+.297*slab.y)).rgb);
+            vec2 bedding=vec2(siteUV.x*.135,siteUV.y*.19+wp.y*.24+dish);
+            float pores=texture2D(strata,bedding).a;
+            vec2 stepUV=1.-abs(mod(.309*exposureUV+vec2(.41,.72),2.)-1.);
+            float coarse=lum(texture2D(crossbeds,vec2(.504+.490*stepUV.x,.014+.297*stepUV.y)).rgb);
+            float grainRelief=clamp(1.92*(grit-.54)+1.15*(pores-.576)+.62*(coarse-.54),-.54,.61);
+            vec3 fieldStone=bankSurvey.rgb*vec3(1.055,1.009,.975)*(1.+closeStone*grainRelief);
+            dry=mix(dry,fieldStone,landformHorizon.w*(.38+.60*stone));
+            dry*=indirect+sunward;`);
       }
       if(spec.asset==='frunden'){
         material.uniforms.hutApron={value:texture('frunden-apron.webp')};
