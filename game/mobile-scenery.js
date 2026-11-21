@@ -31,6 +31,7 @@
     'atlas-yosemite-photo.webp',
     'atlas-yosemite-sky.webp',
     'atlas-yosemite-west-face.webp',
+    'atlas-yosemite-tunnel-walls.webp',
     'fir-crown.webp',
     'keene-downtown-ortho.webp',
     'sky.jpg',

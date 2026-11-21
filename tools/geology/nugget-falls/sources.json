@@ -1,0 +1,468 @@
+{
+  "bareGround": {
+    "data": "USGS Southeast Alaska Landslides D22, work unit 2, July\u2013October 2023",
+    "notice": "https://www.fisheries.noaa.gov/inport/item/80000",
+    "tiles": [
+      {
+        "source": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/OPR/Projects/AK_SouthEastLandslides_D22/AK_SELandslides_2_D22/TIFF/USGS_OPR_AK_SouthEastLandslides_D22_767733.tif",
+        "sha256": "e55564f0e20dc10f83de102ff3c2e9d587f083d069fd3b1b80d75149798d7f08"
+      },
+      {
+        "source": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/OPR/Projects/AK_SouthEastLandslides_D22/AK_SELandslides_2_D22/TIFF/USGS_OPR_AK_SouthEastLandslides_D22_767734.tif",
+        "sha256": "fd9993408c073b896c9cc6a769acdde5d9b43a33cd110874170a2f9221acebdd"
+      },
+      {
+        "source": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/OPR/Projects/AK_SouthEastLandslides_D22/AK_SELandslides_2_D22/TIFF/USGS_OPR_AK_SouthEastLandslides_D22_767735.tif",
+        "sha256": "437dddadadb500f923fdf56bcf42b6d158c95b4ae17f4730a85bfc63d4d4058a"
+      },
+      {
+        "source": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/OPR/Projects/AK_SouthEastLandslides_D22/AK_SELandslides_2_D22/TIFF/USGS_OPR_AK_SouthEastLandslides_D22_768733.tif",
+        "sha256": "9e684edd1b50c4ffbf51100151c566fa186c272de17b82c4e576dd077fce03ad"
+      },
+      {
+        "source": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/OPR/Projects/AK_SouthEastLandslides_D22/AK_SELandslides_2_D22/TIFF/USGS_OPR_AK_SouthEastLandslides_D22_768734.tif",
+        "sha256": "a6256cba25266c70e88971da6abbdc3dc533cdae13c86b5ffe1c7fad39e3714a"
+      },
+      {
+        "source": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/OPR/Projects/AK_SouthEastLandslides_D22/AK_SELandslides_2_D22/TIFF/USGS_OPR_AK_SouthEastLandslides_D22_768735.tif",
+        "sha256": "cea8f695d41b95a7f83bb49ee24fbd77f7ddd6e3f0aefe434f0f725b18fbfe6d"
+      },
+      {
+        "source": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/OPR/Projects/AK_SouthEastLandslides_D22/AK_SELandslides_2_D22/TIFF/USGS_OPR_AK_SouthEastLandslides_D22_769733.tif",
+        "sha256": "2a00262354ce7697562766cc08444424c27b146334188ec3488d6335e71838f3"
+      },
+      {
+        "source": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/OPR/Projects/AK_SouthEastLandslides_D22/AK_SELandslides_2_D22/TIFF/USGS_OPR_AK_SouthEastLandslides_D22_769734.tif",
+        "sha256": "9ba357295ad9a7c0c5fd6bea9c35e539d6753e22137e88d6c0288d9b0ff37834"
+      },
+      {
+        "source": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/OPR/Projects/AK_SouthEastLandslides_D22/AK_SELandslides_2_D22/TIFF/USGS_OPR_AK_SouthEastLandslides_D22_769735.tif",
+        "sha256": "d3947196c268678050ce3f43c56904d5010d31c23eb8fe693e90eebb9d046843"
+      }
+    ]
+  },
+  "canopy2012": {
+    "dataset": "https://s3-us-west-2.amazonaws.com/usgs-lidar-public/AK_Juneau_2012/",
+    "touchedNodes": {
+      "0-0-0-0": 24175,
+      "1-1-1-0": 3651,
+      "1-1-1-1": 745,
+      "2-2-2-1": 17198,
+      "2-2-2-2": 2902,
+      "3-4-4-3": 45155,
+      "3-4-4-4": 8278,
+      "3-4-5-3": 14776,
+      "3-4-5-4": 266,
+      "4-8-10-7": 64426,
+      "4-8-10-8": 1059,
+      "4-8-9-7": 110488,
+      "5-16-19-15": 107308,
+      "5-16-20-15": 66549,
+      "5-16-21-15": 62740,
+      "5-17-19-15": 116983,
+      "5-17-20-15": 102524,
+      "5-17-20-16": 2200,
+      "5-17-21-15": 57195,
+      "5-17-21-16": 4703,
+      "6-32-38-31": 154846,
+      "6-32-39-31": 52188,
+      "6-32-40-31": 54275,
+      "6-32-41-31": 61973,
+      "6-32-42-31": 61161,
+      "6-33-38-31": 194212,
+      "6-33-39-31": 91115,
+      "6-33-40-31": 61886,
+      "6-33-41-31": 69961,
+      "6-33-42-31": 91589,
+      "6-34-38-31": 306137,
+      "6-34-39-31": 251690,
+      "6-34-40-31": 209376,
+      "6-34-41-31": 224881,
+      "6-34-42-31": 180280,
+      "6-34-42-32": 19986,
+      "7-65-77-62": 68218,
+      "7-65-78-62": 42017,
+      "7-65-79-62": 32759,
+      "7-65-80-62": 11404,
+      "7-65-81-62": 56681,
+      "7-65-82-62": 71960,
+      "7-65-83-62": 19566,
+      "7-65-84-62": 11351,
+      "7-66-77-62": 130061,
+      "7-66-78-62": 42744,
+      "7-66-79-62": 37185,
+      "7-66-80-62": 46559,
+      "7-66-81-62": 56508,
+      "7-66-82-62": 46687,
+      "7-66-83-62": 54863,
+      "7-66-84-62": 53823,
+      "7-67-77-62": 196453,
+      "7-67-77-63": 8917,
+      "7-67-78-62": 158229,
+      "7-67-78-63": 8188,
+      "7-67-79-62": 94954,
+      "7-67-79-63": 51,
+      "7-67-80-62": 74221,
+      "7-67-81-62": 54900,
+      "7-67-81-63": 9244,
+      "7-67-82-62": 37409,
+      "7-67-82-63": 34903,
+      "7-67-83-62": 45253,
+      "7-67-83-63": 22518,
+      "7-67-84-62": 30372,
+      "7-67-84-63": 66650,
+      "7-68-77-62": 23473,
+      "7-68-77-63": 243878,
+      "7-68-78-62": 46128,
+      "7-68-78-63": 172003,
+      "7-68-79-62": 47391,
+      "7-68-79-63": 123066,
+      "7-68-80-62": 34218,
+      "7-68-80-63": 121442,
+      "7-68-81-62": 15928,
+      "7-68-81-63": 123163,
+      "7-68-82-63": 142597,
+      "7-68-83-63": 124445,
+      "7-68-84-63": 153767,
+      "7-69-77-63": 197506,
+      "7-69-78-63": 175188,
+      "7-69-79-63": 126348,
+      "7-69-80-63": 97044,
+      "7-69-81-63": 118534,
+      "7-69-82-63": 122982,
+      "7-69-83-63": 94500,
+      "7-69-84-63": 61564,
+      "7-69-84-64": 60977,
+      "8-131-155-125": 15466,
+      "8-132-155-125": 67648,
+      "8-132-156-125": 23076,
+      "8-132-157-125": 42166,
+      "8-132-168-125": 3923,
+      "8-132-169-125": 9664,
+      "8-133-155-125": 56265,
+      "8-133-156-125": 26831,
+      "8-133-157-125": 1987,
+      "8-133-168-125": 18880,
+      "8-133-169-125": 34008,
+      "8-134-155-125": 76734,
+      "8-134-156-125": 46020,
+      "8-134-157-125": 34149,
+      "8-134-158-125": 25729,
+      "8-134-159-125": 13883,
+      "8-134-160-125": 9633,
+      "8-134-161-125": 24476,
+      "8-134-162-125": 17066,
+      "8-134-163-125": 747,
+      "8-134-164-125": 6578,
+      "8-134-165-125": 18229,
+      "8-134-166-125": 19880,
+      "8-134-167-125": 15142,
+      "8-134-168-125": 22847,
+      "8-134-168-126": 171,
+      "8-134-169-125": 31330,
+      "8-134-169-126": 23021,
+      "8-135-155-125": 105415,
+      "8-135-156-125": 90310,
+      "8-135-157-125": 74861,
+      "8-135-158-125": 50353,
+      "8-135-159-125": 29363,
+      "8-135-160-125": 47677,
+      "8-135-161-125": 31539,
+      "8-135-162-125": 35220,
+      "8-135-163-125": 25351,
+      "8-135-164-125": 15686,
+      "8-135-164-126": 20826,
+      "8-135-165-125": 20349,
+      "8-135-165-126": 23224,
+      "8-135-166-125": 33306,
+      "8-135-166-126": 13072,
+      "8-135-167-125": 33709,
+      "8-135-167-126": 24165,
+      "8-135-168-125": 12828,
+      "8-135-168-126": 52418,
+      "8-135-169-126": 72722,
+      "8-136-155-125": 35001,
+      "8-136-155-126": 54293,
+      "8-136-156-125": 42342,
+      "8-136-156-126": 47601,
+      "8-136-157-125": 20132,
+      "8-136-157-126": 24729,
+      "8-136-158-126": 13430,
+      "8-136-159-126": 12436,
+      "8-136-160-126": 14624,
+      "8-136-161-126": 22043,
+      "8-136-162-126": 38060,
+      "8-136-163-126": 28693,
+      "8-136-164-126": 36683,
+      "8-136-165-126": 34754,
+      "8-136-166-126": 32340,
+      "8-136-167-126": 40849,
+      "8-136-167-127": 1,
+      "8-136-168-126": 41739,
+      "8-136-168-127": 2084,
+      "8-136-169-126": 41955,
+      "8-136-169-127": 3788,
+      "8-137-155-126": 96691,
+      "8-137-156-126": 88533,
+      "8-137-157-126": 45300,
+      "8-137-158-126": 43278,
+      "8-137-159-126": 14049,
+      "8-137-160-126": 25409,
+      "8-137-161-126": 22435,
+      "8-137-162-126": 20967,
+      "8-137-163-126": 23381,
+      "8-137-164-126": 24939,
+      "8-137-165-126": 12863,
+      "8-137-166-126": 5389,
+      "8-137-166-127": 802,
+      "8-137-167-126": 4008,
+      "8-137-167-127": 4346,
+      "8-137-168-126": 86,
+      "8-137-168-127": 11069,
+      "8-137-169-127": 9788,
+      "8-138-155-126": 86714,
+      "8-138-156-126": 77769,
+      "8-138-157-126": 47513,
+      "8-138-158-126": 30115,
+      "8-138-159-126": 14410,
+      "8-138-160-126": 19657,
+      "8-138-161-126": 18959,
+      "8-138-162-126": 23996,
+      "8-138-163-126": 24677,
+      "8-138-164-126": 22069,
+      "8-138-165-126": 22926,
+      "8-138-165-127": 2476,
+      "8-138-166-126": 4236,
+      "8-138-166-127": 12187,
+      "8-138-167-127": 15206,
+      "8-139-155-126": 47710,
+      "8-139-156-126": 43485,
+      "8-139-157-126": 21945,
+      "8-139-158-126": 15465,
+      "8-139-159-126": 8098,
+      "8-139-160-126": 1977,
+      "8-139-161-126": 1669,
+      "8-139-162-126": 2618,
+      "8-139-163-126": 2918,
+      "8-139-164-126": 3647,
+      "8-139-164-127": 681,
+      "8-139-165-126": 153,
+      "8-139-165-127": 4960,
+      "8-139-166-127": 6463,
+      "8-139-167-127": 3958
+    },
+    "inside": 7057689
+  },
+  "canopy2013": [
+    {
+      "name": "20130522_AK_Juneau_2013-2014_000911.copc.laz",
+      "url": "https://noaa-nos-coastal-lidar-pds.s3.amazonaws.com/laz/mllw/4813/20130522_AK_Juneau_2013-2014_000911.copc.laz",
+      "sha256": "6be8e20e575e7e087f6055107b21fb5662e96f3205a4e687354ec0b3da8da2d7",
+      "pointsInBounds": 2259643,
+      "points": 5346965,
+      "min": [
+        526499.9972204078,
+        6476999.983381785,
+        8.18
+      ],
+      "max": [
+        527223.6876810857,
+        6477749.994726882,
+        421.89
+      ]
+    },
+    {
+      "name": "20130522_AK_Juneau_2013-2014_000912.copc.laz",
+      "url": "https://noaa-nos-coastal-lidar-pds.s3.amazonaws.com/laz/mllw/4813/20130522_AK_Juneau_2013-2014_000912.copc.laz",
+      "sha256": "798991db91acdee8cb0b2a471e92fc86a9a331bcdce4f1f6d5ec088e0a434674",
+      "pointsInBounds": 247288,
+      "points": 247288,
+      "min": [
+        527249.9973731372,
+        6476249.983328379,
+        143.53
+      ],
+      "max": [
+        527323.0199824279,
+        6476800.722452602,
+        274.04
+      ]
+    },
+    {
+      "name": "20130522_AK_Juneau_2013-2014_000913.copc.laz",
+      "url": "https://noaa-nos-coastal-lidar-pds.s3.amazonaws.com/laz/mllw/4813/20130522_AK_Juneau_2013-2014_000913.copc.laz",
+      "sha256": "f46cdbadad2163bb293cdf8404751b9ed45b92225a1ba60a918c82bf083dc2fa",
+      "pointsInBounds": 4106981,
+      "points": 4106981,
+      "min": [
+        526499.9976224228,
+        6476249.983315838,
+        9.43
+      ],
+      "max": [
+        527249.9987084316,
+        6476999.99481218,
+        303.43
+      ]
+    },
+    {
+      "name": "20130522_AK_Juneau_2013-2014_000914.copc.laz",
+      "url": "https://noaa-nos-coastal-lidar-pds.s3.amazonaws.com/laz/mllw/4813/20130522_AK_Juneau_2013-2014_000914.copc.laz",
+      "sha256": "d517b71ee400c458e22cfed52517409b239129fe476ac6b51eb21c61695a5e8a",
+      "pointsInBounds": 764894,
+      "points": 764894,
+      "min": [
+        527249.9975915387,
+        6475499.984660386,
+        132.93
+      ],
+      "max": [
+        527393.405732065,
+        6476249.993386669,
+        261.45
+      ]
+    },
+    {
+      "name": "20130522_AK_Juneau_2013-2014_000915.copc.laz",
+      "url": "https://noaa-nos-coastal-lidar-pds.s3.amazonaws.com/laz/mllw/4813/20130522_AK_Juneau_2013-2014_000915.copc.laz",
+      "sha256": "100ff33d50d1d9c80455a4ff9f5845b17b77427d88a3675f8cc6c8987a7cede4",
+      "pointsInBounds": 3197896,
+      "points": 3197896,
+      "min": [
+        526499.9974178085,
+        6475499.982585833,
+        8.41
+      ],
+      "max": [
+        527249.9988218305,
+        6476249.994842469,
+        209.39000000000001
+      ]
+    },
+    {
+      "name": "20130522_AK_Juneau_2013-2014_000916.copc.laz",
+      "url": "https://noaa-nos-coastal-lidar-pds.s3.amazonaws.com/laz/mllw/4813/20130522_AK_Juneau_2013-2014_000916.copc.laz",
+      "sha256": "fe82a2aaa3c5b80ead96bf150ffcff8869446a06142959c813a765afbe85c10d",
+      "pointsInBounds": 141851,
+      "points": 382687,
+      "min": [
+        527249.9971746875,
+        6474800.913888275,
+        150.28
+      ],
+      "max": [
+        527359.4773134019,
+        6475499.99429072,
+        286.75
+      ]
+    },
+    {
+      "name": "20130522_AK_Juneau_2013-2014_000917.copc.laz",
+      "url": "https://noaa-nos-coastal-lidar-pds.s3.amazonaws.com/laz/mllw/4813/20130522_AK_Juneau_2013-2014_000917.copc.laz",
+      "sha256": "129fd434e2b890268c1065adfbe8192e8d83e671ec2069b725389fa6f752cf59",
+      "pointsInBounds": 1311419,
+      "points": 6407968,
+      "min": [
+        526499.9973107053,
+        6474749.982908905,
+        17.75
+      ],
+      "max": [
+        527249.9986261803,
+        6475499.994609791,
+        301.29
+      ]
+    }
+  ],
+  "color2013": {
+    "catalog": "https://www.fisheries.noaa.gov/inport/item/49628",
+    "supportedReturns": 10255923,
+    "tiles": [
+      {
+        "url": "https://noaa-nos-coastal-lidar-pds.s3.amazonaws.com/laz/mllw/4813/20130522_AK_Juneau_2013-2014_000911.copc.laz",
+        "sha256": "6be8e20e575e7e087f6055107b21fb5662e96f3205a4e687354ec0b3da8da2d7",
+        "colorReturns": 2012530
+      },
+      {
+        "url": "https://noaa-nos-coastal-lidar-pds.s3.amazonaws.com/laz/mllw/4813/20130522_AK_Juneau_2013-2014_000912.copc.laz",
+        "sha256": "798991db91acdee8cb0b2a471e92fc86a9a331bcdce4f1f6d5ec088e0a434674",
+        "colorReturns": 193619
+      },
+      {
+        "url": "https://noaa-nos-coastal-lidar-pds.s3.amazonaws.com/laz/mllw/4813/20130522_AK_Juneau_2013-2014_000913.copc.laz",
+        "sha256": "f46cdbadad2163bb293cdf8404751b9ed45b92225a1ba60a918c82bf083dc2fa",
+        "colorReturns": 3762670
+      },
+      {
+        "url": "https://noaa-nos-coastal-lidar-pds.s3.amazonaws.com/laz/mllw/4813/20130522_AK_Juneau_2013-2014_000914.copc.laz",
+        "sha256": "d517b71ee400c458e22cfed52517409b239129fe476ac6b51eb21c61695a5e8a",
+        "colorReturns": 553882
+      },
+      {
+        "url": "https://noaa-nos-coastal-lidar-pds.s3.amazonaws.com/laz/mllw/4813/20130522_AK_Juneau_2013-2014_000915.copc.laz",
+        "sha256": "100ff33d50d1d9c80455a4ff9f5845b17b77427d88a3675f8cc6c8987a7cede4",
+        "colorReturns": 2631641
+      },
+      {
+        "url": "https://noaa-nos-coastal-lidar-pds.s3.amazonaws.com/laz/mllw/4813/20130522_AK_Juneau_2013-2014_000916.copc.laz",
+        "sha256": "fe82a2aaa3c5b80ead96bf150ffcff8869446a06142959c813a765afbe85c10d",
+        "colorReturns": 101657
+      },
+      {
+        "url": "https://noaa-nos-coastal-lidar-pds.s3.amazonaws.com/laz/mllw/4813/20130522_AK_Juneau_2013-2014_000917.copc.laz",
+        "sha256": "129fd434e2b890268c1065adfbe8192e8d83e671ec2069b725389fa6f752cf59",
+        "colorReturns": 999924
+      }
+    ]
+  },
+  "satellite": [
+    {
+      "band": 2,
+      "source": "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/8/V/NK/2024/8/S2A_8VNK_20240808_0_L2A/B02.tif",
+      "sha256": "787c11fbf6af0e7ef2758290b0e946820c43b528e3144247114c1ea1f9f1be3a"
+    },
+    {
+      "band": 3,
+      "source": "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/8/V/NK/2024/8/S2A_8VNK_20240808_0_L2A/B03.tif",
+      "sha256": "d9c67b4c520bbc916503ef0484ce6e7ef1834ebd4234a05a6e232716668d19b3"
+    },
+    {
+      "band": 4,
+      "source": "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/8/V/NK/2024/8/S2A_8VNK_20240808_0_L2A/B04.tif",
+      "sha256": "d3d458ea519bf4c3dea0c60e9e0fd5b0c5e0bca1a562f401da329e868a5359c9"
+    },
+    {
+      "band": 8,
+      "source": "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/8/V/NK/2024/8/S2A_8VNK_20240808_0_L2A/B08.tif",
+      "sha256": "48fe07d15805a3a71cd4cf4e8db0a22fab9da37ed586be259bb8524c91dd0d32"
+    }
+  ],
+  "output": {
+    "bounds": [
+      160,
+      -272,
+      1520,
+      1456
+    ],
+    "originalDemMetres": 0.5,
+    "collisionSampleM": 4,
+    "materialSamples": [
+      1361,
+      1729
+    ],
+    "triangles": 85573,
+    "crownTops": 2885,
+    "lowBroadCrownTops": 583,
+    "treeHeightPercentiles": [
+      7.0,
+      21.0,
+      39.0,
+      50.5
+    ],
+    "areaWithCanopyLidarInSquareMetres": 1223798,
+    "colorCoverageSquareMetres": 1058635,
+    "watercourseStations": 77,
+    "noData": 0,
+    "bytes": 1267408
+  }
+}

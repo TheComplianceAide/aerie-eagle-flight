@@ -1,0 +1,137 @@
+{
+  "survey": {
+    "dem": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/13/TIFF/current/n38w120/USGS_13_n38w120.tif",
+    "croppedDemSha256": "a270c8d7ef7b9fadd5de3557db25014d5c07a82e5b1ce7da19e6c093f56dca73",
+    "field": "https://www.nps.gov/places/000/tunnel-view.htm",
+    "image": "https://www.nps.gov/common/uploads/cropped_image/primary/0CFC2E25-B7B1-A12D-8621A2F88303D8EF.jpg?width=1600&quality=90&mode=crop",
+    "imageSha256": "5b7c6484b20a6cfdcb1e712985a17313296e1282ef6ad485afd1a6fb1056bd08"
+  },
+  "naip": [
+    {
+      "item": "ca_m_3711912_se_11_060_20220820",
+      "date": "2022-08-20T16:00:00Z",
+      "source": "https://naipeuwest.blob.core.windows.net/naip/v002/ca/2022/ca_060cm_2022/37119/m_3711912_se_11_060_20220820.tif"
+    },
+    {
+      "item": "ca_m_3711913_sw_11_060_20220820",
+      "date": "2022-08-20T16:00:00Z",
+      "source": "https://naipeuwest.blob.core.windows.net/naip/v002/ca/2022/ca_060cm_2022/37119/m_3711913_sw_11_060_20220820.tif"
+    },
+    {
+      "item": "ca_m_3711920_ne_11_060_20220820",
+      "date": "2022-08-20T16:00:00Z",
+      "source": "https://naipeuwest.blob.core.windows.net/naip/v002/ca/2022/ca_060cm_2022/37119/m_3711920_ne_11_060_20220820.tif"
+    },
+    {
+      "item": "ca_m_3711921_nw_11_060_20220820",
+      "date": "2022-08-20T16:00:00Z",
+      "source": "https://naipeuwest.blob.core.windows.net/naip/v002/ca/2022/ca_060cm_2022/37119/m_3711921_nw_11_060_20220820.tif"
+    }
+  ],
+  "dome": {
+    "camera": [
+      4460.0,
+      2184.521728515625,
+      515.0,
+      67.79935831664989,
+      -2.348302623720993,
+      2.9999967272271553,
+      1600.8754000389586,
+      0.026058389520142763
+    ],
+    "basis": [
+      [
+        0.3793187701663216,
+        0.05229194789695207,
+        0.9237872172663204
+      ],
+      [
+        0.0181094058334651,
+        0.9977908959956482,
+        -0.06391695618973689
+      ],
+      [
+        0.9250888173682937,
+        -0.04097413883590884,
+        -0.377533839445933
+      ]
+    ],
+    "crop": [
+      234,
+      235,
+      950,
+      847
+    ],
+    "sourceSize": [
+      1142,
+      1600
+    ],
+    "focalPixelsAtWidth571": 1600.8754000389586,
+    "photo": "https://npgallery.nps.gov/YOSE/GetAsset/9f6b5a3917f4484ba494a6bc548352a6/compressed.jpg",
+    "rights": "Public domain. Ralph H. Anderson, October 6, 1938. NPS Yosemite Historic Photo Collection RL_00603",
+    "photoDigest": "068a6fb892f7842c64518f97aa4b24b2de41ba46bf9718b52427f7ae44997c57",
+    "pixels": 150387
+  },
+  "mineral": {
+    "report": "https://irma.nps.gov/DataStore/FileSource/Get/2188442?filename=yose_gri_rpt_view.pdf",
+    "reportSHA256": "275b61b37f8620736c3cb3b38e9ae7428c0186c6afc08ef5fbf4dd9c3a0fdc27",
+    "credits": "NPS/Greg Stock. Yosemite National Park Geologic Resources Inventory Report, figure 19 (2012).",
+    "page": 34,
+    "physicalTileMeters": [
+      0.173,
+      0.189
+    ]
+  },
+  "triangles": {
+    "rect": [
+      6544,
+      -4496,
+      12816,
+      -176
+    ],
+    "sourceDemStep": 8,
+    "deltaBound": 2.6,
+    "triangles": 55297,
+    "bytes": 840172,
+    "peakNAVD88m": 3025.461669921875
+  },
+  "wall": {
+    "camera": [
+      -4628.0,
+      1338.97802734375,
+      1787.0,
+      85.9820461457144,
+      8.33440495045211,
+      -2.4497543894389926,
+      725.2538928015492,
+      0.015414520115572927
+    ],
+    "basis": [
+      [
+        0.07618544627199318,
+        -0.04229183943377,
+        0.996196355189902
+      ],
+      [
+        -0.14146697202590713,
+        0.988534669087647,
+        0.05278545100306755
+      ],
+      [
+        0.9870070281422307,
+        0.14495036505329764,
+        -0.0693290564536782
+      ]
+    ],
+    "visibleRockPixels": 205648,
+    "fittedStations": 7,
+    "distanceRangeM": [
+      1848.56982421875,
+      1890.54806640625,
+      2651.536376953125,
+      8052.55900390625,
+      16599.638671875
+    ],
+    "maskPhotoWidth": 1536
+  }
+}

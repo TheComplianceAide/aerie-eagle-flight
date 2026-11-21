@@ -11,12 +11,14 @@
     milford:{name:'Rahotu Mitre Peak · crest and Sinbad wall',asset:'milford',water:0,source:'LINZ NZ 8m Digital Elevation Model (2012) and Southland 0.75m Rural Aerial Photos (2005–2011)'},
     labrador:{name:'Lac Berté · south narrows and camp headland',asset:'labrador',water:359,source:'Gouvernement du Québec MRNF 2022 lidar terrain and aerial imagery, Côte-Nord'},
     yosemite:{name:'El Capitan · Nose and southeast face',asset:'yosemite',source:'USGS 3DEP and USDA NAIP, Yosemite Valley, California'},
+    yosemitesummits:{name:'Half Dome and Clouds Rest · upper Yosemite Valley',asset:'yosemite-summits',
+      source:'USGS 3DEP 1/3-arcsecond DEM and USDA California 2022 60 cm NAIP, Yosemite National Park'},
     crater:{name:'Wizard Island · crater rim and lava apron',asset:'crater',water:1880.62,source:'USGS 3DEP and USDA NAIP, Crater Lake, Oregon'},
     winnipesaukee:{name:'Rattlesnake Island · high spine and shore ledges',asset:'winnipesaukee',water:153.11,source:'USGS 3DEP and USDA NAIP, Lake Winnipesaukee, New Hampshire'},
     dixville:{name:'Mount Gloriette · western notch wall',asset:'dixville',source:'USGS 3DEP and USDA NAIP, Dixville Notch, New Hampshire'},
     surry:{name:'Surry Mountain Dam · crest and spillway approach',asset:'surry',water:152.33,source:'USGS 3DEP and USDA NAIP, Surry, New Hampshire'},
     canyon:{name:'Horseshoe Bend · central promontory and inner wall',asset:'canyon',style:'canyon',holes:[[-592,-336,-456,-240]],source:'USGS 3DEP and USDA NAIP, Glen Canyon, Arizona'},
-    alaska:{name:'Nugget Falls · wall and scoured bedrock',asset:'alaska',style:'alaska',water:0,source:'USGS 3DEP and the Aerie Mendenhall aerial mosaic, Juneau, Alaska'},
+    alaska:{name:'Nugget Falls · wall and scoured bedrock',asset:'alaska',style:'alaska',water:0,source:'USGS Southeast Alaska Landslides D22 elevation, Juneau 2012 and 2013 canopy lidar and registered 2013 Juneau RGB at colorized returns'},
     swiss:{name:'Fründenschnuer · limestone shelf and east wall',asset:'swiss',style:'swiss',water:0,source:'swisstopo swissALTI3D and SWISSIMAGE, Oeschinensee, Switzerland'},
     swisswest:{name:'Oeschinensee · western strand and scree fan',asset:'swisswest',style:'swiss',water:0,source:'Federal Office of Topography swisstopo, swissALTI3D 2025 and SWISSIMAGE, Oeschinensee, Switzerland'}
   };
@@ -53,6 +55,24 @@
     if(at+8<=buffer.byteLength&&head.getUint32(at,true)===0x31525446){
       const roots=head.getUint32(at+4,true);at+=8;
       woodland=new Int16Array(buffer,at,roots*3);at+=woodland.byteLength;
+    }
+    let canopyObserved=null,watercourse=null;
+    if(spec.style==='alaska'&&at+10<=buffer.byteLength&&head.getUint32(at,true)===0x314a4243){
+      const stride=head.getUint16(at+4,true),cols=head.getUint16(at+6,true),rows=head.getUint16(at+8,true);
+      at+=10;
+      const mask=new Uint8Array(buffer,at,Math.ceil(cols*rows/8));at+=mask.byteLength;
+      canopyObserved=(x,z)=>{
+        const i=Math.floor((x-left)/stride),j=Math.floor((z-top)/stride);
+        if(i<0||i>=cols||j<0||j>=rows)return false;
+        const k=j*cols+i;
+        return !!(mask[k>>>3]&(1<<(k&7)));
+      };
+    }
+    if(spec.style==='alaska'&&at+6<=buffer.byteLength&&head.getUint32(at,true)===0x31574c46){
+      const stations=head.getUint16(at+4,true);at+=6;watercourse=[];
+      for(let i=0;i<stations;i++,at+=6)watercourse.push([
+        head.getInt16(at,true),head.getInt16(at+2,true)/10,head.getInt16(at+4,true)/10
+      ]);
     }
     if(at!==buffer.byteLength)throw Error('Incomplete regional terrain survey');
     const sections=[];
@@ -174,6 +194,13 @@
         material.fragmentShader=material.fragmentShader.replace('normal=normalize(mix(normal,ledgeNormal,.94*graniteShore));',
           'ledgeNormal=normalize(mix(ledgeNormal,normal,landformHorizon.w));normal=normalize(mix(normal,ledgeNormal,.94*graniteShore));');
       }
+      if(spec.asset==='yosemite-summits'){
+        // The entire survey sits outside the valley's original aerial. Blend
+        // the registered 2022 NAIP image at its edges with the true far region.
+        material.fragmentShader=material.fragmentShader.replace(
+          /vec3 photo=mix\(texture2D\(aerial,[^;]+;/,
+          'vec3 photo=mix(texture2D(ranges,vec2(xz.x,-xz.y)/farSpan+.5).rgb,texture2D(aerial,'+localUV+').rgb,landformHorizon.w);');
+      }
       if(!spec.style)material.fragmentShader=material.fragmentShader
         .replace('dense*=orthoCoverage;',`dense=mix(dense,landformHorizon.z*.96,landformHorizon.w);dense*=orthoCoverage;`)
         .replace('vec3 c=mix(photo,stoneColor,materialWeight);',`
@@ -188,6 +215,10 @@
           float landformSunVisibility=smoothstep(localHorizon-.042,localHorizon+.054,altitude);
           sunlit=mix(sunlit,min(sunlit,.18+.82*landformSunVisibility),landformHorizon.w);
           c*=mix(1.,.63+.37*landformHorizon.x,landformHorizon.w);`);
+      if(spec.style==='alaska'&&canopyObserved){
+        const locationUV=localUV.replace(/xz\./g,'p.xz.');
+        material.fragmentShader=window.nuggetSurfaceShader(locationUV);
+      }
       const group=new T.Group();group.name=spec.name+' · continuous terrain';
       group.userData.aerieLandform={name:spec.name,source:spec.source,rect};
       scene.add(group);
@@ -240,7 +271,7 @@
       material.fragmentShader=material.fragmentShader.replace(/void main\(\)\s*\{/,m=>m+'if('+test+')discard;');
       material.needsUpdate=true;
     }
-    return {rect,edge,sample,height,surfacePatch,add,maskOriginal,spec,woodland};
+    return {rect,edge,sample,height,surfacePatch,add,maskOriginal,spec,woodland,canopyObserved,watercourse};
   }
   async function prepare(region){
     if(!catalog[region])return;

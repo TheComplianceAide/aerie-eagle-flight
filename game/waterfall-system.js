@@ -1,6 +1,6 @@
 // Travel time is integrated once along the surveyed bed. The descending ropes,
 // impact fan, airborne spray and the first wave leaving the pool share its phase.
-window.makeWaterfallSystem=function makeWaterfallSystem(T,scene,{ground,level,clock,sun,texture,sky}){
+window.makeWaterfallSystem=function makeWaterfallSystem(T,scene,{ground,level,clock,sun,texture,sky,streamSurvey=null}){
   const noise=texture('falls-entrainment.webp',true),waterGrain=texture('waternormals.jpg',true);
   const wind={value:new T.Vector2(.8,.4)},strength={value:.25};
   const common={fallClock:clock,fallCloud:{value:noise},fallGrain:{value:waterGrain},fallSky:{value:sky},fallWind:wind,fallGust:strength,fallSun:{value:sun}};
@@ -13,7 +13,8 @@ window.makeWaterfallSystem=function makeWaterfallSystem(T,scene,{ground,level,cl
     for(const p of channelCells.get(cell(x,z))||[])if((x-p.x)**2+(z-p.z)**2<(p.radius+crown*.36)**2)return true;
     return false;
   }
-  const sheet=new T.ShaderMaterial({uniforms:common,side:T.DoubleSide,transparent:true,depthWrite:false,
+  const sheetUniforms=streamSurvey?{...common,activeCurrent:{value:streamSurvey.map},currentBounds:{value:streamSurvey.bounds}}:common;
+  const sheet=new T.ShaderMaterial({uniforms:sheetUniforms,side:T.DoubleSide,transparent:true,depthWrite:false,
     vertexShader:`${lit}
       attribute vec4 hydraulics;attribute vec2 impactAt;varying vec2 st,source;varying vec3 loc;varying vec4 water;
       void main(){st=uv;source=impactAt;water=hydraulics;vec3 p=position;
@@ -22,7 +23,7 @@ window.makeWaterfallSystem=function makeWaterfallSystem(T,scene,{ground,level,cl
         p.xz+=fallWind*airborne*(.23+.54*fallGust)*(.60+.33*sin(1.38*motion+hydraulics.w+uv.x*4.))*(.45+hydraulics.x*.13);
         p.y+=airborne*.09*sin(uv.x*7.2+motion*3.1)+.07*travelling;
         loc=p;gl_Position=projectionMatrix*viewMatrix*vec4(p,1.);}`,
-    fragmentShader:`${lit} uniform sampler2D fallSky;varying vec2 st,source;varying vec3 loc;varying vec4 water;
+    fragmentShader:`${lit} ${streamSurvey?'uniform sampler2D activeCurrent;uniform vec4 currentBounds;':''} uniform sampler2D fallSky;varying vec2 st,source;varying vec3 loc;varying vec4 water;
       void main(){float t=fallClock-water.y,grade=water.z,phase=water.w;
         float u=st.x,w=water.x,d=st.y,small=1.-smoothstep(3.5,7.,w);
         float life=release(t,source);float flow=t*(.11+.08*small);
@@ -45,6 +46,23 @@ window.makeWaterfallSystem=function makeWaterfallSystem(T,scene,{ground,level,cl
         float mask=mix(smoothstep(.13,.58,broken.r*.50+eddy.b*.50),smoothstep(.12,.59,drawn.g*.74+streak*.26),free);
         float flaky=smoothstep(.24,.68,mix(broken.b,streak,free));
         float alpha=edge*(.07+mask*(.12+.70*froth)+.09*flaky);
+        ${streamSurvey?`
+        // Optically thick, aerated water obscures the bed at the center of
+        // the lower Nugget cataract. The broken fringe still exposes rock.
+        float flood=smoothstep(16.,35.,w)*(.75+.25*grade);
+        float streamCore=edge*(.70+.20*mask+.095*flaky);
+        froth=max(froth,flood*(.73+.22*streak+.05*life));
+        alpha=mix(alpha,max(alpha,streamCore),flood);
+        vec2 mapUv=(loc.xz-currentBounds.xy)/currentBounds.zw;
+        vec2 survey=texture2D(activeCurrent,vec2(mapUv.x,1.-mapUv.y)).rg;
+        float border=min(min(mapUv.x,mapUv.y),min(1.-mapUv.x,1.-mapUv.y));
+        float confidence=survey.g*smoothstep(0.,.025,border);
+        // The registered photograph traces the rock islands and both banks.
+        // Turbulence can wet a narrow fringe without filling an island.
+        float flowingFraction=smoothstep(.10,.82,survey.r+.065*(eddy.g-.5));
+        alpha*=mix(1.,flowingFraction,confidence);
+        froth=mix(froth,max(froth,.69+.21*streak+.094*flaky),confidence*flowingFraction*.79);
+        `:''}
         vec3 v=normalize(cameraPosition-loc);
         vec3 geometric=normalize(cross(dFdx(loc),dFdy(loc)));if(dot(v,geometric)<0.)geometric*=-1.;
         vec3 n=normalize(geometric+vec3((broken.r-.5)*.22,(drawn.g-.5)*.16,(broken.b-.5)*.24));
@@ -53,6 +71,15 @@ window.makeWaterfallSystem=function makeWaterfallSystem(T,scene,{ground,level,cl
         vec3 clear=mix(vec3(.15,.25,.25),reflected,.27+.29*pow(1.-max(0.,dot(n,v)),4.));
         float sunward=.5+.5*dot(v,-fallSun);vec3 white=mix(vec3(.64,.75,.77),vec3(.96,.97,.93),.20+.39*sunward+.27*flaky);
         vec3 base=mix(clear,white,smoothstep(.04,.87,froth)*(.80+.14*flaky));
+        ${streamSurvey?`
+        // Fine entrained bubbles scatter light through the depth of the
+        // broad fan. Only the thin, moving margins retain a clear reflection.
+        float packedBubbles=confidence*flowingFraction*smoothstep(.49,.92,froth)*(.50+.48*grade);
+        float boil=.37*eddy.g+.39*streak+.24*broken.r;
+        vec3 milky=mix(vec3(.76,.81,.79),vec3(.99,.98,.94),smoothstep(.26,.75,boil));
+        base=mix(base,milky,.84*packedBubbles);
+        alpha=max(alpha,packedBubbles*edge*(.92+.065*boil));
+        `:''}
         gl_FragColor=vec4(base,alpha);}`});
   function geometry(position,uv,index,extra){
     const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(position,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));
@@ -96,7 +123,7 @@ window.makeWaterfallSystem=function makeWaterfallSystem(T,scene,{ground,level,cl
   }
   function plume(source){
     const {x,y,z,width,drop,dx,dz}=source,quad=new T.PlaneGeometry(1,1),g=new T.InstancedBufferGeometry();
-    const count=Math.min(122,Math.ceil(40+Math.sqrt(drop)*6)),seed=[];
+    const count=streamSurvey?Math.min(156,Math.ceil(58+Math.sqrt(drop)*11)):Math.min(122,Math.ceil(40+Math.sqrt(drop)*6)),seed=[];
     let n=(Math.floor(Math.abs(x*13+z*19))+631)>>>0;
     function rnd(){n=(Math.imul(n,1664525)+1013904223)>>>0;return n/4294967296;}
     for(let i=0;i<count;i++)seed.push(rnd(),rnd(),rnd(),i%4===0?1:0);
@@ -121,6 +148,8 @@ window.makeWaterfallSystem=function makeWaterfallSystem(T,scene,{ground,level,cl
           pos.y+=mix(impulse*(.40+.83*seq)*(1.-exp(-age*.94))+age*(.11+.15*fallGust),
                (2.2+impulse*(.83+.60*seq))*age-4.905*age*age,droplet);
           float size=mix(.51+chuteWidth*.087+(4.4+impulse*1.40)*life,.089+.20*seq,droplet);
+          ${streamSurvey?`size*=mix(1.24+.22*pulse,1.,droplet);
+          pos.y+=(1.-droplet)*impulse*.33*(1.-exp(-age));`:''}
           vec2 c=position.xy;float a=seq*6.283+age*.12;
           c=mat2(cos(a),sin(a),-sin(a),cos(a))*c;
           c*=mix(vec2(1.74,.57),vec2(.79,2.12),droplet);
@@ -136,6 +165,8 @@ window.makeWaterfallSystem=function makeWaterfallSystem(T,scene,{ground,level,cl
           float ragged=smoothstep(.13,.66,cloud*.77+filaments*.23-.13*radius);
           float a=body*envelope*mix(.028+.034*puff.w,.61,puff.z)*ragged*smoothstep(-.27,.31,abovePool);
           vec3 c=mix(vec3(.48,.60,.62),vec3(.90,.95,.94),.14+.39*cloud+.33*light);
+          ${streamSurvey?`a*=mix(2.1,1.,puff.z);
+          c=mix(c,vec3(.86,.90,.87),.66*(1.-puff.z));`:''}
           gl_FragColor=vec4(c,a);}`});
     const m=new T.Mesh(g,mat);m.name=source.name+' · windborne spray';m.userData.prepareFlightMaterial=true;m.renderOrder=2;scene.add(m);
   }
@@ -153,7 +184,9 @@ window.makeWaterfallSystem=function makeWaterfallSystem(T,scene,{ground,level,cl
       const ds=i?Math.hypot(x-a[0],z-a[1]):0,y=heightAt(x,z);
       const grade=i?Math.max(0,(nodes[i-1].floor-y)/Math.max(.1,ds)):0;
       const speed=Math.min(14,1.35+Math.min(3.2,width*.26)+(2.1+Math.min(2.8,width*.22))*Math.sqrt(Math.min(5,grade)));const dt=ds/speed;
-      fallTime+=dt;travel+=ds;const wid=width*(.72+.15*Math.sin(travel*.064)+.09*Math.sin(travel*.19+.6)+.08*Math.min(3,grade));
+      fallTime+=dt;travel+=ds;
+      const wid=options.widthAt?options.widthAt(x,z)*(1.14+.035*Math.sin(travel*.064)):
+        width*(.72+.15*Math.sin(travel*.064)+.09*Math.sin(travel*.19+.6)+.08*Math.min(3,grade));
       const phase=.0043*path[0][0]+.0011*path[0][1];let air=0,collision=0,centerAir=0;
       for(let j=0;j<=cols;j++){
         const u=j/cols,cross=(u-.5)*wid,px=x-dz*cross,pz=z+dx*cross,floor=heightAt(px,pz)+Math.min(.66,Math.max(.053,width*.037));

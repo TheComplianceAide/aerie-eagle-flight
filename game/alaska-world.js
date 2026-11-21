@@ -404,22 +404,27 @@ class Water extends Mesh {
     const local=sample(near,961,4800,x,z)+iceRelief(x,z)+crestHeight(x,z);
     return reliefHeight(x,z)+(d>4650?THREE.MathUtils.lerp(local,sample(far,601,18000,x,z),(d-4650)/150):local);
   }
-  const flow=[[1080,895],[1000,870],[946,821],[890,765],[819,711],[754,732],[696,743],[660,734],[636,696],[602,670],[567,653],[539,643],[522,644],[507,656],[493,669],[474,680]];
+  const landmarkTerrain=window.aerieRegionalLandforms?.get('alaska');
+  const flow=landmarkTerrain?.watercourse||[[1080,895],[1000,870],[946,821],[890,765],[819,711],[754,732],[696,743],[660,734],[636,696],[602,670],[567,653],[539,643],[522,644],[507,656],[493,669],[474,680]];
   // A treetop or protruding DEM triangle in a narrow chute can put a dry
   // triangular wall through the water. Constrain only the incised channel to
   // a downhill bed; the surrounding ridge retains its original elevation.
-  const channel=[];
-  let downstream=surveyElevation(...flow[0]);
+  const channelBands=new Map();
+  let downstream=surveyElevation(flow[0][0],flow[0][1]);
   for(let i=1;i<flow.length;i++){
     const [ax,az]=flow[i-1],[bx,bz]=flow[i],dx=bx-ax,dz=bz-az;
     const bottom=Math.max(-.35,Math.min(downstream,surveyElevation(bx,bz)));
-    channel.push({ax,az,dx,dz,inv:1/(dx*dx+dz*dz),top:downstream,bottom});
+    const reach={ax,az,dx,dz,inv:1/(dx*dx+dz*dz),top:downstream,bottom};
+    for(let band=Math.floor((Math.min(ax,bx)-34)/64);band<=Math.floor((Math.max(ax,bx)+34)/64);band++){
+      if(!channelBands.has(band))channelBands.set(band,[]);
+      channelBands.get(band).push(reach);
+    }
     downstream=bottom;
   }
   function channelAt(x,z){
     if(x<435||x>1120||z<605||z>933)return null;
     let nearest=34*34,hit=null;
-    for(const reach of channel){
+    for(const reach of channelBands.get(Math.floor(x/64))||[]){
       const u=clamp(((x-reach.ax)*reach.dx+(z-reach.az)*reach.dz)*reach.inv,0,1);
       const distance2=(x-reach.ax-u*reach.dx)**2+(z-reach.az-u*reach.dz)**2;
       if(distance2<nearest){nearest=distance2;hit={distance:Math.sqrt(distance2),bed:reach.top+(reach.bottom-reach.top)*u};}
@@ -439,7 +444,6 @@ class Water extends Mesh {
     const bar=.105*Math.sin(.46*x+.31*z)+.049*Math.cos(.68*z-.29*x);
     return y+mask*(smoothed-y+bar);
   }
-  const landmarkTerrain=window.aerieRegionalLandforms?.get('alaska');
   const landmarkGroundMaterials=new Set();
   function elevation(x,z){
     const base=nativeElevation(x,z);
@@ -835,13 +839,71 @@ class Water extends Mesh {
   const waters=map('waternormals.jpg',true);
   const lake=new Water(new THREE.ShapeGeometry(outline),{textureWidth:960,textureHeight:640,waterNormals:waters,sunDirection:sun,sunColor:0xffe9cd, waterColor:0x396c70,distortionScale:1.82,fog:true});
   lake.name="Lake surface";lake.rotation.x=-Math.PI/2;lake.position.y=.18;lake.material.uniforms.size.value=3.1;scene.add(lake);
+  if(landmarkTerrain?.watercourse)window.nuggetShallows(lake.material,map('alaska-nugget-shoal.webp'));
   const treeSections=[unpack(survey.trees),landmarkTerrain?.woodland||[]];
-  const trees=[],cells=new Map(),cell=(x,z)=>Math.floor(x/48)*1024+Math.floor(z/48);
+  const trees=[],firTrees=[],alderCrowns=[],cells=new Map(),cell=(x,z)=>Math.floor(x/48)*1024+Math.floor(z/48);
+  const nuggetAlder={name:'Sitka alder',family:'shrub',shape:[.91,1,.95,.65,.16],aspect:1.04,tint:[.89,1.03,.72],stature:1};
   for(const treeData of treeSections)for(let i=0;i<treeData.length;i+=3){
-    const x=treeData[i],z=treeData[i+1],h=treeData[i+2],y=elevation(x,z),seed=((i*1583)%65521)/65521;
+    const x=treeData[i],z=treeData[i+1],packed=treeData[i+2];
+    const measured=!!landmarkTerrain?.canopyObserved&&treeData===landmarkTerrain.woodland;
+    if(!measured&&landmarkTerrain?.canopyObserved?.(x,z))continue;
+    const h=measured?(Math.abs(packed)%128)*.5:packed;
+    const seed=measured?((Math.imul(x,73856093)^Math.imul(z,19349663))>>>0)/4294967296:((i*1583)%65521)/65521;
     const stream=channelAt(x,z);
-    if(stream && stream.distance<10+h*.20)continue;
-    const t={x,y,z,height:h,width:h*(.30+.13*seed),seed};trees.push(t);const id=cell(x,z);if(!cells.has(id))cells.set(id,[]);cells.get(id).push(t);
+    if(stream&&stream.distance<10+h*.20)continue;
+    const y=elevation(x,z),alder=measured&&packed<0;
+    const width=measured?Math.floor(Math.abs(packed)/128)*.5:h*(.30+.13*seed);
+    const t={x,y,z,height:h,width,seed};
+    if(alder){
+      // These short, spreading forms are heights/widths of observed cover.
+      // Sitka alder is the representative shrub recorded at the cascade.
+      t.aerieSpecies=nuggetAlder;
+      alderCrowns.push(t);
+    }else firTrees.push(t);
+    trees.push(t);
+    const id=cell(x,z);if(!cells.has(id))cells.set(id,[]);cells.get(id).push(t);
+  }
+  if(alderCrowns.length){
+    const card=new THREE.PlaneGeometry(1,1);
+    const geo=new THREE.InstancedBufferGeometry();
+    geo.index=card.index;geo.setAttribute('position',card.attributes.position);geo.setAttribute('uv',card.attributes.uv);
+    const roots=new Float32Array(alderCrowns.length*3),traits=new Float32Array(alderCrowns.length*3);
+    alderCrowns.forEach((t,i)=>{
+      roots.set([t.x,t.y-.09,t.z],i*3);traits.set([t.width,t.height,t.seed],i*3);
+    });
+    geo.setAttribute('crownRoot',new THREE.InstancedBufferAttribute(roots,3));
+    geo.setAttribute('crownTrait',new THREE.InstancedBufferAttribute(traits,3));geo.instanceCount=alderCrowns.length;
+    const material=new THREE.ShaderMaterial({side:THREE.DoubleSide,
+      uniforms:{plates:{value:map('regional-crowns.webp')},surveyLight:{value:map('alaska-tree-light.webp')}},
+      vertexShader:`attribute vec3 crownRoot,crownTrait;uniform sampler2D surveyLight;
+        varying vec2 card;varying vec4 angles;varying float tone;
+        void main(){
+          vec3 center=crownRoot+vec3(0.,.50*crownTrait.y,0.);
+          vec3 view=normalize(cameraPosition-center),right=normalize(vec3(view.z+.000001,0.,-view.x)),up=cross(view,right);
+          float h=max(0.,view.y),span=sqrt(crownTrait.y*crownTrait.y*(1.-h*h)+crownTrait.x*crownTrait.x*h*h);
+          vec3 pos=center+1.32*(right*position.x*crownTrait.x+up*position.y*span);
+          float side=.5-.5*cos(atan(view.x,view.z)-6.283*crownTrait.z),tilt=smoothstep(.12,.59,h),over=smoothstep(.58,.96,h);
+          angles=vec4((1.-tilt)*(1.-side),(1.-tilt)*side,tilt*(1.-over),over);
+          card=clamp(uv,.005,.995);
+          tone=(.84+.28*crownTrait.z)*(.75+.25*texture2D(surveyLight,.5+vec2(crownRoot.x,-crownRoot.z)/14400.).r);
+          gl_Position=projectionMatrix*viewMatrix*vec4(pos,1.);
+        }`,
+      fragmentShader:`uniform sampler2D plates;varying vec2 card;varying vec4 angles;varying float tone;
+        vec4 plate(float column){return texture2D(plates,vec2((column+card.x)*.25,(1.+card.y)*.125));}
+        void main(){vec4 a=plate(0.),b=plate(1.),c=plate(2.),d=plate(3.);
+          vec4 weights=angles*vec4(a.a,b.a,c.a,d.a);float coverage=dot(weights,vec4(1.));
+          if(coverage<.19)discard;
+          vec3 color=(weights.x*a.rgb+weights.y*b.rgb+weights.z*c.rgb+weights.w*d.rgb)/coverage;
+          gl_FragColor=vec4(color*vec3(.83,.96,.72)*tone,1.);
+        }`});
+    const thickets=new THREE.Mesh(geo,material);thickets.name='Nugget Falls · measured riparian thickets';
+    // The small local array has one immutable draw. Clip it outside the survey
+    // instead of re-filling a changing buffer each time the eagle banks.
+    const box=new THREE.Box3();for(const t of alderCrowns){
+      box.expandByPoint(new THREE.Vector3(t.x-t.width,t.y-1,t.z-t.width));
+      box.expandByPoint(new THREE.Vector3(t.x+t.width,t.y+t.height+2,t.z+t.width));
+    }
+    geo.boundingBox=box;geo.boundingSphere=box.getBoundingSphere(new THREE.Sphere());scene.add(thickets);
   }
   // Calved blocks have a fractured crown, a sloping leeward shoulder, and a
   // wave-cut waterline. Collision queries use their actual upper triangles.
@@ -1172,8 +1234,20 @@ class Water extends Mesh {
   }
   const clock={value:0};
   // The measured Nugget Creek bed splits over rock shelves and empties into the lake.
-  const waterfalls=window.makeWaterfallSystem(THREE,scene,{clock,ground:elevation,level:lake.position.y,sun,texture:map,sky:skyMap});
-  waterfalls.chute('Nugget Falls',flow,15,{pool:true,poolLevel:lake.position.y});
+  const measuredCourse=landmarkTerrain?.watercourse;
+  const scouredBed=measuredCourse?landmarkTerrain.surfacePatch(638,704,194,nativeElevation):null;
+  const fallGround=scouredBed?(x,z)=>scouredBed(x,z)??elevation(x,z):elevation;
+  const waterfalls=window.makeWaterfallSystem(THREE,scene,{clock,ground:fallGround,level:lake.position.y,sun,texture:map,sky:skyMap,streamSurvey:measuredCourse?{map:map('alaska-nugget-current.webp'),bounds:new THREE.Vector4(448,572,656,360)}:null});
+  // Stations run from upper Nugget Creek to its broad outlet. Interpolate
+  // the measured active width at each modeled cross-section on the spline.
+  function observedWidth(x){
+    let i=0;
+    while(i+2<measuredCourse.length&&x<measuredCourse[i+1][0])i++;
+    const a=measuredCourse[i],b=measuredCourse[i+1],f=clamp((a[0]-x)/(a[0]-b[0]),0,1);
+    return a[2]+f*(b[2]-a[2]);
+  }
+  waterfalls.chute('Nugget Falls',flow,measuredCourse?24:15,{pool:true,poolLevel:lake.position.y,
+    widthAt:measuredCourse?observedWidth:null});
   waterfalls.couple(lake);
   // Approach the two steps from the lake, across the outwash fan. The
   // upper creek is inland and behind the visitor-facing side of the falls.
@@ -1201,7 +1275,13 @@ class Water extends Mesh {
     landformMesh=landmarkTerrain.add(THREE,scene,reference,nativeElevation,map);
     for(const source of landmarkGroundMaterials)landmarkTerrain.maskOriginal(source);
   }
-  return {landformMesh,region:"alaska",bankDepositMap,localPerchStone,windTerrainHeight,treeGrid:{cells,size:48,cell},waterfalls,forestLightSpan:14400,elevation,clearance,height,trees,sunMask,sunDirection:sun,skyTexture:skyMap,cloudDensityMap:'alaska-cirrus-density.webp',waterLevel:0,lakeLevel:0,lakePolygon:shore,altitudeOffset:18,spawn:lakeLaunch,
+  function channelWater(x,z){
+    // Use the rendered banks to keep perch stones and dry-land wildlife out
+    // of the active historical flow. The surveyed rock islands stay in the bed.
+    if(!measuredCourse||!waterfalls.inChute(x,z,0))return -Infinity;
+    return Math.max(lake.position.y,fallGround(x,z)+.10);
+  }
+  return {landformMesh,region:"alaska",channelWater,bankDepositMap,localPerchStone,windTerrainHeight,treeGrid:{cells,size:48,cell},waterfalls,forestLightSpan:14400,elevation,clearance,height,trees,firTrees,sunMask,sunDirection:sun,skyTexture:skyMap,cloudDensityMap:'alaska-cirrus-density.webp',waterLevel:0,lakeLevel:0,lakePolygon:shore,altitudeOffset:18,spawn:lakeLaunch,
     launches:{lake:lakeLaunch,ridge,shore:shoreLaunch,spruce:{x:173,y:26,z:1630,yaw:.38,lookDown:12},spray:sprayPass,spur:{x:612,y:68.4704,z:977,yaw:-.08159},alpine:{x:-2900,z:-2010,y:elevation(-2900,-2010)+58,yaw:-.28}},bounds:{minX:-6890,maxX:6890,minZ:-6890,maxZ:6890},
     landmarks:[{name:'West alpine crest',x:-2900,z:-2010},{name:'Upper crevasse field',x:1500,z:-4130},{name:'Blue Ice Passage',x:-116,z:-1010},{name:'Nugget Falls beach',x:473,z:927},{name:'Medial moraine',x:632,z:-2450},{name:'Mendenhall Glacier',x:40,z:-1400},{name:'Nugget Falls',x:518,z:658},{name:'Mendenhall Lake',x:-700,z:680},{name:'West Glacier Ridge',x:-860,z:-1890}],
     update(dt,time,player){updateTerrainLOD(player);updateLedges(player);updateShore(player);clock.value=time;lake.material.uniforms.time.value=time*.72;}
