@@ -174,7 +174,8 @@
         // surface with their lowest face embedded a few millimetres.
         y-=height*(kineo?(small?.12:.16)+rand()*(shore?.25:.17):small?.09:.18);
         const matrix=new T.Matrix4().compose(new T.Vector3(x,y,z),rotation,new T.Vector3(length,length*scaleY,length*scaleZ));
-        entries.push({sheet:sheet.id,cell,x,y,z,width,height,depth,yaw,matrix,length,wetStage,anchor:anchor.name});
+        if(!world.openRoadAt?.(x,z,Math.hypot(width,depth)*.5))
+          entries.push({sheet:sheet.id,cell,x,y,z,width,height,depth,yaw,matrix,length,wetStage,anchor:anchor.name});
         accepted++;if(kineo&&accepted%16===0)shuffle();
       }
     }

@@ -314,6 +314,7 @@
           const cell=a.cell??Math.floor(hash(a.gx,a.gz,seed+1)*16);
           let span=(sheet.specimenSpans?.[cell]??sheet.span)*(.68+.64*hash(a.gx,a.gz,seed+3));
           if(a.jet)span=Math.min(span,a.width*(.26+.16*hash(a.gx,a.gz,seed+6)));
+          if(!water&&world.openRoadAt?.(a.x,a.z,span*.45))continue;
           const delta=Math.min(2,Math.max(.3,span*.25));
           const dx=water?a.water.dx:(support(a.x+delta,a.z)-support(a.x-delta,a.z))/(delta*2);
           const dz=water?a.water.dz:(support(a.x,a.z+delta)-support(a.x,a.z-delta))/(delta*2);

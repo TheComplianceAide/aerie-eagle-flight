@@ -196,6 +196,7 @@ window.makePerchHabitat=function makePerchHabitat(T,scene,world,region){
     if(!Number.isFinite(y)||wet(x,z,surveyed)||floor(x,z)>surveyed+.38||Math.abs(y-surveyed)>1.6)return null;
     const seed=noise(Math.round(x*5),Math.round(z*5),59);
     const radial=2.15+seed*1.12;
+    if(world.openRoadAt?.(x,z,radial))return null;
     let highest=y,lowest=y;
     for(let i=0;i<10;i++){
       const a=tau*i/10+seed,px=x+Math.cos(a)*radial,pz=z+Math.sin(a)*radial;

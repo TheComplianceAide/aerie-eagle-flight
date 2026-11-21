@@ -492,6 +492,7 @@ class Water extends Mesh {
   }
   const [focusX,focusZ]=survey.innerCenter || [0,0];
   const notchSurveys=dixville?[
+    window.dixvilleTurnoutHeights(),
     ...(window.dixvilleNotchRock?[{x:0,z:300,half:360,grid:unpack(window.dixvilleNotchRock),step:2}]:[]),
     // The two road-facing teeth resolve down to a metre inside the broader gorge survey.
     {x:98,z:370,half:160,grid:unpack(window.dixvilleCrags),step:1},
@@ -1686,7 +1687,7 @@ class Water extends Mesh {
   const roofHeight=bankHabitat?(x,z)=>Math.max(originalRoof?.(x,z)??-Infinity,bankHabitat.roofHeight(x,z)):originalRoof;
   const waterfrontHeight=waterfront?.build(elevation,settings.water,clock,terrain,shoreFloor?.ground||elevation);
   const cabin=survey.cabin?window.addLabradorCabin(THREE,scene,{elevation,height:elevation,surveyGround:!!campSurface,measuredTrees:survey.berteCrowns,waterLevel:settings.water,lakeLevel:settings.water},survey.cabin):null;
-  const resort=dixville?window.addDixvilleLandmarks(THREE,scene,survey.sites,elevation):null;
+  const resort=dixville?window.addDixvilleLandmarks(THREE,scene,survey.sites,elevation,shoreFloor?.ground||elevation):null;
   const inLake=makeAtlasWorld.indexLakeOutline(survey.shore,survey.shoreHoles);
   const birchCover=region==='lofoten'?window.aerieLandClassSampler(region):null;
   function wetGround(x,z,y,margin){
@@ -1852,7 +1853,9 @@ class Water extends Mesh {
     update(dt,t,player){clock.value=t;updateDistantTerrain(player);updateTable(player);shoreDetail?.update(player);bankGrowth?.update(player);updateUplandWoods?.(player);updateWeather?.(t,player,world.windField);rainTrace?.(t,player,world.windField);updateHardwoods?.(player);if(water)water.material.uniforms.time.value=t*.65;}};
   if(!survey.shore?.length&&shoreDetail)world.fieldBankAt=shoreDetail.closestBank;
   if(dam){world.riverSurfaceAt=dam.riverHeight;world.surryArmorPerch=dam.armorPerch;}
-  if(waterfront||bankHabitat)world.blocksInfillTree=(x,z)=>bankHabitat?.ownsTree(x,z)||waterfront?.blocksInfillTree(x,z);
+  if(resort)world.openRoadAt=resort.openRoadAt;
+  if(waterfront||bankHabitat||resort)world.blocksInfillTree=(x,z)=>
+    bankHabitat?.ownsTree(x,z)||waterfront?.blocksInfillTree(x,z)||world.openRoadAt?.(x,z);
   world.geologyGround=shoreFloor?(x,z)=>Math.max(shoreFloor.ground(x,z),shoreFloor(x,z)):null;
   const updateUplandWoods=uplands?.woods(THREE,scene,world,clock,localDEM,bankSurveys,bankHabitat);
   if(bankGrowth)world.shoreThickets=bankGrowth;
