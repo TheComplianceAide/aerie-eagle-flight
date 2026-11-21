@@ -101,4 +101,13 @@ starts.length = 0; gains.length = 0;
 engine.play(song, {x: 30, y: 5, z: 0}, {rate: 1});
 assert.ok(!gains.some(g => g.gain.ramps.length), 'a whole recording was faded');
 
-console.log(`Passed call variety checks: ${found.length} calls found, ${seen.size} different excerpts in 60, all cut in the quiet, a continuous recording left whole, cuts faded.`);
+// 5. The last stage before the output leaves everything below 0.7 of full scale exactly as it is and
+//    rounds off what is above without ever reaching full scale. Its curve covers inputs from -2 to 2.
+const knee = box.aerieSoftKnee(context), curve = Array.from(knee.curve), at = x => { const p = (x / 2 + 1) / 2 * (curve.length - 1), i = Math.min(curve.length - 2, Math.floor(p)); return curve[i] + (curve[i + 1] - curve[i]) * (p - i); };   // read between points, as the node does
+for (const x of [0, .1, .35, .5, .69]) assert.ok(Math.abs(at(x) - x) < 1e-6 && Math.abs(at(-x) + x) < 1e-6, `the knee changed a quiet sample at ${x}`);
+for (let i = 1; i < curve.length; i++) assert.ok(curve[i] > curve[i - 1] - 1e-9, 'the knee is not monotonic');
+assert.ok(curve.every(v => Math.abs(v) < 1), 'the knee lets a sample reach full scale');
+assert.ok(at(1) > .9 && at(1) < .95 && at(2) > .99, `the knee is too hard or too soft: ${at(1).toFixed(3)} at 1, ${at(2).toFixed(3)} at 2`);
+assert.equal(knee.input.gain.value, .5);
+
+console.log(`Passed call variety checks: ${found.length} calls found, ${seen.size} different excerpts in 60, all cut in the quiet, a continuous recording left whole, cuts faded, output peaks rounded off.`);

@@ -21,6 +21,22 @@
 // What is left of a sound arriving at a given level once wind noise at the
 // ears (the masker, on the same scale) is taken into account.
 window.aerieWindMasking = (arrived, masker) => masker > 0 && arrived > 0 ? arrived * arrived / (arrived + masker) : arrived;
+// The last stage before the output. The loudest moments, the eagle's own call
+// over wing strokes and the wind, can pass full scale, and the output would
+// clip them square. This leaves everything below 0.7 of full scale exactly as
+// it is and rounds off what is above, approaching full scale without reaching
+// it. A WaveShaper only reads -1 to 1, so it is fed at half scale and its curve
+// covers -2 to 2.
+window.aerieSoftKnee = function aerieSoftKnee(context) {
+  const input = context.createGain(), shape = context.createWaveShaper(), points = 4097, curve = new Float32Array(points), knee = .7;
+  for (let i = 0; i < points; i++) {
+    const x = (i / (points - 1) * 2 - 1) * 2, a = Math.abs(x);
+    curve[i] = Math.sign(x) * (a <= knee ? a : knee + (1 - knee) * Math.tanh((a - knee) / (1 - knee)));
+  }
+  input.gain.value = .5; shape.curve = curve; shape.oversample = '2x';
+  input.connect(shape);
+  return {input, output: shape, curve};
+};
 // A bed that never comes round again. A looped recording repeats itself
 // exactly: sixteen seconds of lapping water is the same sixteen seconds every
 // time. This plays a stretch from one place in the recording and crossfades,
