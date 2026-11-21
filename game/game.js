@@ -503,7 +503,7 @@
       const factory={swiss:window.makeWorld,alaska:window.makeAlaska,canyon:window.makeCanyon}[region];
       world=factory?await factory(THREE,scene):await window.makeAtlasWorld(THREE,scene,region);
       world.region=region;
-      const hydrography=window.ATLAS_SURVEYS?.[region];
+      const hydrography=world.hydrography||window.ATLAS_SURVEYS?.[region];
       if(hydrography?.shore){
         world.shorelines=[hydrography.shore,...(hydrography.shoreHoles||[])].map(ring=>ring.map(([x,z])=>({x,z})));
       }

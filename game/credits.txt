@@ -849,3 +849,12 @@ https://dataspace.copernicus.eu/terms-and-conditions
 https://commons.wikimedia.org/wiki/File:Marken_V_in_Reine,_Lofoten,_Norway,_2015_September.jpg
 https://commons.wikimedia.org/wiki/File:Hammarskaftet_at_Reine,_Lofoten,_Norway,_2015_September.jpg
 https://creativecommons.org/licenses/by-sa/3.0/
+
+Oregon · The Watchman observation station and Cleetwood Cove
+USGS 3DEP, USDA NAIP, Oregon DOGAMI 2010 lidar distributed by NOAA Digital Coast, and National Park Service trail centerlines. The northern littoral shelf uses James V. Gardner and Peter Dartnell, USGS Digital Data Series 72. National Park Service photographs supply Cascade masonry, andesite, the museum facade and interpretive-sign detail. The Watchman Cultural Landscape Inventory and National Register nomination document the observation room, catwalk and museum wing. The Cleetwood scene follows the photographed temporary float and failed concrete-block wharf before rehabilitation. Local rock faces, course joints, trail-support timber and window details are reconstructed.
+https://www.nps.gov/articles/400006.htm
+https://npgallery.nps.gov/AssetDetail/NRIS/88002626
+https://www.nps.gov/crla/planyourvisit/cleetwood-cove-trail-and-marina-rehabilitation.htm
+https://doi.org/10.3133/ds72
+https://mapservices.nps.gov/arcgis/rest/services/NationalDatasets/NPS_Public_Trails/FeatureServer/0
+See tools/geology/crater-rim/sources.json for the exact elevation, imagery, returns and photograph records.

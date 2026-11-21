@@ -1,0 +1,102 @@
+{
+  "inputs": {
+    "watchman-ortho.jpg": {
+      "url": "https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer/exportImage?bbox=567204%2C4754495%2C567844%2C4755135&bboxSR=32610&imageSR=32610&size=1280%2C1280&f=image&format=jpg&compressionQuality=96&bandIds=0%2C1%2C2",
+      "sha256": "03de39159ef2885fa50507f0bc3b564edf9dd2f7afb55a1bdb3a37abad706239"
+    },
+    "cleetwood-ortho.jpg": {
+      "url": "https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer/exportImage?bbox=573540%2C4758025%2C574860%2C4759345&bboxSR=32610&imageSR=32610&size=2048%2C2048&f=image&format=jpg&compressionQuality=96&bandIds=0%2C1%2C2",
+      "sha256": "5c48aeb5ec7cab92e954d88b6918de76c34882da9649b0fb08dbfb9b581694b8"
+    },
+    "watchman-ground.tif": {
+      "url": "https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer/exportImage?bbox=567203.5%2C4754494.5%2C567844.5%2C4755135.5&bboxSR=32610&imageSR=32610&size=641%2C641&f=image&format=tiff&pixelType=F32&renderingRule=%7B%22rasterFunction%22%3A%22None%22%7D",
+      "sha256": "32e8169f371d890fd03fce05ee02d21de03674a33cc01ff35d490d8d4c39a0e5"
+    },
+    "cleetwood-ground.tif": {
+      "url": "https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer/exportImage?bbox=573539.5%2C4758024.5%2C574860.5%2C4759345.5&bboxSR=32610&imageSR=32610&size=1321%2C1321&f=image&format=tiff&pixelType=F32&renderingRule=%7B%22rasterFunction%22%3A%22None%22%7D",
+      "sha256": "5553be05ff462f1257bcf6119e12ee770dab0c14190a872d99b7ad090fc6734b"
+    },
+    "nps-trails.json": {
+      "url": "https://mapservices.nps.gov/arcgis/rest/services/NationalDatasets/NPS_Public_Trails/FeatureServer/0/query?where=UNITCODE%3D%27CRLA%27+AND+%28UPPER%28TRLNAME%29+LIKE+%27%25CLEETWOOD%25%27+OR+UPPER%28TRLNAME%29+LIKE+%27%25WATCHMAN%25%27%29&returnGeometry=true&outFields=%2A&outSR=32610&f=json",
+      "sha256": "7dfa120ea9ce846e5752589a89c919e6b6a2e9e337918cf3a470cc192a181c84"
+    },
+    "watchman-nps-0.jpg": {
+      "url": "https://www.nps.gov/common/uploads/stories/images/nri/20160412/articles/7EF6BAC4-1DD8-B71B-0BE4E1B5E192F0EB/7EF6BAC4-1DD8-B71B-0BE4E1B5E192F0EB.jpg",
+      "sha256": "04f9ee96feee6c24d5f7afa866b899fa8449c56cd65ab38692a913db2dadd7dd"
+    },
+    "tower-face.jpg": {
+      "url": "https://npgallery.nps.gov/GetAsset/f7e303e5-c38b-8388-86b7-790f9a7db49d",
+      "sha256": "5050a68bf221922f9910bd479cd2a9ef5a16cb41af174f0ffd4940c734938f95"
+    },
+    "stone-parapet.jpg": {
+      "url": "https://npgallery.nps.gov/GetAsset/f7f07bf7-9c4c-23de-8673-503c2316ca01",
+      "sha256": "328cf7f50185d1f9784f4d8aa247f8f015ed346f1b9ed52114e11b394dcc8667"
+    },
+    "20100823_42122h1114.copc.laz": {
+      "url": "https://noaa-nos-coastal-lidar-pds.s3.amazonaws.com/laz/geoid18/1428/20100823_42122h1114.copc.laz",
+      "sha256": "94fef12c2d3afc79bafd598184b3fd29abe2c426f141cc83a038bc68db7cdb4f"
+    },
+    "20100823_42122h2222.copc.laz": {
+      "url": "https://noaa-nos-coastal-lidar-pds.s3.amazonaws.com/laz/geoid18/1428/20100823_42122h2222.copc.laz",
+      "sha256": "39abaa14302adc49f4dfe49cf1b7f5d52a157ac54f0a54f84fa6d7978c65a0ea"
+    },
+    "20100823_42122h1113.copc.laz": {
+      "url": "https://noaa-nos-coastal-lidar-pds.s3.amazonaws.com/laz/geoid18/1428/20100823_42122h1113.copc.laz",
+      "sha256": "5b82b0b4a73ffb2500aef2ae926b907f6d2928d10973aa43b20ec6e50ab71b3f"
+    },
+    "20100823_42122h1108.copc.laz": {
+      "url": "https://noaa-nos-coastal-lidar-pds.s3.amazonaws.com/laz/geoid18/1428/20100823_42122h1108.copc.laz",
+      "sha256": "c4e454cb8ba1df4c67264a95ad17a44941112109153f38d7151b1e0245445bd7"
+    },
+    "20100823_42122h1109.copc.laz": {
+      "url": "https://noaa-nos-coastal-lidar-pds.s3.amazonaws.com/laz/geoid18/1428/20100823_42122h1109.copc.laz",
+      "sha256": "eb28a882ed7775ac9bf2c0ac89b9104f71ff71d59cb01b7058cc129e60c982a6"
+    },
+    "original-crater.bin": {
+      "url": "https://raw.githubusercontent.com/TheComplianceAide/aerie-eagle-flight/04240787054caa9e885e82ff7562b1b177666db7/game/landform-crater.bin",
+      "sha256": "344701cb77d2ddd050a8a0a0957507c0c151335afccfcf386200b13d4745078e"
+    },
+    "bathy.tgz": {
+      "url": "https://pubs.usgs.gov/dds/dds-72/data/bathy.tgz",
+      "sha256": "b36cca66f9c346f4f3479cdc863932994acebf84f68ca7a01e87729f2961ab87"
+    }
+  },
+  "lidar": {
+    "watchman": [
+      "20100823_42122h2222.copc.laz"
+    ],
+    "cleetwood": [
+      "20100823_42122h1113.copc.laz",
+      "20100823_42122h1114.copc.laz",
+      "20100823_42122h1108.copc.laz",
+      "20100823_42122h1109.copc.laz"
+    ]
+  },
+  "observations": {
+    "watchman": {
+      "triangles": 46702,
+      "trees": 220,
+      "trailMetres": 557.7,
+      "cribSegments": 0,
+      "shorePoints": 0,
+      "min": 2319.5576171875,
+      "max": 2445.073486328125
+    },
+    "cleetwood": {
+      "triangles": 50415,
+      "trees": 919,
+      "trailMetres": 1195.1,
+      "cribSegments": 167,
+      "shorePoints": 156,
+      "min": 1644.938720703125,
+      "max": 2071.498046875
+    }
+  },
+  "references": {
+    "inventory": "https://irma.nps.gov/DataStore/FileSource/Get/2184860?filename=CRLA_Watchman_CLI_certified.pdf",
+    "nomination": "https://npgallery.nps.gov/AssetDetail/NRIS/88002626",
+    "station": "https://www.nps.gov/articles/400006.htm",
+    "shore": "https://www.nps.gov/crla/planyourvisit/cleetwood-cove-trail-and-marina-rehabilitation.htm",
+    "preservation": "https://parkplanning.nps.gov/showFile.cfm?projectID=94386&sfid=787377"
+  }
+}

@@ -26,7 +26,7 @@
     const lakes=region==='winnipesaukee'||region==='moosehead';
     const files=scripts[region]||['atlas-'+region+'-survey.js','atlas-worlds.js','rain-trace.js','shore-bank.js','hardwood.js','scanned-hardwood.js',...(lakes?['lakeside.js','lake-bay-data.js','lake-bay-contours.js','lake-habitat.js','lake-habitat-'+region+'.js','lake-habitat.js','lake-habitat-'+region+'.js']:[]),...trees];
     const surveyDetail={
-      crater:['crater-plaikni.js','crater-plaikni-meadow.js','regional-waterfalls.js','falls-terrain-crater.js','waterfall-system.js','crater-bathymetry.js','crater-weather.js','crater-phantom-ship.js'],
+      crater:['crater-rim-data.js','crater-rim.js','crater-plaikni.js','crater-plaikni-meadow.js','regional-waterfalls.js','falls-terrain-crater.js','waterfall-system.js','crater-bathymetry.js','crater-weather.js','crater-phantom-ship.js'],
       dixville:['waterfall-system.js','dixville-brooks.js','dixville-lidar.js','talus-data.js','rocks.js','architecture.js','dixville-landmarks.js'],
       labrador:['architecture.js','labrador-narrows-survey.js','labrador-narrows.js','labrador-camp-ground.js','labrador-cabin.js','labrador-weather.js'],
       acadia:['acadia-night.js','acadia-coast.js','acadia-ocean-path.js','acadia-sand-beach.js'],
@@ -42,7 +42,7 @@
     await Promise.all(assets.map(name=>name==='canopy-stream.js'
       ? Promise.all([open('close-tree-detail.js'),open('close-bark-material.js').catch(()=>{})]).then(()=>open(name)) : open(name)));
     const lakeBays=window.aerieLakeBankSites?.[region]||[];
-    const extraSurveys=region==='swiss'?[...lakeBays,'frunden']:region==='lofoten'?[...lakeBays,'korten','reine','reinebringen']:lakeBays;
+    const extraSurveys=region==='crater'?['watchman','cleetwood']:region==='swiss'?[...lakeBays,'frunden']:region==='lofoten'?[...lakeBays,'korten','reine','reinebringen']:lakeBays;
     const secondarySurvey={lofoten:'hamnoy',swiss:'swisswest',yosemite:'yosemitesummits'}[region];
     await Promise.all([...extraSurveys.map(name=>window.aerieRegionalLandforms.prepare(name)),region==='acadia'?null:window.prepareRangeRelief(region),window.aerieRegionalLandforms.prepare(region),(region==='alaska'||region==='yosemite')?window.aerieTerrainIndices.prepare(region):null,secondarySurvey?window.aerieRegionalLandforms.prepare(secondarySurvey):null,region==='moosehead'?window.prepareMooseheadUplands():null]);
   };

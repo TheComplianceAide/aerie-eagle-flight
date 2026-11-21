@@ -23,6 +23,8 @@
     yosemite:{name:'El Capitan · Nose and southeast face',asset:'yosemite',source:'USGS 3DEP and USDA NAIP, Yosemite Valley, California'},
     yosemitesummits:{name:'Half Dome and Clouds Rest · upper Yosemite Valley',asset:'yosemite-summits',
       source:'USGS 3DEP 1/3-arcsecond DEM and USDA California 2022 60 cm NAIP, Yosemite National Park'},
+    watchman:{name:'The Watchman · observation station and andesite rim',asset:'watchman',source:'USGS 3DEP, Oregon DOGAMI 2010 lidar and USDA NAIP'},
+    cleetwood:{name:'Cleetwood Cove · trail, boulder shore and submerged shelf',asset:'cleetwood',source:'USGS 3DEP, DOGAMI lidar, USDA NAIP and July 2000 USGS multibeam bathymetry'},
     crater:{name:'Wizard Island · crater rim and lava apron',asset:'crater',water:1880.62,source:'USGS 3DEP and USDA NAIP, Crater Lake, Oregon'},
     winnipesaukee:{name:'Rattlesnake Island · high spine and shore ledges',asset:'winnipesaukee',water:153.11,source:'USGS 3DEP and USDA NAIP, Lake Winnipesaukee, New Hampshire'},
     dixville:{name:'Mount Gloriette · western notch wall',asset:'dixville',source:'USGS 3DEP and USDA NAIP, Dixville Notch, New Hampshire'},
@@ -200,6 +202,44 @@
       }else if(hasDetail)material.fragmentShader=material.fragmentShader.replace('photo=mix(photo,texture2D(detailOrtho,vec2(focus.x,-focus.y)/2900.+.5).rgb,blend);',
         'photo=mix(photo,texture2D(detailOrtho,'+localUV+').rgb,landformHorizon.w);');
       else material.fragmentShader=material.fragmentShader.replace('texture2D(aerial,photoUv)','texture2D(aerial,'+localUV+')');
+      if(spec.asset==='watchman'||spec.asset==='cleetwood'){
+        // The broader caldera relief is several metres per texel. Retain its storm lighting
+        // over the local lidar surface, restoring the mapped exposure before the cloud shadow.
+        material.uniforms.calderaAlbedo={value:texture('crater-rim-andesite.webp',true)};
+        material.fragmentShader=material.fragmentShader
+          .replace('normal=normalize(mix(normal,measuredNormal,surveyed*.88));','normal=normalize(mix(normal,measuredNormal,surveyed*.88*(1.-landformHorizon.w)));')
+          .replace('float squallShade=craterShade(wp);',`
+            vec4 rimSample=texture2D(aerial,${localUV});vec3 rimPhoto=rimSample.rgb;
+            float footpath=(1.-smoothstep(.54,.97,rimSample.a));
+            vec3 detailPos=wp+vec3(1.43*sin(wp.z*.078)+.48*cos(wp.y*.109),.69*sin(wp.x*.081),1.36*sin(wp.x*.073));
+            vec3 projection=pow(abs(normal),vec3(3.));projection/=max(.005,dot(projection,vec3(1.)));
+            vec3 rockFabric=texture2D(calderaAlbedo,detailPos.zy*.47).rgb*projection.x+
+                            texture2D(calderaAlbedo,detailPos.xz*.47).rgb*projection.y+
+                            texture2D(calderaAlbedo,detailPos.xy*.47).rgb*projection.z;
+            float weave=clamp(lum(rockFabric)/.46,.46,1.53);
+            float stand=landformHorizon.z;
+            float deepShadow=1.-smoothstep(.13,.41,lum(rimPhoto));
+            vec3 localRock=mix(rimPhoto,vec3(.40,.38,.34)*(1.+.55*(weave-1.)),deepShadow*(1.-stand)*.61);
+            localRock*=1.+mix(.18,.40,1.-abs(normal.y))*(weave-1.)*(1.-stand)*(1.-smoothstep(65.,310.,d));
+            vec3 tread=mix(vec3(.43,.39,.335),vec3(.63,.585,.51),clamp(.50+(weave-1.)*.65,0.,1.));
+            localRock=mix(localRock,tread,footpath*.83);
+            vec3 clearSky=vec3(.49,.56,.69)*(.62+.38*landformHorizon.x);
+            float facetLight=max(0.,dot(normal,sun));
+            vec3 rimLight=clearSky+vec3(.86,.79,.65)*facetLight*sunlit;
+            ${spec.asset==='watchman'?`// Project the lookout mass along this world's actual directional sun onto the summit.
+            vec2 ds=wp.xz-vec2(-3942.83,379.27);
+            if(dot(ds,ds)<4900. && wp.y<2449.38 && sun.y>.03){
+              vec2 sunPlane=wp.xz+sun.xz*(2447.53-wp.y)/sun.y-vec2(-3942.83,379.27);
+              vec2 stationUV=vec2(dot(sunPlane,vec2(.8311,-.5561)),dot(sunPlane,vec2(.5561,.8311)));
+              float penumbra=.25+clamp((2447.53-wp.y)*.052,0.,1.1);
+              float roofShadow=1.-smoothstep(3.05-penumbra,3.05+penumbra,max(abs(stationUV.x),abs(stationUV.y)));
+              vec2 baseUV=vec2(dot(ds,vec2(.8311,-.5561)),dot(ds,vec2(.5561,.8311)));
+              vec2 contactDist=max(abs(baseUV)-2.56,0.);float contact=exp(-dot(contactDist,contactDist)*1.4);
+              rimLight=clearSky*(1.-.20*contact)+vec3(.86,.79,.65)*facetLight*sunlit*(1.-.86*roofShadow);
+            }`:''}
+            c=mix(c,pow(max(localRock,vec3(.014)),vec3(2.2))*rimLight,landformHorizon.w);
+            float squallShade=craterShade(wp);`);
+      }
       if(spec.asset==='frunden'){
         material.uniforms.hutApron={value:texture('frunden-apron.webp')};
         material.fragmentShader='uniform sampler2D hutApron;\n'+material.fragmentShader;
