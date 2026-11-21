@@ -169,6 +169,7 @@ window.makePerchHabitat=function makePerchHabitat(T,scene,world,region){
   }
   function rockSite(x,z,hint,route=false){
     if(!boundsOK(x,z,5))return null;
+    if(world.glacierDistance?.(x,z)>68)return terrainPerch(x,z,hint,'Glacier ice');
     if(region==='acadia'&&window.acadiaSandOpening(x,z)){
       if(window.acadiaLagoonAt(x,z)&&ground(x,z)<2.38)return null;
       return terrainPerch(x,z,hint,'Sand Beach landing');
@@ -196,6 +197,7 @@ window.makePerchHabitat=function makePerchHabitat(T,scene,world,region){
     if(!Number.isFinite(y)||wet(x,z,surveyed)||floor(x,z)>surveyed+.38||Math.abs(y-surveyed)>1.6)return null;
     const seed=noise(Math.round(x*5),Math.round(z*5),59);
     const radial=2.15+seed*1.12;
+    if(world.openRoadAt?.(x,z,radial))return null;
     let highest=y,lowest=y;
     for(let i=0;i<10;i++){
       const a=tau*i/10+seed,px=x+Math.cos(a)*radial,pz=z+Math.sin(a)*radial;

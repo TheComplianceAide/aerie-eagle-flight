@@ -43,3 +43,12 @@ https://www.flickr.com/photos/nh-parks-recreation/43918702655/
 https://www.flickr.com/photos/nh-parks-recreation/43918702755/
 https://polyhaven.com/a/rock_face
 https://polyhaven.com/license
+
+Route 26 at the westbound turnout. The New Hampshire Geodata Portal provides the
+NH DOT road centerline. NH GRANIT's 2021–2022 statewide six-inch orthophoto
+documents the lane paint, flared guardrail and gravel apron. The local ground
+profile is from the USGS 3D Elevation Program's one-metre bare-earth model.
+The apron albedo is sampled solely from the public NH state orthophoto.
+https://nhgeodata.unh.edu/hosting/rest/services/Hosted/GV_BaseLayers/FeatureServer/18
+https://granit24a.sr.unh.edu/image/rest/services/ImageServices/NH_2021_2022_6in_RGB/ImageServer
+https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer

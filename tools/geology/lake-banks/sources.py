@@ -16,9 +16,10 @@ sites = {
     "lily": ("moosehead", 15200, 9680, 800),
     "spencer": ("moosehead", 11440, 215, 800),
     "meredith": ("winnipesaukee", -13125, -6430, 1000),
-    "wolfeboro": ("winnipesaukee", 7310, 665, 900),
+    "wolfeboro": ("winnipesaukee", 7310, 500, 1100),
     "diamond": ("winnipesaukee", -1410, 845, 650),
     "sleepers": ("winnipesaukee", 870, 3070, 650),
+    "hesky": ("winnipesaukee", -15500, -8950, 480),
 }
 photo = (
     "https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer"

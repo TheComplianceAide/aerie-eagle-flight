@@ -13,9 +13,14 @@ Elevation, local terrain shading and outer relief produced using Copernicus Worl
 https://doi.org/10.5270/ESA-c5d3d65
 https://registry.opendata.aws/copernicus-dem/
 
-The operator's marked Camp Sud point was aligned with the lake outline to choose the headland. The cabin, landing, shoreline grading, underwater slope and tree placements are artistic reconstructions. The raised porch, peeled timber steps, exposed root and pale sandy landing were modeled from family reference photos. The headland surface and its tree roots follow the local rendered relief. The location of the family camera and the cabin footprint remain approximate. The interactive weather illustrates late-day conditions.
+The operator identifies Camp Sud on a point facing a narrow channel carrying a current. The present-day roof appears in independent summer 2015 and 2022 orthophotos near 50.73166° N, 68.50079° W. The game follows that site and its lake-facing orientation. The small raised cabin, porch, peeled timber steps and skiff represent the earlier family photographs. Their dimensions, the original camera and the precise historical mooring are interpretations. The rain shower and rainbow portray passing weather.
 https://labrador-airsafari.com/images/lacs/carte-berte.pdf
-https://labrador-airsafari.com/en/lake
+https://www.labrador-airsafari.com/en/lake
+
+Camp Sud field data © Gouvernement du Québec, ministère des Ressources naturelles et des Forêts, CC BY 4.0. Adapted the 2015 30 cm and 2022 Côte-Nord 15 cm natural-colour airborne imagery and the 1 m bare-earth and canopy-height models on sheets 22K10NE and 22K09NO. Reprojected the images and height fields; traced the wet/dry banks, estimated shallow-water transmission and relief from the 2015 pixels, reconstructed the timbered clearing and derived crown positions and heights. The terrain grid retained the pitch of the present roof. Ground beneath its footprint was interpolated from surrounding returns to support the historical cabin. The low-water channel and relative depth are optical estimates. Water velocity, species, lower branches and individual crown widths are approximations. Regional camp coverage is bounded; the wider lake retains the regional sources above.
+https://www.donneesquebec.ca/recherche/dataset/imagerie-orthorectifiee-du-quebec
+https://www.donneesquebec.ca/recherche/dataset/produits-derives-de-base-du-lidar
+https://creativecommons.org/licenses/by/4.0/
 
 Cloud layer and rain-shadow texture adapted from Approaching Storm by Greg Zaal, Poly Haven, CC0. https://polyhaven.com/a/approaching_storm
 Brook trout illustration by Duane Raver, U.S. Fish and Wildlife Service, public domain. https://commons.wikimedia.org/wiki/File:Brook_trout.jpg

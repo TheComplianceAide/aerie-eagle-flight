@@ -353,17 +353,20 @@
           }
       return nearest;
     }
-    const riverHeight=addRiver(THREE,scene,survey.river||[],ground,texture,sun,sky,clock,aerial,half);
+    const park=window.keeneRiverPark.build?.(THREE,scene,{ground,elevation,texture,clock,sun,sky});
+    const riverHeight=addRiver(THREE,scene,window.keeneRiverPark.refineLine(survey.river||[]),ground,texture,sun,sky,clock,aerial,half);
     return {
-      riverHeight,
+      riverHeight,park,
       armorPerch(x,z){return onArmor(x,z)?capNear(x,z,8):undefined;},
       onDam(x,z){
+        if(park?.occupied(x,z))return true;
         const [s,t]=station(x,z);
         const width=Math.max(12,Math.min((s+15)*.7,(length-s+10)*.62,84));
         return s>-17&&s<length+21&&t>-width*.83&&t<width ||
           (Math.abs(x-gateX)<12&&z>-2782&&z<-2630);
       },
       structureHeight(x,z){
+        const atPark=park?.obstacle(x,z);if(Number.isFinite(atPark))return atPark;
         const [s,t]=station(x,z);
         const bx=x-westBridge[0][0],bz=z-westBridge[0][1];
         if(bx*49-bz*53>=0&&bx*49-bz*53<=bridgeSpan**2&&Math.abs(bx*53+bz*49)<2.53*bridgeSpan)return 173.21;
@@ -387,7 +390,8 @@
     let distance=0;
     function row(a,b,t){
       const x=lerp(a[0],b[0],t),z=lerp(a[1],b[1],t),width=lerp(a[2],b[2],t)*.5;
-      const level=lerp(a[3]??ground(a[0],a[1]),b[3]??ground(b[0],b[1]),t)+.23;
+      const sourceLevel=lerp(a[3]??ground(a[0],a[1]),b[3]??ground(b[0],b[1]),t)+.23;
+      const level=window.keeneRiverPark.localWaterLevel(x,z,sourceLevel);
       const last=rows[rows.length-1];
       if(last)distance+=Math.hypot(x-last.x,z-last.z);
       rows.push({x,z,width,level,distance});
@@ -404,7 +408,7 @@
       r.nx=-dz/len;r.nz=dx/len;
       // The mapped outline and the actual rendered lidar triangles can differ
       // by several metres. Find each bank independently in the displayed DEM.
-      r.banks=[1,-1].map(side=>{
+      r.banks=window.keeneRiverPark.section(r,ground)||[1,-1].map(side=>{
         const at=d=>ground(r.x+side*d*r.nx,r.z+side*d*r.nz);
         let lo=r.width*.19,hi=r.width+Math.min(3,r.width*.30);
         const stop=hi,step=Math.max(.85,(hi-lo)/7);
@@ -428,6 +432,7 @@
         sum+=weight;left+=q.banks[0]*weight;right+=q.banks[1]*weight;
       }
       left/=sum;right/=sum;
+      if(Math.abs(r.x-window.keeneRiverPark.lipX(r.z))<12&&r.z>4455&&r.z<4476){[left,right]=r.banks;}
       r.left=left;r.right=right;
       const heights=[];
       for(const [j,side] of [1,-1].entries()){

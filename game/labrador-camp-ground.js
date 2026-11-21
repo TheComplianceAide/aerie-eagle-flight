@@ -1,6 +1,6 @@
 // Immediate camp surroundings in cabin-local metres. The same trees render,
 // receive forest lighting and participate in flight clearance via atlas plant().
-window.addBerteCampGround=function addBerteCampGround(T,scene,root,{site,floor,ground,water,waterDistance,texture,surveyGround}) {
+window.addBerteCampGround=function addBerteCampGround(T,scene,root,{site,floor,ground,water,waterDistance,texture,surveyGround,measuredTrees}) {
   let seed=75269;
   const rand=()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296);
   const sin=Math.sin(site.yaw),cos=Math.cos(site.yaw),world=(x,z)=>[site.x+cos*x+sin*z,site.z-sin*x+cos*z];
@@ -30,14 +30,22 @@ window.addBerteCampGround=function addBerteCampGround(T,scene,root,{site,floor,g
     const [wx,wz]=world(x,z),tree={x:wx,z:wz,y,height,width,seed:rand(),species:4};
     campTrees.push(tree);localTrees.push({x,z,width,height});
   }
-  // Preserve negative space from the album: no trunks across the porch or along
-  // the boat approach. Two narrow spruce spires frame the rear left roofline.
-  for(const [x,z,h,w] of [[-5.75,-3.0,6.2,1.38],[-6.8,-5.65,7.6,1.6],[-4.0,-7.15,4.9,1.28],[-1.2,-9.25,8.15,1.9],[2.1,-7.7,5.15,1.28],[4.5,-6.5,6.35,1.47],[6.4,-2.9,5.7,1.32],[7.1,.05,4.2,1.0],[9.1,4.0,3.1,.85],[-9.6,1.8,3.6,1.05],[-12.1,5.1,2.7,.9],[12.4,9,5.8,1.45],[-16.5,13,4.8,1.1]]) spruce(x,z,h,w);
-  for(let i=0;i<187;i++) {
-    const x=(rand()-.5)*83,z=rand()*67-45;
-    if(z>-7 && Math.abs(x)<(z>5?.67*z+7:7))continue;
-    const h=2.2+5.4*rand()+2.2*rand();
-    spruce(x,z,h,h*(.19+.12*rand()));
+  if(measuredTrees){
+    for(const t of measuredTrees){
+      const dx=t.x-site.x,dz=t.z-site.z;
+      const x=cos*dx-sin*dz,z=sin*dx+cos*dz;
+      if(Math.abs(x)<43&&Math.abs(z)<43)localTrees.push({x,z,width:t.width,height:t.height});
+    }
+  }else{
+    // Preserve negative space from the album: no trunks across the porch or along
+    // the boat approach. Two narrow spruce spires frame the rear left roofline.
+    for(const [x,z,h,w] of [[-5.75,-3.0,6.2,1.38],[-6.8,-5.65,7.6,1.6],[-4.0,-7.15,4.9,1.28],[-1.2,-9.25,8.15,1.9],[2.1,-7.7,5.15,1.28],[4.5,-6.5,6.35,1.47],[6.4,-2.9,5.7,1.32],[7.1,.05,4.2,1.0],[9.1,4.0,3.1,.85],[-9.6,1.8,3.6,1.05],[-12.1,5.1,2.7,.9],[12.4,9,5.8,1.45],[-16.5,13,4.8,1.1]]) spruce(x,z,h,w);
+    for(let i=0;i<187;i++) {
+      const x=(rand()-.5)*83,z=rand()*67-45;
+      if(z>-7 && Math.abs(x)<(z>5?.67*z+7:7))continue;
+      const h=2.2+5.4*rand()+2.2*rand();
+      spruce(x,z,h,h*(.19+.12*rand()));
+    }
   }
   const floorMesh=new T.PlaneGeometry(76,73,66,65);
   floorMesh.rotateX(-Math.PI/2);
@@ -50,12 +58,15 @@ window.addBerteCampGround=function addBerteCampGround(T,scene,root,{site,floor,g
     const aisle=z>2?Math.abs(x-.42*Math.sin(z*.35)):9;
     const irregular=.19*Math.sin(z*1.2+x*.9)+.11*Math.sin(x*1.91-z*.63);
     const edge=Math.min(38-Math.abs(x),36.5-Math.abs(z+5.5));
-    const cover=smooth(.74,1.32,distance+irregular)*smooth(.75,2.10,aisle+irregular)*smooth(.03,.48,y-water)*smooth(0,7,edge);
-    let shadow=1;
+    let cover=smooth(.74,1.32,distance+irregular)*smooth(.75,2.10,aisle+irregular)*smooth(.03,.48,y-water)*smooth(0,7,edge);
+    let shadow=1,canopy=0;
     for(const tree of localTrees){
       const dx=x-tree.x,dz=z-tree.z,r=tree.width*.69+.45;
-      if(Math.abs(dx)<r&&Math.abs(dz)<r)shadow=Math.min(shadow,.51+.49*smooth(0,r,Math.hypot(dx,dz)));
+      const rootDistance=Math.hypot(dx,dz);
+      if(rootDistance<r)shadow=Math.min(shadow,.51+.49*smooth(0,r,rootDistance));
+      canopy=Math.max(canopy,1.-smooth(r*.65,r+2.4,rootDistance));
     }
+    if(measuredTrees)cover*=.03+.97*canopy;
     positions.setXYZ(i,x,y-floor+.033,z);uv.setXY(i,x*.29,z*.29);
     colors.push(shadow*.88,shadow*.97,shadow*.85,.83*cover);
   }
@@ -89,6 +100,7 @@ window.addBerteCampGround=function addBerteCampGround(T,scene,root,{site,floor,g
   function stone(x,z,size) {
     const y=surface(x,z);
     if(y<water-.55 || Math.hypot(x,z-1)<3.85) return;
+    if(measuredTrees&&y<water+4.6)size*=.48;
     chunks.push([x,y-floor+.048*size,z,size]);
   }
   for(let i=0;i<190;i++){
@@ -132,7 +144,7 @@ window.addBerteCampGround=function addBerteCampGround(T,scene,root,{site,floor,g
     if(!dry(x,z)||Math.hypot(x/5.0,z/6.4)<1.0||z>2&&Math.abs(x)<1.85)continue;
     if(z>waterDistance-2 && rand()<.4)continue;
     const species=z>waterDistance-5?1:rand()<.36?4:rand()<.45?1:0;
-    const h=(species===4?.64:.37)*(.50+rand());
+    const h=(species===4?.64:.37)*(.50+rand())*(measuredTrees&&surface(x,z)<water+4.4?.42:1);
     plants.push([x,surface(x,z)-floor-.012,z,h,species,rand()*Math.PI]);
   }
   const pos=[],tex=[],idx=[];

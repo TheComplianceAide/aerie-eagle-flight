@@ -6,6 +6,7 @@
     lily:{name:'Lily Bay · measured bank',asset:'lily',lakeBank:true,source:'USGS 3DEP lidar and hydrography, USDA NAIP four-band bank survey'},
     spencer:{name:'Spencer Bay · measured bank',asset:'spencer',lakeBank:true,source:'USGS 3DEP lidar and hydrography, USDA NAIP four-band bank survey'},
     meredith:{name:'Meredith Bay · measured bank',asset:'meredith',lakeBank:true,source:'USGS 3DEP lidar and hydrography, USDA NAIP four-band bank survey'},
+    hesky:{name:'Hesky Park and the town landing',asset:'hesky',lakeBank:true,source:'USGS 3DEP / USDA NAIP and NH GRANIT waterfront survey'},
     wolfeboro:{name:'Wolfeboro Bay · measured bank',asset:'wolfeboro',lakeBank:true,source:'USGS 3DEP lidar and hydrography, USDA NAIP four-band bank survey'},
     diamond:{name:'Diamond Island · measured bank',asset:'diamond',lakeBank:true,source:'USGS 3DEP lidar and hydrography, USDA NAIP four-band bank survey'},
     sleepers:{name:'Sleepers Island · measured bank',asset:'sleepers',lakeBank:true,source:'USGS 3DEP lidar and hydrography, USDA NAIP four-band bank survey'},
@@ -13,6 +14,7 @@
     moosehead:{name:'Mount Kineo',asset:'kineo',rock:'rhyolite',water:312.23,holes:[[236,-1260,344,-1040],[360,-964,416,-880]],
       source:'USGS 3DEP Western Mountains B24 and USDA NAIP, eastern and southern Mount Kineo, Maine'},
     lofoten:{name:'Olstinden · fjord-facing wall',asset:'lofoten',water:0,source:'Kartverket national terrain model and Copernicus Sentinel-2, Lofoten, Norway'},
+    korten:{name:'Korten · tidal skerries east of Hamnøy',asset:'korten',water:0,source:'Kartverket two-metre DTM and Copernicus Sentinel-2, 16 July 2025'},
     hamnoy:{name:'Hamnøy · fishing harbor and tidal ledges',asset:'hamnoy',water:0,source:'Kartverket national terrain model and Copernicus Sentinel-2 summer imagery, Moskenes, Norway'},
     milford:{name:'Rahotu Mitre Peak · crest and Sinbad wall',asset:'milford',water:0,source:'LINZ NZ 8m Digital Elevation Model (2012) and Southland 0.75m Rural Aerial Photos (2005–2011)'},
     labrador:{name:'Lac Berté · south narrows and camp headland',asset:'labrador',water:359,source:'Gouvernement du Québec MRNF 2022 lidar terrain and aerial imagery, Côte-Nord'},
@@ -26,6 +28,7 @@
     canyon:{name:'Horseshoe Bend · central promontory and inner wall',asset:'canyon',style:'canyon',holes:[[-592,-336,-456,-240]],source:'USGS 3DEP and USDA NAIP, Glen Canyon, Arizona'},
     alaska:{name:'Nugget Falls · wall and scoured bedrock',asset:'alaska',style:'alaska',water:0,source:'USGS Southeast Alaska Landslides D22 elevation, Juneau 2012 and 2013 canopy lidar and registered 2013 Juneau RGB at colorized returns'},
     swiss:{name:'Fründenschnuer · limestone shelf and east wall',asset:'swiss',style:'swiss',water:0,source:'swisstopo swissALTI3D and SWISSIMAGE, Oeschinensee, Switzerland'},
+    frunden:{name:'Fründenhütte and the glacier terminus',asset:'frunden',style:'swiss',source:'Federal Office of Topography swisstopo, swissALTI3D, swissBUILDINGS3D and SWISSIMAGE'},
     swisswest:{name:'Oeschinensee · western strand and scree fan',asset:'swisswest',style:'swiss',water:0,source:'Federal Office of Topography swisstopo, swissALTI3D 2025 and SWISSIMAGE, Oeschinensee, Switzerland'}
   };
   const available=new Map(),pending=new Map();
@@ -195,13 +198,65 @@
       }else if(hasDetail)material.fragmentShader=material.fragmentShader.replace('photo=mix(photo,texture2D(detailOrtho,vec2(focus.x,-focus.y)/2900.+.5).rgb,blend);',
         'photo=mix(photo,texture2D(detailOrtho,'+localUV+').rgb,landformHorizon.w);');
       else material.fragmentShader=material.fragmentShader.replace('texture2D(aerial,photoUv)','texture2D(aerial,'+localUV+')');
+      if(spec.asset==='frunden'){
+        material.uniforms.hutApron={value:texture('frunden-apron.webp')};
+        material.fragmentShader='uniform sampler2D hutApron;\n'+material.fragmentShader;
+        const uv=localUV.replace(/xz\./g,'wp.xz.');
+        // Federal aerial imagery resolves bare, polished moraine and old grey ice here.
+        // Preserve the measured ice margin, medial debris and flow-following crevasses.
+        material.fragmentShader=material.fragmentShader
+          .replace('vec3 n=normalize(norm);',`vec4 moraineSource=texture2D(photo,${uv});
+            vec2 apronUv=vec2((wp.x-1240.)/80.,1.-(wp.z-1880.)/80.);
+            float apronEdge=min(min(apronUv.x,1.-apronUv.x),min(apronUv.y,1.-apronUv.y));
+            moraineSource.rgb=mix(moraineSource.rgb,texture2D(hutApron,clamp(apronUv,0.,1.)).rgb,smoothstep(.0,.12,apronEdge));
+            float glacialCover=smoothstep(.128,.984,moraineSource.a)*landformHorizon.w;
+            vec3 n=normalize(norm);`)
+          .replace('n=normalize(mix(n,geomNormal,surveyWeight*','n=normalize(mix(n,geomNormal,(1.-landformHorizon.w)*surveyWeight*')
+          .replace('vec3 underfoot=',`rgb=mix(rgb,moraineSource.rgb,landformHorizon.w*(.71+.26*glacialCover));
+            vec3 underfoot=`)
+          .replace('if(alpineFloor>.001)','alpineFloor*=1.-landformHorizon.w;if(alpineFloor>.001)')
+          .replace('rgb*=1.+(1.-rockMix)*closeup*.65*(soilTexture-.38);','rgb*=1.+(1.-landformHorizon.w)*(1.-rockMix)*closeup*.65*(soilTexture-.38);')
+          .replace('rgb=regionalSoil(groundScan,wp,n,rgb,sun,d,woodland,1.-smoothstep(1.4,20.,abs(wp.y)),meadow);',
+            'if(landformHorizon.w<.998)rgb=mix(regionalSoil(groundScan,wp,n,rgb,sun,d,woodland,1.-smoothstep(1.4,20.,abs(wp.y)),meadow),rgb,landformHorizon.w);')
+          .replace('float irradiance=exposure*diffuse;',`float iceGlance=pow(1.-max(0.,dot(normalize(cameraPosition-wp),n)),3.);
+            rgb=mix(rgb,rgb*vec3(.94,.992,1.055)+vec3(.012,.019,.026)*iceGlance,glacialCover*.73);
+            float irradiance=exposure*diffuse;`);
+      }
       if(spec.asset==='acadia'){
         // At the inset the point cloud resolves the two sides of the chasm.
         // The broader cliff-normal map averages across this narrow opening.
         material.fragmentShader=material.fragmentShader.replace('normal=normalize(mix(normal,ledgeNormal,.94*graniteShore));',
           'ledgeNormal=normalize(mix(ledgeNormal,normal,landformHorizon.w));normal=normalize(mix(normal,ledgeNormal,.94*graniteShore));');
       }
-      if(spec.asset==='yosemite-summits'||(spec.lakeBank&&!hasDetail)){
+      if(spec.lakeBank){
+        const sampler=hasDetail?'detailOrtho':'aerial';
+        material.fragmentShader=material.fragmentShader.replace('/* lake bank surface */',`
+          // The mapped crown-top horizon is sampled toward this lake's sun.
+          // Open gravel, lawns and forest gaps retain their sky illumination.
+          float bankLight=texture2D(${sampler},${localUV}).a;
+          float shelter=mix(1.,.45+.55*bankLight,landformHorizon.w);
+          c*=shelter;
+          /* lake bank surface */`);
+      }
+      const municipal=spec.lakeBank&&window.winniTownDocks?.[spec.asset]?.publicGround;
+      if(municipal){
+        const [x0,z0,x1,z1]=municipal.bounds,number=x=>Number(x).toFixed(2);
+        // The two town sites are outside the Weirs inset. Its sampler is
+        // idle on these meshes, including in the reflected camera.
+        material.uniforms.waterfront0={value:texture(spec.asset+'-town-ground.webp')};
+        material.fragmentShader=material.fragmentShader.replace('/* lake bank surface */',`
+          vec2 streetUV=(xz-vec2(${number(x0)},${number(z0)}))/vec2(${number(x1-x0)},${number(z1-z0)});
+          vec2 streetEdge=min(streetUV,1.-streetUV)*vec2(${number(x1-x0)},${number(z1-z0)});
+          float streetCover=smoothstep(0.,10.,min(streetEdge.x,streetEdge.y))*smoothstep(shoreLevel-.16,shoreLevel+.12,wp.y);
+          if(streetCover>.001){
+            vec3 streetColor=texture2D(waterfront0,vec2(streetUV.x,1.-streetUV.y)).rgb;
+            vec3 streetLight=(ambient+direct)*(.95+.05*skyView);
+            vec3 streetSurface=pow(max(streetColor,vec3(0.)),vec3(2.2))*streetLight*mix(1.,shelter,.46);
+            c=mix(c,streetSurface,streetCover*.98);
+          }
+          /* lake bank surface */`);
+      }
+      if(spec.asset==='yosemite-summits'||spec.asset==='korten'||(spec.lakeBank&&!hasDetail)){
         // The entire survey sits outside the valley's original aerial. Blend
         // the registered 2022 NAIP image at its edges with the true far region.
         material.fragmentShader=material.fragmentShader.replace(
@@ -274,7 +329,8 @@
       const point=(spec.style==='alaska'?'p':'wp')+'.xz';
       const bounds=(l,t,r,b)=>'all(greaterThanEqual('+point+',vec2('+l.toFixed(3)+','+t.toFixed(3)+')))&&all(lessThanEqual('+point+',vec2('+r.toFixed(3)+','+b.toFixed(3)+')))';
       const test=bounds(...rect)+holes.map(([l,t,r,b])=>'&&!('+bounds(l-holeOverlap,t-holeOverlap,r+holeOverlap,b+holeOverlap)+')').join('');
-      material.userData.terrainShadowCut=test.split(point).join('shadowGround.xz');
+      const shadowCut=test.split(point).join('shadowGround.xz');
+      material.userData.terrainShadowCut=material.userData.terrainShadowCut?'('+material.userData.terrainShadowCut+')||('+shadowCut+')':shadowCut;
       material.fragmentShader=material.fragmentShader.replace(/void main\(\)\s*\{/,m=>m+'if('+test+')discard;');
       material.needsUpdate=true;
     }

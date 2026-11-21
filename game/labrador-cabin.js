@@ -291,10 +291,12 @@ window.addLabradorCabin = function addLabradorCabin(T, scene, world, site) {
   if(Number.isFinite(waterDistance) && Number.isFinite(water)) {
     // The bow faces the beach; the broad transom, bench seats and side strakes
     // stay visible from directly above. Put its stern in the surveyed water.
-    const len=3.83,width=.67,heading=-.14,boatZ=waterDistance+1.80,boatX=0;
+    const len=3.83,width=.67,mooring=site.mooring;
+    const [boatX,boatZ]=mooring?local(mooring.x,mooring.z):[0,waterDistance+1.80];
+    const heading=mooring?mooring.angle-site.yaw:-.14;
     const angleSin=Math.sin(heading),angleCos=Math.cos(heading),waterY=water-floor;
     const pt=(x,y,z)=>[boatX+angleCos*x+angleSin*z,waterY+y,boatZ-angleSin*x+angleCos*z];
-    boat={x:boatX,z:boatZ,half:.74,len:len/2,height:waterY+.33};
+    boat={x:boatX,z:boatZ,cos:angleCos,sin:angleSin,half:.74,len:len/2,height:waterY+.33};
     const sections=[[-len/2,.028,.32],[-1.49,.34,.27],[-.94,.54,.23],[-.28,width,.21],[.62,width,.2],[len/2,.55,.20]];
     const pts=sections.map(([z,w,y])=>[pt(-w,y,z),pt(-w*.72,-.062,z),pt(0,-.17,z),pt(w*.72,-.062,z),pt(w,y,z)]);
     const colors=[0xcac9bc,0xbab8ab,0xb0b4a8,0xc0c5b8];
@@ -311,7 +313,8 @@ window.addLabradorCabin = function addLabradorCabin(T, scene, world, site) {
       panel('alloy',0xa8b0a3,pt(-span,.115,z-.104),pt(span,.115,z-.104),pt(span,.115,z+.104),pt(-span,.115,z+.104),2);
       panel('alloy',0x919e91,pt(-span,.04,z-.104),pt(span,.04,z-.104),pt(span,.115,z-.104),pt(-span,.115,z-.104));
     }
-    const bow=pt(0,.29,-len/2),knot=[-.55,ground(-.55,waterDistance-1.7)-floor+.024,waterDistance-1.7];
+    const [kx,kz]=mooring?local(mooring.knotX,mooring.knotZ):[-.55,waterDistance-1.7];
+    const bow=pt(0,.29,-len/2),knot=[kx,ground(kx,kz)-floor+.024,kz];
     pipe('wood',0xa18b66,bow,knot,.012,6);
   }
 
@@ -417,7 +420,10 @@ window.addLabradorCabin = function addLabradorCabin(T, scene, world, site) {
     if(Math.abs(u)<=2.05 && v>=leanBack-.17 && v<=back+.03)
       return floor+leanLow+(leanTop-leanLow)*(v-leanBack+.17)/(back-leanBack+.2);
     for(const b of obstacles) if(Math.abs(u-b.x)<=b.w/2 && Math.abs(v-b.z)<=b.d/2) return floor+b.h;
-    if(boat && Math.abs(u-boat.x)<=boat.half+.27 && Math.abs(v-boat.z)<=boat.len) return floor+boat.height;
+    if(boat){
+      const du=u-boat.x,dv=v-boat.z;
+      if(Math.abs(boat.cos*du-boat.sin*dv)<=boat.half+.27&&Math.abs(boat.sin*du+boat.cos*dv)<=boat.len)return floor+boat.height;
+    }
     return -Infinity;
   }
   function inClearing(x,z) {
@@ -426,6 +432,6 @@ window.addLabradorCabin = function addLabradorCabin(T, scene, world, site) {
     return v>=5 && v<=sandEnd+.45 && Math.abs(u-.39*Math.sin(v*.47))<2.6;
   }
   scene.add(root);
-  const campTrees=window.addBerteCampGround(T,scene,root,{site,floor,ground,water,waterDistance,texture,surveyGround:world.surveyGround});
+  const campTrees=window.addBerteCampGround(T,scene,root,{site,floor,ground,water,waterDistance,texture,surveyGround:world.surveyGround,measuredTrees:world.measuredTrees});
   return {root,clearance,padHeight,inClearing,campTrees,roofs,waterDistance};
 };

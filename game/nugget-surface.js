@@ -81,12 +81,28 @@ window.nuggetSurfaceShader=function nuggetSurfaceShader(localUV){
 // that reflection through the shallow aerated water and its fine sediment.
 window.nuggetShallows=function nuggetShallows(material,texture){
   material.uniforms.deltaShoal={value:texture};
+  // Register with the habitat shoreline pass, which runs after reflection
+  // and refraction and decides whether each fragment contains water or land.
+  material.userData.nuggetLakeMargin=`
+    vec3 marginAt(vec2 p){
+      vec3 basin=nuggetRegionalMargin(p);
+      vec2 uv=(p-vec2(348.,532.))/vec2(288.,480.);
+      float edge=min(min(uv.x,1.-uv.x)*288.,min(uv.y,1.-uv.y)*480.);
+      if(edge<=0.)return basin;
+      vec3 survey=texture2D(deltaShoal,vec2(uv.x,1.-uv.y)).rgb;
+      float sd=2.*survey.b-1.;
+      float distanceM=56.*sd*abs(sd),depth=4.*survey.g;
+      // An optical slope estimate for the unsounded, glacially turbid shelf.
+      float grade=clamp(depth/max(1.,distanceM),.04,.50);
+      return mix(basin,vec3(distanceM,depth,grade),smoothstep(0.,13.,edge));
+    }`;
   const wetOptics=`
     if(surface.x>348.&&surface.x<636.&&surface.y>532.&&surface.y<1012.){
       vec2 delta=(surface-vec2(348.,532.))/vec2(288.,480.);
       vec3 shoal=texture2D(deltaShoal,vec2(delta.x,1.-delta.y)).rgb;
       float seam=min(min(delta.x,1.-delta.x),min(delta.y,1.-delta.y));
-      float reach=smoothstep(0.,.085,seam)*(1.-smoothstep(.22,1.,shoal.b));
+      float sd=2.*shoal.b-1.;
+      float reach=smoothstep(0.,.085,seam)*(1.-smoothstep(7.,30.,56.*sd*abs(sd)));
       float opticalDepth=shoal.g*4.;
       float travel=opticalDepth/max(.39,theta);
       // At the lip, fine sand is visible through the water. Longer optical

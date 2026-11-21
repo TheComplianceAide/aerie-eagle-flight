@@ -304,6 +304,9 @@
             // slickrock walls, bare overlooks and live channel open.
             if(!(a.shore.signed>.55&&a.shore.signed<32)||a.q.slope>.38)continue;
           }
+          // Detached margin specimens occupy the edge of the tongue. Its
+          // interior crevasses are the continuous, surveyed flight terrain.
+          if(sheet.kind==='ice'&&world.onGlacierMargin&&!world.onGlacierMargin(a.x,a.z))continue;
           const water=sheet.kind==='water'||sheet.special==='lily';
           const support=sheet.id==='canyon-dry-wood'?world.rockSurface:floor;
           let y=support===floor?a.h:support(a.x,a.z);
@@ -314,6 +317,7 @@
           const cell=a.cell??Math.floor(hash(a.gx,a.gz,seed+1)*16);
           let span=(sheet.specimenSpans?.[cell]??sheet.span)*(.68+.64*hash(a.gx,a.gz,seed+3));
           if(a.jet)span=Math.min(span,a.width*(.26+.16*hash(a.gx,a.gz,seed+6)));
+          if(!water&&world.openRoadAt?.(a.x,a.z,span*.45))continue;
           const delta=Math.min(2,Math.max(.3,span*.25));
           const dx=water?a.water.dx:(support(a.x+delta,a.z)-support(a.x-delta,a.z))/(delta*2);
           const dz=water?a.water.dz:(support(a.x,a.z+delta)-support(a.x,a.z-delta))/(delta*2);

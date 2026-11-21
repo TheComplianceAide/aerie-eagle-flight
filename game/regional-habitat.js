@@ -240,6 +240,7 @@
         const x=(i+.06+.88*hash(i,j,11))*step,z=(j+.06+.88*hash(i,j,19))*step;
         if(x<ix*size||x>=outX||z<iz*size||z>=outZ||
           bounds&&(x<bounds.minX||x>bounds.maxX||z<bounds.minZ||z>bounds.maxZ))continue;
+        if(world.blocksInfillTree?.(x,z))continue;
         const land=classify(x,z);
         const alpineTurf=region==='swiss'&&(land===LAND.grass||land===LAND.moss);
         const peatMargin=region==='labrador'&&(land===LAND.marsh||land===LAND.grass);

@@ -130,6 +130,9 @@
           const angle=rand()*Math.PI*2,radius=anchor.radius*Math.sqrt(rand());
           x=anchor.x+Math.cos(angle)*radius;z=anchor.z+Math.sin(angle)*radius;
         }
+        // The surveyed South Camp lawn and two gravel bars carry small mineral
+        // fractions. Open aerials from 2015 and 2022 resolve this same margin.
+        if(world.region==='labrador'&&!small&&window.ATLAS_SURVEYS.labrador.inBerteCanopy(x,z))continue;
         const surveyed=elevation(x,z),drawn=surface(x,z),visible=world.height(x,z);
         const land=profile?.landAt(x,z)||0;
         if(land===7||(!armor&&(land===4||land===5)))continue;
@@ -171,7 +174,8 @@
         // surface with their lowest face embedded a few millimetres.
         y-=height*(kineo?(small?.12:.16)+rand()*(shore?.25:.17):small?.09:.18);
         const matrix=new T.Matrix4().compose(new T.Vector3(x,y,z),rotation,new T.Vector3(length,length*scaleY,length*scaleZ));
-        entries.push({sheet:sheet.id,cell,x,y,z,width,height,depth,yaw,matrix,length,wetStage,anchor:anchor.name});
+        if(!world.openRoadAt?.(x,z,Math.hypot(width,depth)*.5))
+          entries.push({sheet:sheet.id,cell,x,y,z,width,height,depth,yaw,matrix,length,wetStage,anchor:anchor.name});
         accepted++;if(kineo&&accepted%16===0)shuffle();
       }
     }

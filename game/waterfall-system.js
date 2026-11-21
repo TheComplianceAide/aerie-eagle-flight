@@ -16,14 +16,18 @@ window.makeWaterfallSystem=function makeWaterfallSystem(T,scene,{ground,level,cl
   const sheetUniforms=streamSurvey?{...common,activeCurrent:{value:streamSurvey.map},currentBounds:{value:streamSurvey.bounds}}:common;
   const sheet=new T.ShaderMaterial({uniforms:sheetUniforms,side:T.DoubleSide,transparent:true,depthWrite:false,
     vertexShader:`${lit}
-      attribute vec4 hydraulics;attribute vec2 impactAt;varying vec2 st,source;varying vec3 loc;varying vec4 water;
+      attribute vec4 hydraulics;attribute vec2 impactAt;${streamSurvey?'attribute vec2 measuredFlow;varying float metresToMouth;':''}varying vec2 st,source;varying vec3 loc;varying vec4 water;
       void main(){st=uv;source=impactAt;water=hydraulics;vec3 p=position;
+        ${streamSurvey?'metresToMouth=measuredFlow.y;':''}
         float motion=fallClock-hydraulics.y;float travelling=release(motion,impactAt);
-        float airborne=hydraulics.z;
+        // Flowing down a steep rock is not the same as falling through air.
+        // Wind can carry a free curtain sideways; an attached sheet stays
+        // on the surveyed 3D bed beneath its photographed footprint.
+        float airborne=${streamSurvey?'measuredFlow.x':'hydraulics.z'};
         p.xz+=fallWind*airborne*(.23+.54*fallGust)*(.60+.33*sin(1.38*motion+hydraulics.w+uv.x*4.))*(.45+hydraulics.x*.13);
         p.y+=airborne*.09*sin(uv.x*7.2+motion*3.1)+.07*travelling;
         loc=p;gl_Position=projectionMatrix*viewMatrix*vec4(p,1.);}`,
-    fragmentShader:`${lit} ${streamSurvey?'uniform sampler2D activeCurrent;uniform vec4 currentBounds;':''} uniform sampler2D fallSky;varying vec2 st,source;varying vec3 loc;varying vec4 water;
+    fragmentShader:`${lit} ${streamSurvey?'uniform sampler2D activeCurrent;uniform vec4 currentBounds;varying float metresToMouth;':''} uniform sampler2D fallSky;varying vec2 st,source;varying vec3 loc;varying vec4 water;
       void main(){float t=fallClock-water.y,grade=water.z,phase=water.w;
         float u=st.x,w=water.x,d=st.y,small=1.-smoothstep(3.5,7.,w);
         float life=release(t,source);float flow=t*(.11+.08*small);
@@ -61,6 +65,12 @@ window.makeWaterfallSystem=function makeWaterfallSystem(T,scene,{ground,level,cl
         // Turbulence can wet a narrow fringe without filling an island.
         float flowingFraction=smoothstep(.10,.82,survey.r+.065*(eddy.g-.5));
         alpha*=mix(1.,flowingFraction,confidence);
+        // The last cross-section is inside a moving lake. Collapse the
+        // optically thick sheet over distance into the persistent foam/wake.
+        float breakup=.16*w*(.55*(broken.g-.5)+.45*(drawn.r-.5));
+        float releaseIntoLake=smoothstep(.035*w,.42*w,metresToMouth+breakup);
+        alpha*=releaseIntoLake;
+
         froth=mix(froth,max(froth,.69+.21*streak+.094*flaky),confidence*flowingFraction*.79);
         `:''}
         vec3 v=normalize(cameraPosition-loc);
@@ -173,10 +183,10 @@ window.makeWaterfallSystem=function makeWaterfallSystem(T,scene,{ground,level,cl
   function chute(name,path,width,options={}){
     if(path.length<2)return;
     const nodes=[],spline=new T.CatmullRomCurve3(path.map(([x,z])=>new T.Vector3(x,0,z)),false,'centripetal');
-    const spacing=Math.min(1.8,Math.max(.27,width*.104));
+    const spacing=Math.min(streamSurvey?1.2:1.8,Math.max(.27,width*.104));
     const samples=spline.getSpacedPoints(Math.ceil(spline.getLength()/spacing)).map(p=>[p.x,p.z]);
     let fallTime=0,travel=0;
-    const cols=10,positions=[],uv=[],index=[],hydro=[],impactAt=[],heights=new Float32Array(cols+1),speeds=new Float32Array(cols+1);
+    const cols=streamSurvey?36:10,positions=[],uv=[],index=[],hydro=[],impactAt=[],freeWater=[],heights=new Float32Array(cols+1),speeds=new Float32Array(cols+1);
     const crosses=[],heightAt=(x,z)=>Math.max(ground(x,z),level??-Infinity);
     for(let i=0;i<samples.length;i++){
       const [x,z]=samples[i],a=samples[Math.max(0,i-1)],b=samples[Math.min(samples.length-1,i+1)];
@@ -189,7 +199,13 @@ window.makeWaterfallSystem=function makeWaterfallSystem(T,scene,{ground,level,cl
         width*(.72+.15*Math.sin(travel*.064)+.09*Math.sin(travel*.19+.6)+.08*Math.min(3,grade));
       const phase=.0043*path[0][0]+.0011*path[0][1];let air=0,collision=0,centerAir=0;
       for(let j=0;j<=cols;j++){
-        const u=j/cols,cross=(u-.5)*wid,px=x-dz*cross,pz=z+dx*cross,floor=heightAt(px,pz)+Math.min(.66,Math.max(.053,width*.037));
+        const u=j/cols,cross=(u-.5)*wid,px=x-dz*cross,pz=z+dx*cross,bed=heightAt(px,pz);
+        let thickness=Math.min(.66,Math.max(.053,width*.037));
+        if(streamSurvey&&level!=null){
+          const above=Math.max(0,Math.min(1,(bed-level)/1.5));
+          thickness=.056+(thickness-.056)*above*above*(3.-2.*above);
+        }
+        const floor=bed+thickness;
         // A parcel leaves the ledge with its current velocity. The bed catches
         // it again when gravity has closed the gap below the free trajectory.
         const flight=i?heights[j]+speeds[j]*dt-4.905*dt*dt:floor;
@@ -198,6 +214,7 @@ window.makeWaterfallSystem=function makeWaterfallSystem(T,scene,{ground,level,cl
         speeds[j]=flight>floor?speeds[j]-9.81*dt:-Math.min(6,grade*speed*.35);
         heights[j]=Math.max(floor,flight);air=Math.max(air,flight-floor);
         positions.push(px,heights[j],pz);uv.push(u,travel);
+        if(streamSurvey)freeWater.push(Math.min(1,Math.max(0,flight-floor)*.35),travel);
         hydro.push(wid,fallTime,Math.min(1,.19+grade*.54+Math.max(0,flight-floor)*.21),phase);
         if(i&&j){const k=i*(cols+1)+j;index.push(k-cols-2,k-1,k,k-cols-2,k,k-cols-1);}
       }
@@ -205,10 +222,15 @@ window.makeWaterfallSystem=function makeWaterfallSystem(T,scene,{ground,level,cl
       if(i%3===0||i===samples.length-1){const station={x,z,radius:wid*.54+1};
         for(let a=Math.floor((x-wid-12)/48);a<=Math.floor((x+wid+12)/48);a++)for(let b=Math.floor((z-wid-12)/48);b<=Math.floor((z+wid+12)/48);b++){
           const key=a+','+b;if(!channelCells.has(key))channelCells.set(key,[]);channelCells.get(key).push(station);}}
-      nodes.push({x,z,y:heights[cols>>1],dx,dz,floor:y,air,centerAir,time:fallTime,travel});
+      nodes.push({x,z,y:heights[cols>>1],dx,dz,floor:y,air,centerAir,time:fallTime,travel,width:wid});
     }
     const end=nodes.at(-1);for(let i=0;i<hydro.length;i+=4){hydro[i+1]-=fallTime;impactAt.push(end.x,end.z);}
-    const mesh=new T.Mesh(geometry(positions,uv,index,{hydraulics:[hydro,4],impactAt:[impactAt,2]}),sheet);mesh.name=name+' · falling water';mesh.userData.prepareFlightMaterial=true;scene.add(mesh);
+    const extras={hydraulics:[hydro,4],impactAt:[impactAt,2]};
+    if(streamSurvey){
+      for(let i=1;i<freeWater.length;i+=2)freeWater[i]=end.travel-freeWater[i];
+      extras.measuredFlow=[freeWater,2];
+    }
+    const mesh=new T.Mesh(geometry(positions,uv,index,extras),sheet);mesh.name=name+' · falling water';mesh.userData.prepareFlightMaterial=true;scene.add(mesh);
     // Also locate the foot of an attached chute where its steep, aerated
     // descent becomes a low-gradient stream. A downstream mouth gets only
     // the energy that actually remains, even after a very high upstream fall.

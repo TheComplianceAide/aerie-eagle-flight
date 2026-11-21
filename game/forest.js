@@ -100,6 +100,10 @@ window.addForest = function addForest(THREE, scene, world) {
       '#include <color_fragment>',
       '#include <color_fragment>\n if (modelWeight<=crownPixel(gl_FragCoord.xy)) discard; diffuseColor.rgb *= mix(vec3(.47,.55,.65),vec3(.94,.98,.88),inSun);');
   };
+  if(world.berteCanopyAir){
+    const prepare=nearMaterial.onBeforeCompile;
+    nearMaterial.onBeforeCompile=shader=>{prepare(shader);world.berteCanopyAir(shader,'standard');};
+  }
   const cellSize = 80;
   const cells = new Map();
   const key = (i,j) => (i+2000)*4096 + j+2000;
@@ -216,6 +220,7 @@ window.addForest = function addForest(THREE, scene, world) {
         if(modelWeight>=1.||dot(delta,delta)>reachSquared){gl_Position=vec4(2.,2.,2.,1.);return;}
         float spin = dimensions.z;`)
     });
+    world.berteCanopyAir?.(standMaterial,'wp');
     standMaterial.userData.canopyRoot="rootPosition";
     const pages=world.region==='moosehead'?window.partitionSurveyCrowns(THREE,scene,near,'Nearby surveyed spruce'):null;
     return {near,nearBand,rectangle,standMaterial,pages};

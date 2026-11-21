@@ -3,7 +3,7 @@
 // triangulation consume the same corrected chart.
 window.aerieLakeBankSites={
   moosehead:['spencer','lily'],
-  winnipesaukee:['meredith','wolfeboro','diamond','sleepers']
+  winnipesaukee:['meredith','wolfeboro','hesky','diamond','sleepers']
 };
 window.refineLakeBays=function(region,survey){
   if(survey.baysMapped)return;

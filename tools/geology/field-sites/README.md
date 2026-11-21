@@ -67,3 +67,23 @@ python tools/geology/field-sites/bake_acadia_sand_beach.py --cache /path/to/cach
 ```
 
 The source and ODbL centerline for the mapped western staircase are credited in [Acadia scenery credits](../../../game/acadia-scenery-credits.txt). The shore-class texture's 0.5 m texels combine a resampled aerial with terrestrial elevation. They do not imply a 0.5 m ground survey of the lagoon bed. [NPS shell geology and photographs](https://www.nps.gov/articles/000/geologic-story-of-sand-beach.htm) · [NPS park cultural landscape inventory and as-built stair plan](https://irma.nps.gov/DataStore/Reference/Profile/2319481)
+
+### Lac Berté, Camp Sud and the south narrows
+
+The family-era white cabin occupies the recorded modern campsite at 50.73166° N, 68.50079° W. The two gravel points, dry surface and stand heights use the Government of Québec’s independent 2015/2022 orthophotos and 1 m MNT/MHC lidar products. The 2015 photograph shows through the near-bank water. Its relative transmission constrains modeled shallow depth. No bathymetric survey or discharge measurement is available. The current is animated and follows the constriction described by Labrador Air Safari. Modern roof and craft pixels have been removed from the texture under the historical structure. The MNT retained a peaked 2–3 m rise matching the cyan roof. A harmonic interpolation from its ground perimeter reconstructs the covered surface under the family-era model.
+
+```sh
+python tools/geology/field-sites/bake_berte_narrows.py --cache /tmp/berte-source
+```
+
+The command uses NumPy, SciPy, Pillow (WebP), rasterio/GDAL, Shapely, Triangle and pydelatin. It rebuilds the relief, optical field and crown/shore JS from the provincial imagery and the small traced shoreline control file. It reads the original ARF1 from commit `da35ced` if the local binary was already regenerated. Raster windows cover 600 × 432 m; tile and raster caches can be reused. Full provider layer IDs, requested bounds, reprojection and processing are in the producer.
+
+The two image windows are 2000 × 1440 (2022) and 1500 × 1080 (2015). Their resolutions are resampling choices. The unmodified source pixel sizes are 15 cm and 30 cm. Inside the 600 × 432 m field, one 1000 × 720 texture carries land color, optical shoals and distance to the edge. A long elliptical falloff blends it into the regional lake. Crown maxima, widths, the colored water field and the underwater terrain are adaptations; credit © Gouvernement du Québec, ministère des Ressources naturelles et des Forêts, CC BY 4.0. [Orthophotos](https://www.donneesquebec.ca/recherche/dataset/imagerie-orthorectifiee-du-quebec) · [LiDAR](https://www.donneesquebec.ca/recherche/dataset/produits-derives-de-base-du-lidar) · [License](https://creativecommons.org/licenses/by/4.0/).
+
+## Fründenhütte and the glacier forefield
+
+Run `python bake_frunden.py --cache /path/to/frunden-inputs --game ../../../game` in this directory. The Swiss federal LV95 survey is cropped at two-metre spacing over the 688 × 676 m forefield, with a four-metre flight grid, measured roofs and rock, light-map samples, sub-metre summer imagery and a 10 cm image of the summit terrace. Two pond levels are estimated from the 2 m ground surface within the observed shorelines. Glacier conditions, lake area and facade colours refer to different capture dates. Two low, shaded windows and the dark doorway use Caumasee’s public-domain field photograph archived at `source/frunden-gable.jpg`; their approximate fenestration is a visual reconstruction. No Swiss Alpine Club image pixels are distributed.
+
+## Korten's rocks and the outer Lofoten coast
+
+`python bake_korten.py --cache /path/to/sources --game ../../../game` reconstructs the 348 × 400 m inset from Kartverket's DTM ImageServer (2 m), with moisture/mineral colour and vegetation reconstructed from Copernicus Sentinel-2 L2A (16 July 2025). Its upstream asset identifiers and acquisition window are pinned in the recipe. `python bake_lofoten_marine.py --cache /path/to/sources --output ../../../game/lofoten-sea-mask.js` restores the offshore mask for the 36 km outer survey from sixteen ten-metre Kartverket extracts. Uncharted bottom depth is illustrative. A protected shore band keeps the mask away from emergent rocks. The official geographic register identifies the central islet as [Korten](https://ws.geonorge.no/stedsnavn/v1/punkt?nord=67.94759&ost=13.15291&radius=80&koordsys=4326).
