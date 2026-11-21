@@ -344,6 +344,12 @@ class Water extends Mesh {
 
 		let checkedReflectionType=false;
     scope.onBeforeRender = function ( renderer, scene, camera ) {
+      if(scope.userData.lofotenCoast){
+        // Near the skerries a larger offset exposes the submerged bed. At flying
+        // height more depth separation stabilizes shallow-angle land intersections.
+        const q=Math.max(0,Math.min(1,(camera.position.y-scope.position.y-12)/20));
+        scope.material.polygonOffsetUnits=2+14*q*q*(3-2*q);
+      }
       if(camera.userData.lakeReflection)return;
       if(!checkedReflectionType){
         if(!renderer.extensions.has('EXT_color_buffer_float')&&!renderer.extensions.has('EXT_color_buffer_half_float'))renderTarget.texture.type=THREE.UnsignedByteType;
@@ -506,22 +512,45 @@ class Water extends Mesh {
   const cityGrid=survey.cityTerrain?unpack(survey.cityTerrain):null;
   const [cityX,cityZ]=survey.cityCenter||[0,0];
   const uplands=region==='moosehead'?window.mooseheadUplands:null;
+  const marineBed=region==='lofoten'&&window.aerieLofotenMarineMask?makeLofotenMarineBed(window.aerieLofotenMarineMask):null;
+  function makeLofotenMarineBed(encoded){
+    // Ten-metre Kartverket DTM observations are conservatively reduced to twenty-metre
+    // chart cells. A strictly zero source return well beyond land sets the marine bed.
+    const packed=atob(encoded),cells=new Uint8Array(1800*1800);
+    let offset=0;for(let i=0;i<packed.length;i+=2){
+      const code=packed.charCodeAt(i)|(packed.charCodeAt(i+1)<<8),length=code&16383,grade=code>>>14;
+      if(grade)cells.fill(grade,offset,offset+length);offset+=length;
+    }
+    if(offset!==cells.length)throw Error('Incomplete Lofoten marine coverage');
+    return (x,z,native)=>{
+      if(native<-12.||native>45.||x< -17980||x>17980||z< -17980||z>17980)return native;
+      const u=(x+18000)/20-.5,v=(z+18000)/20-.5,i=Math.floor(u),j=Math.floor(v),row=j*1800+i;
+      const a=u-i,b=v-j;
+      const value=(cells[row]*(1-a)+cells[row+1]*a)*(1-b)+(cells[row+1800]*(1-a)+cells[row+1801]*a)*b;
+      if(!value)return native;
+      // No sounding is available here. Tuck coverage-classified offshore vertices below the rendered water.
+      const bed=-.30-1.28*value*value;
+      return native+(Math.min(native,bed)-native)*Math.min(value,1.);
+    };
+  }
   function farHeight(x,z){
     if(uplands){const measured=uplands.sample(x,z);if(measured!==null)return measured;}
     const base=sample(far,farH,x,z);
     if(dixville)return base; // This outer survey already resolves the 3DEP ridges.
     const shore=settings.water===undefined?1:smoothstep(base-settings.water,2,25);
-    return base+shore*window.rangeRelief(region,x,z);
+    const result=base+shore*window.rangeRelief(region,x,z);
+    return marineBed?marineBed(x,z,result):result;
   }
   const tableHeight=dixville?window.dixvilleTableHeight:null;
   let ship=null;
   const kineo=region==='moosehead'?window.kineoSurvey:null;
   const landmarkTerrain=window.aerieRegionalLandforms?.get(region);
   const harborTerrain=region==='lofoten'?window.aerieRegionalLandforms.get('hamnoy'):null;
+  const easternSkerries=region==='lofoten'?window.aerieRegionalLandforms.get('korten'):null;
   const easternSummits=region==='yosemite'?window.aerieRegionalLandforms.get('yosemitesummits'):null;
   const namedBays=window.aerieLakeBankSites?.[region]||[];
   const bankSurveys=namedBays.map(name=>window.aerieRegionalLandforms.get(name)).filter(Boolean);
-  const measuredTerrain=[landmarkTerrain,harborTerrain,easternSummits,...bankSurveys].filter(Boolean);
+  const measuredTerrain=[landmarkTerrain,harborTerrain,easternSkerries,easternSummits,...bankSurveys].filter(Boolean);
   function bayAt(x,z){
     for(const bank of bankSurveys){
       const [l,t,r,b]=bank.rect;
@@ -540,6 +569,7 @@ class Water extends Mesh {
     const native=regionalElevation(x,z,includeIslet);
     let base=landmarkTerrain?landmarkTerrain.height(x,z,native):native;
     if(harborTerrain)base=harborTerrain.height(x,z,base);
+    if(easternSkerries)base=easternSkerries.height(x,z,base);
     if(easternSummits)base=easternSummits.height(x,z,base);
     if(bankSurveys.length){const bank=bayAt(x,z);if(bank)base=bank.height(x,z,base);}
     if(!brookGrid||!insideBrook(x,z))return kineo?kineo.elevation(x,z,base):base;
@@ -568,6 +598,7 @@ class Water extends Mesh {
       const edge=Math.min(x+435,165-x,z-1502,1934-z);
       val=lerp(val,Math.max(val,settings.water+.16),smoothstep(edge,0,20));
     }
+    if(marineBed)return marineBed(x,z,val);
     if(region!=='crater')return val;
     const bed=shoreDetail.calderaBed(x,z,val);
     return includeIslet&&ship?Math.max(bed,ship.surface(x,z)):bed;
@@ -1629,6 +1660,7 @@ class Water extends Mesh {
       water.renderOrder=-500;
       water.material.polygonOffset=true;
       water.material.polygonOffsetUnits=2;
+      water.userData.lofotenCoast=region==='lofoten';
     }
     water.rotation.x=-Math.PI/2;water.position.y=settings.water+.16;scene.add(water);
     if(survey.shore?.length)shoreFloor=window.joinAtlasShore?.(THREE,scene,{region,survey,elevation,level:water.position.y,terrain,bankSurveys});
@@ -1871,8 +1903,9 @@ class Water extends Mesh {
   if(landmarkTerrain&&region!=='labrador')world.landformMesh=addLocalLandform();
   if(easternSummits)world.easternSummits=easternSummits.add(THREE,scene,terrain,(x,z)=>regionalElevation(x,z,false),texture);
   waterfront?.finishIslandTerrain(world.landformMesh);
-  if(harborTerrain){
-    const harbor=harborTerrain.add(THREE,scene,terrain,(x,z)=>regionalElevation(x,z,false),texture);
+  for(const coastalSurvey of [harborTerrain,easternSkerries]){
+    if(!coastalSurvey)continue;
+    const harbor=coastalSurvey.add(THREE,scene,terrain,(x,z)=>regionalElevation(x,z,false),texture);
     harbor.traverse(mesh=>{if(mesh.isMesh)shoreDetail.terrainEdges(mesh.geometry,false);});
   }
   if(kineo){world.kineoTerrainMaterial=terrain;world.kineoBase=(x,z)=>regionalElevation(x,z,false);}

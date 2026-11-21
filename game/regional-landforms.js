@@ -14,6 +14,7 @@
     moosehead:{name:'Mount Kineo',asset:'kineo',rock:'rhyolite',water:312.23,holes:[[236,-1260,344,-1040],[360,-964,416,-880]],
       source:'USGS 3DEP Western Mountains B24 and USDA NAIP, eastern and southern Mount Kineo, Maine'},
     lofoten:{name:'Olstinden · fjord-facing wall',asset:'lofoten',water:0,source:'Kartverket national terrain model and Copernicus Sentinel-2, Lofoten, Norway'},
+    korten:{name:'Korten · tidal skerries east of Hamnøy',asset:'korten',water:0,source:'Kartverket two-metre DTM and Copernicus Sentinel-2, 16 July 2025'},
     hamnoy:{name:'Hamnøy · fishing harbor and tidal ledges',asset:'hamnoy',water:0,source:'Kartverket national terrain model and Copernicus Sentinel-2 summer imagery, Moskenes, Norway'},
     milford:{name:'Rahotu Mitre Peak · crest and Sinbad wall',asset:'milford',water:0,source:'LINZ NZ 8m Digital Elevation Model (2012) and Southland 0.75m Rural Aerial Photos (2005–2011)'},
     labrador:{name:'Lac Berté · south narrows and camp headland',asset:'labrador',water:359,source:'Gouvernement du Québec MRNF 2022 lidar terrain and aerial imagery, Côte-Nord'},
@@ -255,7 +256,7 @@
           }
           /* lake bank surface */`);
       }
-      if(spec.asset==='yosemite-summits'||(spec.lakeBank&&!hasDetail)){
+      if(spec.asset==='yosemite-summits'||spec.asset==='korten'||(spec.lakeBank&&!hasDetail)){
         // The entire survey sits outside the valley's original aerial. Blend
         // the registered 2022 NAIP image at its edges with the true far region.
         material.fragmentShader=material.fragmentShader.replace(
