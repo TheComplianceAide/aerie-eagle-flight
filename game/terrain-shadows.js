@@ -5,6 +5,9 @@ window.makeTerrainShadows=function makeTerrainShadows(T,renderer,scene,world){
   const hardware=renderer.capabilities.isWebGL2;
   const tile=Math.min(2048,Math.floor(renderer.capabilities.maxTextureSize/2));
   const atlas=new T.WebGLRenderTarget(2*tile,tile,{
+    // WebGL 2 samples the depth attachment. Its unused color attachment only
+    // needs one byte per pixel. WebGL 1 still packs depth into all four channels.
+    format:hardware?T.RedFormat:T.RGBAFormat,
     minFilter:T.NearestFilter,magFilter:T.NearestFilter,generateMipmaps:false,stencilBuffer:false
   });
   if(hardware){
