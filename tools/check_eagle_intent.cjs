@@ -137,6 +137,19 @@ for (const side of [1, -1]) {
   assert.notEqual(air.gazeIntent, perch, 'attention stayed on a perch the player dropped');
 }
 
+// A far peak on the skyline holds the eye; a far bay at lake level does not.
+{
+  const peak = {name: 'Mitre Peak', x: 300, z: -4800}, bay = {name: 'Harrison Cove', x: -300, z: -4800};
+  const relief = {...flat, height: (x, z) => Math.hypot(x - peak.x, z - peak.z) < 900 ? 1200 * (1 - Math.hypot(x - peak.x, z - peak.z) / 900) : 0};
+  for (const [places, expected] of [[[bay], ''], [[bay, peak], 'Mitre Peak']]) {
+    const {parts, motion} = load(17, {...relief, landmarks: places});
+    const air = {x: 0, y: 330, z: 0, yaw: 0, bank: 0, loadFactor: 1, indicatedAirspeed: 17, elapsed: 0, gazeLook: 0, gazeTurn: 0};
+    const seen = new Set();
+    for (let i = 0; i < 600; i++, air.elapsed += dt) { air.z -= 17 * dt; frame(motion, parts, air, dt, i === 0); if (motion.intent.name) seen.add(motion.intent.name); }
+    assert.equal([...seen].join(), expected, 'far landmarks: expected ' + (expected || 'none') + ', attended ' + ([...seen].join() || 'none'));
+  }
+}
+
 // Measured cost of attention plus the whole motion layer, per frame.
 {
   const places = Array.from({length: 12}, (_, i) => ({name: 'Place ' + i, x: 900 * Math.cos(i), z: 900 * Math.sin(i)}));
@@ -146,5 +159,5 @@ for (const side of [1, -1]) {
   const frames = 20000, start = process.hrtime.bigint();
   for (let i = 0; i < frames; i++, air.elapsed += dt) { air.yaw += .2 * dt; air.bank = .5 * Math.sin(air.elapsed); frame(motion, parts, air, dt, i === 0); }
   const micros = Number(process.hrtime.bigint() - start) / 1000 / frames;
-  console.log(`Passed eagle intent checks: landmark held through a bank, player look wins, tail and hand follow, feet ready, perch held. Cost ${micros.toFixed(1)} microseconds per frame (attention and motion together, this machine).`);
+  console.log(`Passed eagle intent checks: landmark held through a bank, player look wins, tail and hand follow, feet ready, perch held, far skyline peak attended and far bay ignored. Cost ${micros.toFixed(1)} microseconds per frame (attention and motion together, this machine).`);
 }

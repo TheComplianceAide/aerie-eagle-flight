@@ -295,7 +295,7 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
     // A bank is itself a statement of intent: the eagle looks to what lies on
     // the inside of the turn, even something it looked at a few seconds ago.
     const banking = Math.abs(bank) > .22 || Math.abs(air.gazeTurn ?? 0) > .06, inside = Math.sign(bank || -(air.gazeTurn ?? 0));
-    const rested = (source, rest) => time - (intentCooldown.get(source) ?? -Infinity) > (banking ? 4 : rest);
+    const rested = (source, rest, turning = 4) => time - (intentCooldown.get(source) ?? -Infinity) > (banking ? turning : rest);
     const favour = bearing => banking && bearing * inside > 0 ? 1.8 : 1;
     if (!intent.target && flying && time >= intent.suppressUntil && time >= intent.nextPick) {
       intent.nextPick = time + .3;
@@ -317,16 +317,21 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
           best = null; bestScore = 0;
           const floor = intentWorld?.clearance || intentWorld?.height;
           for (const place of intentWorld?.landmarks || []) {
-            if (!Number.isFinite(place.x) || !Number.isFinite(place.z) || !rested(place, 25)) continue;
+            if (!Number.isFinite(place.x) || !Number.isFinite(place.z)) continue;
             const y = (Number.isFinite(place.y) ? place.y : floor ? floor(place.x, place.z) : here.y) + 6;
-            const bearing = measure({x: place.x, y, z: place.z}), off = Math.abs(bearing);
-            if (off > 1.1 || intent.distance < 70 || intent.distance > 2600) continue;
-            const score = favour(bearing) * (1.25 - off) / (intent.distance + 250);
-            if (score > bestScore) { best = {kind: 'landmark', source: place, y, range: 3000, name: place.name}; bestScore = score; }
+            const bearing = measure({x: place.x, y, z: place.z}), off = Math.abs(bearing), far = intent.distance > 2600;
+            if (off > 1.1 || intent.distance < 70 || intent.distance > 9000) continue;
+            // Beyond a few kilometres only what stands on the skyline draws the
+            // eye: a peak or a wall rising above eye level, not a far bay. It
+            // gets a glance now and then, not the study a near place does.
+            const rise = Math.atan2(y - here.y, intent.distance);
+            if (far ? rise < .026 || !rested(place, 45, 14) : !rested(place, 25)) continue;
+            const score = favour(bearing) * (1.25 - off) * (1 + 6 * Math.max(0, rise)) / (intent.distance + 250);
+            if (score > bestScore) { best = {kind: 'landmark', source: place, y, far, range: Math.max(3000, intent.distance * 1.25), name: place.name}; bestScore = score; }
           }
           if (best && sightline({x: best.source.x, y: best.y, z: best.source.z}, .75)) {
             intent.lastLandmark = time;
-            take(time, best, rand(2.4, 4.4) * (bestScore > .0012 ? 1.4 : 1));
+            take(time, best, best.far ? rand(1.8, 3.2) : rand(2.4, 4.4) * (bestScore > .0012 ? 1.4 : 1));
           }
         }
       }
@@ -590,7 +595,9 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
     // ---- intent: the body follows the head ----------------------------------------------
     const attending = intent.target && freeFlight > .5 ? 1 : 0;
     intent.weight += (attending - intent.weight) * (1 - Math.exp(-step / .12));
-    intent.tail += (intent.weight - intent.tail) * (1 - Math.exp(-step / .28));       // the tail answers the head
+    // The tail answers the head, fully for something the eagle might go to and
+    // only a little for a glance at a far peak.
+    intent.tail += (intent.weight * (intent.target?.far ? .3 : 1) - intent.tail) * (1 - Math.exp(-step / .28));
     intent.wing += (intent.tail - intent.wing) * (1 - Math.exp(-step / .4));          // then the near hand trims
     if (attending) intent.side += (clamp(intent.bearing / .45, -1, 1) - intent.side) * (1 - Math.exp(-step / .2));
     const toward = intent.side * (1 - .5 * clamp(Math.abs(air.bank ?? 0), 0, 1));     // less to add once already banked
