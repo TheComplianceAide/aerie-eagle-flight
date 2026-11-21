@@ -365,7 +365,7 @@ window.addKeeneColonyBlock=function(T,{layout,face,height}){
   }
   const [southX,,southZ]=point(W,0,0);
   return {collision,base,profile:survey,partyTint:brick,north:[ox,oz],south:[southX,southZ],landmark:{name:"Colony's Block",x:1942.7,z:4380.5,discoveryRadius:49,
-    approach:[1920,4349,1920,4490,7,39,5]}};
+    approach:[1924,4384,1924,4484,7,83,3]}};
 };
 
 // The inner edge of the existing Central Square sidewalk stops short of the
