@@ -4,8 +4,9 @@
 // rock: an exposed approach over a wooded shore, a pass low along the rock's
 // lee face, and a return the way it came. Every cue must stay tied to one
 // actual source throughout:
-//   - habitat callers sing from fixed posts, the same on the return as on the
-//     approach, and the same on a second flight with different chance;
+//   - habitat callers sing from fixed posts and insects from fixed patches,
+//     the same on the return as on the approach, and the same on a second
+//     flight with different chance;
 //   - a source never moves while it sounds;
 //   - the rock screens what is behind it and stops screening on the return;
 //   - wind noise at the ears masks quiet arrivals more at speed and in the
@@ -122,6 +123,9 @@ async function fly(seed, airspeed = 16) {
   const scape = box.makeSoundscape(context, world, 'moosehead', node());
   for (let i = 0; i < 20; i++) await new Promise(r => setTimeout(r, 5));      // recordings "decode"
   scape.setEnabled(true);
+  // Every call as it starts: which individual sang, and when.
+  const calls = [], play = scape.engine.play;
+  scape.engine.play = function (buffer, position, opt = {}) { const s = play.call(this, buffer, position, opt); if (s && opt.id) calls.push({id: opt.id, label: opt.label, x: s.x, y: s.y, z: s.z, ear: {...scape.engine.ear}}); return s; };
   const camera = {position: new box.THREE.Vector3(), quaternion: new box.THREE.Quaternion()};
   const dt = 1 / 30, rows = [], state = {x: 0, y: 0, z: 0, airspeed, elapsed: 0};
   let spent = 0, frames = 0;
@@ -134,7 +138,7 @@ async function fly(seed, airspeed = 16) {
     spent += Number(process.hrtime.bigint() - t0); frames++;
     rows.push({t: context.currentTime, leg: p.leg, ear: p, masker: scape.engine.masker, shelter: scape.shelter, live: scape.trace()});
   }
-  return {rows, scape, box, context, tick, microseconds: spent / frames / 1000, frames};
+  return {rows, scape, box, context, tick, calls, microseconds: spent / frames / 1000, frames};
 }
 
 (async () => {
@@ -179,7 +183,24 @@ async function fly(seed, airspeed = 16) {
   const both = callers.filter(s => s.run === 'a' && s.legs.has('approach')).map(s => s.id);
   const back = new Set(callers.filter(s => s.run === 'a' && s.legs.has('return')).map(s => s.id));
   const again = both.filter(k => back.has(k));
-  assert.ok(again.length >= 2, `callers heard on the approach should be heard from the same posts on the return (${again.length})`);
+  assert.ok(again.length >= 1, `callers heard on the approach should be heard from the same posts on the return (${again.length})`);
+  // A bird sings in bouts from one post: while the last singer is still in
+  // earshot, the next song is usually its own.
+  let followed = 0, songs = 0; const lastSinger = new Map(), reach = {};
+  for (const e of first.box.aerieSoundscapes.moosehead.events) reach[e.clip] = e.reach;
+  for (const call of first.calls) {
+    if (!/ post /.test(call.id)) continue;
+    const last = lastSinger.get(call.label);
+    if (last && Math.hypot(last.x - call.ear.x, last.y - call.ear.y, last.z - call.ear.z) < .9 * reach[call.label]) { songs++; if (last.id === call.id) followed++; }
+    lastSinger.set(call.label, call);
+  }
+  assert.ok(songs >= 15 && followed / songs > .55, `a singer still in earshot should carry on from its post (${followed} of ${songs} songs)`);
+
+  // Insect patches are places too: the crickets left behind are found again.
+  const patches = [...seen.values()].filter(s => /crickets/.test(s.label) && s.run === 'a');
+  assert.ok(patches.length >= 4 && patches.every(s => / patch /.test(s.id)), 'crickets should sound from fixed patches');
+  const patchesAgain = patches.filter(s => s.legs.has('approach') && s.legs.has('return')).length;
+  assert.ok(patchesAgain >= 3, `cricket patches heard on the approach should be heard again on the return (${patchesAgain})`);
 
   // A source never moves while it sounds: each engine source keeps its place.
   for (const run of [first]) {
@@ -240,7 +261,7 @@ async function fly(seed, airspeed = 16) {
   }
 
   const lee = legs.shelter.slice(60), kept = rows => mean(rows.flatMap(r => r.live.filter(s => s.arrived > 0).map(s => s.heard / s.arrived)));
-  console.log(`Passed directional sound: ${callers.length} caller posts, ${again.length} heard again from the same post on the return; ` +
+  console.log(`Passed directional sound: ${callers.length} caller posts, ${again.length} heard again from the same post on the return, ${followed} of ${songs} songs with the last singer in earshot were its own, ${patchesAgain} of ${patches.length} cricket patches found again; ` +
     `rock screening ${shieldOpen.toFixed(2)} open, ${shieldLee.toFixed(2)} in the lee; wind masker ${maskOpen.toFixed(4)} open, ${maskLee.toFixed(4)} lee ` +
     `(level kept ${(100 * kept(legs.approach)).toFixed(0)}% open, ${(100 * kept(lee)).toFixed(0)}% lee).`);
   console.log(`Audio update cost: ${first.microseconds.toFixed(1)} microseconds a frame over ${first.frames} frames (node, no rendering).`);

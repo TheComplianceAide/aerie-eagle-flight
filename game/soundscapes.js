@@ -630,14 +630,32 @@
       }
       return false;
     }
-    function chorusSite(habitat, r0, r1) {
-      for (let i = 0; i < 16; i++) {
-        const a = Math.random() * Math.PI * 2, r = rand(r0, r1), x = engine.ear.x + Math.cos(a) * r, z = engine.ear.z + Math.sin(a) * r;
-        if (isWet(world, x, z)) continue;
-        if (habitat === 'trees') { const t = world.habitat?.nearestTree?.(x, z, 30); if (t) return {x: t.x, y: t.y + t.height * rand(.4, .85), z: t.z}; continue; }
-        return {x, y: ground(world, x, z) + .3, z};
+    // Insect patches are fixed in the world like the callers' posts: one per
+    // chorus kind in each 60 m cell with the right habitat, each with its own
+    // pitch and level, so the crickets left behind are the crickets found
+    // again on the way back.
+    const PATCH = 60;
+    function chorusPatch(ch, k, sounding) {
+      const ear = engine.ear, ix0 = Math.floor(ear.x / PATCH), iz0 = Math.floor(ear.z / PATCH), span = Math.ceil(ch.r[1] / PATCH), free = [];
+      for (let ix = ix0 - span; ix <= ix0 + span; ix++) for (let iz = iz0 - span; iz <= iz0 + span; iz++) {
+        const key = 'chorus' + k + ':' + ix + ':' + iz;
+        let patch = state.posts.get(key);
+        if (patch === undefined) {
+          if (state.posts.size > 1500) state.posts.clear();
+          const random = seededRandom(1000 + k, ix, iz), x = (ix + random()) * PATCH, z = (iz + random()) * PATCH;
+          patch = null;
+          if (!isWet(world, x, z)) {
+            if (ch.habitat !== 'trees') patch = {x, y: ground(world, x, z) + .3, z};
+            else { const t = world.habitat?.nearestTree?.(x, z, 30); if (t) patch = {x: t.x, y: t.y + t.height * (.4 + .45 * random()), z: t.z}; }
+          }
+          if (patch) Object.assign(patch, {key, gain: .7 + .45 * random(), rate: .97 + .06 * random()});
+          state.posts.set(key, patch);
+        }
+        if (!patch || sounding.some(e => e.patch === key)) continue;
+        const d = Math.hypot(patch.x - ear.x, patch.z - ear.z);
+        if (d >= ch.r[0] && d <= ch.r[1]) free.push(patch);
       }
-      return null;
+      return free.length ? free[Math.floor(Math.random() * free.length)] : null;
     }
     let enabled = false;
     const state = {falls: new Map(), water: [], beds: [], loops: [], choruses: [], movers: new Set(), steps: new Map(), rain: null, due: new Map(),
@@ -921,8 +939,10 @@
           if (Math.hypot(e.x - ear.x, e.z - ear.z) > ch.r[1] * 1.8) { e.stop(2.5); entry.splice(i, 1); }
         }
         if (entry.length < ch.count && Math.random() < .5) {
-          const site = chorusSite(ch.habitat, ch.r[0], ch.r[1]);
-          if (site) entry.push(engine.loop(b, site, {label: ch.clip, gain: ch.gain * rand(.7, 1.15), ref: ch.ref, reach: ch.reach, wet: .3, rate: (ch.rate || 1) * rand(.97, 1.03)}));
+          const patch = chorusPatch(ch, k, entry);
+          const source = patch && engine.loop(b, {x: patch.x, y: patch.y, z: patch.z}, {label: ch.clip, id: ch.clip + ' patch ' + patch.key.split(':').slice(1).join(','),
+            gain: ch.gain * patch.gain, ref: ch.ref, reach: ch.reach, wet: .3, rate: (ch.rate || 1) * patch.rate});
+          if (source) { source.patch = patch.key; entry.push(source); }
         }
       });
       // Diffuse beds driven by local conditions.
