@@ -197,6 +197,7 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
   let prevHeadQ = new THREE.Quaternion(), haveHead = false;
   const up = new THREE.Vector3(), right = new THREE.Vector3(), back = new THREE.Vector3(), down = new THREE.Vector3(), force = new THREE.Vector3();
   const headWorld = new THREE.Quaternion(), tmpQ = new THREE.Quaternion();
+  const scanAxis = new THREE.Vector3();
   const ahead = new THREE.Vector3(), headRollQ = new THREE.Quaternion(), FORWARD = new THREE.Vector3(0, 0, -1);
   let headRoll = 0;
   // Idle scanning on the perch: quick head saccades (about 0.1 s) between
@@ -233,7 +234,10 @@ window.makeEagleMotion = function makeEagleMotion(THREE, parts) {
       if (u >= 1) scan.t = -1;
     }
     if (scan.gain < 1e-3) return;
-    neck.quaternion.premultiply(scanQ.setFromAxisAngle(UP, scan.yaw * scan.gain));
+    // Turn about the world's vertical, not the tilted breast: the head stays
+    // level as it swings, as a perched eagle's does.
+    scanAxis.copy(UP).applyQuaternion(scanQ.copy(chest.quaternion).multiply(neckBase.quaternion).invert());
+    neck.quaternion.premultiply(scanQ.setFromAxisAngle(scanAxis, scan.yaw * scan.gain));
     neck.quaternion.multiply(scanQ.setFromAxisAngle(SIDE, scan.pitch * scan.gain));
   }
   // ---- intent: attention on something real -------------------------------------------
