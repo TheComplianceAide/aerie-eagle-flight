@@ -1360,7 +1360,8 @@ class Water extends Mesh {
     }
   }
   const maineGround=uplands?texture('moosehead-bank-ground.webp'):null;
-  if(uplands)uplands.add(THREE,scene,ranges,texture('moosehead-horizon.webp'),sun,color,texture('moosehead-bays.webp'),maineGround);
+  const streamWoodland=uplands&&localDEM?.woodland?texture('cold-stream-woodland.webp'):null;
+  if(uplands)uplands.add(THREE,scene,ranges,texture('moosehead-horizon.webp'),sun,color,texture('moosehead-bays.webp'),maineGround,localDEM,streamWoodland);
   else ring(h,farH,Math.max(32,farH/570),0,0,waterfront?.rects||fjordRects);
   if(waterfront)for(const area of waterfront.rects)subdivide(...area,4.5);
   const core=tight?1450:h;
@@ -1744,7 +1745,7 @@ class Water extends Mesh {
   if(!survey.shore?.length&&shoreDetail)world.fieldBankAt=shoreDetail.closestBank;
   if(dam){world.riverSurfaceAt=dam.riverHeight;world.surryArmorPerch=dam.armorPerch;}
   world.geologyGround=shoreFloor?(x,z)=>Math.max(shoreFloor.ground(x,z),shoreFloor(x,z)):null;
-  const updateUplandWoods=uplands?.woods(THREE,scene,world,clock);
+  const updateUplandWoods=uplands?.woods(THREE,scene,world,clock,localDEM);
   if(bankGrowth)world.shoreThickets=bankGrowth;
   if(landmarkTerrain)world.landformMesh=landmarkTerrain.add(THREE,scene,terrain,(x,z)=>regionalElevation(x,z,false),texture);
   if(harborTerrain){
@@ -1762,6 +1763,12 @@ class Water extends Mesh {
     material.fragmentShader=terrain.fragmentShader.replace(/vec3 photo=mix\(texture2D\(aerial,photoUv\).*?;/,
       'vec3 photo=texture2D(aerial,(vec2(xz.x,-xz.y)-vec2('+x+'.0,'+(-z)+'.0))/'+(half*2)+'.0+.5).rgb;');
     window.shadeRegionalBrook(THREE,material,brookMeshes,brook);
+    if(streamWoodland){
+      // Kineo's core-only detail sampler has no coverage at Cold Stream.
+      // Share its texture unit with the local stand image on these four tiles.
+      material.uniforms.detailOrtho={value:streamWoodland};
+      uplands.shadeColdStream(material,localDEM,true);
+    }
     for(const mesh of brookMeshes){mesh.material=material;mesh.userData.prepareFlightMaterial=true;mesh.name=brook.name+' · surveyed stream bed';}
   }
   if(tableHeight)buildTable();

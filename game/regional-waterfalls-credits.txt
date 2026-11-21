@@ -30,6 +30,12 @@ USGS maps Cold Stream Falls in Johnson Mountain Township in the southwestern par
 https://www.maine.gov/dep/gis/datamaps/lawb_maine_river_survey/pdf/MRS_AppendixB_GeologicHydrologic.pdf
 https://www.maine.gov/dacf/parks/get_involved/planning_and_acquisition/management_plans/docs/cold-stream-mfl-app.pdf
 
+The one-kilometre mixed-wood stand around the falls uses classified first and ground returns from the 2016 USGS Maine QL2 survey, distributed by the NOAA Office for Coastal Management. The two source tiles are 20160424_19TDL418034 and 20160424_19TDL418035. The game estimates canopy peaks, heights, crown widths and light transmission from these data. Species guilds and hidden stem locations are estimates. The leaf-on color survey comes from USDA NAIP on July 11, 2018 (Maine tile m_4507040_ne_19_060_20180711). Both federal sources are public domain. The scanned ground material uses the project's credited Maine ground atlas. Maine Bureau of Parks and Lands photographs of the waterfall and spruce-fir forest informed the appearance; their pixels are not included.
+https://www.fisheries.noaa.gov/inport/item/49796
+https://noaa-nos-coastal-lidar-pds.s3.us-east-1.amazonaws.com/laz/geoid18/6264/index.html
+https://planetarycomputer.microsoft.com/api/stac/v1/collections/naip/items/me_m_4507040_ne_19_060_20180711_20181211
+https://www.mainetrailfinder.com/trails/trail/cold-stream-falls
+
 NORWAY
 Reinefjorden, Lofoten · Rostadforsen
 Norway's national place register assigns Rostadforsen to a waterfall near 67.97775° N, 13.04086° E. The national terrain model resolves the sloping rock, its prominent shelf at about 31 m above sea level and the lower channel reaching the tidal shore. The modeled named descent is a reach of the longer stream. Kartverket's separate nearby named feature Forsan was also identified in the official register.

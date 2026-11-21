@@ -113,19 +113,19 @@ window.shadeRegionalBrook=function(T,material,meshes,brook){
     }
     geom.setAttribute('brookBank',new T.BufferAttribute(bank,1));
   }
-  material.vertexShader='attribute float brookBank;varying float wetMargin;\n'+material.vertexShader.replace('wp=position;', 'wp=position;wetMargin=brookBank;');
-  material.fragmentShader='varying float wetMargin;\n'+material.fragmentShader.replace('float green=smoothstep',`if(wetMargin<20.){
-    float band=1.-smoothstep(4.3,18.,wetMargin);
+  material.vertexShader='attribute float brookBank;varying float brookDistance;\n'+material.vertexShader.replace('wp=position;', 'wp=position;brookDistance=brookBank;');
+  material.fragmentShader='varying float brookDistance;\n'+material.fragmentShader.replace('float green=smoothstep',`if(brookDistance<20.){
+    float band=1.-smoothstep(4.3,18.,brookDistance);
     vec2 stoneUV=vec2(.72*xz.x+.69*xz.y,-.69*xz.x+.72*xz.y);
     stoneUV=stoneUV*.24+vec2(wp.y*.125,wp.y*.158)*(1.-normal.y);
     vec3 rockDetail=texture2D(rockScan,stoneUV).rgb;
     float fleck=soilCapture(sod,stoneUV*3.17,4.).g;
     float texel=dot(rockDetail,vec3(.27,.52,.21));
     float exposed=(1.-smoothstep(.42,.94,normal.y))*.44+.27;
-    float moist=1.-smoothstep(.58,1.85,wetMargin/`+brook.width.toFixed(2)+`);
+    float moist=1.-smoothstep(.58,1.85,brookDistance/`+brook.width.toFixed(2)+`);
     vec3 slate=mix(vec3(.143,.169,.158),vec3(.36,.355,.315),clamp((texel-.18)*1.42+fleck*.28,0.,1.));
     float cushion=smoothstep(.34,.63,texel*.71+fleck*.23+.18*sin(wp.x*.64+wp.z*.38));
-    float moss=smoothstep(.34,.83,normal.y)*cushion*(1.-.64*moist)*smoothstep(.28,.85,wetMargin);
+    float moss=smoothstep(.34,.83,normal.y)*cushion*(1.-.64*moist)*smoothstep(.28,.85,brookDistance);
     vec3 mantle=mix(slate,mix(vec3(.182,.205,.107),vec3(.269,.276,.146),fleck),moss*.80);
     c=mix(c,mantle*(1.-.21*moist),band*clamp(exposed+.35*moist,0.,.88));
   }
