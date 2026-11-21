@@ -419,9 +419,9 @@
       mesh.boundingSphere=new T.Sphere();mesh.name=sheet+' '+(lod===1?'middle':'far')+' crowns';
       mesh.userData.aerieRegional={sheet,lod:lod===1?'mid':'far',cellAttribute:'aerieCell',cellComponent:0};
       mesh.visible=false;parent.add(mesh);
-      const c={mesh,mat,caster,texture,props,slots:0,used:0};chunks.push(c);return c;
+      const c={mesh,mat,caster,texture,props,slots:0,used:0,lastUsed:0};chunks.push(c);return c;
     }
-    function finish(){
+    function finish(now){
       epoch++;
       for(const q of queue){const slot=live.get(q.tree.id);if(slot)slot.epoch=epoch;}
       for(const [id,slot] of live){
@@ -454,8 +454,25 @@
         c.props[base+4]=t.color[0];c.props[base+5]=t.color[1];c.props[base+6]=t.color[2];c.props[base+7]=t.leafTone;
         c.used++;
       }
-      for(const c of chunks){c.mesh.visible=c.used>0;if(c.used)c.texture.needsUpdate=true;}
+      for(const c of chunks){
+        c.mesh.visible=c.used>0;
+        if(c.used){c.texture.needsUpdate=true;c.lastUsed=now;}
+      }
       queue.length=0;
+    }
+    function release(c){
+      c.mesh.removeFromParent();c.mesh.dispose();c.texture.dispose();c.mat.dispose();c.caster.dispose();
+    }
+    function retireIdleChunk(now){
+      let spare=null;
+      // Leave the most recently used empty chunk warm for this species and LOD.
+      for(const c of chunks)if(!c.used&&(!spare||c.lastUsed>spare.lastUsed))spare=c;
+      const index=chunks.findIndex(c=>!c.used&&c!==spare&&now-c.lastUsed>=12000);
+      if(index<0)return false;
+      const [chunk]=chunks.splice(index,1);
+      for(let i=spares.length-1;i>=0;i--)if(spares[i].chunk===chunk)spares.splice(i,1);
+      release(chunk);
+      return true;
     }
     function shadow(scene,on){
       for(const c of chunks)if(c.mesh.visible){
@@ -463,10 +480,11 @@
       }
     }
     function dispose(){
-      for(const c of chunks){c.mesh.removeFromParent();c.mesh.dispose();c.texture.dispose();c.mat.dispose();c.caster.dispose();}
+      for(const c of chunks)release(c);
+      chunks.length=0;
       beauty.dispose();depth.dispose();live.clear();spares.length=0;queue.length=0;
     }
-    return {queue,finish,shadow,dispose};
+    return {queue,finish,retireIdleChunk,shadow,dispose};
   }
   window.makeCanopyStream=function(T,renderer,scene,world){
     const mobile=window.matchMedia('(pointer: coarse)').matches;
@@ -516,6 +534,7 @@
     const detailEye=new T.Vector3(),lastDetailEye=new T.Vector3(Infinity,Infinity,Infinity);
     const lead=new T.Vector2();
     let lodState=new Map(),idleIndex=null;
+    let nextChunkRetirement=0;
     function maskMaterial(material,rootExpression){
       if(!material||!rootExpression||patched.has(material))return;
       const old=material.onBeforeCompile,oldKey=material.customProgramCacheKey,oldId=oldKey.call(material);
@@ -1073,7 +1092,7 @@
         stampRoot(t,opacity,t.kind==='survey');
         nextState.set(id,{...entry,opacity});animating=true;
       }
-      for(const batch of regionalBatches)batch.finish();
+      for(const batch of regionalBatches)batch.finish(now);
       if(fineShoots)Object.assign(counters,fineShoots.finish());
       for(const g of groups){
         if(!g||g.batch)continue;
@@ -1124,6 +1143,11 @@
       if(opening||(seconds-lastCheck>=(mobile?.07:.055)&&(dirty||previous.distanceToSquared(eye)>3||
           lastDetailEye.distanceToSquared(detailEye)>.36||seconds-lastBuild>1.25))){
         refresh(now,seconds,opening);lastCheck=seconds;
+      }
+      // Spread resource destruction across frames, outside departure work.
+      if(!opening&&now>=nextChunkRetirement){
+        regionalBatches.some(batch=>batch.retireIdleChunk?.(now));
+        nextChunkRetirement=now+150;
       }
       shadowPass(seconds);
     }
@@ -1192,6 +1216,6 @@
       // Outer silhouettes wait until coverage is known, including independent lidar cells.
       return offset<trees.length||inSurvey(surveyRegion,ix,iz)||originalTrees(ix,iz,0,true);
     }
-    return {ready,prepareDeparture,warmApproachPrograms,getCanopyNeighbors:getNearby,hasOriginalCell,isSurveyCell:(ix,iz)=>inSurvey(surveyRegion,ix,iz),clearance,update,dispose,maskMaterial,stats:()=>({...counters,lod:[...counters.lod],species:{...counters.species},sitkaForms:{...counters.sitkaForms},regionalSheets:[...counters.regionalSheets],regionalForms:Object.fromEntries(Object.entries(counters.regionalForms).map(([k,v])=>[k,[...v]]))})};
+    return {ready,prepareDeparture,warmApproachPrograms,getCanopyNeighbors:getNearby,hasOriginalCell,isSurveyCell:(ix,iz)=>inSurvey(surveyRegion,ix,iz),clearance,update,dispose,maskMaterial,invalidateShadows:()=>{lastShadow=-Infinity;},stats:()=>({...counters,lod:[...counters.lod],species:{...counters.species},sitkaForms:{...counters.sitkaForms},regionalSheets:[...counters.regionalSheets],regionalForms:Object.fromEntries(Object.entries(counters.regionalForms).map(([k,v])=>[k,[...v]]))})};
   };
 })();

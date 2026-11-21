@@ -153,3 +153,8 @@ main:not([data-mode=flight]) #gameVision,main.clearView #gameVision,main:has(.mo
   main[data-mode=flight] nav #visionToggle[aria-pressed=true]{background:#efe0b9;color:#192720}
   .gameReadout{max-width:calc(100% - 142px)}
 }
+
+#graphicsRecovery{color:#f6eee0;background:#20302e;border:1px solid #c4c5ae55;border-radius:9px;padding:28px;width:min(400px,calc(100% - 30px))}
+#graphicsRecovery::backdrop{background:#091312b8}
+#graphicsRecovery h2{font-size:28px;margin:0}
+#graphicsRecovery p{margin:12px 0 20px;line-height:1.5}

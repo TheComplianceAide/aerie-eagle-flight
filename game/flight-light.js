@@ -80,13 +80,23 @@ window.makeFlightLight = function makeFlightLight(THREE, renderer, scene, world,
       hemi.color.copy(skylight).multiplyScalar(.83/Math.max(.18,luminance)).lerp(new THREE.Color(.89,.92,.96),.40);
       hemi.intensity*=.86;
     }
-    const sky=new THREE.CanvasTexture(small);
-    sky.colorSpace=THREE.SRGBColorSpace;
-    sky.mapping=THREE.EquirectangularReflectionMapping;
-    sky.needsUpdate=true;
-    const generator=new THREE.PMREMGenerator(renderer);
-    scene.environment=generator.fromEquirectangular(sky).texture;
-    generator.dispose();sky.dispose();
+    let reflection;
+    function prepareReflection(){
+      const sky=new THREE.CanvasTexture(small);
+      sky.colorSpace=THREE.SRGBColorSpace;
+      sky.mapping=THREE.EquirectangularReflectionMapping;
+      const generator=new THREE.PMREMGenerator(renderer);
+      try {
+        reflection=generator.fromEquirectangular(sky);
+        scene.environment=reflection.texture;
+      } finally {generator.dispose();sky.dispose();}
+    }
+    prepareReflection();
+    // This target contains generated pixels and must be rendered again after GPU loss.
+    update.releaseReflection=()=>{
+      reflection?.dispose();reflection=null;scene.environment=null;
+    };
+    update.restoreReflection=prepareReflection;
     scene.traverse(obj=>{
       if(!obj.material)return;
       const materials=Array.isArray(obj.material)?obj.material:[obj.material];
