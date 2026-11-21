@@ -517,5 +517,6 @@ window.makePerchHabitat=function makePerchHabitat(T,scene,world,region){
     }
     return best;
   }
-  return {update,flexBranch,choices,pick,select,resolveRoute,clearance,dispose,surface,wet,nearestTree};
+  return {update,flexBranch,choices,pick,select,resolveRoute,clearance,dispose,surface,wet,nearestTree,
+    branchShaderMesh:()=>new T.Mesh(slots[0].geometry,bark)};
 };

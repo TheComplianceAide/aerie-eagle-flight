@@ -15,7 +15,7 @@
         tag.onload=resolve;
         tag.onerror=()=>reject(new Error('Unable to open '+name));
         const url=window.aerieAssetURL?.(name)||name;
-        tag.src=url===name&&location.protocol!=='file:'?url+'?v=0.19.1':url;
+        tag.src=url===name&&location.protocol!=='file:'?url+'?v=0.20.1':url;
         document.head.appendChild(tag);
       });
       loaded.set(name,request.catch(error=>{loaded.delete(name);throw error;}));
@@ -38,7 +38,9 @@
     }[region]||[];
     if(['surry','dixville','yosemite','lofoten'].includes(region))surveyDetail.push('regional-field-fixtures.js');
     const streams=region==='yosemite'?['river-'+region+'.js']:[];
-    await Promise.all([...streams,...base,'habitat-data/'+region+'.js',...files,...surveyDetail].map(open));
-    await Promise.all([window.prepareRangeRelief(region),region==='moosehead'?window.prepareMooseheadUplands():null]);
+    const assets=[...streams,...base,'wildlife-tracks.js','regional-landforms.js','habitat-data/'+region+'.js',...files,...surveyDetail];
+    await Promise.all(assets.map(name=>name==='canopy-stream.js'
+      ? Promise.all([open('close-tree-detail.js'),open('close-bark-material.js').catch(()=>{})]).then(()=>open(name)) : open(name)));
+    await Promise.all([window.prepareRangeRelief(region),window.aerieRegionalLandforms.prepare(region),region==='moosehead'?window.prepareMooseheadUplands():null]);
   };
 })();

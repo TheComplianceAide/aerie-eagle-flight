@@ -3,6 +3,13 @@
 // The survey selects nearby trees in spatial order. Small consecutive groups
 // let the main and reflection cameras independently cull entire branch meshes.
 // Each group shares the surveyed transforms, colors and native branch geometry.
+window.aerieCrownTransition = `
+  float crownDetail(float distanceToTree,float inner,float outer) {
+    return 1.-smoothstep(inner,outer,distanceToTree);
+  }
+  float crownPixel(vec2 pixel) {
+    return fract(dot(floor(pixel),vec2(.75487767,.5698403)));
+  }`;
 window.partitionSurveyCrowns=function(T,scene,source,label){
   const size=32,pool=[],matrix=new T.Matrix4(),sphere=new T.Sphere();
   const geometry=source.geometry;
@@ -73,9 +80,12 @@ window.addForest = function addForest(THREE, scene, world) {
     Object.assign(shader.uniforms,wind.uniforms,squall?.uniforms);
     shader.uniforms.firTime = time;
     shader.uniforms.surveyLight = {value:world.sunMask};
-    shader.vertexShader = (squall?.glsl||'')+wind.glsl+'\nuniform float firTime;uniform sampler2D surveyLight;varying float inSun;\n' + shader.vertexShader.replace(
+    shader.vertexShader = (squall?.glsl||'')+wind.glsl+window.aerieCrownTransition+'\nattribute vec2 nearBand;varying float modelWeight;uniform float firTime;uniform sampler2D surveyLight;varying float inSun;\n' + shader.vertexShader.replace(
       '#include <begin_vertex>',
       `#include <begin_vertex>
+       float eyeRange=distance(cameraPosition,instanceMatrix[3].xyz+vec3(0.,nearBand.y*.5,0.));
+       modelWeight=crownDetail(eyeRange,nearBand.x*.78,nearBand.x);
+       if(modelWeight<=0.){gl_Position=vec4(2.,2.,2.,1.);return;}
        inSun = texture2D(surveyLight,vec2(.5+instanceMatrix[3].x/${sunlightSpan},.5-instanceMatrix[3].z/${sunlightSpan})).r;
        ${squall?'inSun*=1.-.82*craterShade(instanceMatrix[3].xyz);':''}
        vec2 anchor=instanceMatrix[3].xz,front=plantFront(anchor),motion=plantMotion(anchor,front,firTime,.13);
@@ -85,9 +95,9 @@ window.addForest = function addForest(THREE, scene, world) {
        transformed.z+=dot(disp,basisZ.xz)/max(.001,dot(basisZ,basisZ));
        float flutter=sin(firTime*2.8+dot(anchor,vec2(.014,.027))+dot(position.xz,vec2(2.1,1.3)));
        transformed.y+=length(position.xz)*(.006+.045*front.x)*flutter;`);
-    shader.fragmentShader='varying float inSun;\n'+shader.fragmentShader.replace(
+    shader.fragmentShader=window.aerieCrownTransition+'varying float modelWeight,inSun;\n'+shader.fragmentShader.replace(
       '#include <color_fragment>',
-      '#include <color_fragment>\n diffuseColor.rgb *= mix(vec3(.47,.55,.65),vec3(.94,.98,.88),inSun);');
+      '#include <color_fragment>\n if (modelWeight<=crownPixel(gl_FragCoord.xy)) discard; diffuseColor.rgb *= mix(vec3(.47,.55,.65),vec3(.94,.98,.88),inSun);');
   };
   const cellSize = 80;
   const cells = new Map();
@@ -183,6 +193,8 @@ window.addForest = function addForest(THREE, scene, world) {
     geom.setAttribute('uv',new THREE.Float32BufferAttribute(v.uv,2));
     geom.setIndex(v.indices);
     const near = new THREE.InstancedMesh(geom,nearMaterial,mobile?400:780);
+    const nearBand=new THREE.InstancedBufferAttribute(new Float32Array(near.instanceMatrix.count*2),2).setUsage(THREE.DynamicDrawUsage);
+    geom.setAttribute('nearBand',nearBand);
     near.frustumCulled=false;
     near.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     near.count=0;
@@ -195,15 +207,17 @@ window.addForest = function addForest(THREE, scene, world) {
       captureSizes:{value:views.map(f=>new THREE.Vector2(f.width,f.height))},
       captureCenters:{value:views.map(f=>new THREE.Vector3(...f.center))}
     });
-    const standMaterial=new THREE.ShaderMaterial({uniforms,fragmentShader:farFragment,fog:true,
-      vertexShader:"attribute float promoted,reachSquared;\n"+farVertex.replace("float spin = dimensions.z;", `
+    const standMaterial=new THREE.ShaderMaterial({uniforms,fog:true,
+      fragmentShader:window.aerieCrownTransition+'varying float modelWeight;\n'+farFragment.replace('vec4 sampleA=', 'if(modelWeight>crownPixel(gl_FragCoord.xy)) discard; vec4 sampleA='),
+      vertexShader:window.aerieCrownTransition+"attribute vec2 promoted;attribute float reachSquared;varying float modelWeight;\n"+farVertex.replace("float spin = dimensions.z;", `
         vec3 delta=observer-rootPosition;
-        if(promoted>.5||dot(delta,delta)>reachSquared){gl_Position=vec4(2.,2.,2.,1.);return;}
+        modelWeight=promoted.x>0.?crownDetail(distance(cameraPosition,rootPosition+vec3(0.,promoted.y*.5,0.)),promoted.x*.78,promoted.x):0.;
+        if(modelWeight>=1.||dot(delta,delta)>reachSquared){gl_Position=vec4(2.,2.,2.,1.);return;}
         float spin = dimensions.z;`)
     });
     standMaterial.userData.canopyRoot="rootPosition";
     const pages=world.region==='moosehead'?window.partitionSurveyCrowns(THREE,scene,near,'Nearby surveyed spruce'):null;
-    return {near,rectangle,standMaterial,pages};
+    return {near,nearBand,rectangle,standMaterial,pages};
   });
   // Keep ridgeline crowns resident in spatial batches. As the viewer approaches
   // the same tree, its surveyed root and silhouette are retained through the
@@ -225,7 +239,7 @@ window.addForest = function addForest(THREE, scene, world) {
       g.setAttribute("uv",record.rectangle.attributes.uv);
       const roots=new Float32Array(3*stand.length),sizes=new Float32Array(4*stand.length);
       const surveyForms=lakeCrowns?new Float32Array(4*stand.length):null;
-      const limits=new Float32Array(stand.length),hidden=new THREE.InstancedBufferAttribute(new Float32Array(stand.length),1);
+      const limits=new Float32Array(stand.length),hidden=new THREE.InstancedBufferAttribute(new Float32Array(stand.length*2),2);
       const bounds=new THREE.Box3();
       const point=new THREE.Vector3();
       let maxReach=0;
@@ -278,10 +292,11 @@ window.addForest = function addForest(THREE, scene, world) {
             const d2=dx*dx+dz*dz+dy*dy;
             const b=records[t.variantIndex];
             const nearRange=lakeCrowns?Math.min(145,Math.max(70,t.h*6.2)):Math.min(mobile?360:620,Math.max(145,t.h*(mobile?17:26)));
-            if(d2<nearRange*nearRange && b.near.count<b.near.instanceMatrix.count){
+            if(d2<(nearRange+18)**2 && b.near.count<b.near.instanceMatrix.count){
               promoted.push(t);t.nextNear=true;
-              if(!t.hidden.getX(t.slot)){t.hidden.setX(t.slot,1);t.hidden.needsUpdate=true;}
+              if(!t.hidden.getX(t.slot)){t.hidden.setXY(t.slot,nearRange,t.h);t.hidden.needsUpdate=true;}
               const n=b.near.count++;
+              b.nearBand.setXY(n,nearRange,t.h);
               transform.position.set(t.x,t.y-.20,t.z);
               transform.rotation.y=t.rotation;
               transform.scale.set(t.sx,t.sy,t.sx);
@@ -297,6 +312,7 @@ window.addForest = function addForest(THREE, scene, world) {
     for(const t of promoted)t.nextNear=false;
     for(const b of records){
       b.near.instanceMatrix.needsUpdate=true;
+      b.nearBand.needsUpdate=true;
       if(b.near.instanceColor)b.near.instanceColor.needsUpdate=true;
       b.pages?.();
     }

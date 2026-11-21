@@ -54,20 +54,57 @@
   // limbs. Every mesh sharing this scene samples the same passing front.
   window.getCanopyWind=function(T,scene){
     if(scene.userData.canopyWind)return scene.userData.canopyWind;
-    const side=65,step=8,period=.42,pixels=new Uint8Array(side*side*4);
-    const texture=new T.DataTexture(pixels,side,side,T.RGBAFormat);
+    const side=65,rows=82,step=8,period=.42,pixels=new Uint8Array(side*rows*4);
+    const texture=new T.DataTexture(pixels,side,rows,T.RGBAFormat);
     texture.minFilter=texture.magFilter=T.LinearFilter;texture.needsUpdate=true;
     const uniforms={canopyFlow:{value:texture},canopyCenter:{value:new T.Vector2()},
       canopyDownwind:{value:new T.Vector2(1,0)},canopyLakeshore:{value:0},canopyFraction:{value:0}};
-    const glsl=`
+    const flowGLSL=`
       uniform sampler2D canopyFlow;
       uniform vec2 canopyCenter,canopyDownwind;
       uniform float canopyFraction,canopyLakeshore;
+      float weatherWindow(vec2 root){
+        vec2 outer=floor(canopyCenter/64.+.5)*64.;
+        vec2 d=abs(root-outer);
+        return 1.-smoothstep(409.,498.,max(d.x,d.y));
+      }
+      float nearFrontWindow(vec2 root){
+        vec2 d=abs(root-canopyCenter);
+        return 1.-smoothstep(204.,251.,max(d.x,d.y));
+      }
+      vec4 widerFront(vec2 root){
+        // Broad gusts cover a kilometre of shore. World-fixed sparse texels
+        // extend across and down the wind, fading into the finer branch field.
+        vec2 outer=floor(canopyCenter/64.+.5)*64.;
+        vec2 q=clamp((root-outer)/vec2(32.,64.)+vec2(16.5,8.5),vec2(.5),vec2(32.5,16.5));
+        return texture2D(canopyFlow,(q+vec2(18.,65.))/vec2(65.,82.));
+      }
+      vec2 localFront(vec2 root){
+        float near=nearFrontWindow(root);
+        vec2 result=vec2(0.);
+        if(near>0.){
+          vec2 texel=clamp((root-canopyCenter)/8.+32.5,vec2(.5),vec2(64.5));
+          vec4 f=texture2D(canopyFlow,texel/vec2(65.,82.));
+          result=mix(f.rb,f.ga,canopyFraction);
+        }
+        if(near<1.){
+          vec4 o=widerFront(root);
+          result=mix(vec2(mix(o.r,o.g,canopyFraction),o.b),result,near);
+        }
+        return result;
+      }
+      float localExposure(vec2 root){
+        float near=nearFrontWindow(root),result=1.;
+        if(near>0.){
+          vec2 texel=clamp((root-canopyCenter)/32.+8.5,vec2(.5),vec2(16.5));
+          result=texture2D(canopyFlow,(texel+vec2(0.,65.))/vec2(65.,82.)).r;
+        }
+        if(near<1.)result=mix(widerFront(root).a,result,near);
+        return mix(1.,result,weatherWindow(root));
+      }`;
+    const glsl=`${flowGLSL}
       vec2 plantFront(vec2 root){
-        vec2 uv=(root-canopyCenter)/520.+.5;
-        vec4 front=texture2D(canopyFlow,uv);
-        float boundary=1.-smoothstep(.42,.49,max(abs(uv.x-.5),abs(uv.y-.5)));
-        return mix(vec2(.10),mix(front.rb,front.ga,canopyFraction),boundary);
+        return mix(vec2(.10),localFront(root),weatherWindow(root));
       }
       vec2 plantMotion(vec2 root,vec2 front,float t,float softness){
         float along=dot(root,canopyDownwind),crosswind=dot(root,vec2(-canopyDownwind.y,canopyDownwind.x));
@@ -76,12 +113,19 @@
         float pulse=.59*sin(t*(.77+.19*softness)-.14*along+.82*sin(.076*crosswind))+
                     .41*sin(t*1.83-.19*along+.15*cos(crosswind*.11));
         float fore=.026+.019*sin(t*.82-phase)+sway*(.18+.085*pulse)+.085*(front.x-front.y);
+        // The rising edge turns softer growth first; the leafy outer crown
+        // follows the pressure stored in the wake channel.
+        float rising=front.x-front.y;
+        fore+=sway*(.034+.044*softness)+rising*(.11+.16*softness);
         float side=.012*sin(t*1.21+phase)+sway*.036*sin(t*(1.2+softness)+.19*crosswind);
         if(canopyLakeshore>.5){
           float leading=clamp(front.x-front.y,-.23,.23);
           fore+=.17*smoothstep(.16,.82,sway)+.24*leading;
           side+=leading*.14*sin(phase*9.+t*1.8);
         }
+        // Woody carriers share the 0.16-height conservative visibility bound.
+        // Grass and reed tips can bend farther under the same passing front.
+        fore=min(fore,mix(.65,.86,smoothstep(.20,.80,softness)));
         return canopyDownwind*fore+vec2(-canopyDownwind.y,canopyDownwind.x)*side;
       }`;
     // Terrain exposure changes on a coarser scale than the front. Sample the
@@ -90,7 +134,9 @@
     const localExposure=new Float32Array(side*side);
     function refreshShelter(field,x,z){
       for(let j=0;j<exposureSize;j++)for(let i=0;i<exposureSize;i++){
-        exposures[j*exposureSize+i]=field.canopyExposure(x+(i-8)*32,z+(j-8)*32);
+        const e=field.canopyExposure(x+(i-8)*32,z+(j-8)*32);
+        exposures[j*exposureSize+i]=e;
+        pixels[4*((side+j)*side+i)]=Math.round(e*255);
       }
       for(let j=0;j<side;j++)for(let i=0;i<side;i++){
         const a=Math.min(15,Math.floor(i/4)),b=Math.min(15,Math.floor(j/4));
@@ -106,19 +152,31 @@
       const x=Math.round(eye.x/32)*32,z=Math.round(eye.z/32)*32,tick=Math.floor(t/period),start=tick*period;
       uniforms.canopyFraction.value=clamp((t-start)/period,0,1);
       if(previous===tick&&x===centerX&&z===centerZ)return;
+      // On the next interval the old end samples are the new start samples.
+      // Reuse their exact quantized values while the terrain grid is stationary.
+      const continuous=previous===tick-1&&x===centerX&&z===centerZ;
       if(x!==centerX||z!==centerZ)refreshShelter(field,x,z);
       previous=tick;centerX=x;centerZ=z;uniforms.canopyCenter.value.set(x,z);
       uniforms.canopyDownwind.value.set(field.direction.x,field.direction.z);
       for(let j=0,k=0;j<side;j++)for(let i=0;i<side;i++,k+=4){
-        const wx=x+(i-32)*step,wz=z+(j-32)*step,gain=255*localExposure[j*side+i];
-        pixels[k]=Math.round(gain*field.gust(wx,wz,start));
-        pixels[k+1]=Math.round(gain*field.gust(wx,wz,start+period));
-        pixels[k+2]=Math.round(gain*field.gust(wx,wz,start-.88));
-        pixels[k+3]=Math.round(gain*field.gust(wx,wz,start+period-.88));
+        const wx=x+(i-32)*step,wz=z+(j-32)*step,gain=255*localExposure[j*side+i]*field.frontGain;
+        pixels[k]=continuous?pixels[k+1]:Math.min(255,Math.round(gain*field.gust(wx,wz,start)));
+        pixels[k+1]=Math.min(255,Math.round(gain*field.gust(wx,wz,start+period)));
+        pixels[k+2]=continuous?pixels[k+3]:Math.min(255,Math.round(gain*field.gust(wx,wz,start-.88)));
+        pixels[k+3]=Math.min(255,Math.round(gain*field.gust(wx,wz,start+period-.88)));
+      }
+      const outerX=Math.round(x/64)*64,outerZ=Math.round(z/64)*64;
+      for(let j=0;j<17;j++)for(let i=0;i<33;i++){
+        const wx=outerX+(i-16)*32,wz=outerZ+(j-8)*64;
+        const e=field.canopyExposure(wx,wz),gain=e*field.frontGain*255,k=4*((65+j)*side+18+i);
+        pixels[k]=continuous?pixels[k+1]:Math.min(255,Math.round(gain*field.gust(wx,wz,start)));
+        pixels[k+1]=Math.min(255,Math.round(gain*field.gust(wx,wz,start+period)));
+        pixels[k+2]=Math.min(255,Math.round(gain*field.gust(wx,wz,start-.67)));
+        pixels[k+3]=Math.round(e*255);
       }
       texture.needsUpdate=true;
     };
-    return scene.userData.canopyWind={uniforms,glsl,update};
+    return scene.userData.canopyWind={uniforms,glsl,flowGLSL,update};
   };
   window.makeWindField = function(terrain, region) {
     let seed = 0;
@@ -126,7 +184,11 @@
     const phase = (seed%997)/997*tau;
     const angle = -.48+.65*Math.sin(phase);
     const direction = {x:Math.cos(angle), z:Math.sin(angle)};
-    const advection = 4.7 + 1.0*Math.cos(phase);
+    // Relative loading of the authored weather. Saltwater fjords and the
+    // approaching caldera squall carry more surface stress than Keene's fog.
+    const frontGain=({alaska:1.10,swiss:.99,canyon:.88,dixville:.94,labrador:1.03,
+      moosehead:1,winnipesaukee:.90,surry:.69,yosemite:.84,crater:1.16,milford:1.08,lofoten:1.20})[region]??1;
+    const advection = (4.7 + 1.0*Math.cos(phase))*frontGain;
     const start = terrain.spawn;
     const origin = start ? {x:start.x-205*Math.sin(start.yaw||0),z:start.z-205*Math.cos(start.yaw||0)} : {x:0,z:0};
     const centers = [];
@@ -224,12 +286,78 @@
       const across=-x*direction.z+z*direction.x;
       return gustAt(along,across,phase);
     }
-    function canopyExposure(x,z) {
-      const y=ground(x,z),upwind=d=>ground(x-direction.x*d,z-direction.z*d);
-      // Shelter starts at a 4-degree skyline and reaches its deepest lee
-      // near 29 degrees. Open shore and level forest retain the full gust.
-      const skyline=Math.max((upwind(32)-y)/32,(upwind(112)-y)/112);
-      return 1-.64*smooth(.07,.55,skyline);
+    const exposureNodes=new Map(),standShelter=new Map(),treeGrid=terrain.treeGrid;
+    function coverNear(x,z) {
+      if(!treeGrid?.cells||!treeGrid.cell)return 0;
+      const key=treeGrid.cell(x,z),cached=standShelter.get(key);
+      if(cached!==undefined)return cached;
+      const trees=treeGrid.cells.get(key);
+      if(!trees?.length)return 0;
+      let area=0;
+      const step=Math.max(1,Math.floor(trees.length/32));
+      for(let i=0;i<trees.length;i+=step){
+        const t=trees[i],span=Math.min(16,t.width||.27*(t.height||0));
+        area+=span*span;
+      }
+      const cover=1-Math.exp(-2.6*step*area/(treeGrid.size*treeGrid.size));
+      if(standShelter.size>4096)standShelter.clear();
+      standShelter.set(key,cover);return cover;
+    }
+    function exposureNode(ix,iz){
+      const key=ix*131071+iz,cached=exposureNodes.get(key);
+      if(cached!==undefined)return cached;
+      const x=ix*32,z=iz*32,y=ground(x,z),dx=direction.x,dz=direction.z;
+      const skyline=Math.max((ground(x-dx*32,z-dz*32)-y)/32,(ground(x-dx*112,z-dz*112)-y)/112,
+        .82*(ground(x-dx*244,z-dz*244)-y)/244);
+      const woods=.64*coverNear(x-dx*24,z-dz*24)+.36*coverNear(x-dx*64,z-dz*64);
+      const shelter=(1-.76*smooth(.05,.49,skyline))*(1-.32*woods);
+      if(exposureNodes.size>4096)exposureNodes.clear();
+      exposureNodes.set(key,shelter);return shelter;
+    }
+    function canopyExposure(x,z){
+      const u=x/32,v=z/32,i=Math.floor(u),j=Math.floor(v),a=u-i,b=v-j,e=exposureNode(i,j);
+      if(!a&&!b)return e;
+      return (1-b)*(e+(exposureNode(i+1,j)-e)*a)+b*((1-a)*exposureNode(i,j+1)+a*exposureNode(i+1,j+1));
+    }
+    function localAir(strength,agl,surface,out){
+      // Ground friction and the lee diminish with height. Mountain-scale
+      // thermals and the smaller eddies on each wing keep their own geometry.
+      out.surfaceExposure=surface;
+      out.exposure=1-(1-surface)*Math.exp(-agl/78);
+      const layer=.3+.7*Math.exp(-agl/280);
+      out.gust=Math.min(1,strength*frontGain*out.exposure);
+      const speed=2.65*(.49+.51*out.exposure)*(.82+.18*frontGain)+3.45*out.gust*layer;
+      out.windX=direction.x*speed;out.windZ=direction.z*speed;
+      return layer;
+    }
+    const showerMark=region==='labrador'&&terrain.landmarks?.find(p=>/rainbow|shower|arc-en-ciel/i.test(p.name));
+    const sunLength=sun?Math.hypot(sun.x,sun.z)||1:1,axisX=sun?-sun.x/sunLength:0,axisZ=sun?-sun.z/sunLength:0;
+    function narrowsRainAt(x,z,t){
+      if(!showerMark)return 0;
+      const shift=240*Math.sin(t*advection/240);
+      const dx=x-showerMark.x-direction.x*shift,dz=z-showerMark.z-direction.z*shift;
+      return (1-smooth(140,470,Math.abs(dx*axisX+dz*axisZ)))*(1-smooth(650,1600,Math.abs(-dx*axisZ+dz*axisX)));
+    }
+    function weatherAt(x,y,z,t,out={}){
+      const agl=Math.max(0,y-ground(x,z));
+      localAir(gust(x,z,t),agl,canopyExposure(x,z),out);
+      out.rain=0;out.wetness=0;
+      out.drying=.34+.66*out.exposure;
+      terrain.rainCellAt?.(x,y,z,t,out);
+      // Additional precipitation belongs to its actual regional weather.
+      if(region==='crater'&&window.aerieCalderaRain){
+        const rain=window.aerieCalderaRain(x,y,z,t);
+        out.rain=rain;
+        // Integrate the moving squall's history spatially, so revisiting a
+        // location preserves moisture even when the storm has passed.
+        const dry=out.drying,old=window.aerieCalderaRain(x,y,z,t-30),earlier=window.aerieCalderaRain(x,y,z,t-90);
+        out.wetness=Math.max(rain,.76*old*Math.exp(-30*dry/105),.56*earlier*Math.exp(-90*dry/105));
+      }else if(showerMark){
+        const rain=narrowsRainAt(x,z,t);
+        out.rain=Math.max(out.rain,rain);
+        out.wetness=Math.max(out.wetness,rain,.66*narrowsRainAt(x,z,t-36)*Math.exp(-36*out.drying/95));
+      }
+      out.rain=clamp(out.rain,0,1);out.wetness=clamp(out.wetness,0,1);return out;
     }
     function sample(x,y,z,t,out={},groundPlane) {
       const localX=x-origin.x, localZ=z-origin.z;
@@ -244,13 +372,10 @@
       const groundY=groundPlane ? groundPlane.groundY+(x-groundPlane.x)*slopeX+(z-groundPlane.z)*slopeZ : ground(x,z);
       out.x=x;out.z=z;out.groundY=groundY;out.slopeX=slopeX;out.slopeZ=slopeZ;
       const agl = Math.max(0,y-groundY);
-      const boundaryLayer = .3+.7*Math.exp(-agl/280);
-      const windSpeed = 2.65+3.45*strength*boundaryLayer;
-      out.windX = direction.x*windSpeed;
-      out.windZ = direction.z*windSpeed;
-      out.gust = strength;
+      const surface=(groundPlane&&Number.isFinite(groundPlane.surfaceExposure))?groundPlane.surfaceExposure:canopyExposure(x,z);
+      const boundaryLayer=localAir(strength,agl,surface,out);
       // Brief upwash at the advancing front, followed by a settling wake.
-      out.gustLift = .85*(gustAt(along-12,across,phase)-gustAt(along+12,across,phase))*boundaryLayer;
+      out.gustLift = .85*(gustAt(along-12,across,phase)-gustAt(along+12,across,phase))*boundaryLayer*out.exposure*frontGain;
       out.ridge = clamp((slopeX*out.windX+slopeZ*out.windZ)*1.45,-1.1,3.5)*Math.exp(-agl/175);
       out.thermal = 0;
       const aboveSurface = smooth(4,48,agl);
@@ -267,7 +392,7 @@
       // Outer-scale gusts carry smaller, oblique eddies. Each wing crosses
       // the same spatial air pattern at its own position. Sheltered, smooth
       // air has no source of mixing; there is no time-driven wing jitter.
-      const mixing=clamp(1.25*strength*boundaryLayer+.32*Math.abs(out.ridge)+.16*out.thermal,0,1.4);
+      const mixing=clamp(1.25*out.gust*boundaryLayer+.32*Math.abs(out.ridge)+.16*out.thermal,0,1.4);
       const twist=1.6*Math.sin(.046*along+.027*across+.018*y+phase);
       const large=Math.sin(.113*along+.170*across+.064*y+twist);
       const medium=Math.sin(.289*along-.413*across-.131*y+.85*twist+phase);
@@ -281,6 +406,6 @@
       return out;
     }
     return {centers, get launchCenter(){return launchCenter;}, ensureLaunchCore, core, gust,
-            direction, origin, phase, advection, canopyExposure, sample};
+            direction, origin, phase, advection, frontGain, canopyExposure, weatherAt, narrowsRainAt, sample};
   };
 })();

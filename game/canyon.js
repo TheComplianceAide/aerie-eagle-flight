@@ -21,7 +21,13 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
     const inset=Math.min(x+1600,-x,800-Math.abs(z));
     return inset>0 ? lerp(h,fine(x,z),smoothstep(inset,0,32)) : h;
   }
-  function elevation(x,z) {
+  const landmarkTerrain=window.aerieRegionalLandforms?.get('canyon');
+  const landmarkGroundMaterials=new Set();
+  function elevation(x,z){
+    const base=nativeElevation(x,z);
+    return landmarkTerrain?landmarkTerrain.height(x,z,base):base;
+  }
+  function nativeElevation(x,z){
     const ground=surveyedElevation(x,z);
     const along=z+288;
     if(Math.abs(along)>34 || x< -585 || x> -476)return ground;
@@ -336,6 +342,11 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
     }
   }
   function patch(left,north,width,steps,mat,photoX,photoZ,photoSize){
+    if(landmarkTerrain){
+      const [l,t,r,b]=landmarkTerrain.rect;
+      if(left<r&&left+width>l&&north<b&&north+width>t)landmarkGroundMaterials.add(mat);
+    }
+
     const geo=new THREE.PlaneGeometry(width,width,steps,steps);
     geo.rotateX(-Math.PI/2);const pos=geo.attributes.position,uv=geo.attributes.uv,normal=geo.attributes.normal;
     const d=width/steps*.5;
@@ -487,7 +498,13 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
   const spawn={x:45,z:76,y:elevation(45,76)+72,yaw:1.38};
   const ridge={x:-425,z:-2450,y:elevation(-425,-2450)+90,yaw:1.54};
   const shore={x:-441,z:-76,y:elevation(-441,-76)+7.2,yaw:.24};
-  return {height:elevation,elevation,rockSurface,rockLight:shared.terrainField,clearance,spawn,launches:{lake:spawn,ridge,shore,wall:{x:-920,y:67.814,z:-72,yaw:1.7984}},trees:[],
+  let landformMesh=null;
+  if(landmarkTerrain&&landmarkGroundMaterials.size){
+    const reference=landmarkGroundMaterials.values().next().value;
+    landformMesh=landmarkTerrain.add(THREE,scene,reference,nativeElevation,texture);
+    for(const source of landmarkGroundMaterials)landmarkTerrain.maskOriginal(source);
+  }
+  return {landformMesh,height:elevation,elevation,rockSurface,rockLight:shared.terrainField,clearance,spawn,launches:{lake:spawn,ridge,shore,wall:{x:-920,y:67.814,z:-72,yaw:1.7984}},trees:[],
     skyTexture,sunDirection:sun,altitudeOffset:950,bounds:{minX:-2950,maxX:2950,minZ:-2950,maxZ:2950},
     landmarks:[{name:'Horseshoe Bend',x:-925,z:-235},{name:'Horseshoe Bend Overlook',x:0,z:80},
       {name:'Colorado River',x:-950,z:-2450},{name:'Glen Canyon Rim',x:-1830,z:500},

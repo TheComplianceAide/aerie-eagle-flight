@@ -750,3 +750,37 @@ See field-ground-credits.txt for the individual scan photographers and the Table
 
 REGIONAL VEGETATION
 See regional-habitat-credits.txt for land-cover data and species references, and canopy-data/credits.txt for specimen photography and measured crowns.
+
+Regional landmark terrain and cliff materials
+
+Moosehead Lake (Mount Kineo), Lake Winnipesaukee (Rattlesnake Island), Dixville Notch (Mount Gloriette), Surry Mountain Dam, Yosemite (El Capitan), Crater Lake (Wizard Island) and the Arizona canyon (Horseshoe Bend) use USGS 3D Elevation Program terrain and USDA National Agriculture Imagery Program photography. Mount Kineo uses the one-metre Western Mountains B24 terrain tile. The other US sites use two-metre samples from the official multi-resolution 3DEP service. The Surry reservoir follows the local mapped shoreline and simulated pool stage.
+https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer
+https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer
+
+Mendenhall Glacier (Nugget Falls headwall) uses two-metre 3DEP samples and the regional mosaic blending 2013 City and Borough of Juneau orthophotography (Watershed Sciences Inc.) with 2024 Copernicus Sentinel-2 imagery credited above. The Nugget Creek centerline follows visible whitewater in the local aerial mosaic. Its downhill profile is registered to the 3DEP terrain. Red and near-infrared Sentinel-2 bands guide cover on the forested banks. Individual tree positions and sizes are inferred.
+https://www.usgs.gov/3d-elevation-program
+https://dataspace.copernicus.eu/data-collections/copernicus-sentinel-data/sentinel-2
+
+Fründenschnuer, Oeschinensee. © Federal Office of Topography swisstopo. Two-metre swissALTI3D terrain samples registered to SWISSIMAGE orthophotography in Swiss LV95.
+https://www.swisstopo.admin.ch/en/height-model-swissalti3d
+https://www.swisstopo.admin.ch/en/orthoimage-swissimage
+
+Olstinden, Lofoten. The Norwegian national terrain model © Kartverket was sampled on a two-metre grid, CC BY 4.0. The landscape includes modified Copernicus Sentinel-2 Level-2A true-colour imagery from 27 June 2023. The source optical resolution is ten metres.
+https://www.kartverket.no/api-og-data/terrengdata
+https://wcs.geonorge.no/skwms1/wcs.hoyde-dtm-nhm-25833
+https://earth-search.aws.element84.com/v1/collections/sentinel-2-l2a/items/S2A_32WPA_20230627_0_L2A
+https://creativecommons.org/licenses/by/4.0/
+
+Rahotu / Mitre Peak, Milford Sound. Sourced from the LINZ Data Service and licensed for reuse under CC BY 4.0. The NZ 8m Digital Elevation Model (2012), sheet CB08, derives elevations from contours. The game resamples its eight-metre native grid at four metres. Southland 0.75m Rural Aerial Photos (2005–2011) provide the registered colour.
+https://data.linz.govt.nz/layer/51768-nz-8m-digital-elevation-model-2012/
+https://www.linz.govt.nz/products-services/data/types-linz-data/aerial-imagery
+https://creativecommons.org/licenses/by/4.0/
+
+Lac Berté south narrows, Côte-Nord. © Gouvernement du Québec, ministère des Ressources naturelles et des Forêts, CC BY 4.0. The terrain was cropped from 2022 LiDAR-derived MNT sheets 22K10NE and 22K09NO. The 2022 Côte-Nord ecoforest orthophotography has fifteen-centimetre RGB source imagery. Both were registered on a two-metre game grid.
+https://www.donneesquebec.ca/recherche/dataset/produits-derives-de-base-du-lidar
+https://servicesmatriciels.mern.gouv.qc.ca/erdas-iws/ogc/wmts/Imagerie_Aeroportee_Forestiere_Historique?SERVICE=WMTS&REQUEST=GetCapabilities
+https://creativecommons.org/licenses/by/4.0/
+
+Kineo's cliff crest and headland follow the actual Maine terrain. Meter-scale broken joint planes, undercuts, weathering geometry, individual ledge shrubs and wetting are artistic reconstructions. Rob Tuytel's Coastal Cliff 02 scan, Poly Haven CC0, supplies photographic surface grain. Its source site is outside Mount Kineo. The older east cliff and shoreline model sources and their separate image licenses are documented in geology-data/kineo-credits.txt.
+https://polyhaven.com/a/coastal_cliff_02
+https://creativecommons.org/publicdomain/zero/1.0/

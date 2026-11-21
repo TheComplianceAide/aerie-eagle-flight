@@ -44,7 +44,7 @@ window.addRegionalWildlife=function(T,scene,w){
     return null;
   }
   const ripples=window.makeFishRipples(T,scene,w,waterAt);
-  const fish=window.makeFishSchools(region,waterAt,ripples.emit),sites=new Map();
+  const fish=window.makeFishSchools(region,waterAt,ripples.emit),sites=new Map(),dormantSites=new Map();
   const social={
     loon:[1,2],goose:[5,15],nene:[2,5],mallard:[3,12],'black-duck':[2,8],'wood-duck':[2,6],
     merganser:[2,7],eider:[5,22],shelduck:[2,4],heron:[1,1],kingfisher:[1,1],dipper:[1,2],
@@ -90,7 +90,7 @@ window.addRegionalWildlife=function(T,scene,w){
       if(aquatic&&!Number.isFinite(level)){const near=findWater(px,pz,4);if(!near)continue;px=near.x;pz=near.z;level=near.y;}
       if(!aquatic&&!onTree&&!seabird&&Number.isFinite(level))continue;
       const variant=k%2===1&&['mallard','shelduck','eider'].includes(skin)?skin+'-hen':skin;
-      const a={id,skin:variant,length,homeX:px,homeZ:pz,homeY:onTree?base.y:
+      const a={id,residentId:region+'/'+site.key+'/'+site.flocks.length+'/'+id+'/'+k,skin:variant,length,homeX:px,homeZ:pz,homeY:onTree?base.y:
         aquatic?level:h.surface(px,pz),x:px,y:base.y,z:pz,heading:bearing,phase:random()*tau,seed:random()*tau,
         effort:0,mode:0,level:0,rank:k,pitch:0,bank:0};
       flock.group.push(a);
@@ -98,6 +98,7 @@ window.addRegionalWildlife=function(T,scene,w){
     if(flock.group.length)site.flocks.push(flock);
   }
   function makeSite(key,x,z,curated){
+    if(resumeSite(key))return sites.get(key);
     const random=randomAt(x,z),water=findWater(x,z,curated?140:86);
     const site={key,x,z,water,curated,flocks:[],schools:[]};
     for(const id of [...profile.birds,...profile.animals]){
@@ -108,13 +109,17 @@ window.addRegionalWildlife=function(T,scene,w){
     if(water)site.schools=fish.populate({...water,findWater},random,curated);
     sites.set(key,site);return site;
   }
+  function resumeSite(key){
+    const saved=dormantSites.get(key);if(!saved)return false;
+    dormantSites.delete(key);sites.set(key,saved);return true;
+  }
   function stockNearbyShore(player){
     // Open-water flights cross the large bird habitat cells between their
     // centres. Stock persistent feeding pockets on the actual nearshore shelf.
     const spacing=94,cx=Math.round(player.x/spacing),cz=Math.round(player.z/spacing);
     for(let i=-1;i<=1;i++)for(let j=-1;j<=1;j++){
       const col=cx+i,row=cz+j,key='shore:'+col+','+row;
-      if(sites.has(key))continue;
+      if(sites.has(key)||resumeSite(key))continue;
       const random=randomAt(col+137,row-251);
       const x=(col+(random()-.5)*.46)*spacing,z=(row+(random()-.5)*.46)*spacing;
       if(Math.hypot(x-player.x,z-player.z)>145)continue;
@@ -261,10 +266,19 @@ window.addRegionalWildlife=function(T,scene,w){
     let x=a.homeX,z=a.homeZ,y=a.homeY;
     if(swim){
       const radius=loon?2.8:.72;
-      const xx=x+radius*(Math.sin(ph)-Math.sin(seed)),zz=z+radius*.65*(Math.sin(ph*.67+seed)-Math.sin(seed*1.67));
+      if(!mix&&approach&&dt>0&&t>=(a.quietAfter||0)){
+        a.disturbedAt=t;a.quietAfter=t+24+seed;
+        a.awayAngle=Math.atan2(a.z-player.z,a.x-player.x);
+        ripples.emit(a,t,loon?.68:.38);
+      }
+      const since=t-(a.disturbedAt??-1000);
+      const escape=since>=0?sCurve(since/2.4)*(1-sCurve((since-7)/11)):0;
+      const paddle=(loon?3.2:1.8)*escape;
+      const xx=x+radius*(Math.sin(ph)-Math.sin(seed))+paddle*Math.cos(a.awayAngle||0);
+      const zz=z+radius*.65*(Math.sin(ph*.67+seed)-Math.sin(seed*1.67))+paddle*Math.sin(a.awayAngle||0);
       if(Number.isFinite(waterAt(xx,zz))){x=xx;z=zz;}
       a.level=waterAt(x,z);y=a.level+L*.15+.014*Math.sin(t*2.5+seed);
-      if(loon){const dive=Math.max(0,Math.sin(t*.14+seed)-.77)/.23;y-=dive*2.7;behavior=dive>.2?'diving':'paddling';}
+      if(loon){const dive=Math.max(escape,Math.max(0,Math.sin(t*.14+seed)-.77)/.23);y-=dive*2.7;behavior=dive>.2?'diving':'paddling';}
       else if(!mix)behavior='paddling';
     }else if(!sky||grassGoose){
       const walking=Math.sin(t*.23+seed)>.15||approach;
@@ -371,11 +385,27 @@ window.addRegionalWildlife=function(T,scene,w){
   }
   function update(player,t){
     prepare();
+    if(t<lastTime){
+      dormantSites.clear();
+      for(const [key,site] of sites){
+        if(!site.curated){sites.delete(key);continue;}
+        for(const f of site.flocks)for(const a of f.group){
+          a.disturbedAt=a.seenAt=undefined;a.quietAfter=0;
+        }
+        for(const school of site.schools){
+          school.seenAt=undefined;for(const fish of school.members){fish.scare=0;fish.lastSwirl=-Infinity;}
+        }
+      }
+      nextCheck=0;
+    }
     const dt=lastTime<0?0:clamp(t-lastTime,0,.15);lastTime=t;
     if(t>=nextCheck||t===0){
       nextCheck=t+.8;
       if(feedingFish&&player.y-w.waterLevel<42)stockNearbyShore(player);
-      for(const [key,s] of sites)if(!s.curated&&Math.hypot(player.x-s.x,player.z-s.z)>530)sites.delete(key);
+      for(const [key,s] of sites)if(!s.curated&&Math.hypot(player.x-s.x,player.z-s.z)>530){
+        if(s.flocks.length||s.schools.length)dormantSites.set(key,s);
+        sites.delete(key);
+      }
       const ix=Math.round(player.x/310),iz=Math.round(player.z/310),key=ix+','+iz;
       if(!sites.has(key)&&Math.hypot(player.x-resident.x,player.z-resident.z)>195&&player.y-h.surface(player.x,player.z)<230)
         makeSite(key,ix*310,iz*310,false);
@@ -387,6 +417,8 @@ window.addRegionalWildlife=function(T,scene,w){
       if(Math.hypot(player.x-site.x,player.z-site.z)>570)continue;
       const swimmers=[];
       for(const f of site.flocks)for(const a of f.group){
+        if(a.seenAt!==undefined&&t-a.seenAt>.6)a.phase+=(t-a.seenAt)*2.3;
+        a.seenAt=t;
         birdPose(a,f,t,dt,player);
         if(a.behavior==='paddling')swimmers.push(a);
       }
@@ -411,6 +443,22 @@ window.addRegionalWildlife=function(T,scene,w){
         }
       for(const school of site.schools){
         if(Math.hypot(player.x-school.home.x,player.y-school.home.y,player.z-school.home.z)>90)continue;
+        if(school.seenAt!==undefined&&t-school.seenAt>.6){
+          const absence=t-school.seenAt;
+          for(const a of school.members){
+            a.scare*=Math.exp(-absence*.68);
+            const theta=.18*t+a.seed;
+            const x=school.home.x+a.offsetX+Math.cos(theta)*school.spacing*.6;
+            const z=school.home.z+a.offsetZ+Math.sin(theta)*school.spacing*.6;
+            const level=waterAt(x,z);
+            if(Number.isFinite(level)){
+              const gain=1-Math.exp(-absence*.1);
+              const px=a.x+(x-a.x)*gain,pz=a.z+(z-a.z)*gain,py=waterAt(px,pz);
+              if(Number.isFinite(py)){a.x=px;a.z=pz;a.level=py;}
+            }
+          }
+        }
+        school.seenAt=t;
         fish.update(school,player,t,dt);
         for(const a of school.members){
           if(!models.draw(a))continue;

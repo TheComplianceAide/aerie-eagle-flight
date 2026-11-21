@@ -99,8 +99,6 @@ window.addBerteWeather=function addBerteWeather(T,scene,{sun,clock,sky,terrain,s
   const drops=new T.LineSegments(geometry,rainMaterial);
   drops.name='Fine rain over the narrows';drops.frustumCulled=false;drops.visible=false;scene.add(drops);
   const light=scene.children.find(o=>o.isDirectionalLight),strength=light?.intensity;
-  const axis=new T.Vector2(-sun.x,-sun.z).normalize(),sideX=-axis.y,sideZ=axis.x;
-  function smooth(a,b,x){const v=Math.max(0,Math.min(1,(x-a)/(b-a)));return v*v*(3-2*v);}
   const air={},travel=rainMaterial.uniforms.dropTravel.value,wind=rainMaterial.uniforms.dropWind.value;
   let lastTime=-1;
   return (t,player,field)=>{
@@ -108,9 +106,7 @@ window.addBerteWeather=function addBerteWeather(T,scene,{sun,clock,sky,terrain,s
     // same local gust as the eagle, integrating distance so they never jump.
     const shift=240*Math.sin(t*field.advection/240);
     showerCenter.value.set(center.x+field.direction.x*shift,center.y+field.direction.z*shift);
-    const dx=player.x-showerCenter.value.x,dz=player.z-showerCenter.value.y;
-    const across=dx*sideX+dz*sideZ,along=dx*axis.x+dz*axis.y;
-    const wet=(1-smooth(140,470,Math.abs(along)))*(1-smooth(650,1600,Math.abs(across)));
+    const wet=field.narrowsRainAt(player.x,player.z,t);
     if(lastTime<0 || t<lastTime)travel.set(0,0);
     const dt=lastTime<0?0:Math.max(0,t-lastTime);
     lastTime=t;

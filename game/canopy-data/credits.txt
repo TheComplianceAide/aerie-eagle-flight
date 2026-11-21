@@ -9,3 +9,8 @@ https://s3-us-west-2.amazonaws.com/usgs-lidar-public/USGS_LPC_CT_River_Lot6_Winn
 https://nhgeodata.unh.edu/image/rest/services/ImageServices/NH_2021_2022_6in_RGB/ImageServer
 
 Mendenhall Lake, Alaska: the four Sitka spruce growth forms use the Aerie-Mendenhall-Sitka-Spruce-Sheet-v2 RGBA artwork. The leaning cone-bearing adult, open juvenile, localized yellow broom, and broken-top survivor were modeled as separate three-dimensional specimens. Bark, bough and broom samples from that sheet are supplemented by the photographed CC0 fir bark and needles credited above. The mesh depths and growth-form assignments are artist interpretations at the existing game tree positions.
+
+Close-range wood uses the surface relief and luminance of Pine Bark by Dimitrios Savva and Trident Maple Bark by Charlotte Baglioni. These are representative materials over each specimen's existing regional colouring. Source assets are CC0, published by Poly Haven.
+https://polyhaven.com/a/pine_bark
+https://polyhaven.com/a/trident_maple_bark
+https://polyhaven.com/license

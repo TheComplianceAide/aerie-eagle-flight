@@ -4,7 +4,8 @@ window.makeLandWildlife=function makeLandWildlife(T,scene,w){
   const catalog=window.aerieLandWildlife,profile=catalog.regions[w.region];
   if(!profile)return null;
   const h=w.habitat,ground=w.elevation||w.height,clear=w.clearance||w.height;
-  const render=window.makeLandModels(T,scene),herds=new Map(),drawn=[];
+  const render=window.makeLandModels(T,scene),herds=new Map(),dormant=new Map(),drawn=[];
+  const tracks=window.makeWildlifeTracks(T,scene,w);
   const tau=2*Math.PI,clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),bounds=w.bounds;
   const primary=profile.animals[0];
   let route=null,landmark=null,rockTop=null,previous=-1,nextCell=-1;
@@ -63,7 +64,9 @@ window.makeLandWildlife=function makeLandWildlife(T,scene,w){
       const dir=heading+i*2.4,spread=family==='hare'?2.5:3.5;
       const base=i===0?p:bed(p.x+spread*Math.sqrt(i)*Math.cos(dir),p.z+spread*Math.sqrt(i)*Math.sin(dir));
       if(!base)continue;
-      animals.push(animal(id,base,random,i,i===0&&!['hare','bear','otter'].includes(family),heading+(random()-.5)*.85));
+      const a=animal(id,base,random,i,i===0&&!['hare','bear','otter'].includes(family),heading+(random()-.5)*.85);
+      a.residentId=w.region+'/'+key+'/'+id+'/'+i;
+      animals.push(a);
     }
     herds.set(key,{p,curated,animals});return animals;
   }
@@ -83,6 +86,7 @@ window.makeLandWildlife=function makeLandWildlife(T,scene,w){
       const cowSite=siteNear(lead.x+13,lead.z+10,26,false);
       if(cowSite){
         const cow=animal('moose',cowSite,random,1,false,random()*tau);
+        cow.residentId=w.region+'/cow/moose/1';
         herds.set('cow',{p:cowSite,curated:true,animals:[cow]});
       }
     }
@@ -132,16 +136,50 @@ window.makeLandWildlife=function makeLandWildlife(T,scene,w){
     w.landmarks.push(landmark);return route;
   }
   Object.defineProperty(w.launches,'game',{enumerable:true,get:()=>prepare()||w.spawn});
+  function advanceAway(a,t){
+    if(a.seenAt===undefined||t-a.seenAt<.6)return;
+    const absence=t-a.seenAt;
+    const retreat=Math.max(0,Math.min(t,a.retreatUntil||0)-a.seenAt);
+    // No invisible animation loop. A returning resident completes its retreat
+    // or a short foraging leg within its own home range, on walkable ground.
+    const home=a.home,phase=a.seed+.061*t;
+    const radius=a.family==='otter'?2.5:a.family==='hare'?3.5:7.5;
+    const rangeX=home.x+radius*Math.cos(phase),rangeZ=home.z+radius*.66*Math.sin(phase*.79);
+    const wander=Math.min(radius*.85,Math.max(0,absence-retreat)*.20);
+    let travel=Math.min(6,retreat*a.height*1.5);
+    function walk(angle,distance){
+      if(distance<.10)return;
+      const steps=Math.min(5,Math.ceil(distance/1.1)),part=distance/steps;
+      for(let i=0;i<steps;i++){
+        const x=a.x+Math.cos(angle)*part,z=a.z+Math.sin(angle)*part;
+        const here=bed(x,z,false);
+        if(!here||Math.abs(here.y-a.feetY)>1.3)break;
+        a.x=x;a.z=z;a.feetY=here.y;a.heading=angle;
+      }
+    }
+    walk(a.heading,travel);
+    if(wander>.1)walk(Math.atan2(rangeZ-a.z,rangeX-a.x),Math.min(wander,Math.hypot(rangeX-a.x,rangeZ-a.z)));
+    a.phase+=Math.min(absence,45)*.9;
+    a.escape=clamp(((a.retreatUntil||0)-t)/3.5,0,1);
+    // Do not stamp inferred off-camera travel as an observed footfall.
+    a.trackX=a.x;a.trackZ=a.z;
+  }
   function move(a,p,t,dt){
+    advanceAway(a,t);a.seenAt=t;
     const A=a.home,dx=a.x-p.x,dz=a.z-p.z,dist=Math.hypot(dx,dz),gap=p.y-a.feetY,s=a.seed;
     const hare=a.family==='hare',otter=a.family==='otter',bear=a.family==='bear';
-    if(hare&&dist<15&&gap<10&&gap>-2&&t>a.cooldown){
-      a.escape=1;a.cooldown=t+9;a.heading=Math.atan2(dz,dx)+.22*Math.sin(s+.8*t);
+    const close=dist<(hare?15:19)&&gap<(hare?10:13)&&gap>-2;
+    if(close&&t>=a.cooldown){
+      const bolts=hare||a.family==='deer';
+      a.waryUntil=t+(bolts?51:33)+s;
+      a.retreatUntil=t+(bolts?3.5:0);
+      a.cooldown=a.waryUntil+8;
+      if(bolts){a.escape=1;a.heading=Math.atan2(dz,dx)+.22*Math.sin(s+.8*t);}
     }
     a.escape=Math.max(0,a.escape-dt*.28);
-    const isAlert=dist<25&&gap<16&&gap>-3,pace=.5+.5*Math.sin(t*.23+s)+.15*Math.sin(t*.51+s);
+    const isAlert=dist<25&&gap<16&&gap>-3||t<(a.waryUntil||0),pace=.5+.5*Math.sin(t*.23+s)+.15*Math.sin(t*.51+s);
     const walking=hare?pace>.72:pace>.61;
-    const wanted=a.escape>0?2.5:walking?(hare?.47:otter?.5:bear?.49:.62):0;
+    const wanted=a.escape>0?2.5:isAlert&&!hare?.37:walking?(hare?.47:otter?.5:bear?.49:.62):0;
     a.speed+=(wanted-a.speed)*(1-Math.exp(-dt*3.5));
     const away=Math.hypot(a.x-A.x,a.z-A.z)>10.5;
     const angle=away?Math.atan2(A.z-a.z,A.x-a.x):a.heading+.18*Math.sin(t*.39+s);
@@ -172,21 +210,30 @@ window.makeLandWildlife=function makeLandWildlife(T,scene,w){
     a.headPitch+=(target-a.headPitch)*(1-Math.exp(-dt*2.8));
     a.headTurn=.17*Math.sin(t*.72+s)+(isAlert?.20*Math.sin(Math.atan2(-dz,-dx)-a.heading):0);
     a.behavior=a.escape>.1?'bounding':isAlert?'watching':walking?(hare?'hopping':otter?'patrolling':'walking'):bear?'foraging':otter?'resting':'browsing';
+    tracks.step(a,t);
   }
   function update(player,t){
     if(!route)prepare();
-    if(t<previous){nextCell=-1;for(const g of herds.values())for(const a of g.animals){
+    if(t<previous){nextCell=-1;tracks.reset();dormant.clear();
+      for(const [key,g] of herds)if(!g.curated)herds.delete(key);
+      for(const g of herds.values())for(const a of g.animals){
       a.x=a.home.x;a.z=a.home.z;a.feetY=a.home.y;a.y=a.feetY+a.height*.78;
-      a.escape=a.speed=a.cooldown=0;a.sunTime=undefined;
+      a.escape=a.speed=a.cooldown=a.waryUntil=a.retreatUntil=0;
+      a.seenAt=a.trackX=a.sunTime=undefined;
     }}
     const dt=previous<0?0:clamp(t-previous,0,.12);previous=t;
     if(t>=nextCell||t===0){
       nextCell=t+1.35;
-      for(const [key,g] of herds)if(!g.curated&&Math.hypot(g.p.x-player.x,g.p.z-player.z)>580)herds.delete(key);
+      for(const [key,g] of herds)if(!g.curated&&Math.hypot(g.p.x-player.x,g.p.z-player.z)>580){
+        if(g.animals.length)dormant.set(key,g);
+        herds.delete(key);
+      }
       if(player.y-ground(player.x,player.z)<175){
         const size=205,cx=Math.round(player.x/size),cz=Math.round(player.z/size);
         for(let i=-1;i<=1;i++)for(let j=-1;j<=1;j++){
           const ix=cx+i,iz=cz+j,key=ix+':'+iz;if(herds.has(key))continue;
+          const known=dormant.get(key);
+          if(known){herds.set(key,known);dormant.delete(key);continue;}
           const random=rng(ix,iz),x=size*(ix+(random()-.5)*.66),z=size*(iz+(random()-.5)*.66);
           const empty={p:{x,z},curated:false,animals:[]};herds.set(key,empty);
           if(random()>.68||landmark&&Math.hypot(landmark.x-x,landmark.z-z)<114)continue;
@@ -203,7 +250,7 @@ window.makeLandWildlife=function makeLandWildlife(T,scene,w){
         move(a,player,t,dt);if(render.draw(a))drawn.push(a);
       }
     }
-    render.end();return drawn;
+    render.end();tracks.update(player,t);return drawn;
   }
   function caller(id,p,reach){
     let nearest=null,best=reach*reach;
@@ -214,5 +261,5 @@ window.makeLandWildlife=function makeLandWildlife(T,scene,w){
     }
     return nearest;
   }
-  return {update,prepare,drawn,herds,caller};
+  return {update,prepare,drawn,herds,caller,tracks};
 };

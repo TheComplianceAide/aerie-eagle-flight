@@ -2,9 +2,9 @@
 window.addReadableWindWater=function(T,scene,world){
   const field=world.windField;
   if(!field)return;
-  const clock={value:0};
+  const flow=window.getCanopyWind(T,scene),clock={value:0};
   const uniforms={
-    windFrontClock:clock,
+    ...flow.uniforms, windFrontClock:clock, windFrontGain:{value:field.frontGain},
     windFrontOrigin:{value:new T.Vector2(field.origin.x,field.origin.z)},
     windFrontDirection:{value:new T.Vector2(field.direction.x,field.direction.z)},
     windFrontPhase:{value:field.phase},
@@ -12,13 +12,22 @@ window.addReadableWindWater=function(T,scene,world){
   };
   const optics=`
     uniform vec2 windFrontDirection,windFrontOrigin;
-    uniform float windFrontClock,windFrontPhase,windFrontAdvection;
+    uniform float windFrontClock,windFrontPhase,windFrontAdvection,windFrontGain;
     ${window.aerieGustGLSL}
+    ${flow.flowGLSL}
     float windOnWater(vec2 p){
-      // At range the camera averages the reflected sky over the facets.
-      // Near the lake the rough leading edge is distinct, even at soaring height.
-      float contrast=1.-smoothstep(340.,1150.,length(cameraPosition.xz-p));
-      return contrast*aerieGust(p-windFrontOrigin,windFrontClock,windFrontDirection,windFrontPhase,windFrontAdvection);
+      float range=length(cameraPosition.xz-p),near=weatherWindow(p);
+      vec2 pressure=localFront(p);
+      float loading;
+      if(near>.999)loading=pressure.x;
+      else{
+        float outer=windFrontGain*aerieGust(p-windFrontOrigin,windFrontClock,windFrontDirection,windFrontPhase,windFrontAdvection);
+        loading=mix(min(1.,outer),pressure.x,near);
+      }
+      // Ripples steepen just behind the advancing air. The residual wake
+      // persists after a gust releases the vegetation on the bank.
+      float wake=mix(loading,pressure.y,near);
+      return (1.-smoothstep(360.,1260.,range))*clamp(.80*loading+.20*wake+.42*(loading-wake),0.,1.);
     }
     vec2 catspawSlope(vec2 p,float px,float front){
       vec2 down=windFrontDirection,across=vec2(-down.y,down.x);
@@ -28,7 +37,10 @@ window.addReadableWindWater=function(T,scene,world){
       float warp=1.3*sin(z*.19+windFrontPhase)+.6*sin(z*.57+x*.09);
       float longWave=cos(x*4.7+z*.32+warp-t*2.77)*(1.-smoothstep(.16,.68,px));
       float shortWave=cos(x*13.4-z*1.31-warp-t*5.61)*(1.-smoothstep(.055,.23,px));
-      return front*(down*(.082*longWave+.041*shortWave)+across*.021*shortWave);
+      // Narrow cat's paws blossom in wavelets along the leading edge.
+      // Vary the group envelope without moving the larger wave pattern.
+      float groups=.52+.48*sin(x*.34+z*.59-t*1.03+warp)*sin(z*.17-x*.116+t*.51);
+      return front*(.73+.64*groups)*(down*(.115*longWave+.056*shortWave)+across*.031*shortWave);
     }`;
   const seen=new Set();
   scene.traverse(mesh=>{
@@ -40,17 +52,17 @@ window.addReadableWindWater=function(T,scene,world){
       // Atlas lakes, fjords, and open coasts. Keep nearby submerged gravel visible.
       shader=shader.replace('vec3 n=normalize(vec3(slope.x,1.,slope.y));',`
         float front=windOnWater(p)*mix(.76,1.,fetch)*${world.region==='surry'?'.18':'1.'};
-        slope=slope*(1.+.56*front)+catspawSlope(p,footprint,front);
+        slope=slope*(mix(.50,1.,localExposure(p))+.73*front)+catspawSlope(p,footprint,front);
         vec3 n=normalize(vec3(slope.x,1.,slope.y));`)
         .replace('float rough=.045+.045*fetch*seaState;', 'float rough=.045+.045*fetch*seaState+.033*front;')
         .replace('float line=sin(bank',`
-          radiance*=1.-front*(.23+.21*smoothstep(1.,24.,bank));
+          radiance*=1.-front*(.26+.23*smoothstep(1.,24.,bank));
           float line=sin(bank`);
     }else if(mesh.isWater){
       // The Swiss and Alaskan lakes have a separate refraction and reflection shader.
       shader=shader.replace('vec3 surfaceNormal=normalize',`
         float front=windOnWater(worldPosition.xz);
-        slope=slope*(1.+.56*front)+catspawSlope(worldPosition.xz,pixel,front);
+        slope=slope*(mix(.55,1.,localExposure(worldPosition.xz))+.70*front)+catspawSlope(worldPosition.xz,pixel,front);
         vec3 surfaceNormal=normalize`)
         .replace('float rough=.057+.023*wind;', 'float rough=.057+.023*wind+.033*front;')
         .replace('vec3 outgoingLight=mix(scattered,reflectionSample,reflectance)',
@@ -93,5 +105,5 @@ window.addReadableWindWater=function(T,scene,world){
   // Each lake advances its wave clock at a regional rate. Air and its moving
   // surface footprint both use the absolute flight clock, including while perched.
   const update=world.update.bind(world);
-  world.update=(dt,t,player)=>{clock.value=t;world.waterfalls?.update(field,t,player);update(dt,t,player);};
+  world.update=(dt,t,player)=>{clock.value=t;flow.update(field,player,t);world.waterfalls?.update(field,t,player);update(dt,t,player);};
 };

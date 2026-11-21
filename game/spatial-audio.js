@@ -18,6 +18,9 @@
 //     around the listener (image sources), so each echo arrives from the actual
 //     wall with the correct extra delay, direction, Doppler and air loss.
 // Distances are survey metres; listener and sources use world coordinates.
+// What is left of a sound arriving at a given level once wind noise at the
+// ears (the masker, on the same scale) is taken into account.
+window.aerieWindMasking = (arrived, masker) => masker > 0 && arrived > 0 ? arrived * arrived / (arrived + masker) : arrived;
 window.makeSpatialAudio = function makeSpatialAudio(context, world, options = {}) {
   const coarse = matchMedia('(pointer: coarse)').matches;
   const order = options.order || (coarse ? 1 : 3);
@@ -150,7 +153,11 @@ window.makeSpatialAudio = function makeSpatialAudio(context, world, options = {}
     const s = {
       x: opt.x || 0, y: opt.y || 0, z: opt.z || 0, gain: opt.gain ?? 1, ref: opt.ref ?? 12, reach: opt.reach ?? 2000,
       spread: opt.spread || 'point', occlude: opt.occlude ?? true, wet: opt.wet ?? .35, doppler: opt.doppler ?? true,
-      maxDelay: Math.min(179, (opt.reach ?? 2000) * (opt.echo ? 1.8 : 1) / SPEED + 1), lastShield: 0, nextShield: 0, alive: true, onUpdate: opt.onUpdate
+      maxDelay: Math.min(179, (opt.reach ?? 2000) * (opt.echo ? 1.8 : 1) / SPEED + 1), lastShield: 0, nextShield: 0, alive: true, onUpdate: opt.onUpdate,
+      // Ear-centred beds are the wind and rain themselves; everything else can be masked by wind noise.
+      mask: opt.mask ?? opt.spread !== 'none',
+      // What the source is and which individual it is, for traces and checks.
+      label: opt.label || '', id: opt.id || '', follows: !!opt.follows
     };
     s.delay = context.createDelay(s.maxDelay);
     s.air = context.createBiquadFilter(); s.air.type = 'lowpass'; s.air.Q.value = .5;
@@ -273,7 +280,12 @@ window.makeSpatialAudio = function makeSpatialAudio(context, world, options = {}
       s.wobble = (s.wobble || 0) * .985 + (Math.random() - .5) * .45;
       refract *= Math.pow(10, clamp(s.wobble, -1, 1) * clamp((d - 250) / 2000, 0, 1) * 3 / 20);
     }
-    const level = s.gain * spread * air * fade * (1 - .62 * shield) * Math.max(.2, refract);
+    const arrived = s.gain * spread * air * fade * (1 - .62 * shield) * Math.max(.2, refract);
+    // Wind at the ears masks what arrives quieter than it: a sound well above
+    // the wind noise is untouched, one at its level is halved, one far below
+    // it all but vanishes. The masker follows airspeed, gusts and shelter.
+    const level = s.mask ? window.aerieWindMasking(arrived, masker) : arrived;
+    s.arrived = arrived; s.heard = level; s.shield = shield;
     const cutoff = Math.min(airCutoff(d), 20000 * Math.exp(-3.1 * shield));
     if (immediate) {
       s.level.gain.value = level; s.air.frequency.value = cutoff; s.shade.frequency.value = 20000;
@@ -299,6 +311,13 @@ window.makeSpatialAudio = function makeSpatialAudio(context, world, options = {}
     s.source = src;
     src.onended = () => setTimeout(() => s.release(), (s.maxDelay + .5) * 1000);
     s.endsAt = context.currentTime + (opt.when || 0) + end;
+    // A caller can fall silent mid-phrase (a songbird as the eagle closes in).
+    s.stop = (fade = .3) => {
+      const now = context.currentTime;
+      s.level.gain.cancelScheduledValues(now); s.level.gain.setTargetAtTime(0, now, fade / 3);
+      s.send.gain.setTargetAtTime(0, now, fade / 3); s.gain = 0;
+      try { src.stop(now + fade + .1); } catch (e) {}
+    };
     return s;
   }
   // Continuous recording at a (possibly moving) position.
@@ -319,6 +338,8 @@ window.makeSpatialAudio = function makeSpatialAudio(context, world, options = {}
     };
     return s;
   }
+  let masker = 0;
+  function setMasker(level) { masker = Math.max(0, level || 0); }
   function update(camera, dt) {
     if (!camera) return;
     setListener(camera, dt);
@@ -329,6 +350,7 @@ window.makeSpatialAudio = function makeSpatialAudio(context, world, options = {}
   function setSurveyPath(fn) { surveyPath = fn; }
   return {
     context, output: mixOut, mixGain: final, play, loop, setHeadProfile, setRaptorHearing, get profile() { return profile; }, update, setImpulse, setSurveyPath, absorption, airCutoff, setClimate, climate,
-    get speed() { return SPEED; }, ear, order, get walls() { return walls; }, get ready() { return rendererReady; }, get count() { return live.size; }
+    get speed() { return SPEED; }, ear, order, get walls() { return walls; }, get ready() { return rendererReady; }, get count() { return live.size; },
+    setMasker, get masker() { return masker; }, get sources() { return live; }
   };
 };

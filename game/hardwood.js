@@ -38,7 +38,9 @@ window.addHardwoods=function addHardwoods(T,scene,trees,options){
   const wind=window.getCanopyWind(T,scene);
   const maritime=region==='milford';
   const lakeCrowns=region==='moosehead'?window.mooseheadCrowns(T,scene,clock):null;
-  const lakeFar=lakeCrowns?.material(false);
+  const lakeFar=lakeCrowns?.material(false,false,true);
+  const transitionBand=lakeCrowns?'80.,110.':'85.,175.';
+  const crownTransition=window.aerieCrownTransition;
   const leaf=texture(maritime?'island-branches.webp':'hardwood-branches.webp');
   const uniforms={...wind.uniforms,
     profile:{value:texture(maritime?'island-profile.webp':'hardwood-profiles.webp')},canopy:{value:texture(maritime?'island-crown.webp':'hardwood-crowns.webp')},
@@ -70,7 +72,8 @@ window.addHardwoods=function addHardwoods(T,scene,trees,options){
   }`;
   const mat=new T.ShaderMaterial({side:T.DoubleSide,uniforms,vertexShader:`
     ${wind.glsl}
-    attribute vec3 root;attribute vec4 form;
+    ${crownTransition}
+    attribute vec3 root;attribute vec4 form;attribute float nearResident;
     uniform float clock,span;uniform vec3 sun;uniform sampler2D forestLight;
     varying vec2 coord;varying float species,tilt,keyLight,fade,orientation,atmosphere,phase;
     void main(){
@@ -89,20 +92,20 @@ window.addHardwoods=function addHardwoods(T,scene,trees,options){
       keyLight=texture2D(forestLight,vec2(root.x,-root.z)/span+.5).r;
       orientation=dot(right,sun);
       float dist=distance(center,cameraPosition);
-      fade=smoothstep(${lakeCrowns?'78.,109.':'85.,175.'},dist);
+      fade=nearResident*crownDetail(distance(cameraPosition,root+vec3(0.,form.y*.5-.12,0.)),${transitionBand});
       atmosphere=1.-exp(-dist*.000045);
       gl_Position=projectionMatrix*viewMatrix*vec4(p,1.);
     }`,fragmentShader:`
     uniform sampler2D profile,canopy;uniform vec3 haze;
     varying vec2 coord;varying float species,tilt,keyLight,fade,orientation,atmosphere,phase;
     ${tileUV}
+    ${crownTransition}
     void main(){
       vec2 p=coord;if(orientation>.0)p.x=1.-p.x;
       vec4 side=texture2D(profile,tileUV(p,species));
       vec4 top=texture2D(canopy,tileUV(p,species));
       float alpha=mix(side.a,top.a,tilt);
-      float noise=fract(dot(gl_FragCoord.xy,vec2(.7548777,.5698403)));
-      if(alpha<.24||noise>fade)discard;
+      if(alpha<.24||crownPixel(gl_FragCoord.xy)<fade)discard;
       vec3 color=mix(side.rgb*side.a,top.rgb*top.a,tilt)/max(alpha,.04);
       ${leafColor}
       color*=mix(vec3(.56,.64,.72),vec3(.93,.96,.92),keyLight)*(.90+.15*phase);
@@ -128,13 +131,16 @@ window.addHardwoods=function addHardwoods(T,scene,trees,options){
     g.setAttribute('position',quad.attributes.position);g.setAttribute('uv',quad.attributes.uv);
     const roots=new Float32Array(batch.length*3),form=new Float32Array(batch.length*4),bounds=new T.Box3();
     const surveyForms=lakeCrowns?new Float32Array(4*batch.length):null;
+    const nearResident=new T.InstancedBufferAttribute(new Uint8Array(batch.length),1).setUsage(T.DynamicDrawUsage);
     batch.forEach((t,i)=>{
       roots.set([t.x,t.y,t.z],3*i);form.set([t.width,t.height,t.seed,t.species],4*i);
+      t.nearAttribute=nearResident;t.nearSlot=i;
       if(surveyForms)surveyForms.set(lakeCrowns.traits(t,false),4*i);
       bounds.expandByPoint(point.set(t.x,t.y,t.z));
     });
     g.setAttribute('root',new T.InstancedBufferAttribute(roots,3));
     g.setAttribute('form',new T.InstancedBufferAttribute(form,4));g.instanceCount=batch.length;
+    g.setAttribute('nearResident',nearResident);
     if(surveyForms){
       g.setAttribute('rootPosition',g.getAttribute('root'));
       g.setAttribute('crownForm',new T.InstancedBufferAttribute(surveyForms,4));
@@ -159,6 +165,13 @@ window.addHardwoods=function addHardwoods(T,scene,trees,options){
   const bark=texture('shore-bark.webp');bark.colorSpace=T.SRGBColorSpace;bark.wrapS=bark.wrapT=T.RepeatWrapping;
   const stems=new T.InstancedMesh(trunk,new T.MeshStandardMaterial({map:bark,roughness:.96,color:0xaaa495}),1800);
   stems.material.userData.canopyRoot="instanceMatrix[3].xyz";
+  stems.material.onBeforeCompile=shader=>{
+    shader.vertexShader=crownTransition+'varying float modelWeight;\n'+shader.vertexShader.replace('#include <begin_vertex>',`#include <begin_vertex>
+      vec3 crownCenter=instanceMatrix[3].xyz+vec3(0.,length(instanceMatrix[1].xyz)*.5,0.);
+      modelWeight=crownDetail(distance(cameraPosition,crownCenter),${transitionBand});
+      if(modelWeight<=0.){gl_Position=vec4(2.,2.,2.,1.);return;}`);
+    shader.fragmentShader=crownTransition+'varying float modelWeight;\n'+shader.fragmentShader.replace('#include <alphatest_fragment>','#include <alphatest_fragment>\n if(modelWeight<=crownPixel(gl_FragCoord.xy)) discard;');
+  };
   stems.count=0;stems.frustumCulled=false;stems.instanceMatrix.setUsage(T.DynamicDrawUsage);scene.add(stems);
   const twigGeometry=new T.BufferGeometry(),p=[],n=[],u=[],idx=[];
   for(let k=0;k<scan.sprays.length;k++){
@@ -182,12 +195,16 @@ window.addHardwoods=function addHardwoods(T,scene,trees,options){
   twigGeometry.setAttribute('kind',speciesAttr);
   const closeMat=new T.ShaderMaterial({side:T.DoubleSide,uniforms,vertexShader:`
     ${wind.glsl}
+    ${crownTransition}
     attribute float kind;uniform float clock,span;uniform vec3 sun;uniform sampler2D forestLight;
     varying vec2 coord;varying float species,illum,fade,atmosphere;
     void main(){
       vec3 root=instanceMatrix[3].xyz;vec3 p=position;
-      vec2 front=plantFront(root.xz),motion=plantMotion(root.xz,front,clock,.24);
       float height=length(instanceMatrix[1].xyz),tip=clamp(p.y,0.,1.);
+      float dist=length(cameraPosition-root-vec3(0.,.5*height,0.));
+      fade=crownDetail(dist,${transitionBand});
+      if(fade<=0.){gl_Position=vec4(2.,2.,2.,1.);return;}
+      vec2 front=plantFront(root.xz),motion=plantMotion(root.xz,front,clock,.24);
       float flick=sin(clock*4.2+root.z*.091+p.z*17.+p.x*12.);
       vec3 world=(instanceMatrix*vec4(p,1.)).xyz;
       world.xz+=height*tip*tip*(motion*.29+canopyDownwind*front.x*.018*flick*uv.y);
@@ -199,15 +216,15 @@ window.addHardwoods=function addHardwoods(T,scene,trees,options){
       illum=(.55+.28*max(dot(normalWorld,sun),0.)+.21*max(0.,p.y)+.23*transmission)*mix(.64,1.,light);
       illum*=1.+front.x*tip*(.16+.13*flick);
       coord=uv;species=kind;
-      float dist=length(cameraPosition-root-vec3(0.,.5*length(instanceMatrix[1].xyz),0.));
-      fade=${lakeCrowns?'step(83.+20.*fract(dot(root.xz,vec2(.3761,.5723))),dist)':'smoothstep(85.,175.,dist)'};atmosphere=0.;
+      atmosphere=0.;
       gl_Position=projectionMatrix*viewMatrix*vec4(world,1.);
     }`,fragmentShader:`uniform sampler2D leaves;uniform vec3 haze;
       varying vec2 coord;varying float species,illum,fade,atmosphere;
       ${tileUV}
+      ${crownTransition}
       void main(){
-        vec4 leaf=texture2D(leaves,tileUV(coord,species));float noise=fract(dot(gl_FragCoord.xy,vec2(.7548777,.5698403)));
-        if(leaf.a<.36||noise<fade)discard;
+        vec4 leaf=texture2D(leaves,tileUV(coord,species));
+        if(leaf.a<.36||crownPixel(gl_FragCoord.xy)>=fade)discard;
         vec3 color=leaf.rgb;
         ${leafColor}
         color*=illum;
@@ -217,18 +234,29 @@ window.addHardwoods=function addHardwoods(T,scene,trees,options){
   boughs.instanceMatrix=stems.instanceMatrix;boughs.count=0;boughs.frustumCulled=false;scene.add(boughs);
   const pages=region==='moosehead'?[stems,boughs].map(mesh=>window.partitionSurveyCrowns(T,scene,mesh,'Nearby surveyed hardwood')):[];
   const last=new T.Vector3(Infinity,Infinity,Infinity),frame=new T.Object3D();
+  let resident=[];
   return player=>{
     if(!player||last.distanceToSquared(player)<36)return;
     last.copy(player);let count=0;const i=Math.floor(player.x/72),j=Math.floor(player.z/72);
+    const next=[];
     for(let x=i-3;x<=i+3;x++)for(let z=j-3;z<=j+3;z++){
       const batch=cells.get(x+':'+z);if(!batch)continue;
       for(const t of batch){
-        if(Math.hypot(player.x-t.x,player.y-t.y-t.height*.5,player.z-t.z)>(lakeCrowns?115:185)||count>=stems.instanceMatrix.count)continue;
+        if(Math.hypot(player.x-t.x,player.y-t.y-t.height*.5,player.z-t.z)>(lakeCrowns?130:195)||count>=stems.instanceMatrix.count)continue;
+        next.push(t);t.selectedNear=true;
+        if(!t.nearAttribute.getX(t.nearSlot)){
+          t.nearAttribute.setX(t.nearSlot,1);t.nearAttribute.addUpdateRange(t.nearSlot,1);t.nearAttribute.needsUpdate=true;
+        }
         frame.position.set(t.x,t.y-.12,t.z);frame.rotation.y=t.seed*6.283;
         frame.scale.set(t.width,t.height,t.width);frame.updateMatrix();stems.setMatrixAt(count,frame.matrix);
         speciesAttr.setX(count++,t.species);
       }
     }
+    for(const t of resident)if(!t.selectedNear){
+      t.nearAttribute.setX(t.nearSlot,0);t.nearAttribute.addUpdateRange(t.nearSlot,1);t.nearAttribute.needsUpdate=true;
+    }
+    for(const t of next)t.selectedNear=false;
+    resident=next;
     stems.count=boughs.count=count;speciesAttr.needsUpdate=true;stems.instanceMatrix.needsUpdate=true;
     for(const update of pages)update();
   };
