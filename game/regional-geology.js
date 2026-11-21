@@ -175,6 +175,8 @@
         accepted++;if(kineo&&accepted%16===0)shuffle();
       }
     }
+    if(world.region==='winnipesaukee'&&sheet.id==='winnipesaukee-gravel')
+      window.makeWinnipesaukeeWaterfront?.shoreStones(T,world,sheet,entries);
     return entries;
   }
   function merge(T,members,models,lod,screenLod=false){
@@ -224,6 +226,7 @@
       lastT=time;lastX=player.x;lastZ=player.z;
       for(const b of batches){
         const dist=Math.hypot(player.x-b.center.x,player.y-b.center.y,player.z-b.center.z)-b.radius;
+        if(b.fixedShore){b.meshes[0].visible=dist<1200;b.lod=b.meshes[0].visible?1:-1;continue;}
         if(permanent){
           // Cull only after every specimen in the tile is fully dissolved.
           // Never switch the whole deposit during an approach.
@@ -345,7 +348,8 @@
         const small=sheet.kind==='pebbles'||sheet.kind==='beach';const span=permanent?(small?55:115):small?16:60;
         for(const e of members){
           entries.push(e);
-          const tile=Math.floor(e.x/span)+':'+Math.floor(e.z/span);
+          const binSize=e.fixedShore?112:span;
+          const tile=(e.fixedShore?'shore:':'')+Math.floor(e.x/binSize)+':'+Math.floor(e.z/binSize);
           if(!groups.has(tile))groups.set(tile,[]);groups.get(tile).push(e);
           if(permanent&&Math.min(e.width,e.depth)>.95&&e.height>.54){
             const tile=Math.floor(e.x/64)+Math.floor(e.z/64)*32768;
@@ -363,6 +367,12 @@
           center.multiplyScalar(1/group.length);
           let radius=1;for(const e of group)radius=Math.max(radius,Math.hypot(e.x-center.x,e.y-center.y,e.z-center.z)+e.length);
           const batch={center,radius,small,sheet:sheet.id,entries:group,models,material,meshes:[],lod:-1,lastVisible:0};
+          if(group[0].fixedShore){
+            const mesh=new T.Mesh(merge(T,group,models,1),material);
+            mesh.name='Rattlesnake Island · exposed shore stone';
+            mesh.userData.aerieRegional={sheet:sheet.id,lod:'mid',cellAttribute:'aerieCell',cellComponent:0};
+            mesh.visible=false;layers.add(mesh);batch.meshes=[mesh];batch.fixedShore=true;
+          }
           if(permanent){
             batch.smallest=Math.min(...group.map(e=>e.length));batch.largest=Math.max(...group.map(e=>e.length));
             for(let lod=0;lod<2;lod++){

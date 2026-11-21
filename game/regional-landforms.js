@@ -94,6 +94,7 @@
       sections.push({xyz,light,triangles});
     }
     const holes=spec.holes||[];
+    const surveyedBed=spec.asset==='winnipesaukee'?window.makeWinnipesaukeeWaterfront?.islandBed:null;
     function edge(x,z){
       let d=Math.min(x-left,right-x,z-top,bottom-z);
       if(d<=0)return 0;
@@ -112,7 +113,7 @@
       if(w<=0)return base;
       const h=sample(x,z);
       // Keep charted open-water bottoms underneath the lake's native optical surface.
-      if(spec.water!==undefined&&h<=spec.water+.12)return Math.min(base,h);
+      if(spec.water!==undefined&&h<=spec.water+.12&&!surveyedBed?.(x,z))return Math.min(base,h);
       return base+(h-base)*w;
     }
     // Low structures and patch overlays need the rendered triangles, whose
@@ -123,7 +124,7 @@
       const x0=cx-radius,x1=cx+radius,z0=cz-radius,z1=cz+radius;
       function yAt(x,z,encoded){
         const y=datum+scale*encoded,base=baseAt(x,z);
-        return spec.water!==undefined&&y<=spec.water+.12?Math.min(base,y):base+(y-base)*edge(x,z);
+        return spec.water!==undefined&&y<=spec.water+.12&&!surveyedBed?.(x,z)?Math.min(base,y):base+(y-base)*edge(x,z);
       }
       for(const {xyz,triangles} of sections){
         for(let j=0;j<triangles.length;j+=3){
@@ -235,7 +236,7 @@
         for(let i=0;i<n;i++){
           const j=i*3,x=left+unit*part.xyz[j],z=top+unit*part.xyz[j+1],w=edge(x,z),base=baseAt(x,z);
           const y=datum+part.xyz[j+2]*scale;
-          pos[j]=x;pos[j+1]=low!==undefined&&y<=low+.12?Math.min(base,y):base+(y-base)*w;pos[j+2]=z;
+          pos[j]=x;pos[j+1]=low!==undefined&&y<=low+.12&&!surveyedBed?.(x,z)?Math.min(base,y):base+(y-base)*w;pos[j+2]=z;
           // Calculate boundary normals from the adjoining native terrain so both
           // shapes and lighting meet continuously at the exact old survey slot.
           const normalStep=Math.min(2,step),a=x-normalStep,b=x+normalStep,c=z-normalStep,d=z+normalStep;

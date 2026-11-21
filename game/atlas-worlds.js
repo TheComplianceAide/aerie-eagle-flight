@@ -469,6 +469,7 @@ class Water extends Mesh {
   const survey=window.ATLAS_SURVEYS[region];
   if(region==='moosehead')window.refineMooseheadShore(survey);
   if(region==='moosehead'||region==='winnipesaukee')window.refineLakeBays(region,survey);
+  if(region==='winnipesaukee')window.makeWinnipesaukeeWaterfront?.refineShoreline(survey.shoreHoles);
   const settings={
     yosemite:{sky:'alaska-evening.jpg',sun:[-.62,.46,.53],stone:[.64,.61,.57],treeH:30,top:2840,cover:.91,launch:[-4600,1780,2300,0,150],low:[-1700,1110,1560,-490,70]},
     crater:{sky:'alaska-evening.jpg',sun:[-.37,.53,-.71],water:1880.62,sea:0x123951,stone:[.43,.385,.337],treeH:21,top:2430,cover:.96,launch:[-3410,1770,-960,-230,315],low:[-2360,1720,600,1630,57]},
@@ -1583,7 +1584,10 @@ class Water extends Mesh {
     if(survey.shore?.length){
       const vec=([x,z])=>new THREE.Vector2(x,-z);
       const outline=new THREE.Shape(survey.shore.map(vec));
-      for(const hole of survey.shoreHoles||[])outline.holes.push(new THREE.Path(hole.map(vec)));
+      for(const hole of survey.shoreHoles||[]){
+        const wetEdge=waterfront?window.makeWinnipesaukeeWaterfront.wetMargin(hole):hole;
+        outline.holes.push(new THREE.Path(wetEdge.map(vec)));
+      }
       g=new THREE.ShapeGeometry(outline);
     }else{
       // Two triangles spanning 43 km lose depth precision when clipped at
@@ -1814,6 +1818,7 @@ class Water extends Mesh {
     landmarks.push({name:'Rainbow overlook',x:rainbow[0],z:rainbow[1],approach:rainbow});
   }
   function blockVegetationAt(x,z,y=elevation(x,z)){
+    if(waterfront&&window.makeWinnipesaukeeWaterfront.openCampLanding(x,z))return true;
     return !!((acadia&&window.thunderHoleBareLedge(x,z))||resort?.inClearing(x,z)||cabin?.inClearing(x,z)||wetGround(x,z,y,.45)||dam?.onDam(x,z)||
       Number.isFinite(roofHeight?.(x,z))||Number.isFinite(waterfrontHeight?.(x,z)));
   }
@@ -1833,6 +1838,7 @@ class Water extends Mesh {
   for(const bank of bankSurveys)bank.add(THREE,scene,terrain,(x,z)=>regionalElevation(x,z,false),texture);
   if(landmarkTerrain)world.landformMesh=landmarkTerrain.add(THREE,scene,terrain,(x,z)=>regionalElevation(x,z,false),texture);
   if(easternSummits)world.easternSummits=easternSummits.add(THREE,scene,terrain,(x,z)=>regionalElevation(x,z,false),texture);
+  waterfront?.finishIslandTerrain(world.landformMesh);
   if(harborTerrain){
     const harbor=harborTerrain.add(THREE,scene,terrain,(x,z)=>regionalElevation(x,z,false),texture);
     harbor.traverse(mesh=>{if(mesh.isMesh)shoreDetail.terrainEdges(mesh.geometry,false);});

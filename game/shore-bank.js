@@ -31,7 +31,8 @@ window.joinAtlasShore=function(T,scene,{region,survey,elevation,level,terrain,ba
   function section(x,z,nx,nz){
     const y=ground(x,z),near=ground(x+3*nx,z+3*nz),toLand=ground(x+12*nx,z+12*nz);
     // Intact high banks occlude the lake naturally. Only fill the missing shelf.
-    const surveyed=bankSurveys.some(bank=>bank.edge(x,z)>.45);
+    const surveyed=bankSurveys.some(bank=>bank.edge(x,z)>.45)||
+      (region==='winnipesaukee'&&window.makeWinnipesaukeeWaterfront?.islandBed(x,z));
     const needed=!surveyed&&y<level+.12&&near<level+.22;
     const width=Math.min(32,Math.max(7,9+(level-toLand)*1.6));
     const grade=Math.max(.042,Math.min(.23,(toLand-level)/12+.078));
