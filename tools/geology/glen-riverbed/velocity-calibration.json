@@ -1,0 +1,120 @@
+{
+  "source": "Wright, Kaplinski & Grams (2024), DOI 10.5066/P1QTRNEB",
+  "scenario_cfs": 10000,
+  "source_file": "Result_10kcfs.csv",
+  "csv_sha256": "431ad87f54ce28348d60db9c233b4f199b0713c3c253b21fce384503bc346b51",
+  "reach_length_miles": 15.8,
+  "valid_wet_model_cells": 130719,
+  "table_rows": 305061,
+  "distinct_published_coordinate_values_xy": [
+    10,
+    2
+  ],
+  "limits": "Depth-conditioned reach medians are for visual flow speed; the scientific output CSV rounds X/Y, precluding per-cell lookup at a surveyed shoal. The color and 3-D movement of individual wavelets are reconstructed.",
+  "classes": [
+    {
+      "depth_interval_m": [
+        0.0,
+        0.3
+      ],
+      "count": 5703,
+      "depth_m": 0.177,
+      "velocity_p10_p50_p90_m_s": [
+        0.0,
+        0.114,
+        0.594
+      ]
+    },
+    {
+      "depth_interval_m": [
+        0.3,
+        0.75
+      ],
+      "count": 10327,
+      "depth_m": 0.522,
+      "velocity_p10_p50_p90_m_s": [
+        0.03,
+        0.264,
+        0.889
+      ]
+    },
+    {
+      "depth_interval_m": [
+        0.75,
+        1.5
+      ],
+      "count": 15760,
+      "depth_m": 1.1,
+      "velocity_p10_p50_p90_m_s": [
+        0.053,
+        0.464,
+        1.074
+      ]
+    },
+    {
+      "depth_interval_m": [
+        1.5,
+        3.0
+      ],
+      "count": 29634,
+      "depth_m": 2.263,
+      "velocity_p10_p50_p90_m_s": [
+        0.113,
+        0.759,
+        1.421
+      ]
+    },
+    {
+      "depth_interval_m": [
+        3.0,
+        5.0
+      ],
+      "count": 31716,
+      "depth_m": 3.837,
+      "velocity_p10_p50_p90_m_s": [
+        0.167,
+        0.681,
+        1.271
+      ]
+    },
+    {
+      "depth_interval_m": [
+        5.0,
+        8.0
+      ],
+      "count": 23640,
+      "depth_m": 6.169,
+      "velocity_p10_p50_p90_m_s": [
+        0.159,
+        0.506,
+        0.895
+      ]
+    },
+    {
+      "depth_interval_m": [
+        8.0,
+        12.0
+      ],
+      "count": 11080,
+      "depth_m": 9.448,
+      "velocity_p10_p50_p90_m_s": [
+        0.199,
+        0.449,
+        0.709
+      ]
+    },
+    {
+      "depth_interval_m": [
+        12.0,
+        30.0
+      ],
+      "count": 2859,
+      "depth_m": 13.845,
+      "velocity_p10_p50_p90_m_s": [
+        0.137,
+        0.419,
+        0.661
+      ]
+    }
+  ]
+}

@@ -589,6 +589,8 @@ window.makeKeeneCity = function makeKeeneCity(T, scene, {height}) {
       mat.customProgramCacheKey=()=>'keene-painted-clapboard-1';
     }
     if(name==='shingle')scene.userData.buildingLight.finish(mat,'slate',3);
+    if(name==='autoGlass')scene.userData.buildingLight.glaze(mat,1.12);
+    if(name==='carPaint')scene.userData.buildingLight.glaze(mat,.31);
     if(name==='shopDisplay'||name==='cafeDisplay')scene.userData.buildingLight.glaze(mat,1.05,name==='shopDisplay'?'shop':'cafe');
     else if(layout[name].glazing||['glass','upperSash'].includes(name))scene.userData.buildingLight.glaze(mat,.80);
     if(name==='roofing'){mat.bumpMap=mat.map;mat.bumpScale=name==='roofing'?.045:.026;}

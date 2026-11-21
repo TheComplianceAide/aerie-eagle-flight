@@ -87,7 +87,7 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
     strata:{value:texture('cliff-strata.jpg',true)},grain:{value:texture('rock.jpg',true)},
     flow:{value:texture('canyon-flow.webp')},ripple:{value:texture('waternormals.jpg',true)},
     sand:{value:texture('shore-sand.webp',true)},pebbles:{value:texture('shore-pebbles.webp',true)},
-    pebbleNormal:{value:texture('shore-pebbles-normal.webp',true)},bankMap:{value:texture('habitat-canyon.png')},
+    pebbleNormal:{value:texture('shore-pebbles-normal.webp',true)},bankMap:{value:texture('canyon-surveyed-banks.png')},
     panorama:{value:skyTexture},sun:{value:sun},clock:time
   };
   // A mip of the packed elevation can bridge a river bank. Keep each traced
@@ -142,6 +142,18 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
     }
     // Local photographs are measured in metres. Rotate alternate samples to
     // break up the repetition across broad bars, retaining the pebble scale.
+    // Integer cell keys agree on both sides of a tile seam, even kilometres
+    // from the world origin. Interpolating hashes of independently rounded
+    // dot-products produced visible rectangles in transmitted river light.
+    float channelNoise(vec2 p){
+      vec2 i=floor(p),f=fract(p);
+      f=f*f*(3.-2.*f);
+      vec4 ix=vec4(i.x,i.x+1.,i.x,i.x+1.);
+      vec4 iz=vec4(i.y,i.y,i.y+1.,i.y+1.);
+      vec4 key=mod(ix*17.+iz*157.,4093.);
+      vec4 h=fract(sin(key)*4375.19);
+      return mix(mix(h.x,h.y,f.x),mix(h.z,h.w,f.x),f.y);
+    }
     vec3 gravel(vec2 p){
       return mix(texture2D(pebbles,p).rgb,texture2D(pebbles,mat2(.8,-.6,.6,.8)*p+vec2(.37,.63)).rgb,
                  smoothstep(-.30,.30,sin(p.x*.17)+.6*cos(p.y*.23)));
@@ -324,22 +336,40 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
         vec2 dir=normalize((hyd.gb-.5)*2.+vec2(.0001));
         vec2 here=wp.xz,across=vec2(-dir.y,dir.x);
         float bankMeters=max(0.,-signedBank),channel=smoothstep(.45,9.,bankMeters);
-        float sheltered=(1.-smoothstep(.8,9.,bankMeters))*smoothstep(.33,.73,riverGrain(here*.071));
-        float reach=riverGrain(here*.021+vec2(7.,-2.));
+        float sheltered=(1.-smoothstep(.8,9.,bankMeters))*smoothstep(.33,.73,channelNoise(here*.071));
+        vec2 riverUv=(here-vec2(-2300.,-2900.))/vec2(2550.,3850.);
+        float measuredDepth=0.,surveyWeight=0.;
+        if(all(greaterThan(riverUv,vec2(0.))) && all(lessThan(riverUv,vec2(1.)))){
+          measuredDepth=texture2D(bankMap,vec2(riverUv.x,1.-riverUv.y)).g;
+          surveyWeight=texture2D(bankMap,vec2(riverUv.x*.5,1.-riverUv.y*.5)).b;
+        }
+        float surveyDepth=24.*measuredDepth*measuredDepth;
+        float reach=channelNoise(here*.021+vec2(7.,-2.));
         vec2 velocity=dir*(.14+channel*(.86+.62*reach)-.48*sheltered);
+        // Reach-wide median depth-averaged speeds from the USGS 10,000 cfs
+        // scenario. Shallow runs flow faster than deep pools. Current direction
+        // follows the game's registered channel; individual wavelets are visual.
+        float rated=.114+.150*smoothstep(.177,.522,surveyDepth)
+          +.200*smoothstep(.522,1.10,surveyDepth)+.295*smoothstep(1.10,2.263,surveyDepth)
+          -.078*smoothstep(2.263,3.837,surveyDepth)-.175*smoothstep(3.837,6.169,surveyDepth)
+          -.057*smoothstep(6.169,9.448,surveyDepth)-.030*smoothstep(9.448,13.845,surveyDepth);
+        velocity=mix(velocity,dir*rated,surveyWeight);
         velocity+=across*sheltered*.22*sin(dot(here,vec2(.13,.087))-.53*clock);
         // Blend backtraced parcels while either phase rewinds. This follows
         // the surveyed bend without stretching the normal map over time.
-        float phase=fract(clock*.15+riverGrain(here*.058)*.21),other=fract(phase+.5);
+        float phase=fract(clock*.15+channelNoise(here*.058)*.21),other=fract(phase+.5);
         float weight=abs(2.*phase-1.);
         vec2 p0=here-velocity*(phase-.5)*6.67,p1=here-velocity*(other-.5)*6.67;
         vec3 a=mix(texture2D(ripple,p0*.065).rgb,texture2D(ripple,p1*.065).rgb,weight)-.5;
         vec3 b=mix(texture2D(ripple,p0*.171+vec2(.32,.18)).rgb,texture2D(ripple,p1*.171+vec2(.32,.18)).rgb,weight)-.5;
         float smallWave=1.-smoothstep(.85,4.5,max(fwidth(here.x),fwidth(here.y)));
-        float activity=.38+.62*channel;
+        float calmBench=mix(1.,.70+.34*smoothstep(1.,6.,surveyDepth),surveyWeight);
+        float activity=(.38+.62*channel)*calmBench;
         vec3 wn=normalize(vec3((a.r+b.r*.52*smallWave)*.38*activity,1.,(a.g+b.g*.52*smallWave)*.38*activity));
         float riffles=smoothstep(.40,.79,reach)*channel;
-        float seam=sin(dot(here,dir)*.79-clock*1.62+2.7*riverGrain(here*.20));
+        // Deep pools and protected shelves have fewer intersecting surface trains.
+        riffles*=mix(1.,.12+.68*smoothstep(.35,.79,rated),surveyWeight);
+        float seam=sin(dot(here,dir)*.79-clock*1.62+2.7*channelNoise(here*.20));
         float eddy=sin(dot(here,across)*1.24+dot(here,dir)*.25-clock*1.2);
         vec2 riffle=(dir*seam*(.019+.068*riffles)+across*eddy*(.019+.058*sheltered))*smallWave;
         wn=normalize(wn+vec3(riffle.x,0.,riffle.y));
@@ -351,12 +381,12 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
         vec3 river=mix(riverBody,reflected,fres);
         // A current refracts the stationary bed. The camera sees farther into
         // clear shallows looking down than it does across the grazing surface.
-        float shallows=(1.-smoothstep(2.,24.,-signedBank))*closeGround;
+        float shallows=(1.-smoothstep(2.,24.,-signedBank))*closeGround*(1.-surveyWeight);
         if(shallows>.001){
           float depth=clamp(.16-.093*signedBank,.12,2.1);
           vec3 transmitted=refract(-eye,wn,.7502);
           vec2 bottom=here+transmitted.xz*depth/max(.23,-transmitted.y),bedUv=bottom*.70;
-          float bar=smoothstep(.28,.72,riverGrain(bottom*.105)+.12*(1.-channel));
+          float bar=smoothstep(.28,.72,channelNoise(bottom*.105)+.12*(1.-channel));
           vec3 sandBed=texture2D(sand,bottom*.45).rgb*vec3(.90,.85,.70);
           vec3 bed=mix(gravel(bedUv)*vec3(.89,.94,.81),sandBed,.69*bar);
           vec3 bedTone=mix(vec3(.07,.105,.084),vec3(.50,.44,.31),smoothstep(.17,.74,lum(bed)));
@@ -369,14 +399,79 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
           vec3 clarity=mix(river,river*vec3(.66,1.03,.93)+vec3(.001,.033,.021),.7);
           vec3 clear=mix(clarity,bed,clamp(.17+1.16*clearView,0.,.95));
           river=mix(river,clear,shallows);
-          float fringe=exp(-abs(signedBank-wash)*2.8)*smoothstep(.3,.75,riverGrain(here*.98)+.13*sin(shorePhase-clock));
+          float fringe=exp(-abs(signedBank-wash)*2.8)*smoothstep(.3,.75,channelNoise(here*.98)+.13*sin(shorePhase-clock));
           river+=fringe*vec3(.083,.076,.061);
+        }
+        if(surveyWeight>.002){
+          // The 2014–16 USGS survey resolves asymmetric inner bars, scour pools
+          // and patches of submerged vegetation below the regulated river.
+          float waterDepth=surveyDepth;
+          vec3 downRay=refract(-eye,wn,.7502);
+          float inWater=waterDepth/max(.66,-downRay.y);
+          vec2 refractedBed=here+downRay.xz*inWater;
+          vec2 bedUv=(refractedBed-vec2(-2300.,-2900.))/vec2(2550.,3850.);
+          vec2 quadrant=vec2(.5*bedUv.x,-.5*bedUv.y);
+          float plant=texture2D(bankMap,quadrant+vec2(.5,1.)).b;
+          float sandBank=texture2D(bankMap,quadrant+vec2(0.,.5)).b;
+          float cobble=texture2D(bankMap,quadrant+vec2(.5,.5)).b;
+          // Classes describe a bed patch, not the identity of each clast.
+          // A sparse sand/gravel return retains some gravel and submerged growth.
+          vec3 bedColor=mix(vec3(.48,.467,.377),vec3(.72,.654,.459),sandBank*.91);
+          bedColor=mix(bedColor,vec3(.39,.391,.315),cobble*.88);
+          float fineBed=1.-smoothstep(90.,225.,dist);
+          // World-fixed coordinates keep adjacent flow cells on the same
+          // sediment bed. Rotate ripple advection, never the absolute UV.
+          vec2 bedAxes=refractedBed-vec2(-1000.,-1200.);
+          float sway=.13*sin(bedAxes.x*1.7+clock*1.6+bedAxes.y*.4);
+          float alongX=smoothstep(.15,.85,abs(dir.x));
+          float carpet=mix(channelNoise(bedAxes.yx*vec2(.255,.78)),
+                           channelNoise(bedAxes*vec2(.255,.78)),alongX);
+          float patches=smoothstep(.23,.68,carpet);
+          float cover=clamp(plant*(.39+.56*patches)+sandBank*.12*patches,0.,1.);
+          bedColor=mix(bedColor,vec3(.219,.306,.135),cover);
+          if(fineBed>.001 && inWater<7.5){
+            vec2 grains=bedAxes*vec2(.27,.43);
+            float sandTexture=lum(texture2D(sand,grains).rgb);
+            vec2 gravelUv=refractedBed*(.43+.23*sandBank);
+            vec3 clastPhoto=gravel(gravelUv);
+            float stones=lum(clastPhoto);
+            float fronds=mix(channelNoise(vec2(bedAxes.y*.98,(bedAxes.x+sway)*5.8)),
+                             channelNoise(vec2(bedAxes.x*.98,(bedAxes.y+sway)*5.8)),alongX);
+            float detail=mix(stones,sandTexture,.14+.68*sandBank);
+            vec3 facet=texture2D(pebbleNormal,gravelUv).rgb*2.-1.;
+            float pebbleRelief=.87+.29*max(dot(normalize(vec3(facet.r,.98,-facet.g)),sun),0.);
+            float clasts=(1.-.72*sandBank)*(1.-.81*cover);
+            float grainTone=clamp(.65+.80*detail+.64*cover*(fronds-.50),.50,1.38);
+            // Preserve the photographed clast-to-clast color and size variation
+            // in gravel shoals. Scale with refracted distance and mapped cover.
+            vec3 stoneVariation=clamp(clastPhoto/max(stones,.1),vec3(.74),vec3(1.32));
+            vec3 grainsColor=stoneVariation*mix(1.,clamp(stones*2.25,.38,1.65),.64*clasts);
+            bedColor*=mix(vec3(1.),grainTone*mix(vec3(1.),grainsColor*pebbleRelief,clasts),fineBed);
+          }
+          float openSun=clamp(sunVisibility,0.,1.);
+          vec3 skyFill=vec3(.45,.53,.56)*(.92+.42*openSky);
+          vec3 wallBounce=plateau*vec3(.15,.105,.065)*(1.-openSky);
+          vec3 bedLight=skyFill+wallBounce+openSun*vec3(.55,.466,.32);
+          float lens=pow(clamp(1.-6.*abs(a.r-b.g),0.,1.),4.)*smallWave;
+          bedColor=bedColor*bedLight*(1.+openSun*.18*lens*exp(-inWater*.62));
+          // Beer-Lambert attenuation in wavelength bands. Red fades before
+          // green on the sloping bench. At grazing angles the directionally
+          // reflected real canyon remains dominant.
+          vec3 transmission=exp(-inWater*vec3(.43,.203,.292));
+          vec3 deepWater=mix(vec3(.058,.171,.165),vec3(.106,.271,.204),openSun);
+          vec3 submerged=mix(deepWater,bedColor,transmission);
+          vec3 surveyedRiver=mix(submerged,reflected,fres);
+          river=mix(river,surveyedRiver,surveyWeight);
         }
         float glint=pow(max(dot(wn,normalize(sun+eye)),0.),155.);
         river+=vec3(.67,.48,.25)*glint*sunVisibility;
-        float lace=mix(riverGrain(p0*.90),riverGrain(p1*.90),weight);
+        float lace=mix(channelNoise(p0*.90),channelNoise(p1*.90),weight);
         float broken=1.-smoothstep(.022,.123,abs(lace-.54));
-        float foam=broken*(sheltered*.63+riffles*.11)*smoothstep(.44,.69,riverGrain(here*.23))*smallWave;
+        float foam=broken*(sheltered*.63+riffles*.11)*smoothstep(.44,.69,channelNoise(here*.23))*smallWave;
+        // The flat regulated reach rarely carries persistent white foam.
+        // Retain sparse surface streaks against rough, shallow banks.
+        float marginBreak=(1.-smoothstep(.5,4.2,bankMeters))*(1.-smoothstep(.45,1.8,surveyDepth));
+        foam*=mix(1.,.038+.70*marginBreak,surveyWeight);
         river=mix(river,vec3(.73,.74,.65),foam);
         color=mix(color,river,wet);
       }
@@ -617,7 +712,10 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
   return {landformMesh,height:elevation,elevation,rockSurface,surveyedShelf,lightLooseSandstone,rockLight:shared.terrainField,clearance,spawn,launches:{lake:spawn,ridge,shore,wall:{x:-920,y:67.814,z:-72,yaw:1.7984}},trees:[],
     skyTexture,sunDirection:sun,altitudeOffset:950,bounds:{minX:-2950,maxX:2950,minZ:-2950,maxZ:2950},
     landmarks:[{name:'Horseshoe Bend',x:-925,z:-235},{name:'Horseshoe Bend Overlook',x:0,z:80},
-      {name:'Colorado River',x:-950,z:-2450},{name:'Glen Canyon Rim',x:-1830,z:500},
+      {name:'Colorado River',x:-950,z:-2450},
+      {name:'Horseshoe Bend sandbar',x:-920,z:218,discoveryRadius:82,
+        approach:[-825,218,-1001,175,16,0,29]},
+      {name:'Glen Canyon Rim',x:-1830,z:500},
       {name:'Sandstone shelves',x:-478,z:-140,discoveryRadius:40},{name:'Riverbank alcove',x:-527,z:-288,discoveryRadius:35}],
     update(dt,elapsed){time.value=elapsed;}
   };

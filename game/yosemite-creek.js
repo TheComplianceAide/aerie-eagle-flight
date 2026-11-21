@@ -325,7 +325,8 @@ window.makeYosemiteCreek=function makeYosemiteCreek(T,scene,options){
     }
   }
   return {ownsFlow,contains,waterAt,rockTop,plant,bridgeAt:bridge.at,
-    landmark:{name:'Lower Yosemite Fall Footbridge',x:2636.15,z:-1810.10,approach:[2661,-1780,2570,-1890,12,0,-7]}};
+    // The downstream diagonal keeps the deck in view and clears the tall upstream crown.
+    landmark:{name:'Lower Yosemite Fall Footbridge',x:2636.15,z:-1810.10,approach:[2647.96,-1782.02,2613.43,-1815.36,21,-20,8]}};
 };
 
 window.shadeYosemiteCreekBed=function shadeYosemiteCreekBed(material,texture){

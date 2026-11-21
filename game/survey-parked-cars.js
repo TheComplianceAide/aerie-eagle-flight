@@ -27,10 +27,37 @@ window.makeSurveyCarEmitter=function(T,face){
     const roofFront=suv?.58:.28,roofRear=pickup?-.48:suv?-1.34:-1.00;
     const width=w*.941, rw=w*.79;
     const p=(u,v,h)=>vertex(u,v,h);
-    face('autoGlass',[glassFoot,glassFoot,glassTop,glassTop],
-      [p(deckFront,-width,belt+.015),p(deckFront,width,belt+.015),p(roofFront,rw,roofH-.03),p(roofFront,-rw,roofH-.03)]);
-    face('autoGlass',[glassFoot,glassFoot,glassTop,glassTop],
-      [p(deckRear,width,belt+.015),p(deckRear,-width,belt+.015),p(roofRear,-rw,roofH-.03),p(roofRear,rw,roofH-.03)]);
+    // Curved laminated screens catch a continuous band of the sky and the
+    // street. Keep the corner vertices shared with the painted A/C posts.
+    for(const [deck,lip,end] of [[deckFront,roofFront,1],[deckRear,roofRear,-1]]){
+      const screen=(t,upper)=>{
+        const bulge=1-t*t;
+        return upper?p(lip+.046*end*bulge,rw*t,roofH-.03+.014*bulge)
+          :p(deck+.102*end*bulge,width*t,belt+.015+.025*bulge);
+      };
+      for(let n=0;n<6;n++){
+        const a=-1+n/3,b=a+1/3;
+        face('autoGlass',[glassFoot,glassFoot,glassTop,glassTop],
+          [screen(a,false),screen(b,false),screen(b,true),screen(a,true)]);
+      }
+    }
+    // The original hull hid lenses and grilles behind its front and rear
+    // faces. Follow each rounded corner outside the widest bumper ring.
+    const nose=len*.5*.997+.009;
+    for(const end of [-1,1]){
+      const center=(u,v,h)=>p(end*(nose+u),v,h);
+      const grille=paint(end>0?0x282c2d:0x474644);
+      const lo=end>0?.37:.44,hi=end>0?belt-.20:belt-.17;
+      face('smooth',grille,[center(.006,-w*.46,lo),center(.006,w*.46,lo),
+        center(.006,w*.39,hi),center(.006,-w*.39,hi)]);
+      if(end>0)for(const h of [lo+.07,lo+.13]){
+        face('smooth',lens,[center(.011,-w*.38,h),center(.011,w*.38,h),
+          center(.011,w*.36,h+.012),center(.011,-w*.36,h+.012)]);
+      }
+      const plateH=lo+.02;
+      face('smooth',paint(0xc6c5b3),[center(.019,-.15,plateH),center(.019,.15,plateH),
+        center(.019,.15,plateH+.114),center(.019,-.15,plateH+.114)]);
+    }
     for(const side of [-1,1]){
       const low=(u,h=belt+.015)=>p(u,width*side,h);
       const high=u=>p(u,rw*side,roofH-.03);
@@ -48,9 +75,14 @@ window.makeSurveyCarEmitter=function(T,face){
       const mirror=[p(.66,width*side,belt+.09),p(.68,(w+.14)*side,belt+.11),p(.52,(w+.14)*side,belt+.15),p(.51,width*side,belt+.13)];
       face('carPaint',coat,mirror);
       for(const end of [-1,1]){
-        const u=end*(len/2*.992-.065), hi=belt-.15,lo=hi-.15;
-        face(end>0?'autoGlass':'smooth',end>0?headlamp:taillamp,
-          [p(u,side*w*.42,lo),p(u-.1*end,side*w*.80,lo+.02),p(u-.12*end,side*w*.80,hi),p(u,side*w*.42,hi)]);
+        const hi=belt-.095,lo=hi-(end>0?.143:.170);
+        const inner=side*w*.39,outer=side*w*.665;
+        const kind=end>0?'autoGlass':'smooth',tint=end>0?headlamp:taillamp;
+        const a=p(end*nose,inner,lo+.025),b=p(end*nose,outer,lo);
+        const c=p(end*nose,outer,hi),d=p(end*nose,inner,hi-.037);
+        face(kind,tint,[a,b,c,d]);
+        face(kind,tint,[b,p(end*(nose-.237),side*w*.912,lo+.052),
+          p(end*(nose-.228),side*w*.913,hi+.008),c]);
       }
       const radius=suv||pickup?.35:.303;
       for(const axle of [-len*.31,len*.306]){
@@ -63,8 +95,17 @@ window.makeSurveyCarEmitter=function(T,face){
         for(let i=0;i<12;i++)face('smooth',i%2?alloy:lens,[p(axle,(w+.026)*side,radius),hub[i],hub[(i+1)%12]]);
       }
     }
-    const top=[p(roofFront,-rw,roofH-.028),p(roofFront,rw,roofH-.028),p(roofRear,rw,roofH-.028),p(roofRear,-rw,roofH-.028)];
-    face('carPaint',coat,top);
+    // Crown the roof and retain a narrow painted gutter over the door glass.
+    const roofPoint=(t,row)=>{
+      const arch=1-t*t,u=roofFront+(roofRear-roofFront)*row;
+      const end=1-2*row;
+      return p(u+.046*end*arch,rw*t,roofH-.03+arch*(.014+.040*(1-end*end)));
+    };
+    for(let i=0;i<6;i++){
+      const left=-1+i/3,right=left+1/3;
+      for(const row of [0,.5])face('carPaint',coat,[roofPoint(left,row),roofPoint(right,row),
+        roofPoint(right,row+.5),roofPoint(left,row+.5)]);
+    }
     if(pickup){
       const rear=-len*.46;
       face('smooth',rubber,[p(rear,-w*.75,belt+.009),p(-.65,-w*.75,belt+.009),p(-.65,w*.75,belt+.009),p(rear,w*.75,belt+.009)]);
