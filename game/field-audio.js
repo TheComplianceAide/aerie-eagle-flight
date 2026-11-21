@@ -9,7 +9,7 @@
     yosemite:{beds:{canopy:'leaves-montane',river:'stream-forest',cascade:'falls-spray'},birds:['nutcracker','thrush','jay','yo-chickadee','yo-dipper','yo-acorn'],animals:['douglas-squirrel']},
     crater:{beds:{lake:'lapping-caldera',canopy:'leaves-montane',cascade:'stream-rock'},birds:['nutcracker','jay','cl-bluebird','cl-junco','cl-robin','cl-raven'],animals:['american-pika']},
     lofoten:{beds:{inlet:'inlet',cascade:'stream-rock'},birds:['kittiwake','oystercatcher','meadow-pipit','no-eider','no-gull','no-tern'],animals:['norwegian-sheep']},
-    milford:{beds:{lake:'lapping-fjord',cascade:'falls-spray'},birds:['bellbird','kea','nz-shelduck','nz-fantail','nz-tomtit','nz-tui'],animals:['nz-fur-seal']},
+    acadia:{beds:{},birds:['acadia-barred-owl','no-eider'],animals:['harbor-seal']},
     dixville:{beds:{lake:'lapping-boreal',canopy:'leaves-hardwood',cascade:'stream-rock'},birds:['me-chickadee','me-kinglet','thrush','nh-kingfisher','nh-mallard','nh-vireo','ak-raven'],animals:['juneau-red-squirrel']},
     labrador:{beds:{lake:'lapping-boreal',canopy:'leaves-boreal'},birds:['loon-moosehead','ne-goose','ak-raven','thrush','cl-junco'],animals:['juneau-red-squirrel']},
     winnipesaukee:{beds:{lake:'lapping-islands',canopy:'leaves-hardwood',cascade:'stream-rock'},birds:['loon-winnipesaukee','nh-vireo','ne-goose','nh-mallard','me-black-duck','nh-heron','nh-kingfisher'],animals:['nh-bullfrog']},
@@ -40,6 +40,7 @@
     "cl-junco":["junco","ground",100],
     "cl-robin":["robin","tree",130],
     "no-eider":["eider","water",175],
+    "acadia-barred-owl":["barred-owl","tree",420],
     "no-gull":["common-gull","coast",250],
     "no-tern":["tern","coast",180],
     "nz-tui":["tui","tree",150],
@@ -91,6 +92,7 @@
     "junco":[0.16,0.23],
     "robin":[0.25,0.37],
     "eider":[0.61,0.97],
+    "barred-owl":[0.26,1.08],
     "common-gull":[0.42,1.13],
     "tern":[0.35,0.81],
     "tui":[0.3,0.43],
@@ -121,7 +123,7 @@
   };
   const species=Object.fromEntries(Object.entries(birds).map(([id,[,habitat,reach]])=>[id,[habitat,reach,habitat==='water'?.96:.82]]));
   Object.assign(species,{
-    'nh-bullfrog':['bank',125,.64],'maine-green-frog':['bank',100,.63],'nh-spring-peeper':['bank',140,.63],
+    'harbor-seal':['coast',120,0],'nh-bullfrog':['bank',125,.64],'maine-green-frog':['bank',100,.63],'nh-spring-peeper':['bank',140,.63],
     'canyon-treefrog':['bank',95,.64],'hawaiian-monk-seal':['beach',135,.73],'nz-fur-seal':['coast',180,.78],
     'american-pika':['rock',115,.62],'alpine-marmot':['meadow',230,.77],'norwegian-sheep':['meadow',145,.66],
     'golden-mantled-squirrel':['meadow',90,.64],'juneau-red-squirrel':['tree',95,.68],'douglas-squirrel':['tree',110,.69]
@@ -148,6 +150,8 @@
   const timing={
     // A loon pair gives 4.4 loud calls an hour by day (Mennill 2014); with an
     // eagle about, a wail or tremolo as it passes and one every few minutes after.
+    'barred-owl':{idle:[72,210],night:Infinity},
+    'harbor-seal':{}, // Hauled-out adults are silent on this late-summer flight.
     loon:{idle:[300,800],alarm:{chance:.7,clips:[1,1],gap:[4,9],bouts:3,rest:[60,240]}},
     goose:{idle:[60,180],alarm:{chance:1,clips:[3,5],gap:[-3.4,-2.2],bouts:2,rest:[14,28],range:160}},
     mallard:duck,'black-duck':duck,
@@ -192,7 +196,7 @@
     'alpine-ibex':{idle:[900,2400],alarm:{chance:.8,clips:[1,1],gap:[2,5],bouts:1,rest:[60,120],range:120}},
     'desert-bighorn':{idle:[600,1800]},'eurasian-otter':{idle:[240,600]}
   };
-  const timingOf=id=>timing[birds[id]?.[0]]||timing[id]||{idle:[60,150]};
+  const defaultTiming=id=>timing[birds[id]?.[0]]||timing[id]||{idle:[60,150]};
   const phrases={
     departure:['eagle-yellowstone','eagle-peale-long'],
     encounter:['eagle-peale-long','eagle-lake-series','eagle-yellowstone'],
@@ -304,9 +308,13 @@
     if(kind==='water'&&shore)return anchor(shore.x,waterY+.4,shore.z);
     return null;
   }
-  window.aerieFauna={scenes,species,birds,sizes,sourceSite,nearestShore,timing,timingOf};
+  window.aerieFauna={scenes,species,birds,sizes,sourceSite,nearestShore,timing,timingOf:defaultTiming};
   window.makeFieldAudio=function makeFieldAudio(context,region){
     const profile=scenes[region];
+    // Coastal eiders are mostly quiet on summer nights. Harbor seals on a
+    // haul-out are visible; underwater breeding roars do not carry into air.
+    const lateSummerEider={idle:[300,800]};
+    const timingOf=id=>region==='acadia'&&id==='no-eider'?lateSummerEider:defaultTiming(id);
     // The white-tailed deer recording peaks 11 dB below the others; its level makes that up.
     const calls={moose:[134,.81],'white-tailed-deer':[97,2.3],'red-deer':[185,.84],
       'alpine-ibex':[170,.74],'desert-bighorn':[125,.70],'eurasian-otter':[115,.66]};
@@ -325,7 +333,7 @@
     let scape=null,scapeExtras={},scapeBeds=new Set();
     let eagleDue=0, wildlifeUntil=0, idleTurn=0;
     // Each kind of animal keeps its own time: when its next undisturbed bout is due.
-    const idleIds=[...profile.birds,...profile.animals].filter(id=>species[id]),idleDue=new Map(),mammalDue=new Map();
+    const idleIds=[...profile.birds,...profile.animals].filter(id=>species[id]&&(timingOf(id).idle||timingOf(id).alarm)),idleDue=new Map(),mammalDue=new Map();
     const between=([a,b])=>random(a,b);
     let alarmCheck=0;
     // Species-appropriate quiet. Frogs and small songbirds fall silent when a
@@ -401,7 +409,7 @@
       const token=generation;
       for(const [role,id] of Object.entries(profile.beds))load(id).then(buffer=>startBed(role,buffer,token));
       if(profile.birds.includes('loon-moosehead'))load('maine-loon-reply');
-      for(const id of [...profile.birds,...profile.animals,...playerCalls])load(id);
+      for(const id of [...idleIds,...playerCalls])load(id);
       for(const id of localMammals)load('land-'+id);
       previousStage=null;pending=null;quietUntil=now;
       eagleDue=now+(started?random(14,24):random(3.9,5.4));
@@ -626,7 +634,7 @@
       // wildlifeUntil already covers the complete eagle phrase. Give a nearby
       // mammal its turn before an ambient bird starts during the eagle's rest.
       // Animals of the dusk and the night call seldom, or not at all, under a high sun.
-      const daylight=clamp(((world.sunDirection?.y??.4)-.05)/.2,0,1);
+      const daylight=region==='acadia'?0:clamp(((world.sunDirection?.y??.4)-.05)/.2,0,1);
       const pause=id=>{const manner=timingOf(id);return between(manner.idle)*(daylight>0&&manner.night?1+(manner.night-1)*daylight:1);};
       for(const id of localMammals){
         if(now<wildlifeUntil||now<mammalDue.get(id))continue;

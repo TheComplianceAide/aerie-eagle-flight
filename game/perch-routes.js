@@ -40,13 +40,11 @@
       path: [[4207,3180,15],[4062,3051,12],[4060,2987,13],[4117,2912,12],[4104,2803,11]],
       perch: ['ledge',4070,2740,'Hamnøy fjord ledge'],
     },
-    milford: {
-      name: 'Stirling Falls face traverse', sight: 'Stirling Falls',
-      // The flight crosses the downstream side of the mapped Stirling pool.
-      sightPoint: [-843,-744,'Stirling Falls curtain'],
-      label: 'Traverse the waterfall face, then flare into the forest on its western flank.',
-      path: [[-906,-376,43],[-870,-516,33],[-842,-628,23],[-851,-674,19],[-912,-700,17],[-1029,-707,18]],
-      perch: ['branch',-1092,-757,'Stirling Falls forest limb'],
+    acadia: {
+      name: 'Otter Cliff spruce ledge', sight: 'Otter Cliff',
+      label: 'Follow the surf south and settle on a granite ledge above the Atlantic.',
+      path: [[142,737,32],[126,852,25],[101,957,20]],
+      perch: ['ledge',35,1059,'Otter Cliff granite ledge'],
     },
     moosehead: {
       name: 'Kineo Cove shoreward glide', sight: 'Kineo Cove',

@@ -304,7 +304,11 @@
       #endif
       vec3 light=vec3(.65,.72,.80)+sky*.09+lit*sunlight*(.54*max(0.,cosine)+.43*(.52+.48*cosine)+transmission+rim*.10);
       float dist=distance(wp,cameraPosition);
-      gl_FragColor=vec4(mix(c*light*ao,aerialTint,clamp(dist*fogStrength,0.,.25)),1.);
+      vec3 crown=c*light*ao;
+      #ifdef STARLIT_CANOPY
+      crown=mix(crown,vec3(dot(crown,vec3(.22,.67,.11))),.48)*vec3(.36,.44,.55);
+      #endif
+      gl_FragColor=vec4(mix(crown,aerialTint,clamp(dist*fogStrength,0.,.25)),1.);
     }`;
   const depthFragment=`
     ${sampleSurface}
@@ -585,7 +589,8 @@
       try{
         const response=await fetch(urlFor('regional-vegetation.json'),{signal:ab.signal});
         if(!response.ok)throw Error('Regional vegetation index returned '+response.status);
-        const catalog=(await response.json()).filter(row=>row.region===surveyRegion);
+        // The same red spruce, balsam fir and paper birch occur on both Maine coasts and inland.
+        const catalog=(await response.json()).filter(row=>row.region===(surveyRegion==='acadia'?'moosehead':surveyRegion));
         if(maine&&window.mooseheadMatureCanopy)catalog.push(window.mooseheadMatureCanopy);
         const packs=await Promise.all(catalog.map(async meta=>{
           try{
@@ -670,6 +675,7 @@
           // filtering. Preserve crown mass as the player crosses each LOD.
           uniforms.canopyAlphaCut={value:regional?[.34,.27,.17][record.l]:.34};
           const defines=regional?{REGIONAL_SPECIMEN:1}:pilot?{MENDENHALL_SITKA:1}:{};
+          if(surveyRegion==='acadia')defines.STARLIT_CANOPY=1;
           if(record.l===0){
             defines.CLOSE_BOUGH_WIND=1;
             const scan=regional&&regional.family!=='brush'&&(regional.family==='broad'?bark?.hardwood:bark?.pine);

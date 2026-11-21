@@ -29,7 +29,7 @@
       crater:['regional-waterfalls.js','falls-terrain-crater.js','waterfall-system.js','crater-bathymetry.js','crater-weather.js','crater-phantom-ship.js'],
       dixville:['waterfall-system.js','dixville-brooks.js','dixville-lidar.js','talus-data.js','rocks.js','architecture.js','dixville-landmarks.js'],
       labrador:['architecture.js','labrador-camp-ground.js','labrador-cabin.js','labrador-weather.js'],
-      milford:['waterfall-system.js'],
+      acadia:['acadia-night.js','acadia-coast.js'],
       lofoten:['regional-waterfalls.js','falls-terrain-lofoten.js','waterfall-system.js'],
       yosemite:['waterfall-system.js','atlas-yosemite-crowns.js','talus-data.js','rocks.js'],
       moosehead:['moosehead-crowns.js','moosehead-shore-survey.js','moosehead-bank-growth.js','moosehead-uplands.js','kineo-terrain.js','regional-waterfalls.js','falls-terrain-moosehead.js','waterfall-system.js','architecture.js'],
@@ -41,6 +41,6 @@
     const assets=[...streams,...base,'wildlife-tracks.js','regional-landforms.js','habitat-data/'+region+'.js',...files,...surveyDetail];
     await Promise.all(assets.map(name=>name==='canopy-stream.js'
       ? Promise.all([open('close-tree-detail.js'),open('close-bark-material.js').catch(()=>{})]).then(()=>open(name)) : open(name)));
-    await Promise.all([window.prepareRangeRelief(region),window.aerieRegionalLandforms.prepare(region),region==='moosehead'?window.prepareMooseheadUplands():null]);
+    await Promise.all([region==='acadia'?null:window.prepareRangeRelief(region),window.aerieRegionalLandforms.prepare(region),region==='moosehead'?window.prepareMooseheadUplands():null]);
   };
 })();

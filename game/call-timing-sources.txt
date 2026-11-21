@@ -837,3 +837,8 @@ Timed from frame counts of a perched bald eagle in U.S. Fish and Wildlife
 Service footage (public domain): a turn of 60 to 70 degrees takes 0.23 to 0.30 s,
 and the head then holds still for 0.6 to 2.1 s.
 https://commons.wikimedia.org/wiki/File:Bald_Eagle_(Haliaeetus_leucocephalus)_in_USA.webm
+
+Acadia late-summer night — National Park Service documents barred owls in mature forest at Acadia, hunting by night. Model choice: short, separate bouts at 72–210 second intervals for a nearby forest bird. Marine common eiders use a much quieter contact-call interval of 300–800 seconds on this night, with no alarm chorus. Harbor seals hauled out on rock are usually silent; no underwater breeding roar is projected into the air. White-tailed deer and snowshoe hares use their existing behaviors. No summer territorial loon duet is played out at sea.
+https://www.nps.gov/acad/learn/nature/owls.htm
+https://www.nps.gov/acad/learn/nature/marine-wildlife.htm
+https://www.nps.gov/acad/learn/nature/loons.htm

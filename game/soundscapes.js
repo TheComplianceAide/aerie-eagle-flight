@@ -16,14 +16,14 @@
     surry: {tempC: 28, humidity: 74, ir: 'lake'},        dixville: {tempC: 3, humidity: 88, ir: 'dixville', inversion: .45},
     labrador: {tempC: 14, humidity: 90, ir: 'lake', inversion: .2}, moosehead: {tempC: 21, humidity: 70, ir: 'lake', inversion: .15},
     yosemite: {tempC: 25, humidity: 28, ir: 'yosemite'}, crater: {tempC: 9, humidity: 68, ir: 'crater'},
-    lofoten: {tempC: 9, humidity: 84, ir: 'lofoten'},    milford: {tempC: 12, humidity: 96, ir: 'milford'}
+    lofoten: {tempC: 9, humidity: 84, ir: 'lofoten'},    acadia: {tempC: 16, humidity: 84, ir: 'lake', inversion: .24}
   };
   // Real coordinates for live air from Open-Meteo (CC BY 4.0). US worlds ask
   // for NOAA GFS/HRRR; others use the provider's best regional model.
   const site = {
     alaska: [58.418, -134.565, 'us'], canyon: [36.879, -111.510, 'us'], swiss: [46.498, 7.727], winnipesaukee: [43.585, -71.330, 'us'],
     surry: [43.006, -72.311, 'us'], dixville: [44.867, -71.305, 'us'], labrador: [50.747, -68.500], moosehead: [45.700, -69.730, 'us'],
-    yosemite: [37.723, -119.637, 'us'], crater: [42.944, -122.109, 'us'], lofoten: [67.932, 13.089], milford: [-44.641, 167.897]
+    yosemite: [37.723, -119.637, 'us'], crater: [42.944, -122.109, 'us'], lofoten: [67.932, 13.089], acadia: [44.321, -68.187, 'us']
   };
   async function liveAir(region) {
     const key = 'aerie-air-' + region;
@@ -48,7 +48,7 @@
       return air;
     } catch (e) { return null; } finally { clearTimeout(timer); }
   }
-  const irLevel = {canyon: .020, lofoten: .016, milford: .011, yosemite: .0013, swiss: .019, dixville: .088, alaska: .017, crater: .011, lake: .00012};
+  const irLevel = {canyon: .020, lofoten: .016, yosemite: .0013, swiss: .019, dixville: .088, alaska: .017, crater: .011, lake: .00012};
 
   // ---- placement helpers ------------------------------------------------------
   function ground(world, x, z) { return (world.elevation || world.height)(x, z); }
@@ -475,13 +475,20 @@
         {clip: 'scape-lofoten-arctic-tern-colony', every: [30, 70], ref: 30, reach: 800, gain: .55, where: onWater(100, 600, 4)}
       ]
     },
-    milford: {
-      falls: {clip: 'scape-milford-big-waterfall', ref: 160, reach: 7000, gain: 1},
-      beds: [{clip: 'scape-milford-rainforest-rain', ref: 1, gain: c => (.16 * (1 - smooth(60, 260, c.agl)) + .05) * (c.rain === undefined ? 1 : .82 * c.rain + .18 * c.wetness)}],
-      choruses: [{clip: 'scape-milford-chorus-cicada', habitat: 'trees', count: 3, r: [25, 160], ref: 14, reach: 600, gain: .38}],
-      events: [
-        {clip: 'scape-milford-weka', every: [30, 70], ref: 18, reach: 450, gain: .5, where: onGround(40, 300)},
-        {clip: 'scape-milford-kaka', every: [50, 120], ref: 30, reach: 800, gain: .5, where: inTrees(80, 500, .8)}
+    acadia: {
+      // A soft, enclosed cove, an exposed Atlantic headland, and a cobble bank
+      // have different scale and reach. The fixed emitters use acoustic
+      // path length, cliff occlusion, marine humidity and wind masking.
+      loops: [
+        {clip: 'scape-acadia-cove', ref: 15, reach: 460, gain: .70, where: fixed(600, .45, -979)},
+        {clip: 'scape-acadia-ledge', ref: 36, reach: 1250, gain: .85, where: fixed(68, .55, 1072)},
+        {clip: 'scape-acadia-cobbles', ref: 12, reach: 275, gain: .67, where: fixed(-84, 1.4, 490)},
+        {clip: 'scape-acadia-cove', ref: 11, reach: 360, gain: .38, where: fixed(61, .7, -26)}
+      ],
+      surge: {clip: 'scape-acadia-chamber', where: fixed(52, 1.1, -45), ref: 40, reach: 1150},
+      choruses: [
+        {clip: 'scape-acadia-spruce', habitat: 'trees', count: 3, r: [18,145], ref: 12, reach: 235, gain: .43},
+        {clip: 'scape-moosehead-field-crickets', habitat: 'forest-edge', count: 2, r: [10,78], ref: 6, reach: 95, gain: .25}
       ]
     },
     winnipesaukee: {
@@ -598,7 +605,7 @@
     const ids = new Set();
     const listClips = c => Array.isArray(c) ? c : [c];
     for (const e of spec.events || []) listClips(e.clip).forEach(id => ids.add(id));
-    for (const g of [spec.falls, ...(spec.water || []), ...(spec.beds || []), ...(spec.loops || []), ...(spec.choruses || [])]) if (g) ids.add(g.clip);
+    for (const g of [spec.falls, spec.surge, ...(spec.water || []), ...(spec.beds || []), ...(spec.loops || []), ...(spec.choruses || [])]) if (g) ids.add(g.clip);
     for (const id of ids) load(id);
     load('ir-' + (air.ir || 'lake')).then(b => engine.setImpulse(b, (irLevel[air.ir || 'lake'] || .0002) * 7.5));
     if (spec.shower) { load('scape-' + region + '-rain-on-lake'); load('scape-' + region + '-rain-on-spruce'); }
@@ -647,7 +654,10 @@
           const random = seededRandom(1000 + k, ix, iz), x = (ix + random()) * PATCH, z = (iz + random()) * PATCH;
           patch = null;
           if (!isWet(world, x, z)) {
-            if (ch.habitat !== 'trees') patch = {x, y: ground(world, x, z) + .3, z};
+            if (ch.habitat === 'forest-edge') {
+              const y = ground(world, x, z);
+              if (y > (waterLevel(world) ?? 0) + 3 && world.habitat?.nearestTree?.(x, z, 30)) patch = {x, y: y + .3, z};
+            } else if (ch.habitat !== 'trees') patch = {x, y: ground(world, x, z) + .3, z};
             else { const t = world.habitat?.nearestTree?.(x, z, 30); if (t) patch = {x: t.x, y: t.y + t.height * (.4 + .45 * random()), z: t.z}; }
           }
           if (patch) Object.assign(patch, {key, gain: .7 + .45 * random(), rate: .97 + .06 * random()});
@@ -705,6 +715,7 @@
       }
     }
 
+    let surgeHigh = false;
     let thunderDue = 0, ctx = null, ticks = null, airflow = null;
     // ---- Eagle Ears (L): eagle head, raptor hearing, audible prey ------------
     let eagleEars = false, humanProfile = engine.profile, rustles = null, splash = null, nextCue = 0;
@@ -885,6 +896,17 @@
         shore: extras.shore, town: 0, t, overWater: isWet(world, ear.x, ear.z)};
       const keene = landmark(world, /Central Square/);
       if (keene) ctx.town = 1 - smooth(300, 1400, Math.hypot(ear.x - keene.x, ear.z - keene.z));
+      // Air is squeezed out of Thunder Hole only as the visual pulse rises.
+      // A single pressure transient arrives from the chamber after propagation.
+      if (spec.surge && world.acadiaCoast) {
+        const pulse = world.acadiaCoast.surge(t), high = pulse > .37;
+        if (high && !surgeHigh) {
+          const q = spec.surge, pos = q.where(ctx), b = buffers.get(q.clip);
+          if (b && Math.hypot(ear.x-pos.x, ear.y-pos.y, ear.z-pos.z) < q.reach)
+            engine.play(b, pos, {label:q.clip, gain:.95, ref:q.ref, reach:q.reach, wet:.65, echo:true, rate:rand(.96,1.03)});
+        }
+        surgeHigh = high;
+      }
       preyCues(now);
       if (now < nextScan) { tickEvents(now); return; }
       nextScan = now + .25;

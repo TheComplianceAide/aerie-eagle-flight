@@ -4,7 +4,7 @@ window.makeFishSchools=function(region,waterAt,disturb){
   const roster={
     alaska:['sockeye','dolly-varden'],swiss:['lake-trout','rainbow'],canyon:['rainbow','brown-trout','carp'],
     yosemite:['rainbow','brown-trout'],crater:['kokanee','rainbow'],
-    milford:['spotty','blue-cod'],lofoten:['saithe','atlantic-cod'],
+    acadia:['saithe'],lofoten:['saithe','atlantic-cod'],
     winnipesaukee:['smallmouth','atlantic-salmon','lake-trout'],surry:['yellow-perch','smallmouth'],
     dixville:['brook-trout'],
     labrador:['brook-trout'],

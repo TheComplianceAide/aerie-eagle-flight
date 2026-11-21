@@ -3,6 +3,7 @@
   if (!matchMedia('(pointer: coarse)').matches) return;
   const variants = new Set([
     'alaska-evening.jpg',
+    'acadia-night-sky.webp',
     'moosehead-dawn-sky.webp',
     'winnipesaukee-dusk-sky.webp',
     'lofoten-dusk-sky.webp',
@@ -13,8 +14,9 @@
     'atlas-crater-sky.webp',
     'atlas-lofoten-photo.webp',
     'atlas-lofoten-sky.webp',
-    'atlas-milford-photo.webp',
-    'atlas-milford-sky.webp',
+    'atlas-acadia-photo.webp',
+    'atlas-acadia-detail.webp',
+    'atlas-acadia-ranges.webp',
     'atlas-moosehead-detail.webp',
     'atlas-moosehead-photo.webp',
     'atlas-moosehead-sky.webp',

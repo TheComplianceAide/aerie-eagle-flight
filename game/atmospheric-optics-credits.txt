@@ -14,7 +14,7 @@ https://www.weather.gov/arx/why_halos_sundogs_pillars
 Hong Kong Observatory, parhelion geometry:
 https://www.weather.gov.hk/en/education/earth-science/optical-phenomena/00353-indepth-anatomy-of-the-atmospheric-optical-phenomenon-sun-dog.html
 
-Dixville, Moosehead, Surry, Yosemite, Milford and Horseshoe Bend
+Dixville, Moosehead, Surry, Yosemite and Horseshoe Bend
 Mountains and broken clouds interrupt direct sunlight. Areas lit through
 gaps scatter light toward an observer in haze, dust or droplets. Parallel
 rays appear to converge near the solar or antisolar point. Four finite
@@ -37,3 +37,7 @@ Intracloud lightning illuminates a region inside a storm cloud. The simulation
 lets the cloud itself diffuse and obscure the light.
 NOAA National Severe Storms Laboratory:
 https://www.nssl.noaa.gov/education/svrwx101/lightning/types/
+
+Acadia National Park
+The low green-blue band above the Atlantic represents atmospheric airglow. The fixed stellar field and Galactic dust lanes follow NASA SVS Deep Star Maps 2020 at the latitude of Mount Desert Island.
+https://svs.gsfc.nasa.gov/4851/

@@ -3,6 +3,7 @@
 window.makeMovingWeather = async function makeMovingWeather(THREE, scene, world) {
   // Layer height in survey coordinates, pattern span, cloud threshold, shadow
   // strength, upper-wind multiplier, and elongation across the prevailing wind.
+  if(world.region==='acadia')return ()=>{}; // A clear summer night with visible stars.
   const profiles = {
     dixville:      [1710, 4070, .63, .36, 2.1, .86],
     labrador:      [1390, 4350, .49, .44, 2.45, .78],

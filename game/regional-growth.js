@@ -13,7 +13,7 @@
     milford:['tree-fern','tussock','bilberry'],canyon:['ephedra','tussock'],lofoten:['heath','tussock','alder'],
     swiss:['tussock','bilberry'],crater:['bilberry','tussock'],alaska:['alder','fern','tussock'],
     labrador:['tea','heath','tussock'],yosemite:['bilberry','fern','tussock'],
-    moosehead:['tea','fern','alder'],surry:['fern','alder','bilberry'],
+    acadia:['heath','fern','alder'],moosehead:['tea','fern','alder'],surry:['fern','alder','bilberry'],
     winnipesaukee:['fern','bilberry','alder'],dixville:['fern','bilberry','tussock']
   };
   function specimen(T,kind){
@@ -122,6 +122,7 @@
   }
   function select(region,zone,draw){
     const {alpine,wet,open,shelter,land}=zone;
+    if(region==='acadia')return wet>.48?'alder':open>.53?'heath':'fern';
     if(region==='canyon')return draw<.66?'ephedra':'tussock';
     if(region==='lofoten')return wet>.55||land===3&&draw>.53?'tussock':land===1&&draw<.3?'alder':'heath';
     if(region==='labrador')return wet>.31||shelter<.44?'tea':open>.7&&draw>.60?'tussock':'heath';

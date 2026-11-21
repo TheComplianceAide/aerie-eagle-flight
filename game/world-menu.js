@@ -13,13 +13,13 @@
     yosemite: {name:['Yosemite','Valley'],region:'California, USA',description:'Bank between granite walls above the Merced River and its forested valley floor.',launches:{lake:'El Capitan overlook',ridge:'Valley floor'}},
     crater: {name:['Crater','Lake'],region:'Oregon, USA',description:'Fly from the golden caldera rim toward Wizard Island. A red-lit storm front advances across the far shore.',launches:{lake:'Caldera overlook',ridge:'Wizard Island'}},
     lofoten: {name:['Lofoten','Islands'],region:'Reinefjorden, Norway',paletteLaunch:'lake',description:'Follow the copper light down Reinefjorden beneath a low violet cloud bank. The fjord narrows between steep mountain walls.',launches:{lake:'Fjord overlook',ridge:'Reinefjorden channel'}},
-    milford: {name:['Milford','Sound'],region:'Fiordland, New Zealand',description:'Follow the rainforest walls and waterfall channels along Piopiotahi.',launches:{lake:'Mitre Peak overlook',ridge:'Bowen Falls approach'}}
+    acadia: {name:['Acadia','National Park'],region:'Night · Maine, USA',paletteLaunch:'lake',description:'Fly south along Otter Cliff with the Milky Way over the Atlantic. Follow the breakers to Thunder Hole, or cross the pale crescent of Sand Beach.',launches:{lake:'Otter Cliff under the Milky Way',ridge:'Thunder Hole surf run',beach:'Sand Beach and Great Head'}}
   });
   for(const [id,w] of Object.entries(worlds)){
     const game=window.aerieLandWildlife.regions[id];
     if(game)w.launches.game=game.title;
     w.launches.lookout=window.PERCH_ROUTE_NAMES[id];
-    w.launches.wildlife=id==='moosehead'?'Wildlife shallows · Salmon rise':'Wildlife shallows';
+    w.launches.wildlife=id==='moosehead'?'Wildlife shallows · Salmon rise':id==='acadia'?'Common eiders in Newport Cove':'Wildlife shallows';
   }
   const app = document.getElementById('app');
   const picker = document.getElementById('worldPicker');
@@ -46,7 +46,7 @@
   function preview(id,start){
     document.getElementById('landscape').style.backgroundImage='url("'+asset(previewName(id,start))+'")';
   }
-  const initialWorld=initial.get('world')==='lac-berte'?'labrador':initial.get('world');
+  const initialWorld=initial.get('world')==='lac-berte'?'labrador':initial.get('world')==='milford'?'acadia':initial.get('world');
   picker.value = Object.hasOwn(worlds, initialWorld) ? initialWorld : 'alaska';
   for (const [id, w] of Object.entries(worlds)) {
     const button = document.createElement('button');
@@ -77,6 +77,12 @@
       kineo:'Fly west across open water toward the break in the crest. Bank along the east face to follow its wooded ledges.',
       spray:'Follow the shoreline toward Nugget Falls. Watch the spray lift off the ledges and bend downwind.'
     };
+    if(picker.value==='acadia')Object.assign(descriptions,{
+      ridge:'Follow the breakers into Thunder Hole. Listen for the low boom as a swell fills the narrow granite inlet.',
+      beach:'Glide across Sand Beach and bank along Great Head. The sound of the surf changes as the sand gives way to ledges.',
+      wildlife:'Skim Newport Cove for common eiders. Turn on Game Vision to pick out wildlife along the dark shoreline.',
+      game:'Follow the spruce edge above Newport Cove. Listen for barred owls and use Game Vision to spot deer and snowshoe hare.'
+    });
     document.querySelector('.intro p').textContent=descriptions[launch.value]||
       (launch.value==='lookout'?window.PERCH_ROUTE_DESCRIPTIONS[picker.value]:worlds[picker.value].description);
     preview(picker.value,launch.value);
@@ -84,10 +90,10 @@
   function show(start) {
     const w = worlds[picker.value];
     app.dataset.world = picker.value;
-    const mapCredits={dixville:'Dixville Notch · scenery credits',labrador:'Lac Berté · scenery credits',moosehead:'Moosehead Lake · terrain and imagery credits',winnipesaukee:'USGS · USDA · OpenStreetMap · Microsoft',surry:'USGS · USDA · City of Keene · OpenStreetMap'};
+    const mapCredits={acadia:'Acadia terrain, sky and recordings',dixville:'Dixville Notch · scenery credits',labrador:'Lac Berté · scenery credits',moosehead:'Moosehead Lake · terrain and imagery credits',winnipesaukee:'USGS · USDA · OpenStreetMap · Microsoft',surry:'USGS · USDA · City of Keene · OpenStreetMap'};
     mapSource.hidden=!mapCredits[picker.value];
     mapSource.textContent=mapCredits[picker.value]||'';
-    mapSource.href=asset(picker.value==='dixville'?'dixville-credits.txt':picker.value==='labrador'?'labrador-credits.txt':picker.value==='winnipesaukee'?'atlas-credits.txt':picker.value==='moosehead'?'geology-data/kineo-credits.txt':'credits.txt');
+    mapSource.href=asset(picker.value==='acadia'?'acadia-credits.txt':picker.value==='dixville'?'dixville-credits.txt':picker.value==='labrador'?'labrador-credits.txt':picker.value==='winnipesaukee'?'atlas-credits.txt':picker.value==='moosehead'?'geology-data/kineo-credits.txt':'credits.txt');
     document.querySelector('h1').innerHTML = w.name[0]+'<br><em>'+w.name[1]+'</em>';
     document.querySelector('.intro .eyebrow').innerHTML = '<i></i>'+w.region.toUpperCase();
     document.querySelector('.intro p').textContent = w.description;

@@ -362,3 +362,12 @@ CC BY 4.0 https://creativecommons.org/licenses/by/4.0/
 
 ENVIRONMENTAL SOUND
 The lapping, stream, falls-spray and leaves tracks use filtered random noise shaped by the broadband envelopes of the previously credited lake, stream, waterfall and pine recordings. Wildlife voices use the individually credited excerpts.
+
+ACADIA NATIONAL PARK — LATE SUMMER NIGHT
+field-acadia-barred-owl.mp3 — Barred owl (Strix varia), National Park Service, Muir Woods National Monument, 23 February 2002. Field recording from the Montana State University Acoustic Atlas / Western Soundscape Archive. U.S. National Park Service work, public domain. Ten-second excerpt filtered, level adjusted and faded. This is the same species recorded in California.
+https://acousticatlas.org/acoustic-atlas/item.php?id=685
+https://www.nps.gov/acad/learn/nature/owls.htm
+
+Acadia uses the common eider recording credited above. Its rare contact calls come from the coastal flock. Harbor seals on shore are quiet. Territorial loon calls from summer breeding lakes and submerged seal vocalizations are deliberately absent from the coastal air mix.
+https://www.nps.gov/acad/learn/nature/marine-wildlife.htm
+https://www.nps.gov/acad/learn/nature/loons.htm

@@ -69,7 +69,7 @@
   // Range-wide height in m ASL around which forest grades into open alpine
   // growth; its local expression also depends on the mapped cover and relief.
   const climates={
-    alaska:[760,25,.71],swiss:[2160,18,.62],canyon:[4000,1,.14],
+    acadia:[455,17,.84],alaska:[760,25,.71],swiss:[2160,18,.62],canyon:[4000,1,.14],
     moosehead:[1160,22,.84],winnipesaukee:[1270,23,.86],surry:[1270,23,.79],
     dixville:[1210,19,.82],labrador:[1020,15,.75],yosemite:[3100,28,.73],
     crater:[2410,19,.65],lofoten:[299,5,.31],milford:[990,22,.89]
@@ -139,6 +139,7 @@
   }
   function localPlant(region,y,wet,needle,s,land){
     switch(region){
+      case 'acadia':return needle?(s<.64?redSpruce:balsam):s<.63?paperBirch:redMaple;
       case 'alaska':return needle?(s<.62?sitka:westernHemlock):s<.48?cottonwood:alder;
       case 'swiss':return land===LAND.shrub&&y>1680?alpineWillow:
         (y>1880&&s>.62)?stonePine:s<.52?spruce:larch;
@@ -154,6 +155,7 @@
   function needleFraction(region,y,w){
     switch(region){
       case 'lofoten':case 'milford':case 'canyon':return 0;
+      case 'acadia':return .65+.22*w;
       case 'crater':case 'swiss':return 1;
       case 'alaska':return .50+.43*w;
       case 'labrador':return .77+.18*w;

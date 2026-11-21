@@ -42,6 +42,7 @@
       'Reinefjorden':['vista',303,'Helfjorden'],'Hamnøy':['bank',320,'Reinefjorden'],
       'Helfjorden':['vista',144,'Reinefjorden'],'Kjerkfjorden':['face',314],'Reine':['bank',327,'Reinefjorden']
     },
+    acadia:{'Otter Cliff':['face',172,'Otter Point'],'Thunder Hole':['bank',220],'Sand Beach':['bank',140,'Great Head'],'Great Head':['ridge',189,'Otter Cliff'],'The Beehive':['ridge',126,'Sand Beach'],'Gorham Mountain':['ridge',166,'Otter Cliff'],'Cadillac Mountain':['ridge',127,'Great Head']},
     milford:{
       'Mitre Peak':['ridge',46,'Stirling Falls'],'Bowen Falls':['falls',90],'Stirling Falls':['falls',282],
       'Sinbad Gully':['ridge',7,'Mitre Peak'],'Harrison Cove':['vista',261,'Mitre Peak']
