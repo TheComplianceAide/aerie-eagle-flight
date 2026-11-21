@@ -101,6 +101,35 @@ https://static.inaturalist.org/sounds/2152653.m4a?1788965403
 The three clips were shortened, band-limited, level-adjusted, faded and
 encoded in mono MP3 for spatial playback. They retain CC BY 4.0.
 https://creativecommons.org/licenses/by/4.0/
+
+field-land-alpine-ibex.m4a · Valentin Moser (@vmoser), July 2024. Alarm
+whistles of an Alpine ibex herd surprised by the recordist at Pigniu,
+Graubünden, Switzerland. Two whistles, from 3.15–4.35 s and 15.20–16.40 s of
+the recording, joined. CC BY 4.0.
+https://www.inaturalist.org/observations/229027580
+https://static.inaturalist.org/sounds/1130820.wav?1720880153
+
+field-land-desert-bighorn.m4a · U.S. National Park Service, Natural Sounds and
+Night Skies Division. Bighorn sheep bleating, file ZION_sheepbaaa.mp3 from
+Zion National Park, Utah. Zion's bighorn are desert bighorn, the subspecies
+found at Horseshoe Bend. Three bleats, from 22.20–23.65 s, 28.25–29.55 s and
+37.85–39.20 s of the recording, joined. Public domain, U.S. Government work.
+https://www.nps.gov/subjects/sound/clips.htm
+https://www.nps.gov/subjects/sound/upload/ZION_sheepbaaa.mp3
+https://www.nps.gov/aboutus/disclaimer.htm
+
+field-land-eurasian-otter.m4a · Patrascu Lucian-Marius (@plucian), October
+2023. Whistle calls of a Eurasian otter in care at the ACDB Wildlife
+Rehabilitation Center, Petrești, Vrancea, Romania. This is a same-species
+recording of a captive animal used for the wild otter's voice in Lofoten.
+Excerpt from 4.00–9.70 s of the recording. CC0 1.0.
+https://www.inaturalist.org/observations/188752225
+https://static.inaturalist.org/sounds/836072.mp3?1698126940
+https://creativecommons.org/publicdomain/zero/1.0/
+
+These three clips were shortened, high-pass filtered (the bighorn also
+low-pass filtered), level-adjusted, faded and encoded in mono AAC for spatial
+playback. Each retains the licence listed with it.
 Credits for all other bird, fish and amphibian materials are in credits.txt and
 field-audio-credits.txt.
 
