@@ -31,6 +31,7 @@ window.addHabitat = function addHabitat(THREE,scene,world,region) {
     return {distance:Math.abs(signed),signed,yaw:Math.atan2((b-a)*(1-g)+(d-c)*g,(c-a)*(1-f)+(d-b)*f),stream:true};
   };
   world.groundCover=(x,z)=>{
+    if(world.lakeLanding?.managed(x,z))return -1;
     if(!habitatPixels)return 0;
     const u=Math.floor((.5+x/(2*extent))*resolution),v=Math.floor((.5+z/(2*extent))*resolution);
     if(u<0||v<0||u>=resolution||v>=resolution)return 0;

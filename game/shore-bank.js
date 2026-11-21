@@ -81,13 +81,15 @@ window.joinAtlasShore=function(T,scene,{region,survey,elevation,level,terrain,ba
   function addShelf(g){
     const mesh=new T.Mesh(g,terrain);mesh.name='Lakeshore gravel shelf';scene.add(mesh);
   }
+  // These surveyed lakes produce hundreds of short disconnected shore
+  // strips. Preserve the small strips for physics and batch their already
+  // baked normals into larger map cells for the main and reflection cameras.
+  const pageSize=region==='moosehead'?2400:region==='winnipesaukee'?1800:region==='crater'?1400:0;
   for(const c of chunks.values()){
     const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(c.p,3));g.setIndex(c.idx);g.computeVertexNormals();g.computeBoundingSphere();
     c.p=g.attributes.position.array;c.idx=g.index.array;
-    if(region!=='moosehead'){addShelf(g);continue;}
-    // Moosehead has hundreds of little survey strips. Bake normals before
-    // combining them, preserving every original seam and collision triangle.
-    const center=g.boundingSphere.center,id=key(Math.floor(center.x/2400),Math.floor(center.z/2400));
+    if(!pageSize){addShelf(g);continue;}
+    const center=g.boundingSphere.center,id=key(Math.floor(center.x/pageSize),Math.floor(center.z/pageSize));
     if(!drawTiles.has(id))drawTiles.set(id,[]);
     drawTiles.get(id).push(g);
   }

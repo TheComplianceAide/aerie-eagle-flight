@@ -185,6 +185,14 @@ window.makeWaterfallSystem=function makeWaterfallSystem(T,scene,{ground,level,cl
     const nodes=[],spline=new T.CatmullRomCurve3(path.map(([x,z])=>new T.Vector3(x,0,z)),false,'centripetal');
     const spacing=Math.min(streamSurvey?1.2:1.8,Math.max(.27,width*.104));
     const samples=spline.getSpacedPoints(Math.ceil(spline.getLength()/spacing)).map(p=>[p.x,p.z]);
+    const freeDrop=options.freeDrop;
+    function nearestStation(z){
+      let best=0;
+      for(let i=1;i<samples.length;i++)if(Math.abs(samples[i][1]-z)<Math.abs(samples[best][1]-z))best=i;
+      return best;
+    }
+    const lip=freeDrop?nearestStation(freeDrop.lipZ):-1;
+    const toe=freeDrop?nearestStation(freeDrop.toeZ):-1;
     let fallTime=0,travel=0;
     const cols=streamSurvey?36:10,positions=[],uv=[],index=[],hydro=[],impactAt=[],freeWater=[],heights=new Float32Array(cols+1),speeds=new Float32Array(cols+1);
     const crosses=[],heightAt=(x,z)=>Math.max(ground(x,z),level??-Infinity);
@@ -216,7 +224,7 @@ window.makeWaterfallSystem=function makeWaterfallSystem(T,scene,{ground,level,cl
         positions.push(px,heights[j],pz);uv.push(u,travel);
         if(streamSurvey)freeWater.push(Math.min(1,Math.max(0,flight-floor)*.35),travel);
         hydro.push(wid,fallTime,Math.min(1,.19+grade*.54+Math.max(0,flight-floor)*.21),phase);
-        if(i&&j){const k=i*(cols+1)+j;index.push(k-cols-2,k-1,k,k-cols-2,k,k-cols-1);}
+        if(i&&j&&(i<=lip||i>toe)){const k=i*(cols+1)+j;index.push(k-cols-2,k-1,k,k-cols-2,k,k-cols-1);}
       }
       if(collision>1.5)crosses.push({i,energy:collision});
       if(i%3===0||i===samples.length-1){const station={x,z,radius:wid*.54+1};
@@ -224,6 +232,7 @@ window.makeWaterfallSystem=function makeWaterfallSystem(T,scene,{ground,level,cl
           const key=a+','+b;if(!channelCells.has(key))channelCells.set(key,[]);channelCells.get(key).push(station);}}
       nodes.push({x,z,y:heights[cols>>1],dx,dz,floor:y,air,centerAir,time:fallTime,travel,width:wid});
     }
+    if(freeDrop&&toe>lip)freeDrop.make({T,scene,name,common,geometry,lip:nodes[lip],foot:nodes[toe],profile:freeDrop});
     const end=nodes.at(-1);for(let i=0;i<hydro.length;i+=4){hydro[i+1]-=fallTime;impactAt.push(end.x,end.z);}
     const extras={hydraulics:[hydro,4],impactAt:[impactAt,2]};
     if(streamSurvey){
@@ -241,10 +250,11 @@ window.makeWaterfallSystem=function makeWaterfallSystem(T,scene,{ground,level,cl
     }
     const chosen=[];
     for(const hit of crosses.sort((a,b)=>b.energy-a.energy)){
-      if(chosen.length>=3||chosen.some(c=>Math.abs(nodes[c.i].travel-nodes[hit.i].travel)<32)||end.travel-nodes[hit.i].travel<11)continue;
+      if(hit.i>=lip&&hit.i<=toe||chosen.length>=3||chosen.some(c=>Math.abs(nodes[c.i].travel-nodes[hit.i].travel)<32)||end.travel-nodes[hit.i].travel<11)continue;
       chosen.push(hit);
     }
     function contact(n,w,head,pool,withFoam){const src={name,x:n.x,z:n.z,y:pool??n.floor,dx:n.dx,dz:n.dz,width:w,drop:head,foamRunout:options.foamRunout};impacts.push(src);plume(src);if(withFoam)poolFan(src,pool);return src;}
+    if(freeDrop&&toe>lip)contact(nodes[toe],freeDrop.lipWidth*.68,nodes[lip].y-nodes[toe].floor,undefined,true);
     for(const hit of chosen){const site=nodes[hit.i],hz=level!=null&&site.floor<level+.35?level:undefined;
       const src=contact(site,width*.77,hit.energy,hz,true);if(hz!==undefined)outlets.push(src);}
     if(options.pool!==false){

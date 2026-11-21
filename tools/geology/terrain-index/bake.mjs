@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { setTimeout as wait } from 'node:timers/promises';
 
 const [origin,region,output]=process.argv.slice(2);
-assert.ok(origin&&['alaska','yosemite'].includes(region),'Provide a game URL and region (alaska or yosemite)');
+assert.ok(origin&&['alaska','yosemite','crater','moosehead','winnipesaukee'].includes(region),'Provide a game URL and supported terrain region');
 const here=path.dirname(fileURLToPath(import.meta.url));
 const profile=await mkdtemp(path.join(os.tmpdir(),'aerie-terrain-bake-'));
 const chrome=spawn(process.env.CHROME||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',[

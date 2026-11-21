@@ -99,3 +99,11 @@ lengths to the NPS construction plan. Source feature and database license:
 https://www.openstreetmap.org/way/128573665
 https://www.openstreetmap.org/copyright
 https://opendatacommons.org/licenses/odbl/1-0/
+
+Egg Rock and Baker Island offshore stations. NOAA National Geodetic Survey's Maine 2022 coastal topobathymetric lidar, USGS 3DEP and USDA NAIP. The 2025 Maine Coastal Acadia orthoimagery was consulted for woodland classification. The island surveys, shoreline-distance atlas, clearance fields, crown data, geometry and light behavior were adapted for Aerie. Federal sources remain public domain. Exact survey inputs and their SHA-256 digests are in tools/geology/acadia-lights/sources.json.
+https://coast.noaa.gov/dataviewer/
+https://www.fws.gov/media/egg-rock-lighthouse
+https://www.fws.gov/sites/default/files/2021-08/Egg%20Rock%207.JPG
+https://irma.nps.gov/DataStore/FileSource/Get/2198730?filename=Yocum%2C_B.A._-_Baker_Island_Light_Station_Historic_Structures_Report_Final_-_2013.pdf
+https://irma.nps.gov/DataStore/FileSource/Get/2185669?filename=ACAD_Baker+Island_CLI+Update+Park+Report_2025.pdf
+https://navcen.uscg.gov/sites/default/files/pdf/lightLists/LightList_V1_2025.pdf

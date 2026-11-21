@@ -36,18 +36,19 @@
       points.push({x:-245+c*u-s*v,z:-340+s*u+c*v,y,yaw:-a,site:'Dix House verandah',lake:false});
     }
     // The boathouse's granite cap is the rendered support beneath its open pavilion.
-    const ring=rings[15],house=rings[3];
-    for(const [r,isBoathouse] of [[ring,true],[house,false]]){
-      if(!r?.length)continue;
-      let longest=0,angle=0;
-      for(let i=0;i<r.length;i++){const a=r[i],b=r[(i+1)%r.length],dx=b[0]-a[0],dz=b[1]-a[1],l=Math.hypot(dx,dz);if(l>longest){longest=l;angle=Math.atan2(dz,dx);}}
-      const c=Math.cos(angle),s=Math.sin(angle),us=r.map(([x,z])=>x*c+z*s),vs=r.map(([x,z])=>-x*s+z*c);
-      const u=(Math.min(...us)+Math.max(...us))/2,v=(Math.min(...vs)+Math.max(...vs))/2;
-      const cx=c*u-s*v,cz=s*u+c*v,L=Math.max(...us)-Math.min(...us),D=Math.max(...vs)-Math.min(...vs);
-      for(const side of [-1,1])for(const f of [-.39,-.12,.22,.39]){
-        const x=cx+c*L*f-s*side*(D/2+(isBoathouse?-.31:.31)),z=cz+s*L*f+c*side*(D/2+(isBoathouse?-.31:.31));
-        points.push({x,z,y:isBoathouse?world.elevation(cx,cz)+3.45:world.elevation(x,z),yaw:-angle+(side<0?Math.PI:0),lake:false,site:isBoathouse?'Lake Gloriette boathouse cap':'Hale House foundation'});
-      }
+    const ring=rings[15];
+    if(!ring?.length)return points;
+    let longest=0,angle=0;
+    for(let i=0;i<ring.length;i++){
+      const a=ring[i],b=ring[(i+1)%ring.length],dx=b[0]-a[0],dz=b[1]-a[1],length=Math.hypot(dx,dz);
+      if(length>longest){longest=length;angle=Math.atan2(dz,dx);}
+    }
+    const cx=Math.cos(angle),sz=Math.sin(angle),us=ring.map(([x,z])=>x*cx+z*sz),vs=ring.map(([x,z])=>-x*sz+z*cx);
+    const u=(Math.min(...us)+Math.max(...us))/2,v=(Math.min(...vs)+Math.max(...vs))/2;
+    const x=cx*u-sz*v,z=sz*u+cx*v,L=Math.max(...us)-Math.min(...us),half=(Math.max(...vs)-Math.min(...vs))/2-.31;
+    for(const sign of [-1,1])for(const f of [-.39,-.12,.22,.39]){
+      points.push({x:x+cx*L*f-sz*sign*half,z:z+sz*L*f+cx*sign*half,y:world.elevation(x,z)+3.45,
+        yaw:-angle+(sign<0?Math.PI:0),lake:false,site:'Lake Gloriette boathouse cap'});
     }
     return points;
   }

@@ -236,6 +236,9 @@
           const middle=(left+right)*(ordered===source ? .5 : -.5);
           centerX+=nx*middle;centerZ+=nz*middle;half=.5*(right-left);
         }
+        // The three named granite cataracts have a separate surveyed stream
+        // surface and a genuinely airborne column between each lip and pool.
+        const customReach=w.ownsFallsWater?.(centerX,centerZ)===true;
         const level=floor(centerX,centerZ)+.13;
         for(let j=0;j<7;j++){
           const f=j/3-1,px=centerX+nx*half*f,pz=centerZ+nz*half*f;
@@ -244,9 +247,9 @@
           positions.push(px,Math.max(level,floor(px,pz)+shoreClearance),pz);
           uv.push(f,run);grade.push(slope);sections.push(dx/dist,dz/dist,half,bend);
           viewStations.push(station);
-          if(i&&j){const k=base+j;indices.push(k-8,k-7,k,k-8,k,k-1);}
+          if(i&&j&&!customReach){const k=base+j;indices.push(k-8,k-7,k,k-8,k,k-1);}
         }
-        if(i){
+        if(i&&!customReach){
           const prev=previousCenter,segment=[prev[0],prev[1],centerX,centerZ,half,previousLevel,level];
           for(let cx=Math.floor((Math.min(centerX,prev[0])-half)/64);cx<=Math.floor((Math.max(centerX,prev[0])+half)/64);cx++)
             for(let cz=Math.floor((Math.min(centerZ,prev[1])-half)/64);cz<=Math.floor((Math.max(centerZ,prev[1])+half)/64);cz++){
@@ -256,14 +259,16 @@
         previousLevel=level;previousCenter=[centerX,centerZ];
       }
     }
+    const localCurrent=w.surveyedCreek?.waterAt;
     w.channelWater=(x,z)=>{
+      const observed=localCurrent?.(x,z);if(Number.isFinite(observed))return observed;
       for(const [ax,az,bx,bz,r,ay,by] of cells.get(cell(x,z))||[]){
         const dx=bx-ax,dz=bz-az,t=Math.max(0,Math.min(1,((x-ax)*dx+(z-az)*dz)/(dx*dx+dz*dz||1)));
         if((x-ax-t*dx)**2+(z-az-t*dz)**2<r*r*.95)return Math.max(ay+(by-ay)*t,floor(x,z)+.075);
       }
       return -Infinity;
     };
-    const oldClear=w.clearance||w.height;w.clearance=(x,z)=>Math.max(oldClear(x,z),w.channelWater(x,z));
+    const oldClear=w.clearance||w.height;w.clearance=(x,z,altitude)=>Math.max(oldClear(x,z,altitude),w.channelWater(x,z));
     const g=new T.BufferGeometry();
     g.setAttribute('position',new T.Float32BufferAttribute(positions,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));
     g.setAttribute('grade',new T.Float32BufferAttribute(grade,1));g.setAttribute('section',new T.Float32BufferAttribute(sections,4));g.setIndex(indices);

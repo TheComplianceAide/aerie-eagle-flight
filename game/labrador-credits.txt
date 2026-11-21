@@ -24,3 +24,9 @@ https://creativecommons.org/licenses/by/4.0/
 
 Cloud layer and rain-shadow texture adapted from Approaching Storm by Greg Zaal, Poly Haven, CC0. https://polyhaven.com/a/approaching_storm
 Brook trout illustration by Duane Raver, U.S. Fish and Wildlife Service, public domain. https://commons.wikimedia.org/wiki/File:Brook_trout.jpg
+
+Camp Sud floatplane. The operator documents the floatplane connection between its Manic-5 base and Lac Berté. The original in-game aircraft follows the radial-engined de Havilland Canada DHC-3 Otter type, painted for the historical outfitter. Its cowling, stopped three-blade propeller, dark-bordered orange stripe, individual cabin windows and twin floats follow a family print and published period images of aircraft in this operator's livery. The manufacturer's three-view gives a 58 ft span, a 41 ft 10 in overall length and a 10 ft 6 in float centreline spacing. The model, metal textures, drawn markings and water effects were created for Aerie; the reference photographs are not redistributed. The registration, precise berth, historical aircraft identity and date of the family photograph are unknown.
+Manufacturer’s drawing, Viking Air Limited, reproduced by the NTSB on page 4: https://data.ntsb.gov/Docket/Document/docBLOB?ID=15437849&FileExtension=pdf&FileName=DCA22MA193+AW+Factual-Rel.pdf
+Canada Aviation and Space Museum, DHC-3 Otter: https://ingenium.ca/aviation/en/collection-highlight/de-havilland-canada-dhc-3-otter/
+Pourvoirie Manicouagan, Lac Berté fishing package and floatplane transfer: https://labrador-airsafari.com/en/fishing/fishing-packages
+Otter Archive, Labrador Air Safari photographs of DHC-3 c/n 353 by Anthony J. Hickey (Baie-Comeau, April 1993) and Karl E. Hayes (Baie-Comeau, May 2001), independently used as type and livery references: https://www.dhc-3archive.com/DHC-3_353.html

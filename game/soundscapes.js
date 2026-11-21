@@ -520,7 +520,14 @@
         {clip: 'scape-acadia-cove', ref: 15, reach: 460, gain: .70, where: fixed(600, .45, -979)},
         {clip: 'scape-acadia-ledge', ref: 36, reach: 1250, gain: .85, where: fixed(68, .55, 1072)},
         {clip: 'scape-acadia-cobbles', ref: 12, reach: 275, gain: .67, where: fixed(-84, 1.4, 490)},
-        {clip: 'scape-acadia-cove', ref: 11, reach: 360, gain: .38, where: fixed(61, .7, -26)}
+        {clip: 'scape-acadia-cove', ref: 11, reach: 360, gain: .38, where: fixed(61, .7, -26)},
+        // Extend the park recordings to measured tidal edges around the two
+        // offshore stations. Each source fades in by distance from real surf.
+        {clip: 'scape-acadia-cobbles', ref: 12, reach: 275, gain: .53, where: fixed(3976.5, .5, -3788.5)},
+        {clip: 'scape-acadia-ledge', ref: 29, reach: 840, gain: .63, where: fixed(4101.5, .6, -3814.5)},
+        {clip: 'scape-acadia-cove', ref: 14, reach: 290, gain: .57, where: fixed(-1066.5, .5, 8407.5)},
+        {clip: 'scape-acadia-ledge', ref: 30, reach: 960, gain: .67, where: fixed(-544.5, .6, 9284.5)},
+        {clip: 'scape-acadia-cobbles', ref: 12, reach: 225, gain: .55, where: fixed(-208.5, .5, 9022.5)}
       ],
       surge: {clip: 'scape-acadia-chamber', where: c => c.world.acadiaCoast.thunder, ref: 40, reach: 1150},
       choruses: [

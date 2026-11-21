@@ -1,0 +1,137 @@
+{
+  "returns2006": {
+    "title": "Yosemite, CA: El Portal, Mariposa Grove, Yosemite Canyon & Tuolumne Meadows",
+    "citation": "National Center for Airborne Laser Mapping for Greg Stock / National Park Service. Distributed by OpenTopography. September 18\u201322, 2006. NSF EAR-1043051.",
+    "metadata": "https://portal.opentopography.org/datasetMetadata?otCollectionID=OT.092012.26911.2",
+    "doi": "https://doi.org/10.5069/G9GQ6VP3",
+    "url": "https://opentopography.s3.sdsc.edu/pc-bulk/CA06_Stock/ot_m270400_4180800.laz",
+    "license": "https://creativecommons.org/licenses/by/4.0/",
+    "sha256": "c4f569b379593c1e22ceafd8035f076113034e81fb1808b3b4077ecc917409df",
+    "transformation": "Cropped and transformed. Raised terrain returns locate boulder footprints, height above ground, canopy peaks and the bridge deck. Local facets, wood joinery and individual crown taxa are reconstructed.",
+    "registeredOffsetXZY": [
+      0.10745462872672935,
+      -0.26471236070668064,
+      0.15220453287389094
+    ],
+    "stableGroundRegistration": {
+      "year": 2006,
+      "offset": [
+        0.10745462872672935,
+        -0.26471236070668064,
+        0.15220453287389094
+      ],
+      "stableGroundPoints": 12029,
+      "MAD": [
+        0.17197590077125824,
+        0.1140941670448683
+      ]
+    }
+  },
+  "returns2019": {
+    "title": "USGS Lidar Point Cloud CA_YosemiteNP_2019_D19 11SKB7181",
+    "url": "https://rockyweb.usgs.gov/vdelivery/Datasets/Staged/Elevation/LPC/Projects/CA_YosemiteNP_2019_D19/CA_YosemiteNP_2019/LAZ/USGS_LPC_CA_YosemiteNP_2019_D19_11SKB7181.laz",
+    "metadata": "https://www.sciencebase.gov/catalog/item/60bad122d34e86b9388dfaec",
+    "year": 2019,
+    "license": "USGS 3DEP public data"
+  },
+  "dem": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/CA_YosemiteNP_2019_D19/TIFF/USGS_1M_11_x27y419_CA_YosemiteNP_2019_D19.tif",
+  "imagery": [
+    {
+      "href": "https://naipeuwest.blob.core.windows.net/naip/v002/ca/2022/ca_060cm_2022/37119/m_3711912_sw_11_060_20220812.tif",
+      "date": "2022-08-12T16:00:00Z"
+    },
+    {
+      "href": "https://naipeuwest.blob.core.windows.net/naip/v002/ca/2022/ca_060cm_2022/37119/m_3711920_nw_11_060_20220806.tif",
+      "date": "2022-08-06T16:00:00Z"
+    }
+  ],
+  "hydrography": "https://hydro.nationalmap.gov/arcgis/rest/services/nhd/MapServer/6/query?f=json&geometry=270678%2C4180686%2C271678%2C4182496&geometryType=esriGeometryEnvelope&inSR=32611&spatialRel=esriSpatialRelIntersects&where=1%3D1&outFields=%2A&returnGeometry=true&outSR=32611",
+  "origin": [
+    268678,
+    4179436
+  ],
+  "bounds": [
+    2480,
+    -1960,
+    2744,
+    -1680
+  ],
+  "bridgeNpsCadQuery": "https://mapservices.nps.gov/arcgis/rest/services/NationalDatasets/NPS_Public_Trails/FeatureServer/0/query?f=json&geometry=271078%2C4180966%2C271413%2C4181446&inSR=32611&geometryType=esriGeometryEnvelope&spatialRel=esriSpatialRelIntersects&where=1%3D1&returnGeometry=true&outFields=%2A&outSR=32611",
+  "bridgeNpsCadFeature": 15403,
+  "bridgePhoto": {
+    "book": "A Sense of Place: Design Guidelines for Yosemite National Park, Yosemite Valley",
+    "printedPage": 42,
+    "pdfPage": 44,
+    "year": 2005,
+    "url": "https://www.nps.gov/yose/learn/management/upload/senseofplace.pdf",
+    "secondary": "https://parkplanning.nps.gov/showFile.cfm?projectID=70781&sfid=271332"
+  },
+  "bridgeNpsInventory": "https://npgallery.nps.gov/GetAsset/3809808e-f5f4-4022-9cbd-e5b0c2c499f5/",
+  "trailAndBoulders": "https://www.nps.gov/places/000/lower-yosemite-fall-trailhead.htm",
+  "surveyNotes": [
+    "2022 summer USDA NAIP is 60 cm flown after peak runoff. The mapped bed and centerline come from real geography. Animated snowmelt stage is inferred rather than measured discharge at a named time.",
+    "USGS DTM and historic deck are in NAVD88. The 2006 tile uses GEOID03, and is independently checked against the 2019 3DEP surface.",
+    "The NPS line is generalized. September 2006 and August 2010 points independently measure the level crossing. The 1939 inventory records construction materials, and the 2005 design manual supplies rail and masonry reference. Brace sections, plank intervals, facing stones and ramp crest between observations are reconstructed.",
+    "Material microdetails reuse existing Poly Haven CC0 wood and local mineral scans.",
+    "Falls-era hydrology is driven by a modeled thaw stage. The hundreds of smaller stones are inferred from local positive relief and brightness in the summer aerial. Neither individual cobbles nor flowing water were measured at play time.",
+    "2019 October ground was downloaded and used. Full 2019 raw return file was not required and is not an input to the released boulder and canopy dataset.",
+    "Native reference flight looks past this same crossing as NPS historic plate RL_06862. The release represents the later laser/aerial observation periods."
+  ],
+  "modeledReturnYears": [
+    2006,
+    2010
+  ],
+  "returns2010": {
+    "title": "Yosemite National Park, CA: Rockfall Studies",
+    "collector": "National Center for Airborne Laser Mapping, PI Valerie Zimmer, University of California Berkeley; NSF EAR-1043051",
+    "date": "2010-08-06",
+    "license": "https://creativecommons.org/licenses/by/4.0/",
+    "metadata": "https://portal.opentopography.org/datasetMetadata?otCollectionID=OT.112011.26911.2",
+    "doi": "https://doi.org/10.5069/G9D798B8",
+    "url": "https://opentopography.s3.sdsc.edu/pc-bulk/CA10_Zimmer/bin/ot_Zimmer_000169.laz",
+    "sha256": "467873cf27655dcbac8d7d0ce1fbc2527e77cc8b5af5efeb85cc98472632d8ca",
+    "registeredOffsetXZY": [
+      -0.23091386225283056,
+      -0.3819911682392936,
+      -0.20914542389794985
+    ],
+    "stableGroundRegistration": {
+      "year": 2010,
+      "offset": [
+        -0.23091386225283056,
+        -0.3819911682392936,
+        -0.20914542389794985
+      ],
+      "stableGroundPoints": 21398,
+      "MAD": [
+        0.3730299130569392,
+        0.23062903747643304
+      ]
+    }
+  },
+  "localMineralPhoto": {
+    "credit": "National Park Service / C. Jacoby",
+    "page": "https://www.nps.gov/places/000/yosemite-falls.htm",
+    "url": "https://www.nps.gov/common/uploads/cropped_image/primary/6A9D53DF-CACB-4075-2B1ABFEE436D62F3.jpg?mode=crop&quality=90&width=2400",
+    "sha256": "feb1b59a477574fdf04aebd8cc072258dd4b54c64039f91e0e827d03990825ac",
+    "dimensions": [
+      2400,
+      1350
+    ],
+    "usedCropPixels": [
+      136,
+      1095,
+      323,
+      1345
+    ],
+    "transformation": "A clean patch within one photographed granite boulder, transformed to mineral brightness and two detail scales. No waterfall, plants or landscape are pasted into the game."
+  },
+  "historicFlowReference": {
+    "title": "Yosemite Creek before clearing channel by CWA",
+    "record": "RL_06862",
+    "credit": "U.S. National Park Service, Yosemite Historic Photo Collection, YOSE 81306",
+    "url": "https://npgallery.nps.gov/AssetDetail/a8f1e7fd33b244b48fd8fc021b9be230",
+    "image": "https://npgallery.nps.gov/GetAsset/a8f1e7fd33b244b48fd8fc021b9be230/compressed.jpg",
+    "usage": "Public domain in the NPS catalogue; used only for line of sight through the actual bridge, block density and architecture."
+  }
+}

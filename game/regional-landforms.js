@@ -11,6 +11,8 @@
     wolfeboro:{name:'Wolfeboro Bay · measured bank',asset:'wolfeboro',lakeBank:true,source:'USGS 3DEP lidar and hydrography, USDA NAIP four-band bank survey'},
     diamond:{name:'Diamond Island · measured bank',asset:'diamond',lakeBank:true,source:'USGS 3DEP lidar and hydrography, USDA NAIP four-band bank survey'},
     sleepers:{name:'Sleepers Island · measured bank',asset:'sleepers',lakeBank:true,source:'USGS 3DEP lidar and hydrography, USDA NAIP four-band bank survey'},
+    eggrock:{name:'Egg Rock · Frenchman Bay ledges',asset:'eggrock',island:true,source:'NOAA NGS Maine Coastal topobathymetric lidar, USGS 3DEP and USDA NAIP'},
+    bakerisland:{name:'Baker Island · Cranberry Isles',asset:'bakerisland',island:true,source:'NOAA NGS Maine Coastal topobathymetric lidar, USGS 3DEP and USDA NAIP'},
     acadia:{name:'Thunder Hole · tidal chasm and granite ledges',asset:'acadia',water:0,source:'NOAA NGS 2022 Coastal Maine topobathymetric lidar and USDA NAIP, Ocean Path, Mount Desert Island'},
     moosehead:{name:'Mount Kineo',asset:'kineo',rock:'rhyolite',water:312.23,holes:[[236,-1260,344,-1040],[360,-964,416,-880]],
       source:'USGS 3DEP Western Mountains B24 and USDA NAIP, eastern and southern Mount Kineo, Maine'},
@@ -21,6 +23,7 @@
     hamnoy:{name:'Hamnøy · fishing harbor and tidal ledges',asset:'hamnoy',water:0,source:'Kartverket national terrain model and Copernicus Sentinel-2 summer imagery, Moskenes, Norway'},
     milford:{name:'Rahotu Mitre Peak · crest and Sinbad wall',asset:'milford',water:0,source:'LINZ NZ 8m Digital Elevation Model (2012) and Southland 0.75m Rural Aerial Photos (2005–2011)'},
     labrador:{name:'Lac Berté · south narrows and camp headland',asset:'labrador',water:359,source:'Gouvernement du Québec MRNF 2022 lidar terrain and aerial imagery, Côte-Nord'},
+    yosemitefalls:{name:'Yosemite Falls · creek, lip and basin',asset:'yosemite-falls',source:'USGS 2019 Yosemite 1 m 3DEP and USDA August 2022 NAIP'},
     yosemite:{name:'El Capitan · Nose and southeast face',asset:'yosemite',source:'USGS 3DEP and USDA NAIP, Yosemite Valley, California'},
     yosemitesummits:{name:'Half Dome and Clouds Rest · upper Yosemite Valley',asset:'yosemite-summits',
       source:'USGS 3DEP 1/3-arcsecond DEM and USDA California 2022 60 cm NAIP, Yosemite National Park'},
@@ -90,6 +93,14 @@
         head.getInt16(at,true),head.getInt16(at+2,true)/10,head.getInt16(at+4,true)/10
       ]);
     }
+    let horizon=null;
+    if(spec.island&&at+12<=buffer.byteLength&&head.getUint32(at)===0x4c4f4431){
+      const n=head.getUint32(at+4,true),f=head.getUint32(at+8,true);at+=12;
+      const xyz=new Uint16Array(buffer,at,3*n);at+=xyz.byteLength;
+      const light=new Uint8Array(buffer,at,4*n);at+=light.byteLength;
+      const triangles=new Uint16Array(buffer,at,3*f);at+=triangles.byteLength;
+      horizon={xyz,light,triangles};
+    }
     if(at!==buffer.byteLength)throw Error('Incomplete regional terrain survey');
     const sections=[];
     for(const sector of sectors.values()){
@@ -104,7 +115,14 @@
       sections.push({xyz,light,triangles});
     }
     const holes=spec.holes||[];
-    const surveyedBed=spec.asset==='winnipesaukee'?window.makeWinnipesaukeeWaterfront?.islandBed:null;
+    const surveyedBed=spec.asset==='winnipesaukee'?window.makeWinnipesaukeeWaterfront?.islandBed
+      :spec.asset==='swisswest'?window.makeOeschinenLanding?.berthWeight:null;
+    function fitElevation(x,z,h,base,w){
+      const fitted=base+(h-base)*w;
+      if(spec.water===undefined||h>spec.water+.12)return fitted;
+      const deep=Math.min(base,h),weight=surveyedBed?.(x,z)||0;
+      return deep+(fitted-deep)*weight;
+    }
     function edge(x,z){
       let d=Math.min(x-left,right-x,z-top,bottom-z);
       if(d<=0)return 0;
@@ -123,8 +141,7 @@
       if(w<=0)return base;
       const h=sample(x,z);
       // Keep charted open-water bottoms underneath the lake's native optical surface.
-      if(spec.water!==undefined&&h<=spec.water+.12&&!surveyedBed?.(x,z))return Math.min(base,h);
-      return base+(h-base)*w;
+      return fitElevation(x,z,h,base,w);
     }
     // Low structures and patch overlays need the rendered triangles, whose
     // error-limited decimation may differ from the regularly sampled DEM.
@@ -134,7 +151,7 @@
       const x0=cx-radius,x1=cx+radius,z0=cz-radius,z1=cz+radius;
       function yAt(x,z,encoded){
         const y=datum+scale*encoded,base=baseAt(x,z);
-        return spec.water!==undefined&&y<=spec.water+.12&&!surveyedBed?.(x,z)?Math.min(base,y):base+(y-base)*edge(x,z);
+        return fitElevation(x,z,y,base,edge(x,z));
       }
       for(const {xyz,triangles} of sections){
         for(let j=0;j<triangles.length;j+=3){
@@ -304,6 +321,20 @@
           c=mix(c,photographed,landformHorizon.w*(.77+.21*surfaced)*smoothstep(.35,.85,normal.y));
           float skyView=occ.g,relief=`);
       }
+      if(spec.asset==='reine'||spec.asset==='reinebringen'){
+        material.uniforms.westQuaySurface={value:texture('reine-west-surface.webp')};
+        material.fragmentShader='uniform sampler2D westQuaySurface;\n'+material.fragmentShader.replace('float skyView=occ.g,relief=',`
+          // The harbor survey distinguishes quay aprons and roads from semi-natural heath.
+          // The shady south shoulder carries willow and damp grass at the roots of the lidar crowns.
+          vec2 quayUv=(wp.xz-vec2(1110.,3750.))/vec2(690.,1100.);
+          vec4 quayAlbedo=texture2D(westQuaySurface,vec2(quayUv.x,1.-quayUv.y));
+          float quayEdge=min(min(quayUv.x,quayUv.y),min(1.-quayUv.x,1.-quayUv.y));
+          float dampRock=.15*soilCapture(sod,wp.xz*.22,3.).r;
+          vec3 quayGround=quayAlbedo.rgb*(.955+dampRock*(1.-smoothstep(34.,198.,d)));
+          c=mix(c,quayGround,quayAlbedo.a*smoothstep(.0,.012,quayEdge)*.98);
+          float skyView=occ.g,relief=`);
+      }
+      if(spec.island)material.fragmentShader=window.acadiaIslandSurface(material.fragmentShader,localUV,hasDetail?'detailOrtho':'aerial');
       if(spec.asset==='acadia'){
         // At the inset the point cloud resolves the two sides of the chasm.
         // The broader cliff-normal map averages across this narrow opening.
@@ -378,13 +409,12 @@
       group.userData.aerieLandform={name:spec.name,source:spec.source,rect};
       scene.add(group);
       let faces=0;
-      const low=spec.water;
-      for(const part of sections){
+      for(const part of horizon?[...sections,horizon]:sections){
         const n=part.xyz.length/3,pos=new Float32Array(n*3),norm=new Float32Array(n*3),ex=new Uint8Array(part.light);
         for(let i=0;i<n;i++){
           const j=i*3,x=left+unit*part.xyz[j],z=top+unit*part.xyz[j+1],w=edge(x,z),base=baseAt(x,z);
           const y=datum+part.xyz[j+2]*scale;
-          pos[j]=x;pos[j+1]=low!==undefined&&y<=low+.12&&!surveyedBed?.(x,z)?Math.min(base,y):base+(y-base)*w;pos[j+2]=z;
+          pos[j]=x;pos[j+1]=fitElevation(x,z,y,base,w);pos[j+2]=z;
           // Calculate boundary normals from the adjoining native terrain so both
           // shapes and lighting meet continuously at the exact old survey slot.
           const normalStep=Math.min(2,step),a=x-normalStep,b=x+normalStep,c=z-normalStep,d=z+normalStep;
@@ -407,7 +437,22 @@
             material.uniformsNeedUpdate=true;
           };
         }
-        group.add(mesh);faces+=part.triangles.length/3;
+        group.add(mesh);mesh.userData.distantIsland=part===horizon;
+        if(part!==horizon)faces+=part.triangles.length/3;
+      }
+      if(horizon){
+        // At a kilometre and a half the distant survey's 0.84 m relief error
+        // is sub-pixel. Hysteresis keeps banks and turns from switching back.
+        let previous=null;
+        group.userData.updateDetail=player=>{
+          const d=Math.hypot(Math.max(left-player.x,0,player.x-right),Math.max(top-player.z,0,player.z-bottom));
+          const distant=d>(previous?1380:1550);
+          if(previous===distant)return;
+          previous=distant;
+          for(const mesh of group.children)mesh.visible=mesh.userData.distantIsland===distant;
+        };
+        group.userData.updateDetail({x:0,z:0});
+        group.userData.aerieLandform.horizonFaces=horizon.triangles.length/3;
       }
       group.userData.aerieLandform.faces=faces;
       return group;

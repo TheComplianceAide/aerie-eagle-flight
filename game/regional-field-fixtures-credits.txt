@@ -5,7 +5,7 @@ The building, path and pier positions below are mapped. Individual brick returns
 Keene, New Hampshire. The coordinate keys identify the same measured wall ends used by the downtown storefront renderer. The brick and stone returns face the existing Central Square and Main Street sidewalks. The footprint and elevation data are from City of Keene GIS, with supplementary Microsoft US Building Footprints. The building photographs and municipal source acknowledgements remain in credits.txt.
 https://keenenh.gov/online-services/gis-and-mapping-services/
 
-Dixville Notch, New Hampshire. The field attachments follow the modeled Dix House lake verandah plinth, Hale House foundations and Lake Gloriette boathouse cap. Positions reference registered resort and access footprints, © OpenStreetMap contributors, ODbL 1.0. Native details and elevations follow the existing architecture and USGS survey. The Library of Congress Highsmith exterior informs the reconstructed verandah.
+Dixville Notch, New Hampshire. The field attachments follow the modeled Dix House lake verandah plinth and Lake Gloriette boathouse cap. Positions reference registered resort and access footprints, © OpenStreetMap contributors, ODbL 1.0. Native details and elevations follow the existing architecture and USGS survey. The Library of Congress Highsmith exterior informs the reconstructed verandah.
 https://www.loc.gov/item/2011631982/
 https://www.openstreetmap.org/copyright
 

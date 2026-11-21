@@ -107,49 +107,26 @@ window.addDixvilleLandmarks = function(T, scene, sites, elevation, ground=elevat
   // Dix House has a long white lake-facing verandah. Hampshire House turns southeast at the eastern end.
   wing(-245,-340,113,16,-.099,13.1,4.5,false,true);
   wing(-236,-353,42,11,1.455,12.3,4.2);wing(-255,-330,32,15,1.47,12.5,4);
-  wing(-167,-327,60,15,.932,22.8,3.7,true);
-  const ey=elevation(-149,-301)-.4;turret(-149,-301,7.3,ey,22.7,masonry,slate);
-  // Octagonal corner pavilions and the upper gallery break up the lake elevation.
-  const end=frame(-149,ey,-301,.932);
-  for(const side of [-1,1]){
-    const [x,,z]=end(.3,0,side*6.8);
-    turret(x,z,2.85,ey,23.9,masonry,slate);
-    const pavilion=frame(x,ey,z,.932);block(pavilion,4.3,4.3,23.7,25.3,siding);hip(pavilion,5.3,5.3,25.3,1.75,slate);
-    for(const along of [-17,0,17]){
-      const [u,,v]=frame(-167,ey,-327,.932)(along,0,side*7.45);
-      const bay=frame(u,ey,v,.932);
-      block(bay,4.6,2.3,.5,18.9,masonry);hip(bay,4.8,2.5,18.9,.73,slate);
-    }
-  }
-  const bel=frame(-149,ey,-301,.932);block(bel,6.8,6.1,25,28.4,masonry);hip(bel,7.5,6.5,28.4,2.6,slate);bounds(-149,-301,8,8,0,ey+31);
-  // Stacked balconies distinguish the projecting east end of Hampshire
-  // House. Dark infill and thin vertical rails separate the floors in flight.
-  for(let level=1;level<=5;level++){
-    const y=level*3.12,bal=(u,h,w)=>end(7.45+w,y+h,u);
-    block(bal,3.05,1.49,-.19,0,granite);block(bal,3.13,1.51,-.32,-.18,shadow);
-    const front=(u,h,w)=>bal(u,h,.7+w);
-    block(front,3.09,.084,.94,1.01,shadow);
-    for(let u=-1.48;u<1.51;u+=.23)block((i,h,w)=>front(i+u,h,w),.038,.049,.01,.97,shadow);
-  }
-  const pole=frame(-149,ey,-301);block(pole,.12,.12,29.3,37,trim);
+  const hampshireRoof=window.makeDixvilleHampshireHouse(T,{material,image,tri,face,block,scene});
+  const haleRoof=window.makeDixvilleHale(T,{material,image,tri,face,block,frame,detail,elevation});
   const entry=frame(-243,elevation(-243,-333),-333,-.10);
   block(entry,12.1,5.8,.3,8.7,siding);hip(entry,12.7,6.1,8.7,3.8,roof,false);
   turret(-301,-340,8.2,elevation(-301,-340)-.6,13.5,siding,roof);
   turret(-229,-322,6.4,elevation(-229,-322)-.4,12.8,siding,roof);
   sites.houses.forEach((ring,i)=>{
-    if(!ring.length||i===0)return;
+    if(!ring.length||i===0||i===3||i===4)return;
     let longest=0,angle=0;
     for(let j=0;j<ring.length;j++){const [x,z]=ring[j],[u,v]=ring[(j+1)%ring.length];const d=Math.hypot(u-x,v-z);if(d>longest){longest=d;angle=Math.atan2(v-z,u-x);}}
     const co=Math.cos(angle),si=Math.sin(angle),us=ring.map(([x,z])=>x*co+z*si),vs=ring.map(([x,z])=>-x*si+z*co);
     const lo=Math.min(...us),hi=Math.max(...us),left=Math.min(...vs),right=Math.max(...vs),u=(hi+lo)/2,v=(right+left)/2;
-    const x=co*u-si*v,z=si*u+co*v,L=hi-lo,D=right-left,y=elevation(x,z),h=i===3?7.7:Math.min(6.4,Math.max(3.2,D*.39)),f=frame(x,y,z,angle);
+    const x=co*u-si*v,z=si*u+co*v,L=hi-lo,D=right-left,y=elevation(x,z),h=Math.min(6.4,Math.max(3.2,D*.39)),f=frame(x,y,z,angle);
     if(i===15){
       // The low boathouse reads as a white band with an open viewing pavilion.
       block(f,L,D,-1.5,3.1,trim);block(f,L+.6,D+.7,3.1,3.45,granite);
       const pavilion=(u,v,w)=>f(L*.18+u,v,w);
       for(const side of [-1,1])for(const u of [-4,-2,0,2,4])block((a,b,c)=>pavilion(u+a,b,side*2.9+c),.18,.18,3.4,5.6,trim);
       hip(pavilion,9.1,6.4,5.6,1.75,slate);
-    }else{block(f,L,D,-1.5,h,siding);hip(f,L,D,h,Math.min(3.6,D*.31),i===3?roof:slate);}bounds(x,z,L,D,angle,y+h+Math.min(3.6,D*.31));
+    }else{block(f,L,D,-1.5,h,siding);hip(f,L,D,h,Math.min(3.6,D*.31),slate);}bounds(x,z,L,D,angle,y+h+Math.min(3.6,D*.31));
   });
   // Bucket short road segments for vegetation exclusion, including their verges.
   function occupy(x,z,r){const k=Math.floor(x/12)+','+Math.floor(z/12);let list=occupied.get(k);if(!list)occupied.set(k,list=[]);list.push([x,z,r*r]);}
@@ -306,7 +283,8 @@ window.addDixvilleLandmarks = function(T, scene, sites, elevation, ground=elevat
         roadHere.push({x,z,y:centre+.38,tilt:(yR-yL)*nz/(2*(width+1)),outer:shoulder+.60});
       }
       const row=layers.map(([a,b],j)=>[pt(a,.025*Math.min(j,2)),pt(b,.025*Math.min(j,2))]);
-      if(prior)layers.forEach(([a,b,m],j)=>{
+      const photoDrive=!main&&x>-68&&x<112&&z>-304&&z<-179&&ownsParkland(x,z);
+      if(prior&&!photoDrive)layers.forEach(([a,b,m],j)=>{
         if(record&&m===pavement){
           // Split the paved ribbon at its crown; on twisting cross slopes a
           // full-width diagonal can crest above its own double yellow paint.
@@ -329,21 +307,6 @@ window.addDixvilleLandmarks = function(T, scene, sites, elevation, ground=elevat
   }
   sites.drives.forEach(p=>road(p,false));sites.highway.forEach(p=>road(p,true));
   roadHere.sort((a,b)=>a.x-b.x);drawTurnout();drawGorgeRail();
-  // The resort's photographed rough-stone portal stands beside the lake approach.
-  const portal=frame(106,elevation(106,106),106,-.65);
-  function archPoint(r,a,depth){return portal(r*Math.cos(a),1.68+r*Math.sin(a),depth);}
-  for(const side of [-1,1]){
-    const pier=(u,v,w)=>portal(side*1.83+u,v,w);
-    block(pier,1.22,1.05,-.43,1.82,rock);
-    if(side<0)block(pier,.93,1.02,1.82,4.65,rock);
-  }
-  for(let i=0;i<16;i++){
-    const a=i*Math.PI/16,b=(i+1)*Math.PI/16,r=2.36+.12*Math.sin(i*2.8);
-    for(const d of [-.53,.53])face(rock,archPoint(1.23,a,d),archPoint(1.23,b,d),archPoint(r,b,d),archPoint(r,a,d));
-    face(rock,archPoint(1.23,a,-.53),archPoint(1.23,b,-.53),archPoint(1.23,b,.53),archPoint(1.23,a,.53));
-    face(rock,archPoint(r,a,-.53),archPoint(r,b,-.53),archPoint(r,b,.53),archPoint(r,a,.53));
-  }
-  bounds(106,106,5.1,1.24,-.65,elevation(106,106)+4.65);
   function roadsideSign(x,z,angle){
     const f=frame(x,elevation(x,z),z,angle),c=document.createElement('canvas');
     c.width=128;c.height=160;const g=c.getContext('2d');
@@ -407,12 +370,12 @@ window.addDixvilleLandmarks = function(T, scene, sites, elevation, ground=elevat
       }
       g.setAttribute('color',new T.BufferAttribute(c,3));
     }
-    const mesh=new T.Mesh(g,m);mesh.name='Dixville '+(m===pavement?'Route 26 asphalt':m===masonry?'Hampshire House masonry':m===siding?'clapboard buildings':'landmark detail');group.add(mesh);
+    const mesh=new T.Mesh(g,m);mesh.name=m.name||'Dixville '+(m===pavement?'Route 26 asphalt':m===masonry?'Hampshire House masonry':m===siding?'clapboard buildings':'landmark detail');group.add(mesh);
   }
   scene.add(group);
-  function clearance(x,z){
+  function clearance(x,z,altitude){
     if(x<-650||x>1460||z<-700||z>1350)return -Infinity;
-    let h=-Infinity;for(const r of roofs){const dx=x-r.x,dz=z-r.z;if(Math.abs(dx)>r.L+r.D||Math.abs(dz)>r.L+r.D)continue;
+    let h=Math.max(hampshireRoof(x,z),haleRoof(x,z,altitude));for(const r of roofs){const dx=x-r.x,dz=z-r.z;if(Math.abs(dx)>r.L+r.D||Math.abs(dz)>r.L+r.D)continue;
       const co=Math.cos(r.a),si=Math.sin(r.a);if(Math.abs(dx*co+dz*si)<=r.L&&Math.abs(dz*co-dx*si)<=r.D)h=Math.max(h,r.y);}
     if(x>=357&&x<=805&&z>=315&&z<=416)for(const [x0,z0,x1,z1,a,b] of railSections){
       if(x<Math.min(x0,x1)-.21||x>Math.max(x0,x1)+.21||z<Math.min(z0,z1)-.21||z>Math.max(z0,z1)+.21)continue;
@@ -421,7 +384,20 @@ window.addDixvilleLandmarks = function(T, scene, sites, elevation, ground=elevat
     }
     return h;
   }
-  function inClearing(x,z){
+  function ownsParkland(x,z){
+    const estate=x>=-380&&x<=-68&&z>=-432&&z<=-172?window.dixvilleResortPark:
+      x>=-68&&x<=112&&z>=-304&&z<=-179?window.dixvilleHalePark:null;
+    if(!estate)return false;
+    let inside=false;
+    for(let i=0,j=estate.boundary.length-1;i<estate.boundary.length;j=i++){
+      const [a,b]=estate.boundary[i],[c,d]=estate.boundary[j];
+      if((b>z)!==(d>z)&&x<(c-a)*(z-b)/(d-b)+a)inside=!inside;
+    }
+    return inside;
+  }
+  function inClearing(x,z,observed=false){
+    if(!observed&&ownsParkland(x,z))return true;
+    if(observed)return Number.isFinite(clearance(x,z));
     if(openRoadAt(x,z))return true;
     if(x>-327&&x< -130&&z>-365&&z<-285||Number.isFinite(clearance(x,z)))return true;
     const i=Math.floor(x/12),j=Math.floor(z/12);
@@ -429,7 +405,11 @@ window.addDixvilleLandmarks = function(T, scene, sites, elevation, ground=elevat
     return false;
   }
   const lawnTrees=[[-297,-266,16],[-276,-249,15],[-255,-291,18],[-239,-273,16],[-200,-250,15],[-195,-264,19],[-129,-275,16]].map(([x,z,height],i)=>({x,z,y:elevation(x,z),height,width:height*.40,seed:.23+i*.09}));
-  return {clearance,inClearing,lawnTrees,openRoadAt};
+  const mappedTrees=window.dixvilleResortPark.crowns.concat(window.dixvilleHalePark.crowns).map(([x,z,height,width,fir],i)=>({
+    x,z,y:elevation(x,z),height,width,seed:(.17+i*.619)%1,conifer:!!fir,observedBalsams:true
+  }));
+  return {clearance,inClearing,ownsParkland,lawnTrees:[...lawnTrees.filter(t=>!ownsParkland(t.x,t.z)),...mappedTrees],
+    openRoadAt:(x,z,radius)=>openRoadAt(x,z,radius)||ownsParkland(x,z)};
 };
 
 

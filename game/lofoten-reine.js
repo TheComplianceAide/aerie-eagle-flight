@@ -2,7 +2,8 @@
 // Kartverket surface and ground heights set each gable. Credits and rebuild inputs ship with the field sites.
 (()=>{
   window.makeReineHarbor=function(T,scene,ground,texture){
-    const data=window.aerieReineHarbor;if(!data)return null;
+    const east=window.aerieReineHarbor,west=window.aerieReineWest;if(!east)return null;
+    const data=west?{...east,buildings:east.buildings.concat(west.buildings),streets:east.streets.concat(west.streets),piers:east.piers.concat(west.piers)}:east;
     const group=new T.Group();group.name='Reine · church, village and stockfish wharves';scene.add(group);
     const batches=new Map(),cells=new Map(),empty=[],room=30,key=(i,j)=>i*32768+j;
     function register(box,o){
@@ -25,6 +26,7 @@
     }
     const board=mat('weatherboard siding','building-clapboard.webp'),slates=mat('slate and sheet roofs','building-slate.webp');
     const site=mat('photographed church timberwork','reine-church-siding.webp'),paint=mat('paint and glass'),pole=mat('wood','building-boards.webp');
+    const quay=west?mat('surveyed west wharf facades','reine-west-quay-material.webp'):null;
     const foundation=mat('foundations','building-fieldstone.webp');
     const white=[.88,.85,.76],charcoal=[.20,.23,.22],gray=[.47,.47,.43],pine=[.49,.45,.35],black=[.055,.073,.078];
     function face(material,points,uv,color){
@@ -97,7 +99,7 @@
       register(bounds(ring),{ring,ceiling:roofLevel});
       const marine=['cabin','boathouse','warehouse','industrial','farm_auxiliary','shed'].includes(b.kind);
       const u=random();const red=[.58,.132,.087],chalk=[.84,.82,.74],ochre=[.74,.51,.23],slate=[.51,.54,.54];
-      const siding=marine?(u<.72?red:u<.87?chalk:ochre):(u<.54?chalk:u<.67?red:u<.80?ochre:slate);
+      const siding=b.siding?b.siding.map(n=>Math.max(.045,n/255)):(marine?(u<.72?red:u<.87?chalk:ochre):(u<.54?chalk:u<.67?red:u<.80?ochre:slate));
       const roof=b.roof.map(n=>Math.min(.83,.075+n/255*.86));
       let winding=0;for(let i=0;i<ring.length;i++){const a=ring[i],c=ring[(i+1)%ring.length];winding+=a[0]*c[1]-c[0]*a[1];}
       for(let i=0;i<ring.length;i++){
@@ -106,6 +108,13 @@
         const aH=measuredHeight?.get(a)??roofHeight(b,...a),cH=measuredHeight?.get(c)??roofHeight(b,...c);
         const x=(a[0]+c[0])/2,z=(a[1]+c[1])/2,low=Math.min(b.base-.25,ground(x,z)-.30);
         quad(foundation,[a[0],low,a[1]],[c[0],low,c[1]],[c[0],wallBase,c[1]],[a[0],wallBase,a[1]],gray,[[0,0],[len*.41,0],[len*.41,.65],[0,.65]]);
+        if(quay&&b.tab!==undefined&&b.front===i){
+          // The registered field controls determine the photographed face. The other elevations retain the observed paint tone.
+          const l=b.tab%4*256+4,t=Math.floor(b.tab/4)*128+8;
+          const uv=[[l/1024,1-(t+111)/512],[(l+247)/1024,1-(t+111)/512],[(l+247)/1024,1-t/512],[l/1024,1-t/512]];
+          quad(quay,[a[0],wallBase,a[1]],[c[0],wallBase,c[1]],[c[0],cH,c[1]],[a[0],aH,a[1]],[1,1,1],uv);
+          continue;
+        }
         quad(board,[a[0],wallBase,a[1]],[c[0],wallBase,c[1]],[c[0],cH,c[1]],[a[0],aH,a[1]] ,siding,[[0,0],[len*.5,0],[len*.5,(cH-wallBase)*.62],[0,(aH-wallBase)*.62]]);
         const count=Math.floor(len/(b.kind==='industrial'?5.7:3.1));
         const stories=Math.max(1,Math.floor((b.eave-.60)/2.65)),ordinary=!['garage','garages','shed','roof','container'].includes(b.kind);
@@ -220,6 +229,35 @@
         for(let j=0;j<ring.length;j++){
           const a=ring[j],b=ring[(j+1)%ring.length],lineP=(p)=>[p[0]+(center[0]-p[0])*.037,p[1]+(center[1]-p[1])*.037];
           const c=lineP(a),d=lineP(b);beam([c[0],ground(...c)+.125,c[1]],[d[0],ground(...d)+.125,d[1]],.12,paint,[.80,.79,.69]);
+        }
+      }
+    }
+    if(west){
+      // The mapped western fish pier is a hard vertical arm in the shoreline. Model the apron,
+      // wet sill and fenders along those real corners so moored boats meet a wharf on low passes.
+      const quayEdge=[[1485.88,4424.60],[1498.25,4428.59],[1510.86,4388.74],[1493.43,4381.17],[1506.65,4370.09],[1486.65,4345.81]];
+      for(let i=1;i<quayEdge.length;i++){
+        const a=quayEdge[i-1],b=quayEdge[i],dx=b[0]-a[0],dz=b[1]-a[1],dist=Math.hypot(dx,dz);
+        const out=[-dz/dist,dx/dist],apronWidth=i===1?1.75:i===2?3.35:2.45;
+        const offset=(p,m)=>[p[0]+m*out[0],p[1]+m*out[1]];
+        const outer=a=>offset(a,.61),inner=a=>offset(a,-apronWidth);
+        const deck=(p)=>Math.max(1.76,Math.min(3.32,ground(...inner(p))+.07));
+        const p0=outer(a),p1=outer(b),i0=inner(a),i1=inner(b),h0=deck(a),h1=deck(b);
+        const at=(p,h)=>[p[0],h,p[1]];
+        const slab=[.48,.50,.47],wet=[.195,.215,.207],edge=[.44,.41,.34];
+        quad(foundation,at(p0,-1.0),at(p1,-1.0),at(p1,h1-.22),at(p0,h0-.22),wet,[[0,0],[dist*.35,0],[dist*.35,1.6],[0,1.6]]);
+        quad(pole,at(p0,h0-.27),at(p1,h1-.27),at(p1,h1+.015),at(p0,h0+.015),edge,[[0,0],[dist*.20,0],[dist*.20,.31],[0,.31]]);
+        quad(foundation,at(p0,h0),at(p1,h1),at(i1,h1),at(i0,h0),slab,[[0,0],[dist*.22,0],[dist*.22,apronWidth*.22],[0,apronWidth*.22]]);
+        const ring=[p0,p1,i1,i0];register(bounds(ring),{ring,ceiling:(x,z)=>h0+(h1-h0)*Math.max(0,Math.min(1,((x-a[0])*dx+(z-a[1])*dz)/(dist*dist)))});
+        const piles=Math.ceil(dist/2.35);
+        for(let k=0;k<piles;k++){
+          const s=(k+.32)/piles,p=[a[0]+s*dx,a[1]+s*dz],toe=offset(p,.78),h=h0+(h1-h0)*s;
+          beam(at(toe,-.8),at(toe,h-.14),.24,pole,[.19,.145,.10]);
+          if(k%3===0){
+            const q=offset(p,.95),b=offset(p,-.13);
+            beam(at(q,.33),at(q,h-.44),.36,paint,[.059,.068,.069]);
+            beam(at(b,h),at(b,h+.28),.18,paint,[.10,.106,.102]);
+          }
         }
       }
     }

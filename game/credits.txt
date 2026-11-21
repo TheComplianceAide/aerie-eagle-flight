@@ -858,3 +858,31 @@ https://www.nps.gov/crla/planyourvisit/cleetwood-cove-trail-and-marina-rehabilit
 https://doi.org/10.3133/ds72
 https://mapservices.nps.gov/arcgis/rest/services/NationalDatasets/NPS_Public_Trails/FeatureServer/0
 See tools/geology/crater-rim/sources.json for the exact elevation, imagery, returns and photograph records.
+
+Reinevågen's western fishing quay, Moskenes. Forty-six mapped buildings with roof geometry derived from the Norwegian DTM and DOM © Kartverket (CC BY 4.0). Footprints, quay perimeter, piers and paths © OpenStreetMap contributors (ODbL 1.0). Contains modified Copernicus Sentinel-2 data, 16 July 2025. Waterfront facade and vessel material adapted from Simo Räsänen (Ximonic), “Marken V in Reine, Lofoten, Norway, 2015 September”, 20 September 2015 (CC BY-SA 3.0). The photograph supplied visible siding, paint, hull and bridge. The rectified surface atlas reine-west-quay-material.webp is CC BY-SA 3.0. Vessel length, freeboard, beam, underwater form, quay fittings, rigging and mooring lines are visual reconstructions. The vessel's depicted position represents the 2015 photograph.
+https://commons.wikimedia.org/wiki/File:Marken_V_in_Reine,_Lofoten,_Norway,_2015_September.jpg
+https://creativecommons.org/licenses/by-sa/3.0/
+https://www.kartverket.no/en/api-and-data/terms-of-use
+https://www.openstreetmap.org/copyright
+https://opendatacommons.org/licenses/odbl/1-0/
+https://dataspace.copernicus.eu/terms-and-conditions
+
+Oeschinensee — Berghotel Oeschinensee, Chalet Arva and the rowing cove
+
+The five measured roof and wall shells, current roof images, terrace layout, exposed shoreline and the 2004 low-stage aerial are derived from © Federal Office of Topography swisstopo, swissBUILDINGS3D 3.0, swissALTI3D and SWISSIMAGE. Coordinates are in LV95 / LN02. The modeled lake stage is 1,574.9 m. The terrain model locates the water surface. Submerged gravel depth is estimated from its exposed slope. The archival aerial and modern terrain establish a low-stage skiff cove; boat positions, ropes, furniture, and small facade features are reconstructions. The historic lower-water berth and current high-water berth differ.
+https://www.swisstopo.admin.ch/en/landscape-model-swissbuildings3d
+https://www.swisstopo.admin.ch/en/height-model-swissalti3d
+https://www.swisstopo.admin.ch/en/orthoimage-swissimage
+https://www.swisstopo.admin.ch/en/terms-of-use-free-geodata-and-geoservices
+https://www.oeschinensee.ch/en/ruderboote/
+https://restaurant-oeschinensee.ch/en/restaurant-oeschinensee-2/
+https://www.arva-oeschinensee.ch/
+
+The derived facade and skiff material atlas, oeschinen-landing-surfaces.webp, is CC BY-SA 4.0. Cropping, perspective rectification, color balancing, and assembly by Aerie. Original photographs, also CC BY-SA 4.0:
+Oeschilover, “Berghotel Oeschinensee erbaut 1892,” 2017 — amber shutters, timber courses, flower boxes and windows.
+https://commons.wikimedia.org/wiki/File:Berghotel_Oeschinensee_erbaut_1892.jpg
+Hp.Baumeler, “Berghaus am oeschinensee,” 2017 — sage shutters, painted frieze, carved railing and joinery.
+https://commons.wikimedia.org/wiki/File:Berghaus_am_oeschinensee.jpg
+Gdmolena, “Boats on the shoreline of Lake Oeschinen,” 2022 — blue skiff paint and timber surface references.
+https://commons.wikimedia.org/wiki/File:Boats_on_the_shoreline_of_Lake_Oeschinen.jpg
+https://creativecommons.org/licenses/by-sa/4.0/
