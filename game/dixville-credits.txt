@@ -36,3 +36,10 @@ https://www.usgs.gov/3d-elevation-program
 https://ngmdb.usgs.gov/Geolex/Units/Dixville_1406.html
 https://polyhaven.com/a/marble_cliff_01
 https://polyhaven.com/a/lichen_rock
+
+Table Rock's exposed summit spur uses a locally re-fitted half-metre ground surface from the 2015 Connecticut River public lidar point cloud. The elevation field resolves exposed near-surface returns that were omitted from the original ground classification. The prominent longitudinal joint, shallow cross-joints and lichen weathering are interpreted against New Hampshire State Parks' published site photographs. The photographs are references only. The georegistered close surface combines Marble Cliff 01 by Amal Kumar, Lichen Rock by Rico Cilliers and Rock Face by Greg Zaal and Dario Barresi, all CC0.
+https://s3-us-west-2.amazonaws.com/usgs-lidar-public/USGS_LPC_CT_River_Lot6_Winnipesaulee_2015_LAS_2017/ept.json
+https://www.flickr.com/photos/nh-parks-recreation/43918702655/
+https://www.flickr.com/photos/nh-parks-recreation/43918702755/
+https://polyhaven.com/a/rock_face
+https://polyhaven.com/license

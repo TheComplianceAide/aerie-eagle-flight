@@ -510,7 +510,7 @@
       world.habitat=perchHabitat;
       perchRoute=window.makePerchRoute(THREE,world,region);
       world.launches.lookout=perchRoute.approach;
-      world.flightClearance=(x,z,altitude)=>Math.max((world.clearance||world.height)(x,z),perchHabitat.clearance(x,z),canopy?.clearance?.(x,z,altitude)??-Infinity,geology?.clearance?.(x,z)??-Infinity);
+      world.flightClearance=(x,z,altitude)=>Math.max((world.clearance||world.height)(x,z,altitude),perchHabitat.clearance(x,z),canopy?.clearance?.(x,z,altitude)??-Infinity,geology?.clearance?.(x,z)??-Infinity);
       world.windField=window.makeWindField(world,region);
       perching=window.makePerchFlight(THREE,world,perchHabitat,perchRoute);
       perchMarker=new THREE.Vector3();

@@ -169,7 +169,23 @@ window.makePerchHabitat=function makePerchHabitat(T,scene,world,region){
   }
   function rockSite(x,z,hint,route=false){
     if(!boundsOK(x,z,5))return null;
+    if(region==='dixville'&&x>-17&&x<35&&z>325&&z<367){
+      const run=(x+5)*.8660254-(z-354)*.5,cross=(x+5)*.5+(z-354)*.8660254;
+      if(run>-4&&run<34&&cross>-.9&&cross<4.8)return terrainPerch(x,z,hint);
+    }
     if(moosehead&&!route)return lakeshorePerch(x,z,hint);
+    if(world.surryArmorPerch&&!route){
+      const cap=world.surryArmorPerch(x,z);
+      if(cap!==undefined){
+        if(!cap)return null;
+        const seed=noise(Math.round(cap.x*5),Math.round(cap.z*5),59);
+        return orient(seed,hint,(dx,dz)=>{
+          const slope=corridor(cap.x,cap.y,cap.z,dx,dz);
+          return slope===null?null:finish({id:'armor:'+cap.x.toFixed(3)+','+cap.z.toFixed(3),type:'rock',
+            label:'Quarry stone',x:cap.x,y:cap.y,z:cap.z,seed,radius:cap.radius,root:cap,existingSurface:true},dx,dz,slope);
+        });
+      }
+    }
     // Roof heights are in clearance. Exclude the paved downtown core as well.
     if(region==='surry'&&x>1785&&x<2200&&z>4240&&z<4860)return null;
     const surveyed=ground(x,z),y=surface(x,z);
@@ -190,6 +206,19 @@ window.makePerchHabitat=function makePerchHabitat(T,scene,world,region){
     return orient(seed,hint,(dx,dz)=>{
       const slope=corridor(x,height,z,dx,dz);if(slope===null)return null;
       return finish({id,type:'rock',label:dryRock?'Sandstone ledge':'Rock ledge',x,y:height,z,seed,radius:radial,root:{x,y,z}},dx,dz,slope);
+    });
+  }
+  function terrainPerch(x,z,hint){
+    const y=ground(x,z);
+    if(!Number.isFinite(y)||wet(x,z,y)||floor(x,z)>y+.11)return null;
+    for(const [dx,dz] of [[.30,0],[-.30,0],[0,.25],[0,-.25],[.24,.18],[-.24,-.18]]){
+      if(Math.abs(ground(x+dx,z+dz)-y)>.11)return null;
+    }
+    const seed=noise(Math.round(x*5),Math.round(z*5),59);
+    return orient(seed,hint,(dx,dz)=>{
+      const slope=corridor(x,y,z,dx,dz);
+      return slope===null?null:finish({id:'terrain:'+x.toFixed(2)+','+z.toFixed(2),type:'rock',label:'Rock shelf',
+        x,y,z,radius:.31,seed,root:{x,y,z},existingSurface:true},dx,dz,slope);
     });
   }
   function tileSites(i,j){
@@ -268,7 +297,9 @@ window.makePerchHabitat=function makePerchHabitat(T,scene,world,region){
     const id=spec.kind+':'+spec.x.toFixed(2)+','+spec.z.toFixed(2);
     if(routeSites.has(id))return routeSites.get(id);
     let p;
-    if(spec.kind==='branch'||spec.type==='branch'){
+    if(spec.kind==='surface'){
+      p=terrainPerch(spec.x,spec.z,spec.direction);
+    }else if(spec.kind==='branch'||spec.type==='branch'){
       const trees=[],i=Math.floor(spec.x/tile),j=Math.floor(spec.z/tile);
       if(spec.tree)trees.push(spec.tree);
       for(let v=-1;v<=1;v++)for(let u=-1;u<=1;u++)trees.push(...(treeTiles.get(key(i+u,j+v))||[]));
@@ -442,7 +473,7 @@ window.makePerchHabitat=function makePerchHabitat(T,scene,world,region){
     if(Math.hypot(s.x-lastX,s.z-lastZ)>15){
       lastX=s.x;lastZ=s.z;near=gather(s);
       const list=selected?[selected,...near.filter(p=>p.id!==selected.id)]:near;
-      place((moosehead?list.filter(p=>!p.existingSurface):list).slice(0,capacity));
+      place(list.filter(p=>!p.existingSurface).slice(0,capacity));
     }
     if(selected){
       const d=Math.hypot(selected.x-s.x,selected.y-s.y,selected.z-s.z);
@@ -452,7 +483,7 @@ window.makePerchHabitat=function makePerchHabitat(T,scene,world,region){
   }
   function select(site){
     selected=site||null;halo.visible=!!site;lastX=Infinity;
-    if(lastState)update(lastState);else if(site){place([site]);halo.position.set(site.x,site.y+.055,site.z);}
+    if(lastState)update(lastState);else if(site){place(site.existingSurface?[]:[site]);halo.position.set(site.x,site.y+.055,site.z);}
     return selected;
   }
   const raycaster=new T.Raycaster(),projected=new T.Vector3(),eye=new T.Vector3();
@@ -476,7 +507,7 @@ window.makePerchHabitat=function makePerchHabitat(T,scene,world,region){
     const w=size?.width||size?.x||window.innerWidth||1200,h=size?.height||size?.y||window.innerHeight||800;
     let closest=13,found=null;
     const sites=visible.map(m=>m.userData.site);
-    if(moosehead)sites.push(...near.filter(p=>p.existingSurface));
+    sites.push(...near.filter(p=>p.existingSurface));
     for(const p of sites){
       projected.set(p.x,p.y+.08,p.z).project(camera);
       if(projected.z< -1||projected.z>1)continue;

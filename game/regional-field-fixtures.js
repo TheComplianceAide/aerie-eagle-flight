@@ -135,8 +135,8 @@
         group.add(mesh);meshes.push(mesh);
       }
       const prior=world.clearance||world.height;
-      const withDocks=(x,z)=>{
-        let top=prior(x,z);
+      const withDocks=(x,z,altitude)=>{
+        let top=prior(x,z,altitude);
         if(x<3931||x>4030||z<2709||z>2995)return top;
         for(const s of segments){
           const dx=x-s.x,dz=z-s.z,along=dx*s.cx+dz*s.cz;

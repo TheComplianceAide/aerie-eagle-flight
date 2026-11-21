@@ -7,7 +7,7 @@ window.makeMovingWeather = async function makeMovingWeather(THREE, scene, world)
   const profiles = {
     dixville:      [1710, 4070, .63, .36, 2.1, .86],
     labrador:      [1390, 4350, .49, .44, 2.45, .78],
-    alaska:        [2300, 4700, .47, .50, 3.3, .87],
+    alaska:        [4800, 4700, .43, .34, 2.6, .87],
     swiss:         [3400, 4800, .50, .44, 2.7, .93],
     canyon:        [2650, 5700, .62, .46, 2.9, .78],
     yosemite:      [4050, 5100, .54, .44, 2.6, .96],

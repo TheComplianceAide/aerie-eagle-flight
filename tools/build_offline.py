@@ -42,6 +42,8 @@ window.aerieAssetURL=file=>{
 after=after.replace('</script>','</script><script>THREE.DefaultLoadingManager.setURLModifier(window.aerieAssetURL);</script>',1)
 with NamedTemporaryFile('w',dir=output.parent,prefix='.Aerie-',delete=False) as f:
     dest=Path(f.name);f.write(before)
+    for notice in [root/'LICENSE.md',*sorted((root/'LICENSES').iterdir())]:
+        f.write('<script type="text/plain" data-license="'+notice.name+'">'+safe(notice.read_text())+'</script>\n')
     codec=root/'tools/pako'
     f.write('<script>'+safe((codec/'pako_inflate.min.js').read_text())+'\n/* '+(codec/'LICENSE').read_text()+' */</script>')
     for p in sorted(dist.rglob('*')):

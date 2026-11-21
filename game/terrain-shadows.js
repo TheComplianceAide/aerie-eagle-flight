@@ -112,7 +112,10 @@ window.makeTerrainShadows=function makeTerrainShadows(T,renderer,scene,world){
       const shade='terrainShadeStrength*'+(atVertex?'vertexRidgeShade':'terrainOcclusion(localSunCoord)');
       // The ridge blocks the sun on the wave and lake bed. The same wave
       // still sees the open sky, as well as shore already shaded in the mirror.
-      const receiveSun=directWater?shader.fragmentShader.replace('float visibleSun=getShadowMask();',
+      const visibility='1. /* direct terrain visibility */';
+      const receiveSun=shader.fragmentShader.includes(visibility)?
+        shader.fragmentShader.replaceAll(visibility,'(1.-'+shade+')'):
+        directWater?shader.fragmentShader.replace('float visibleSun=getShadowMask();',
         'float visibleSun=getShadowMask()*(1.-'+shade+');'):
         finishMain(shader.fragmentShader,'float ridgeShade='+shade+';gl_FragColor.rgb*=mix(vec3(1.),vec3(.63,.66,.70),ridgeShade);');
       shader.fragmentShader=interpolator+(atVertex?'uniform float terrainShadeStrength;\n':lighting)+receiveSun;

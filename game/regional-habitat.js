@@ -76,7 +76,9 @@
   };
   // WorldCover's 11 published classes, plus zero for off-grid/no data.
   const LAND={tree:1,shrub:2,grass:3,crop:4,built:5,bare:6,ice:7,water:8,marsh:9,mangrove:10,moss:11};
+  const loadedClasses=new Map();
   function openLand(region){
+    if(loadedClasses.has(region))return loadedClasses.get(region);
     const source=window.aerieLandClasses?.[region];
     if(!source)return ()=>0;
     const [half,n,encoded]=source,raw=atob(encoded),cells=new Uint8Array(n*n);
@@ -87,11 +89,13 @@
       cells.fill(kind,offset,offset+count);offset+=count;
     }
     const factor=n/(2*half);
-    return (x,z)=>{
+    const sample=(x,z)=>{
       const ix=Math.floor((x+half)*factor),iz=Math.floor((z+half)*factor);
       return ix>=0&&iz>=0&&ix<n&&iz<n?cells[ix+n*iz]:0;
     };
+    loadedClasses.set(region,sample);return sample;
   }
+  window.aerieLandClassSampler=openLand;
   function mercedBank(){
     // Keep the lower-valley cottonwoods beside the mapped river. Height
     // above a single lake plane cannot describe Yosemite's sloping rivers.

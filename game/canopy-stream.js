@@ -272,6 +272,13 @@
       if(abs(barkUV.z-4.)<.1)c=albedo.rgb*vec3(1.50,1.08,.70);
       #endif
       float lit=regionalCanopySun(wp+n*.05,.00034)*mix(.12,1.,lighting.w);
+      #ifdef OESCHINEN_SUMMER_NEEDLES
+      // Under the high valley wall the summer canopy reflects mainly cool sky.
+      // Keep the lighter new growth on the outer sprays in direct sunlight.
+      float needleBrightness=dot(c,vec3(.24,.61,.15));
+      vec3 summerNeedle=mix(vec3(needleBrightness),c,.43)*mix(vec3(.52,.72,.67),vec3(.72,.85,.68),lit*lighting.y);
+      c=mix(c,summerNeedle,barkUV.w);
+      #endif
       #ifdef MAINE_NEEDLES
       c*=mix(vec3(.73,.72,.68),mix(vec3(.49,.72,.55),vec3(.75,.89,.76),lit),barkUV.w);
       #endif
@@ -676,6 +683,7 @@
           uniforms.canopyAlphaCut={value:regional?[.34,.27,.17][record.l]:.34};
           const defines=regional?{REGIONAL_SPECIMEN:1}:pilot?{MENDENHALL_SITKA:1}:{};
           if(surveyRegion==='acadia')defines.STARLIT_CANOPY=1;
+          if(surveyRegion==='swiss'&&regional&&['swiss-tree','swiss-spruce','swiss-stone-pine'].includes(regional.sheet))defines.OESCHINEN_SUMMER_NEEDLES=1;
           if(record.l===0){
             defines.CLOSE_BOUGH_WIND=1;
             const scan=regional&&regional.family!=='brush'&&(regional.family==='broad'?bark?.hardwood:bark?.pine);

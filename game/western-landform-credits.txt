@@ -1,0 +1,31 @@
+Aerie western terrain and water sources
+
+Mendenhall Glacier, Alaska
+Ice from the lower Mendenhall uses a rectified crop of Aaron Jacobs's photograph for the National Weather Service, released by the USGS Alaska Science Center on July 21, 2011. The USGS marks the photograph public domain.
+https://www.usgs.gov/media/images/glacial-lake-outburst-flood-juneau-alaska
+Porter et al., ArcticDEM v4.1, Polar Geospatial Center, CC BY 4.0. The two-metre elevation mosaics 40_05_2_2 and 40_06_2_1 were resampled and detrended to recover local surface relief and likely fracture bands. Their component observations span 2008–2021. The surface is a historical reconstruction. The established glacier footprint uses the 2013 Juneau orthophotography and August 8, 2024 Sentinel-2 scene credited in credits.txt.
+https://www.pgc.umn.edu/data/arcticdem/
+https://stac.pgc.umn.edu/api/v1/collections/arcticdem-mosaics-v4.1-2m
+https://creativecommons.org/licenses/by/4.0/
+
+Horseshoe Bend, Arizona
+Horseshoe Bend 001, photographed October 30, 2017 by Brent and Dawn Davis for the National Park Service, Glen Canyon National Recreation Area. NPGallery records full public-domain rights. The dry sandstone faces were registered to the surveyed canyon. A separate crop of the foreground provides compacted sandstone and surface grains near the east overlook. The river, sky, plants and sunlight are drawn in the game.
+https://npgallery.nps.gov/AssetDetail/aa4e55ce-aa2c-4c77-96da-08872c5e2c6d
+https://www.nps.gov/places/hsb.htm
+
+Crater Lake, Oregon
+USGS 3D Elevation Program bare-earth terrain, Oregon SouthEast D22 project. Two one-metre tiles, 10 x56y476 and x57y476, cover the new terrain centered on Wizard Island and the western caldera. USDA National Agriculture Imagery Program (NAIP), acquired September 23, 2022 at 0.3 m, supplied the red, near-infrared and visible surface measurements. Crown centers, coarsened rock colors and sky visibility are derived from these sources. Tree heights, individual lava grains and storm weather are simulated. The USGS field photograph by Charles R. Bacon in Scientific Investigations Map 2832 (2008) provided a visual reference.
+https://apps.nationalmap.gov/downloader/
+https://www.usgs.gov/3d-elevation-program
+https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer
+https://pubs.usgs.gov/sim/2832/photos/1-Crater_Lake_Wizard_Island.html
+Phantom Ship's south- and west-facing spires use a cropped and relit sample of Charles R. Bacon's USGS field photograph of the same island, SIM 2832, plate 24 (published 2008). The observed rock is registered to the island's existing Oregon DOGAMI 2010 airborne lidar surface distributed by NOAA Digital Coast (collection 1428). The photograph omits the far side. Fracture detail on those faces continues to use the licensed rock scan credited in the main notices.
+https://pubs.usgs.gov/sim/2832/photos/24-Phantom_Ship.html
+https://noaa-nos-coastal-lidar-pds.s3.amazonaws.com/laz/geoid18/1428/index.html
+
+Yosemite Valley, California
+USGS National Hydrography Dataset and USDA NAIP imagery. The August 7, 2022 flight at 0.6 m supplies red and near-infrared signatures used to estimate exposed gravel and both banks of the Merced River. Water beneath dense tree cover is interpolated. Distant reflections are sampled from regional USGS terrain and previously credited canopy measurements. Water stage and velocity are simulated.
+https://www.usgs.gov/national-hydrography
+https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer
+https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer
+https://www.nps.gov/places/000/valley-view.htm

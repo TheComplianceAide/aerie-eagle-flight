@@ -102,38 +102,44 @@ window.addCraterWeather=function addCraterWeather(T,scene,{sun,clock,sky,terrain
       return max(ribbon*broken,main*rainLoad(side))*(1.-smoothstep(2730.,3060.,p.y));
     }
     float dropCover(vec3 p){return rainAtDepth(p,stormDepth(p.xz),dot(p.xz,frontSide));}
-    float curtainHit(vec3 ray){
-      float axisRay=dot(ray.xz,frontAxis);
-      // Each curtain falls just behind the leading cloud. Use a predictor
-      // then sample the displaced edge at the intersected along-front point.
-      if(abs(axisRay)<.024)return -1.;
-      float d=(450.-stormDepth(cameraPosition.xz))/axisRay;
-      if(d<0.)d+=18000./abs(axisRay);
-      float side=dot(cameraPosition.xz,frontSide);
-      return d+(edgeCurve(side+d*dot(ray.xz,frontSide))-edgeCurve(side))/axisRay;
-    }
     vec3 craterCurtain(vec3 color,vec3 ray,float farMetres){
-      float hit=curtainHit(ray);
-      if(hit<0.||hit>min(28000.,farMetres+320.))return color;
-      float axisRay=dot(ray.xz,frontAxis),amount=0.;
-      // Rain leaves several separate parts of the cloud base. Accumulate
-      // soft veils at different distances, with increasing downwind drift
-      // and evaporation as the drops fall toward the warmer basin floor.
-      for(int layer=0;layer<3;layer++){
-        float k=float(layer),range=hit+(280.+310.*k)/axisRay;
-        if(range<0.||range>farMetres+320.)continue;
-        vec3 p=cameraPosition+ray*range;
-        float h=clamp((p.y-1881.)/1180.,0.,1.45);
-        float fall=1.-min(1.,h),side=dot(p.xz,frontSide)+fall*(263.+142.*k)+64.*sin(1.6*h+k);
-        float cells=rainLoad(side+410.*k);
-        float rag=.5+.5*sin(.0051*side+1.4*h+.9*sin(.0013*side-1.8*h+k));
-        float throat=smoothstep(.23,.79,cells-.20*fall+.12*rag);
-        float taper=(.55+.45*h)*(1.-smoothstep(.79,1.28,h));
-        float farFade=1.-smoothstep(7200.,26700.,range);
-        amount+=throat*taper*(.62+.38*rag)*farFade*(1.-smoothstep(farMetres-310.,farMetres+320.,range));
+      // Integrate a finite, sheared precipitation volume. A ray which grazes
+      // a shower now sees successively shorter wisps, rather than abruptly
+      // entering an upright plane at the cloud edge.
+      float nearAir=0.,farAir=min(farMetres,17600.);
+      if(ray.y>.0001){
+        nearAir=max(nearAir,(1770.-cameraPosition.y)/ray.y);
+        farAir=min(farAir,(3460.-cameraPosition.y)/ray.y);
+      }else if(ray.y<-.0001){
+        nearAir=max(nearAir,(3460.-cameraPosition.y)/ray.y);
+        farAir=min(farAir,(1770.-cameraPosition.y)/ray.y);
+      }else if(cameraPosition.y<1770.||cameraPosition.y>3460.)return color;
+      if(farAir<=nearAir)return color;
+      float amount=0.,last=nearAir;
+      for(int layer=1;layer<=10;layer++){
+        float f=float(layer)*.1;
+        float next=nearAir+(farAir-nearAir)*f*(.56+.44*f);
+        vec3 p=cameraPosition+ray*(.5*(last+next));
+        float above=clamp((p.y-1881.)/1320.,-.12,1.24);
+        float fall=1.-above;
+        vec2 rainOrigin=p.xz-frontAxis*(160.*fall+80.*fall*fall)-frontSide*225.*fall;
+        float depth=stormDepth(rainOrigin);
+        float side=dot(rainOrigin,frontSide);
+        float broad=.54+.22*sin(side*.00110+1.25*fall)+.15*cos(side*.00192-.64*fall);
+        float curls=.11*sin(.00337*side+.0011*depth+2.1*fall+.90*sin(side*.00153))+
+                    .06*sin(side*.00655+3.0*fall);
+        float load=smoothstep(.28,.78,broad+curls);
+        float head=.05+.95*smoothstep(-700.,1090.,depth)*(1.-smoothstep(4100.,6960.,depth));
+        float localBase=2875.+155.*sin(.00091*side)+72.*sin(.00223*side+.00033*depth);
+        float evaporation=mix(1780.,2420.,1.-load)+126.*sin(.00171*side+.00045*depth);
+        float column=smoothstep(evaporation-170.,evaporation+290.,p.y)*
+                     (1.-smoothstep(localBase-275.,localBase+335.,p.y));
+        amount+=head*load*column*(next-last)*exp(-.000084*(last+next)*.5);
+        last=next;
       }
-      vec3 air=mix(vec3(.139,.155,.190),vec3(.330,.217,.183),pow(max(dot(ray,calderaSun),0.),4.));
-      return mix(color,air,1.-exp(-.458*amount));
+      float sunward=pow(max(dot(ray,calderaSun),0.),5.);
+      vec3 air=mix(vec3(.150,.173,.200),vec3(.41,.281,.202),sunward);
+      return mix(color,air,1.-exp(-.000175*amount));
     }`;
   function extend(material,fields,where,replacement){
     Object.assign(material.uniforms,uniforms);
@@ -231,7 +237,46 @@ window.addCraterWeather=function addCraterWeather(T,scene,{sun,clock,sky,terrain
     gl_FragColor.rgb=craterSky(gl_FragColor.rgb,d);`);
   const lightLine='/* canopy transmission */';
   Object.assign(terrain.uniforms,surfaceFlow.uniforms);
+  terrain.uniforms.calderaRelief={value:new T.TextureLoader().load('crater-caldera-field.webp')};
+  terrain.uniforms.calderaAlbedo={value:new T.TextureLoader().load('crater-caldera-stone.webp')};
+  terrain.fragmentShader='uniform sampler2D calderaRelief,calderaAlbedo;\n'+terrain.fragmentShader.replace(
+    'vec3 normal=normalize(norm);',`
+      vec3 normal=normalize(norm);
+      vec2 fieldUV=(wp.xz-vec2(-5850.,-3300.))/7200.;
+      float fieldEdge=min(min(fieldUV.x,fieldUV.y),min(1.-fieldUV.x,1.-fieldUV.y));
+      float surveyed=smoothstep(.001,.025,fieldEdge)*smoothstep(1880.8,1883.3,wp.y);
+      vec4 field=texture2D(calderaRelief,vec2(fieldUV.x,1.-fieldUV.y));
+      vec2 tilt=field.rg*2.-1.;
+      vec3 measuredNormal=normalize(vec3(tilt.x,sqrt(max(.002,1.-dot(tilt,tilt))),tilt.y));
+      normal=normalize(mix(normal,measuredNormal,surveyed*.88));`);
   extend(terrain,surfaceFlow.flowGLSL+'\n'+front,lightLine,`
+    // Separately light the NIR-detected needle-bearing slopes, the cinder
+    // cone and the broken andesite of the lava apron. Three-dimensional
+    // crowns meet the canopy field at their actual photographed positions.
+    if(surveyed>.002){
+      float crowns=clamp((field.a-.35)/.65,0.,1.);
+      float bare=1.-smoothstep(.10,.52,crowns);
+      float cut=clamp(2.*field.b-1.,-.83,.88);
+      float cone=1.-smoothstep(470.,800.,length(wp.xz-vec2(-1959.,764.)));
+      float grain=smoothstep(.15,.78,grit);
+      float pores=clamp(.72+.36*field.b+.29*(cliff-.45)+.19*(grain-.45),.41,1.43);
+      float ash=cone*smoothstep(1939.,2015.,wp.y);
+      vec3 cinder=vec3(.379,.345,.319)*(pores+.20*cut);
+      vec3 flowRock=vec3(.336,.342,.333)*(.69+.53*field.b+.27*grain+.25*cut);
+      vec3 slopePhoto=texture2D(calderaAlbedo,vec2(fieldUV.x,1.-fieldUV.y)).rgb;
+      float stoneValue=lum(slopePhoto);
+      vec3 wallTalus=mix(slopePhoto,vec3(1.05,.998,.954)*stoneValue,.30);
+      wallTalus*=clamp(.93+.19*field.b+.44*cut+.18*(fissure-.5),.47,1.38);
+      vec3 bedrock=mix(wallTalus,mix(flowRock,cinder,ash),cone);
+      // Light from the sky keeps the broken rim readable as a shower passes.
+      // Shade and rock structure come from the real slope, rather than
+      // shrinking tall tree models into a regular pattern of dark dots.
+      vec3 light=ambient+direct;
+      c=mix(c,pow(max(vec3(.012),bedrock),vec3(2.15))*light,bare*surveyed*.85);
+      vec3 needles=mix(vec3(.105,.150,.119),slopePhoto*.85,.54+.28*smoothstep(.17,.65,lum(slopePhoto)));
+      needles*=.88+.34*field.b+.12*max(0.,dot(normal,sun));
+      c=mix(c,pow(max(vec3(.009),needles),vec3(2.2))*light,surveyed*smoothstep(.09,.60,crowns)*.69);
+    }
     float squallShade=craterShade(wp);
     float ribbon=apertures(clearSlot(wp));
     c*=mix(vec3(1.34,1.05,.744),vec3(.292,.396,.565),squallShade);
@@ -254,6 +299,9 @@ window.addCraterWeather=function addCraterWeather(T,scene,{sun,clock,sky,terrain
     vec3 craterView=normalize(wp-cameraPosition);
     gl_FragColor.rgb=craterRays(craterCurtain(gl_FragColor.rgb,craterView,d),craterView,d);`);
   if(water){
+    // A nearby rim can shade the direct glint and the sunlit lake bed. The
+    // reflected squall ceiling remains visible on both sides of that shadow.
+    water.material.userData.shadowDirectWater=true;
     const waterLine='gl_FragColor=vec4(radiance,alpha);';
     extend(water.material,front,waterLine,`
       float weatherCover=craterShade(worldPosition.xyz);

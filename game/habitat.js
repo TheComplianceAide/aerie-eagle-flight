@@ -67,6 +67,7 @@ window.addHabitat = function addHabitat(THREE,scene,world,region) {
       vec3 m=texture2D(lakeMargin,vec2(uv.x,1.-uv.y)).rgb;
       float r=2.*m.r-1.;
       float influence=1.-smoothstep(75.,135.,length(p-vec2(${shoreX},${shoreZ})));
+      ${world.strandSurvey?'float surveyedEdge=min(min(p.x+820.,-348.-p.x),min(p.y-304.,648.-p.y));influence*=1.-smoothstep(0.,20.,surveyedEdge);':''}
       float bar=2.7+.65*sin(p.x*.13+p.y*.062)+.36*sin(p.x*.29-p.y*.117);
       return vec3(56.*r*abs(r)-influence*bar,16.*m.g*m.g,m.b);
     }
@@ -83,6 +84,8 @@ window.addHabitat = function addHabitat(THREE,scene,world,region) {
   `;
   const grains=arid?null:repeat('shore-pebbles-normal.webp');
   const loose=arid?null:repeat('shore-cobble.webp');
+  const westernStrand=region==='swiss'?loader.load('landform-swisswest-aerial.webp'):null;
+  if(westernStrand)westernStrand.anisotropy=8;
   for(const mesh of scene.children){
     if(!mesh.isWater||arid)continue;
     const mat=mesh.material;
@@ -170,6 +173,7 @@ window.addHabitat = function addHabitat(THREE,scene,world,region) {
   // the triangles actually displayed, including coarse sections of the survey.
   const gridTiles=[];
   const terrainMaterials=new Set();
+  world.strandMesh?.traverse(mesh=>{if(mesh.isMesh)terrainMaterials.add(mesh.material);});
   for(const m of scene.children){
     const mat=m.material;
     if(!mat?.isShaderMaterial || !(mat.uniforms.surveyNormals||mat.uniforms.localPhoto||mat.uniforms.flow&&mat.uniforms.strata))continue;
@@ -189,6 +193,7 @@ window.addHabitat = function addHabitat(THREE,scene,world,region) {
       const anchor=sw?'vec2 vd=(wp.xz+4000.)/8000.;':'float haze=';
       if(!mat.fragmentShader.includes(anchor))continue;
       Object.assign(mat.uniforms,marginUniforms,{beachScan:{value:glacial?world.bankDepositMap:loose}});
+      if(sw)mat.uniforms.strandPhoto={value:westernStrand};
       const layers=`
         if(d<250.){
           vec2 pos=${name}.xz;
@@ -206,13 +211,39 @@ window.addHabitat = function addHabitat(THREE,scene,world,region) {
           groundColor=mix(groundColor,groundColor*vec3(.65,.81,.83)+vec3(.017,.028,.035),thin*.81);
           groundColor+=vec3(.045,.061,.067)*(damp+.7*thin)*pow(max(0.,dot(normalize(cameraPosition-${name}),reflect(-sun,${norm}))),18.);
           ${col}=mix(${col},groundColor,(1.-smoothstep(42.,240.,d))*beach*.94);
+          ${sw?`
+            // SWISSIMAGE positions pale scree and darker gravel pockets on the
+            // west fan. Keep individual tree crowns and open water out of the
+            // ground material as the camera descends to the gravel berm.
+            vec2 uvWest=(pos-vec2(-820.,304.))/vec2(472.,344.);
+            float tileEdge=min(min(uvWest.x,uvWest.y),min(1.-uvWest.x,1.-uvWest.y));
+            if(tileEdge>0.&&bank>-.3){
+              vec3 mapped=texture2D(strandPhoto,vec2(uvWest.x,1.-uvWest.y)).rgb;
+              float wetPhoto=smoothstep(.015,.09,mapped.b-mapped.r)*smoothstep(.015,.075,mapped.g-mapped.r);
+              float leaves=smoothstep(.018,.07,mapped.g-.5*(mapped.r+mapped.b));
+              float mineral=(1.-max(wetPhoto,leaves))*smoothstep(.11,.30,dot(mapped,vec3(.26,.58,.16)));
+              float reach=smoothstep(0.,.055,tileEdge)*mineral*(1.-smoothstep(12.,24.,wp.y));
+              vec3 limestone=mapped*(.76+.51*dot(gravel,vec3(.27,.58,.15)))*mix(1.,.65,damp);
+              rgb=mix(rgb,limestone,reach*.84);
+              // The summer photo was taken at a higher water stage than
+              // swissALTI3D. The exposed low-stage fan is wet limestone
+              // detritus; blue water pixels would turn the dry land green.
+              float exposed=wetPhoto*(1.-smoothstep(6.,11.,wp.y))*smoothstep(0.,.055,tileEdge);
+              vec2 bar=fract(mat2(.86,-.51,.51,.86)*pos*.039);
+              vec3 dryFan=texture2D(strandPhoto,vec2(.421,.184)+(bar-.5)*vec2(.019,.076)).rgb;
+              float grain=dot(gravel,vec3(.27,.58,.15));
+              float dust=clamp(dot(dryFan,vec3(.29,.57,.14)),.32,.68);
+              vec3 shingle=vec3(.98,.985,1.)*dust*(.65+.69*grain)*mix(1.,.65,damp);
+              rgb=mix(rgb,shingle,exposed*.98);
+            }`:''}
         }
       `;
-      mat.fragmentShader=shoreMotion+(glacial?window.mendenhallSedimentGLSL:'')+'\nuniform sampler2D beachScan;\n'+mat.fragmentShader.replace(anchor,layers+anchor);
+      mat.fragmentShader=shoreMotion+(glacial?window.mendenhallSedimentGLSL:'')+(sw?'\nuniform sampler2D strandPhoto;':'')+'\nuniform sampler2D beachScan;\n'+mat.fragmentShader.replace(anchor,layers+anchor);
     }
   }
   const tileMap=new Map();
   function surface(x,z){
+    if(world.strandSurvey?.edge(x,z)>.01)return world.elevation(x,z);
     const key=Math.floor(x/8)+','+Math.floor(z/8);
     let t=tileMap.get(key);
     if(!t || x<t.left||z<t.top||x>=t.left+t.side||z>=t.top+t.depth){
@@ -240,7 +271,7 @@ window.addHabitat = function addHabitat(THREE,scene,world,region) {
   function beachHeight(x,z,ground){
     const dx=x-beach[0],dz=z-beach[1];
     if(!marginImage||Math.abs(dx)>beachRadius||Math.abs(dz)>beachRadius)return -Infinity;
-    const influence=1-smooth(75,beachRadius,Math.hypot(dx,dz));
+    const influence=(1-smooth(75,beachRadius,Math.hypot(dx,dz)))*(1-(world.strandSurvey?.edge(x,z)||0));
     if(influence<=0)return -Infinity;
     const distance=bankDistance(x,z);
     if(distance< -9||distance>13)return -Infinity;

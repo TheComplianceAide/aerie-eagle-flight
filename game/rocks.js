@@ -2,7 +2,7 @@
 // a fixed ring decides where a high-detail scan is worth drawing.
 window.addTalus = function addTalus(THREE, scene, world) {
   if (!window.talusScans?.length) return;
-  const arid=world.region==='canyon',sierra=world.region==='yosemite';
+  const arid=world.region==='canyon',sierra=world.region==='yosemite',swiss=world.region==='swiss';
   const loader = new THREE.TextureLoader();
   function map(path, color = false) {
     const texture = loader.load(path);
@@ -43,6 +43,18 @@ window.addTalus = function addTalus(THREE, scene, world) {
         float open=texture2D(graniteHorizon,boulderUV).r;
         reflectedLight.directDiffuse*=open;
         reflectedLight.indirectDiffuse*=mix(vec3(.64,.75,.88),vec3(1.),open);`);
+    };
+  }
+  if(swiss){
+    // Pale micritic limestone and darker weathered beds make up the Oeschinen
+    // rockfall fans. Preserve the photographic fractured surface of the scan.
+    material.onBeforeCompile=shader=>{
+      shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>',`
+        #include <map_fragment>
+        float bedding=dot(diffuseColor.rgb,vec3(.30,.57,.13));
+        float carbonate=.025+.75*sqrt(max(0.,bedding));
+        diffuseColor.rgb=vec3(.98,1.,1.024)*carbonate;
+      `);
     };
   }
   function unpack(encoded, Type) {
@@ -98,6 +110,13 @@ window.addTalus = function addTalus(THREE, scene, world) {
   function spawnRock(x,z,size,onShore){
     const h=substrate(x,z);
     if(!Number.isFinite(h) || (h<water+.5 && inLake(x,z)) || (arid && world.habitat.wet(x,z,world.height(x,z))))return;
+    if(swiss){
+      // Fade from wave-sorted gravel at the western strand into the upslope
+      // coarse debris. Large rockfall blocks still collect on the east wall.
+      const radius=((x+642)/183)**2+((z-485)/121)**2;
+      const strand=Math.max(0,Math.min(1,(1-radius)/.37))*Math.max(0,Math.min(1,(water+19-h)/12));
+      size+=(.055+.15*Math.sqrt(size)+.052*size-size)*strand;
+    }
     const r=Math.max(.7,size*.32);
     const dx=(substrate(x+r,z)-substrate(x-r,z))/(2*r);
     const dz=(substrate(x,z+r)-substrate(x,z-r))/(2*r);

@@ -57,6 +57,12 @@ window.addHardwoods=function addHardwoods(T,scene,trees,options){
     float leafValue=dot(color,vec3(.24,.61,.15));
     vec3 pigment=species<.5?vec3(1.98,.92,.33):species<1.5?vec3(1.83,1.31,.48):species<2.5?vec3(1.64,.71,.29):vec3(1.28,1.13,.63);
     color=mix(color,leafValue*pigment,leafMask*.97);
+  `:region==='lofoten'?`
+    // Sheltered mountain birch is leaf-on in the summer survey. Preserve shade
+    // within the crown while removing the yellow temperate source foliage.
+    float foliage=smoothstep(.01,.068,max(color.r,color.g)-color.b);
+    float value=dot(color,vec3(.25,.59,.16));
+    color=mix(color,value*vec3(.52,.68,.54),foliage*.90);
   `:region==='surry'?`
     // The reservoir references show summer hardwoods. Keep the photographed
     // crown shading but replace yellow and red atlas foliage with leaf-on green.

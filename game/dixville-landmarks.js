@@ -282,3 +282,41 @@ window.addDixvilleLandmarks = function(T, scene, sites, elevation) {
   return {clearance,inClearing,lawnTrees};
 };
 
+
+// A georegistered weathering field is confined to the exposed Table Rock spur.
+// These tiles already replace the regional detail orthophoto with a 6-inch
+// local image. Its spare sampler can carry this bounded surface instead.
+window.finishDixvilleTableRock=function(material,texture){
+  material.uniforms.detailOrtho={value:texture('dixville-ledge-surface.webp')};
+  const irradiance='c=pow(max(c,vec3(0.)),vec3(2.2))*(ambient+direct)*(1.+(.32+.42*desert)*relief);';
+  material.fragmentShader=material.fragmentShader.replace(irradiance,irradiance+`
+    if(xz.x>-24.&&xz.x<42.&&xz.y>311.&&xz.y<372.&&wp.y>728.){
+      vec2 offset=xz-vec2(-5.,354.);
+      float run=dot(offset,vec2(.8660254,-.5));
+      float crossRidge=dot(offset,vec2(.5,.8660254));
+      float longitudinal=smoothstep(-10.,-3.8,run)*(1.-smoothstep(33.,40.,run));
+      float rightEdge=mix(5.7,3.2,smoothstep(13.,32.,run));
+      float westWall=smoothstep(-9.,-5.6,crossRidge);
+      float bare=longitudinal*westWall*(1.-smoothstep(rightEdge-.35,rightEdge+1.3,crossRidge));
+      vec2 fieldUV=vec2((run+12.)/54.,1.-(crossRidge+9.)/21.);
+      vec4 surface=texture2D(detailOrtho,clamp(fieldUV,0.,1.));
+      vec2 faceUV=vec2(run*.204,(wp.y-.19*run)*.212);
+      vec4 split=texture2D(notchStone,faceUV);
+      float upward=smoothstep(.29,.78,normal.y);
+      float photoLichen=smoothstep(.43,.68,lum(surface.rgb));
+      vec3 side=split.rgb*vec3(1.08,1.057,1.065)*(.86+.28*split.a);
+      side=mix(side,surface.rgb*vec3(.92,.94,.96),.23+photoLichen*.22);
+      vec3 bed=mix(side,surface.rgb,upward);
+      float grain=mix(split.a,surface.a,upward);
+      vec3 gx=dFdx(wp),gy=dFdy(wp),rx=cross(gy,normal),ry=cross(normal,gx);
+      float jacobian=dot(gx,rx);
+      vec3 g=(rx*dFdx(grain)+ry*dFdy(grain))*sign(jacobian)/max(.0001,abs(jacobian));
+      vec3 nd=normalize(normal-clamp(.052*(1.-smoothstep(38.,155.,d)),0.,.052)*g);
+      float rockSun=max(0.,dot(nd,sun));
+      vec3 localLight=ambient+direct*clamp((.21+rockSun)/(.21+incidence),.48,1.52);
+      float recess=.78+.25*grain;
+      vec3 dressed=pow(max(vec3(0.),bed),vec3(2.2))*localLight*recess;
+      c=mix(c,dressed,bare*(1.-smoothstep(480.,1050.,d))*.985);
+    }
+    `);
+};

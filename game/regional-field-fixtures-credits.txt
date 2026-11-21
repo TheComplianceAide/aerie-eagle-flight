@@ -26,3 +26,16 @@ https://www.openstreetmap.org/way/918014847
 
 Path and pier cartographic coordinates are adapted from OpenStreetMap, © OpenStreetMap contributors under the Open Data Commons Open Database License 1.0. The transformed coordinates are available in regional-field-fixtures.js. The game uses northing/easting from NAD83 / WGS84 UTM zone 11N (Yosemite) and ETRS89 / WGS84 UTM zone 33N (Lofoten), rounded to the native world survey origins.
 https://www.openstreetmap.org/copyright
+
+Hamnøy village and Breisundet bridge. Building lengths, widths, bearings and positions, and highway centerlines, are derived from © OpenStreetMap contributors, Open Database License 1.0. The derived footprint and alignment table is distributed in lofoten-hamnoy.js under ODbL 1.0. Hamnøy's rorbu operator documents the island's fishing history, red timber buildings, corrugated pitched roofs, light trim, and waterfront foundations. Cabin heights, finish colors, individual openings, bridge rail details and approach grading are reconstructions. Statens vegvesen documents the 60–120–60 m bridge spans. The mapped central clearance is 18 m. No operator photography is incorporated in the game.
+https://www.openstreetmap.org/copyright
+https://opendatacommons.org/licenses/odbl/1-0/
+https://www.openstreetmap.org/way/75118310
+https://rorbuer.no/
+https://rorbuer.no/history/
+https://dokument.vegvesen.no/dokument/basis/fil/8561706
+The harbor landform uses modified © Kartverket national height model (NHM DTM 1 m), sampled on a 2 m grid, and the previously credited Copernicus Sentinel-2 summer mosaic. The terrain mesh retains measured glacial ledges and tidal cuts. Subtidal depth and wet material color are reconstructed. Kartverket data licensed CC BY 4.0.
+https://kartverket.no/en/api-and-data/terrengdata
+https://kartkatalog.geonorge.no/metadata/0f0a0f38-00c4-4213-a9e5-2d861dc4abb0
+https://wcs.geonorge.no/skwms1/wcs.hoyde-dtm-nhm-25833
+https://creativecommons.org/licenses/by/4.0/

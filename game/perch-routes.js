@@ -56,7 +56,7 @@
       name: 'Table Rock ledge approach', sight: 'Table Rock',
       label: 'Trace the ridge to the narrow ledge, with Route 26 and Lake Gloriette below.',
       path: [[242,468,42],[155,421,22],[99,393,18],[60,366,14]],
-      perch: ['ledge',26,338,'Table Rock overlook'],
+      perch: ['surface',10.44,346.24,'Table Rock overlook'],
     },
     labrador: {
       name: 'Lac Berté cabin shore glide',
