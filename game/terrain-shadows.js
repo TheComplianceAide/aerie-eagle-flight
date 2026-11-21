@@ -181,3 +181,38 @@ window.makeTerrainShadows=function makeTerrainShadows(T,renderer,scene,world){
   return {update,dispose,get stats(){return {drawings,casters:casters.children.length,receivers:receivers.size,
     sun:direction.toArray(),nativeCompare:hardware,tile};}};
 };
+
+// A waterfall can first enter the water reflection and then the direct view a
+// frame later. Link both variants before takeoff using the actual scene lights.
+window.prepareWaterfallPrograms=async function prepareWaterfallPrograms(T,renderer,scene,camera){
+  const materials=new Set(),meshes=[];
+  scene.traverse(object=>{
+    if(object.userData.prepareFallsMaterial&&!materials.has(object.material)){
+      materials.add(object.material);meshes.push(object);
+    }
+  });
+  if(!meshes.length)return;
+  const original=renderer.getRenderTarget(),face=renderer.getActiveCubeFace(),mip=renderer.getActiveMipmapLevel();
+  const reflection=new T.WebGLRenderTarget(1,1);
+  const programs=new Set();
+  try{
+    for(const target of [null,reflection]){
+      renderer.setRenderTarget(target);
+      for(const mesh of meshes){
+        for(const material of renderer.compile(mesh,camera,scene)){
+          programs.add(renderer.properties.get(material).currentProgram);
+        }
+      }
+    }
+  }finally{
+    renderer.setRenderTarget(original,face,mip);reflection.dispose();
+  }
+  while(programs.size){
+    if(renderer.getContext().isContextLost())return;
+    for(const program of programs){
+      if(!program.isReady())continue;
+      program.getUniforms();program.getAttributes();programs.delete(program);
+    }
+    if(programs.size)await new Promise(resolve=>setTimeout(resolve,12));
+  }
+};

@@ -91,7 +91,7 @@ window.makeWaterfallSystem=function makeWaterfallSystem(T,scene,{ground,level,cl
           float alpha=clamp(core*(.48+.51*fine)+streamers*(.36+.39*broad)+wave,0.,.94);
           alpha*=1.-smoothstep(.5,2.1,wp.y-poolY);if(alpha<.012)discard;vec3 film=mix(vec3(.42,.60,.61),vec3(.94,.96,.92),.22+.47*fine+.31*core);
           gl_FragColor=vec4(film,alpha);}`});
-    const mesh=new T.Mesh(geometry(pos,uv,index,{}),mat);mesh.name=source.name+' · aerated pool and drifting foam';mesh.renderOrder=1;scene.add(mesh);
+    const mesh=new T.Mesh(geometry(pos,uv,index,{}),mat);mesh.name=source.name+' · aerated pool and drifting foam';mesh.userData.prepareFallsMaterial=true;mesh.renderOrder=1;scene.add(mesh);
   }
   function plume(source){
     const {x,y,z,width,drop,dx,dz}=source,quad=new T.PlaneGeometry(1,1),g=new T.InstancedBufferGeometry();
@@ -136,7 +136,7 @@ window.makeWaterfallSystem=function makeWaterfallSystem(T,scene,{ground,level,cl
           float a=body*envelope*mix(.028+.034*puff.w,.61,puff.z)*ragged*smoothstep(-.27,.31,abovePool);
           vec3 c=mix(vec3(.48,.60,.62),vec3(.90,.95,.94),.14+.39*cloud+.33*light);
           gl_FragColor=vec4(c,a);}`});
-    const m=new T.Mesh(g,mat);m.name=source.name+' · windborne spray';m.renderOrder=2;scene.add(m);
+    const m=new T.Mesh(g,mat);m.name=source.name+' · windborne spray';m.userData.prepareFallsMaterial=true;m.renderOrder=2;scene.add(m);
   }
   function chute(name,path,width,options={}){
     if(path.length<2)return;
@@ -174,7 +174,7 @@ window.makeWaterfallSystem=function makeWaterfallSystem(T,scene,{ground,level,cl
       nodes.push({x,z,y:heights[cols>>1],dx,dz,floor:y,air,centerAir,time:fallTime,travel});
     }
     const end=nodes.at(-1);for(let i=0;i<hydro.length;i+=4){hydro[i+1]-=fallTime;impactAt.push(end.x,end.z);}
-    const mesh=new T.Mesh(geometry(positions,uv,index,{hydraulics:[hydro,4],impactAt:[impactAt,2]}),sheet);mesh.name=name+' · falling water';scene.add(mesh);
+    const mesh=new T.Mesh(geometry(positions,uv,index,{hydraulics:[hydro,4],impactAt:[impactAt,2]}),sheet);mesh.name=name+' · falling water';mesh.userData.prepareFallsMaterial=true;scene.add(mesh);
     // Also locate the foot of an attached chute where its steep, aerated
     // descent becomes a low-gradient stream. A downstream mouth gets only
     // the energy that actually remains, even after a very high upstream fall.
