@@ -15,3 +15,5 @@ Commercial use of protected Aerie material, including selling a copy or a deriva
 ## Third-party material
 
 Upstream licenses and public-domain dedications continue to govern the portions supplied by others, including third-party source embedded in game files. These include Three.js and its Water renderer, Omnitone, pako, photographs, field recordings, terrain surveys, cartography and adapted scenery. Each specific upstream notice takes precedence for the material it identifies. Public-domain data and independently licensed assets can be obtained and reused under their own terms. [Scenery and library credits](game/credits.txt) · [Regional recordings](game/soundscape-credits.txt) · [Wildlife recordings](game/field-audio-credits.txt) · [Regional scenery sources](docs/regional-scenery.md)
+
+Microsoft’s original US building footprint database and the derived building records in the two lake habitat data files are available under the Open Database License 1.0. [Database source](https://github.com/microsoft/USBuildingFootprints) · [ODbL terms](https://opendatacommons.org/licenses/odbl/1-0/) · [Data format and reproduction](tools/geology/lake-banks/README.md)

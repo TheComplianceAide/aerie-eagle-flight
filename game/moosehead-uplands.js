@@ -284,7 +284,7 @@
       const u=Math.floor((x/64000+.5)*forestSize),v=Math.floor((z/64000+.5)*forestSize);
       return u>=0&&v>=0&&u<forestSize&&v<forestSize?percent[v*forestSize+u]*.01:0;
     }
-    function woods(T,scene,world,clock,survey,bankSurveys=[]){
+    function woods(T,scene,world,clock,survey,bankSurveys=[],bankHabitat){
       const canopy=window.mooseheadCrowns(T,scene,clock),tiles=new Map();
       const {treeGrid}=world;
       if(!canopy)return ()=>{};
@@ -306,6 +306,7 @@
       }
       for(let k=0;k<rootCount;k++){
         const at=rootStart+k*8,x=forestView.getInt16(at,true),z=forestView.getInt16(at+2,true),insideBank=bankSurveys.some(b=>b.edge(x,z)>0);
+        if(insideBank&&bankHabitat?.ownsTree(x,z))continue;
         const y=insideBank?world.elevation(x,z):sample(x,z);
         if(y===null||y<world.waterLevel+.5)continue;
         const tree={x,y,z,height:forestView.getUint8(at+4)/8,width:forestView.getUint8(at+5)/8,conifer:!!forestView.getUint8(at+6),seed:forestView.getUint8(at+7)/255};

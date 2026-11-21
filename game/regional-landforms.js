@@ -201,6 +201,16 @@
         material.fragmentShader=material.fragmentShader.replace('normal=normalize(mix(normal,ledgeNormal,.94*graniteShore));',
           'ledgeNormal=normalize(mix(ledgeNormal,normal,landformHorizon.w));normal=normalize(mix(normal,ledgeNormal,.94*graniteShore));');
       }
+      if(spec.lakeBank){
+        const sampler=hasDetail?'detailOrtho':'aerial';
+        material.fragmentShader=material.fragmentShader.replace('/* canopy transmission */',`
+          // The mapped crown-top horizon is sampled toward this lake's sun.
+          // Open gravel, lawns and forest gaps retain their sky illumination.
+          float bankLight=texture2D(${sampler},${localUV}).a;
+          float shelter=mix(1.,.45+.55*bankLight,landformHorizon.w);
+          c*=shelter;
+          /* canopy transmission */`);
+      }
       if(spec.asset==='yosemite-summits'||(spec.lakeBank&&!hasDetail)){
         // The entire survey sits outside the valley's original aerial. Blend
         // the registered 2022 NAIP image at its edges with the true far region.

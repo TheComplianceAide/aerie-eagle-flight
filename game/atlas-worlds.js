@@ -1672,13 +1672,18 @@ class Water extends Mesh {
   if(['surry','moosehead','winnipesaukee','labrador','dixville'].includes(region))
     scene.userData.buildingLight=window.makeBuildingLight(THREE,scene,region,skyMap);
   const dam=surry?window.addSurryDam(THREE,scene,{survey,elevation,ground:shoreFloor?.ground||elevation,terrain,texture,sun,sky:skyMap,clock,aerial,half:h}):null;
+  const bankHabitat=bankSurveys.length?window.makeLakeHabitat(THREE,scene,region,elevation,settings.water):null;
   const settlement=waterfront?{
     buildings:[...(survey.settlement?.buildings||[]),...waterfront.settlement.buildings],
     piers:[...(survey.settlement?.piers||[]),...waterfront.settlement.piers]
   }:survey.settlement;
-  const roofHeight=surry?window.makeKeeneCity(THREE,scene,{survey,height:elevation,sunMask:terrainLight}):
+  const retainedSettlement=bankHabitat&&settlement?{...settlement,
+    buildings:settlement.buildings.filter(([box])=>!bankHabitat.supersedes(box))
+  }:settlement;
+  const originalRoof=surry?window.makeKeeneCity(THREE,scene,{survey,height:elevation,sunMask:terrainLight}):
     region==='lofoten'?window.addHamnoyHarbor(THREE,scene,elevation,settings.water):
-    settlement?window.addLakesideBuildings(THREE,scene,settlement,elevation,settings.water):null;
+    retainedSettlement?window.addLakesideBuildings(THREE,scene,retainedSettlement,elevation,settings.water):null;
+  const roofHeight=bankHabitat?(x,z)=>Math.max(originalRoof?.(x,z)??-Infinity,bankHabitat.roofHeight(x,z)):originalRoof;
   const waterfrontHeight=waterfront?.build(elevation,settings.water,clock,terrain,shoreFloor?.ground||elevation);
   const cabin=survey.cabin?window.addLabradorCabin(THREE,scene,{elevation,height:elevation,surveyGround:!!campSurface,measuredTrees:survey.berteCrowns,waterLevel:settings.water,lakeLevel:settings.water},survey.cabin):null;
   const resort=dixville?window.addDixvilleLandmarks(THREE,scene,survey.sites,elevation):null;
@@ -1689,7 +1694,8 @@ class Water extends Mesh {
     if(!surry)return y<(settings.water??-1000)+margin;
     return (y<settings.water+margin&&inLake(x,z))||Number.isFinite(dam.riverHeight(x,z));
   }
-  function plant(tree,isFir){
+  function plant(tree,isFir,measuredBank=false){
+    if(bankHabitat&&!measuredBank&&bankHabitat.ownsTree(tree.x,tree.z))return;
     if(acadia&&window.acadiaSandOpening(tree.x,tree.z))return;
     if(survey.inBerteCanopy&&!tree.measuredBerte&&survey.inBerteCanopy(tree.x,tree.z))return;
     if(acadia&&window.thunderHoleBareLedge(tree.x,tree.z))return;
@@ -1710,6 +1716,7 @@ class Water extends Mesh {
     trees.push(tree);(isFir?firTrees:broadTrees).push(tree);
     const id=cell(tree.x,tree.z);if(!cells.has(id))cells.set(id,[]);cells.get(id).push(tree);
   }
+  bankHabitat?.plantCrowns(plant);
   if(localDEM){
     const crowns=unpack(localDEM.crowns);
     for(let i=0;i<crowns.length;i+=5){
@@ -1845,9 +1852,9 @@ class Water extends Mesh {
     update(dt,t,player){clock.value=t;updateDistantTerrain(player);updateTable(player);shoreDetail?.update(player);bankGrowth?.update(player);updateUplandWoods?.(player);updateWeather?.(t,player,world.windField);rainTrace?.(t,player,world.windField);updateHardwoods?.(player);if(water)water.material.uniforms.time.value=t*.65;}};
   if(!survey.shore?.length&&shoreDetail)world.fieldBankAt=shoreDetail.closestBank;
   if(dam){world.riverSurfaceAt=dam.riverHeight;world.surryArmorPerch=dam.armorPerch;}
-  if(waterfront)world.blocksInfillTree=waterfront.blocksInfillTree;
+  if(waterfront||bankHabitat)world.blocksInfillTree=(x,z)=>bankHabitat?.ownsTree(x,z)||waterfront?.blocksInfillTree(x,z);
   world.geologyGround=shoreFloor?(x,z)=>Math.max(shoreFloor.ground(x,z),shoreFloor(x,z)):null;
-  const updateUplandWoods=uplands?.woods(THREE,scene,world,clock,localDEM,bankSurveys);
+  const updateUplandWoods=uplands?.woods(THREE,scene,world,clock,localDEM,bankSurveys,bankHabitat);
   if(bankGrowth)world.shoreThickets=bankGrowth;
   for(const bank of bankSurveys)bank.add(THREE,scene,terrain,(x,z)=>regionalElevation(x,z,false),texture);
   const addLocalLandform=()=>landmarkTerrain.add(THREE,scene,terrain,(x,z)=>regionalElevation(x,z,false),texture);

@@ -13,3 +13,18 @@ python tools/geology/lake-banks/banks.py --cache /tmp/aerie-lake-inputs --output
 ```
 
 The output contains one terrain mesh and one ground photograph per site, plus the corrected shoreline runs.
+
+## Trees and shore buildings
+
+The first and final lidar returns distinguish crowns that overhang a roof from the lower roof planes. The fitter works in absolute elevation, measures how far each surface extends across the footprint, and anchors its eave to the higher side of the foundation. When too few returns support a roof, the retained record is marked `plan-only`. Doors, window groupings, siding and trim are reconstructions. The tree field stores crown centers, height, width and a broadleaf/conifer estimate. A 16-metre coverage grid preserves observed gaps and open lawns.
+
+With the bank inputs already downloaded, regenerate the crown and building assets with Python, Requests, laspy with lazrs, NumPy, pyproj, SciPy, scikit-image, Shapely, Rasterio and Pillow. Use the game folder containing the regenerated bank outlines.
+
+```sh
+python tools/geology/lake-banks/returns.py --cache /tmp/aerie-lake-inputs
+python tools/geology/lake-banks/footprints.py --cache /tmp/aerie-lake-inputs
+python tools/geology/lake-banks/roof_imagery.py --cache /tmp/aerie-lake-inputs
+python tools/geology/lake-banks/habitat.py --cache /tmp/aerie-lake-inputs --game game --output /tmp/aerie-lake-surveys
+```
+
+The regional data scripts contain the complete derived building records in each site's `buildings` array. Vertex coordinates are metres east and south of the lake's UTM origin in `sources.py`. Roof and crown dimensions are metric. Upstream footprint attribution, terms and imagery credits are in [the atlas credits](../../../game/atlas-credits.txt).

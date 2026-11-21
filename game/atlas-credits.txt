@@ -98,3 +98,13 @@ https://weirsbeach.com/reasons-to-visit/atmosphere/weirs-beach-arrow-sign/
 https://weirsbeach.com/reasons-to-visit/boardwalk/4th-way-down/
 Liam Murray's public-domain photograph of the Weirs Beach illuminated sign was used as a visual reference for the two faces and lamp colors.
 https://commons.wikimedia.org/wiki/File:Weirs_Beach_Sign_New_Hampshire.jpg
+
+Lily Bay, Spencer Bay, Meredith Bay, Wolfeboro Bay, Diamond Island and Sleepers Island
+LiDAR acquired in 2015 for the Connecticut River project (New Hampshire portion) and 2016 for Western Maine supplies individual canopy measurements and roof planes. Vegetation is an estimated mix of local species. Roof colors in New Hampshire use NH GRANIT's 2021/2022 six-inch leaf-off orthophotography. The wall finishes, windows and doors are original reconstructions.
+https://s3-us-west-2.amazonaws.com/usgs-lidar-public/USGS_LPC_CT_River_Lot6_Winnipesaulee_2015_LAS_2017/ept.json
+https://noaa-nos-coastal-lidar-pds.s3.amazonaws.com/entwine/geoid18/6264/ept.json
+https://granit24a.sr.unh.edu/image/rest/services/ImageServices/NH_2021_2022_6in_RGB/ImageServer
+https://gis.maine.gov/image/rest/services/NAIP/orthoNaip2018/ImageServer
+The building footprint database is © Microsoft Corporation. The complete derived building records (building polygons, roof orientation, dimensions and sampled colors) are available under ODbL 1.0 in the buildings arrays of lake-habitat-moosehead.js and lake-habitat-winnipesaukee.js. The accompanying fitting tools describe how the source records were selected and modified.
+https://github.com/microsoft/USBuildingFootprints
+https://opendatacommons.org/licenses/odbl/1-0/
