@@ -518,7 +518,10 @@
       perchMarker=new THREE.Vector3();
       if(factory)updateHabitat=addHabitat(THREE,scene,world,region);
       window.addFlightWater(THREE,scene,world);
-      if(region==='acadia')window.addAcadiaCoast(THREE,scene,world);
+      if(region==='acadia'){
+        window.addAcadiaCoast(THREE,scene,world);
+        window.addAcadiaSandBeach(THREE,scene,world);
+      }
       updateUnderstory=window.addUnderstory(THREE,scene,world);
       gameVision=window.makeGameVision(THREE,world,el("visionToggle"),el("gameVision"));
       if(region==="swiss"||region==="canyon"||region==="yosemite"||region==="dixville") updateTalus=window.addTalus?.(THREE,scene,world);

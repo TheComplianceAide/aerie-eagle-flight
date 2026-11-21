@@ -74,3 +74,28 @@ The daytime ground color rendered here is USDA NAIP.
 https://irma.nps.gov/DataStore/Reference/Profile/2192694
 https://www.nps.gov/places/thunder-hole.htm
 https://gis.maine.gov/image/rest/services/Coastal/Maine_Orthoimagery_Coastal_Acadia_2025/ImageServer
+
+Sand Beach and Beehive Lagoon. The local material field is registered to the
+USDA NAIP orthophoto export in UTM 19N and the USGS one-meter
+3DEP surface. Both are public-domain US Government sources. The 0.5 m game
+atlas delineates the shell strand, dune grass, brackish pond and intertidal
+sand. Its reduced star reflection comes from Acadia’s credited night panorama.
+The shell swatch is cropped from the Sand Beach half of the NPS/J. Cosgrove
+photograph. Sediment grains use the scale of the 19 mm penny in that image.
+A rectified, daylight-balanced patch of sand from NPS Olmsted Center for Landscape Preservation, figure 46 (2024), supplies low-flight relief. The dune rope, grass clumps, washed-up wrack and worn stair materials refer
+to the NPS Sand Beach cultural landscape inventory (2026), figures 41–46 and
+59–60. The five concrete stair flights follow the 2011 as-built riser count.
+Positions of small movable objects and the exact night appearance are modeled.
+https://www.nps.gov/articles/000/geologic-story-of-sand-beach.htm
+https://www.nps.gov/articles/000/images/Sand-Image.jpeg
+https://irma.nps.gov/DataStore/Reference/Profile/2319481
+https://www.nps.gov/aboutus/disclaimer.htm
+
+The western stair centerline incorporates © OpenStreetMap contributors,
+ODbL 1.0, way 128573665, version 7. The four source points, in walking order,
+are latitude/longitude 44.3294424/-68.1836710, 44.3293800/-68.1836582,
+44.3293719/-68.1835596 and 44.3293628/-68.1834744. The game fits local UTM
+lengths to the NPS construction plan. Source feature and database license:
+https://www.openstreetmap.org/way/128573665
+https://www.openstreetmap.org/copyright
+https://opendatacommons.org/licenses/odbl/1-0/

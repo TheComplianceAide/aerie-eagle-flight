@@ -57,3 +57,13 @@ python tools/geology/field-sites/bake_oeschinen_fan.py --cache /path/to/cache --
 | --- | --- |
 | 2025 east fan swissALTI3D 2 m tile | `e6908d6a1161868d27a02f63f383f68f500bd48b2291baa8cb6c4fbadf578470` |
 | Historical low-stage SWISSIMAGE WMS response | `e98ded8ed9f6c5035b5443b069df32b8eaae763d1d424c3361fba7fc9bf15412` |
+
+### Sand Beach and Beehive Lagoon
+
+Build the approximately 295 KB local material atlas with the script below. The script fetches a registered USDA aerial, a one-meter USGS terrain export the NPS/J. Cosgrove shell photograph and the NPS 2026 cultural landscape report. Its 2024 foreground photograph supplies flying-scale sand relief. Install pypdf in the documented bake environment. The script checks all four input SHA-256 digests. It also needs the released Acadia sky panorama in the game directory. Use the dataset URLs and geographic scope in the script to distinguish later NAIP coverage from the original export.
+
+```sh
+python tools/geology/field-sites/bake_acadia_sand_beach.py --cache /path/to/cache --output /path/to/comparison
+```
+
+The source and ODbL centerline for the mapped western staircase are credited in [Acadia scenery credits](../../../game/acadia-scenery-credits.txt). The shore-class texture's 0.5 m texels combine a resampled aerial with terrestrial elevation. They do not imply a 0.5 m ground survey of the lagoon bed. [NPS shell geology and photographs](https://www.nps.gov/articles/000/geologic-story-of-sand-beach.htm) · [NPS park cultural landscape inventory and as-built stair plan](https://irma.nps.gov/DataStore/Reference/Profile/2319481)
