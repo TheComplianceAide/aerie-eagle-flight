@@ -503,7 +503,9 @@
       if(region==="swiss"||region==="canyon"||region==="yosemite"||region==="dixville") updateTalus=window.addTalus?.(THREE,scene,world);
       if(region==="swiss" || region==="alaska" || world.useFirForest) updateForest=window.addForest?.(THREE,scene,world);
       updateMist=window.addValleyMist?.(THREE,scene,world);
-      eagle=makeEagle(THREE);scene.add(eagle.object);eagle.motion?.setWindSource?.(world.windField);eagle.motion?.setRainSource?.((x,z,t)=>window.aerieRainAt?.(world,region,x,z,t)??0);
+      eagle=makeEagle(THREE);scene.add(eagle.object);eagle.motion?.setWindSource?.(world.windField);
+      const plumageWeather={};
+      eagle.motion?.setRainSource?.((x,z,t)=>world.windField.weatherAt?.(x,eagle.object.position.y,z,t,plumageWeather)?.rain??window.aerieRainAt?.(world,region,x,z,t)??0);
       el("viewport").replaceChildren(renderer.domElement);resize();
       world.regionalFieldScenery=fieldScenery=window.makeRegionalFieldScenery(THREE,scene,world);
       world.canopyStream=canopy=window.makeCanopyStream(THREE,renderer,scene,world);
@@ -907,7 +909,7 @@
     if(fieldAudio&&soundOn)fieldAudio.update(s,world,dt,camera,perching.stage);
     updateWeather(elapsed);
     world.update(dt,elapsed,player);updateLight?.(player,elapsed);updateMist?.(player,elapsed);updateOptics?.(player,elapsed);
-    canopy?.update(player,elapsed,camera.position);
+    canopy?.update(player,elapsed,camera.position,camera);
     geology?.update(player,elapsed);
     fieldScenery?.update(player,elapsed);
     renderer.render(scene,camera);updatePerchHUD(s);gameVision.update(player,camera,elapsed);
