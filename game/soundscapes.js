@@ -1174,7 +1174,12 @@
           if (Math.hypot(where.x - ear.x, where.y - ear.y, where.z - ear.z) > e.reach) return;
           const strikes = e.repeat ? Math.round(rand(e.repeat[0], e.repeat[1])) : 1;
           for (let k = 0; k < strikes; k++) {
-            const source = engine.play(b, where, {gain: e.gain, ref: e.ref, reach: e.reach, wet: e.wet ?? .45, rate: e.repeat ? 1 : rand(.985, 1.015), when: k * (e.spacing || 0), echo: e.ref >= 20, label: clip,
+            // A voice that is heard again gives a different run of its calls, at a slightly different pitch.
+            const part = e.repeat || e.whole ? null : engine.excerpt(b, Math.random, true);
+            // Less of the recording was heard, so the next bout comes sooner: the calls per minute stay as timed.
+            if (part) state.due.set(i, now + (state.due.get(i) - now) * clamp(part.duration / b.duration, .5, 1));
+            const source = engine.play(b, where, {gain: e.gain, ref: e.ref, reach: e.reach, wet: e.wet ?? .45, rate: e.repeat ? 1 : rand(.965, 1.035), when: k * (e.spacing || 0), echo: e.ref >= 20, label: clip,
+              offset: part?.offset, duration: part?.duration,
               id: where.key ? clip + ' post ' + where.key.split(':').slice(1).join(',') : ''});
             quiet(source, hush);
           }
