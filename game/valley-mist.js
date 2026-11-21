@@ -8,11 +8,7 @@ window.addValleyMist = function addValleyMist(THREE, scene, world) {
     moosehead: [
       [440,112,7, 265,9,75,-.32,.0046,'water'],
       [-182,652,10, 370,13,115,-.50,.0028,'water'],
-      [14610,10580,8, 500,12,150,.44,.0030,'water'],
-      // Pockets of steam on open water along Kineo's eastern ledges. Gaps
-      // between the two drifts keep the dark reflected headland visible.
-      [640,-1040,7, 218,10,63,-1.29,.0062,'water'],
-      [760,-1550,6, 155,8,47,-.96,.0053,'water']
+      [14610,10580,8, 500,12,150,.44,.0030,'water']
     ],
     winnipesaukee: [[582,1940,9, 360,11,100,.56,.0026,'water'],[5300,12280,8, 315,11,100,-.12,.003,'water']],
     surry: [[-1187,-3706,8, 275,11,85,-.65,.0034,'water'],[-505,-113,10, 210,15,90,-.38,.0025,'ground']],
@@ -127,7 +123,7 @@ window.addValleyMist = function addValleyMist(THREE, scene, world) {
       float pathLength=interval/max(.48,dot(ray,ahead));
       float opacity=1.-exp(-extinction*pathLength*volume*smoothstep(3.,35.,range));
       if(opacity<.0005)discard;
-      float forward=pow(max(0.,dot(ray,sun)),${world.region==='moosehead'?'2.4':'4.'});
+      float forward=pow(max(0.,dot(ray,sun)),4.);
       float rim=clamp(.48+.28*q.y+.28*(1.-folds),0.,1.);
       vec3 light=mix(mistAmbient,mistSun,direct*(.23+.57*forward+.17*rim));
       gl_FragColor=vec4(light*(.76+.27*rim),opacity);
@@ -138,11 +134,7 @@ window.addValleyMist = function addValleyMist(THREE, scene, world) {
   const mistWind={value:new THREE.Vector2(direction.x,direction.z).multiplyScalar(world.windField.advection*.55)};
   // Sky-lit mist stays cool in terrain shadow. The long path through a lit
   // wisp takes on the transmitted color of the low sun at that shoreline.
-  const mistColors={
-    moosehead:[0xc49d93,0xffcf71],
-    winnipesaukee:[0x948ba7,0xf0a5aa],
-    lofoten:[0x807a91,0xe6b99f]
-  }[world.region];
+  const mistColors=world.region==='lofoten'?[0x807a91,0xe6b99f]:null;
   const mistAmbient={value:mistColors?new THREE.Color(mistColors[0]):new THREE.Color(.415,.51,.58)};
   const mistSun={value:mistColors?new THREE.Color(mistColors[1]):new THREE.Color(.90,.77,.64)};
   const volumes=[];

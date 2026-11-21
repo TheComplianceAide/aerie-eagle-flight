@@ -785,4 +785,5 @@ Kineo's cliff crest and headland follow the actual Maine terrain. Meter-scale br
 https://polyhaven.com/a/coastal_cliff_02
 https://creativecommons.org/publicdomain/zero/1.0/
 
-Three regional skies use reprojected, color-graded CC0 photographs from Poly Haven: Industrial Sunset 02 (Pure Sky) at Moosehead Lake, Kloppenheim 06 (Pure Sky) at Lake Winnipesaukee, and Belfast Sunset (Pure Sky) at Reinefjorden. Each moving cloud-density map is derived from the same photograph as its sky. The light and weather are artistic interpretations.
+The Reinefjorden dusk panorama and its moving cloud-density map derive from Belfast Sunset (Pure Sky), a CC0 photograph from Poly Haven. The light and weather are artistic interpretations.
+https://polyhaven.com/a/belfast_sunset_puresky

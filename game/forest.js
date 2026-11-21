@@ -76,6 +76,7 @@ window.addForest = function addForest(THREE, scene, world) {
   const lakeCrowns=world.region==='moosehead'?window.mooseheadCrowns(THREE,scene,time):null;
   const lakeFar=lakeCrowns?.material(true);
   nearMaterial.userData.canopyRoot="instanceMatrix[3].xyz";
+  if(world.region==='moosehead')nearMaterial.userData.prepareRangeMap=true;
   nearMaterial.onBeforeCompile = shader => {
     Object.assign(shader.uniforms,wind.uniforms,squall?.uniforms);
     shader.uniforms.firTime = time;

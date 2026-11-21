@@ -93,6 +93,8 @@
     const models=await Promise.all(records.map(async (rec,idx)=>{
       const mesh=await readGLB(T,file(rec.file)),name=rec.file.slice(0,-4);
       mesh.userData.terrainCaster=true;
+      // The lake approach first sees the close shore rack in both the mirror and main camera.
+      if(name==='kineo-wave-margin')mesh.userData.prepareFlightMaterial=true;
       mesh.name=name;mesh.userData.aerieRegional={model:name,lod:'near'};mesh.userData.nearIndex=mesh.geometry.index;mesh.userData.farIndex=lods[idx];
       if(rec.position){mesh.position.fromArray(rec.position);matchSurveyLight(T,mesh,world,rec.position);}
       else {

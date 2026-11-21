@@ -114,7 +114,7 @@
               ortho=mix(ortho,scan*(.73+.58*clamp(dot(ortho,vec3(.21,.64,.15)),.05,.75)),blend*.85);
             }
             float incidence=max(0.,dot(n,sun)),side=dot(n.xz,normalize(sun.xz));
-            vec3 light=vec3(.43,.41,.49)*(.81+.19*n.y)+vec3(1.48,.87,.43)*(.12+1.20*incidence)*sunlit;
+            vec3 light=vec3(.47,.57,.70)*(.81+.19*n.y)+vec3(1.23,.99,.71)*(.12+1.20*incidence)*sunlit;
             vec3 earth=pow(ortho,vec3(2.2))*light*(.97+.18*side)*mix(vec3(.83,.91,1.),vec3(1.),shade)*(.49+.51*shade);
             float air=1.-exp(-d*.000016);
             vec3 scatter=haze*mix(vec3(.67,.78,.96),vec3(1.08,.98,.87),.5+.5*dot(normalize(wp-cameraPosition),sun));

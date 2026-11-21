@@ -557,14 +557,10 @@ class Water extends Mesh {
   const twilight={
     acadia:{sky:'acadia-night',fog:0x32454d,sun:0xabbcde,power:.18,skyFill:0x6e85ae,ground:0x273442,
       diffuse:[.10,.145,.22],beam:[.15,.19,.28]},
-    moosehead:{sky:'moosehead-dawn',fog:0xbd927a,sun:0xffbf79,power:1.88,skyFill:0xe7cbcf,ground:0x645049,
-      diffuse:[.43,.41,.49],beam:[1.48,.87,.43]},
-    winnipesaukee:{sky:'winnipesaukee-dusk',fog:0x807fba,sun:0xffaaa0,power:1.28,skyFill:0xb8c9ef,ground:0x494951,
-      diffuse:[.35,.43,.65],beam:[1.26,.72,.69]},
     lofoten:{sky:'lofoten-dusk',fog:0x99858d,sun:0xffb680,power:1.06,skyFill:0xbdafc9,ground:0x574d50,
       diffuse:[.34,.34,.46],beam:[1.08,.68,.49]}
   }[region];
-  const lightAngles={acadia:[174,9],moosehead:[-84,5.5],winnipesaukee:[-112,4.2],surry:[167,19],yosemite:[157,12.4],crater:[-70,8],lofoten:[-115,4.3],milford:[-71,8]};
+  const lightAngles={acadia:[174,9],moosehead:[-84,15.5],winnipesaukee:[-112,4.2],surry:[167,19],yosemite:[157,12.4],crater:[-70,8],lofoten:[-115,4.3],milford:[-71,8]};
   const [azimuth,altitude]=(settings.lightAngles||lightAngles[region]).map(THREE.MathUtils.degToRad);
   const sun=new THREE.Vector3(Math.cos(azimuth)*Math.cos(altitude),Math.sin(altitude),Math.sin(azimuth)*Math.cos(altitude));
   const skyMap=texture(twilight?twilight.sky+'-sky.webp':settings.skyMap||'atlas-'+region+'-sky.webp');
@@ -985,7 +981,7 @@ class Water extends Mesh {
       .replace('/* canopy transmission */',`
         // Sunlit edges retain warmth while overhanging facets receive blue sky
         // and lake fill. This follows the measured plus reconstructed 3D normal.
-        vec3 rockAmbient=vec3(.44,.43,.52)*(.56+.32*exposure+.19*max(rockGeom.y,0.));
+        vec3 rockAmbient=vec3(.50,.577,.665)*(.56+.32*exposure+.19*max(rockGeom.y,0.));
         // A horizontal map's shadow cannot represent different altitudes on
         // a nearly vertical wall. Reconstruct the slowly changing sky opening
         // across the two source meshes, retaining local occlusion in the joints.
@@ -993,7 +989,7 @@ class Water extends Mesh {
         float wallLight=mix(sunlit,rimSun,clamp(.91*cliffRim+.52*brokenFace,0.,.96));
         float wallIncidence=mix(incidence,max(0.,dot(weatheredNormal,sun)),.61*cliffRim);
         rockAmbient+=brokenFace*vec3(.065,.062,.055);
-        vec3 rockDirect=vec3(1.43,.85,.43)*(.08+1.19*wallIncidence)*wallLight;
+        vec3 rockDirect=vec3(1.22,.982,.70)*(.08+1.19*wallIncidence)*wallLight;
         vec3 rockLit=pow(baseRhyolite,vec3(2.2))*(rockAmbient+rockDirect);
         c=mix(c,rockLit,escarpment*.95);
         /* canopy transmission */`)
@@ -1455,7 +1451,13 @@ class Water extends Mesh {
       const outline=new THREE.Shape(survey.shore.map(vec));
       for(const hole of survey.shoreHoles||[])outline.holes.push(new THREE.Path(hole.map(vec)));
       g=new THREE.ShapeGeometry(outline);
-    }else g=new THREE.PlaneGeometry(farH*2.4,farH*2.4);
+    }else{
+      // Two triangles spanning 43 km lose depth precision when clipped at
+      // the eagle's near plane. Shorter coplanar spans keep the fjord's
+      // waterline attached to the same granite as the camera banks.
+      const divisions=region==='lofoten'?64:1;
+      g=new THREE.PlaneGeometry(farH*2.4,farH*2.4,divisions,divisions);
+    }
     const waterColors={acadia:0x101c29,moosehead:0x25505c,winnipesaukee:0x20505e,surry:0x454d49,crater:0x0a3977,milford:0x163d49,lofoten:0x215364};
     water=new Water(g,{textureWidth:1024,textureHeight:512,waterNormals:texture('waternormals.jpg',true),sunDirection:sun,waterColor:waterColors[region]??settings.sea,fog:true});
     Object.assign(water.material.uniforms,{
@@ -1470,6 +1472,15 @@ class Water extends Mesh {
       bedSand:{value:shoreSand},foamCells:{value:saltFoam}
     });
     waterfront?.applyWater(water.material);
+    if(region==='lofoten'){
+      // With a shoulder camera centimetres from the feathers, the sea and
+      // low coastal rock can share a depth value several kilometres away.
+      // The land shader clips below sea level. Resolve the remaining ties
+      // in favor of the exposed rock, including the far side of the fjord.
+      water.renderOrder=-500;
+      water.material.polygonOffset=true;
+      water.material.polygonOffsetUnits=2;
+    }
     water.rotation.x=-Math.PI/2;water.position.y=settings.water+.16;scene.add(water);
     if(survey.shore?.length)shoreFloor=window.joinAtlasShore?.(THREE,scene,{region,survey,elevation,level:water.position.y,terrain});
   }
@@ -1673,7 +1684,7 @@ class Water extends Mesh {
     material.fragmentShader=terrain.fragmentShader.replace(/vec3 photo=mix\(texture2D\(aerial,photoUv\).*?;/,
       'vec3 photo=texture2D(aerial,(vec2(xz.x,-xz.y)-vec2('+x+'.0,'+(-z)+'.0))/'+(half*2)+'.0+.5).rgb;');
     window.shadeRegionalBrook(THREE,material,brookMeshes,brook);
-    for(const mesh of brookMeshes){mesh.material=material;mesh.userData.prepareFallsMaterial=true;mesh.name=brook.name+' · surveyed stream bed';}
+    for(const mesh of brookMeshes){mesh.material=material;mesh.userData.prepareFlightMaterial=true;mesh.name=brook.name+' · surveyed stream bed';}
   }
   if(tableHeight)buildTable();
   return world;

@@ -186,19 +186,19 @@ window.makeTerrainShadows=function makeTerrainShadows(T,renderer,scene,world){
     sun:direction.toArray(),nativeCompare:hardware,tile};}};
 };
 
-// A waterfall can first enter the water reflection and then the direct view a
-// frame later. Link both variants before takeoff using the actual scene lights.
-window.prepareWaterfallPrograms=async function prepareWaterfallPrograms(T,renderer,scene,camera){
-  const materials=new Set(),meshes=[];
+// Prepare first-use range materials with the assembled flight lights. Waterfalls
+// draw into the mirror and the display. Lake-wash detail draws only on the display.
+window.prepareFlightMaterials=async function prepareFlightMaterials(T,renderer,scene,camera){
+  const materials=new Set(),meshes=[],textures=new Set();
   scene.traverse(object=>{
-    if(object.userData.prepareFallsMaterial&&!materials.has(object.material)){
-      materials.add(object.material);meshes.push(object);
+    const material=object.material;
+    if(material?.userData?.prepareRangeMap)collect(material.map);
+    if((object.userData.prepareFlightMaterial||object.userData.prepareDirectMaterial)&&!materials.has(material)){
+      materials.add(material);meshes.push(object);
     }
   });
-  if(!meshes.length)return;
   // The linked program still has to upload its images on first draw. The
   // surveyed bed, stream and bank stones can enter view on consecutive frames.
-  const textures=new Set();
   function collect(texture){
     if(texture?.isTexture&&texture.image&&!texture.isRenderTargetTexture&&!texture.isDepthTexture&&!texture.isVideoTexture)
       textures.add(texture);
@@ -210,20 +210,27 @@ window.prepareWaterfallPrograms=async function prepareWaterfallPrograms(T,render
     }
   }
   for(const texture of textures)renderer.initTexture(texture);
+  if(!meshes.length)return;
   const original=renderer.getRenderTarget(),face=renderer.getActiveCubeFace(),mip=renderer.getActiveMipmapLevel();
-  const reflection=new T.WebGLRenderTarget(1,1);
+  const reflection=meshes.some(mesh=>mesh.userData.prepareFlightMaterial)?new T.WebGLRenderTarget(1,1):null;
   const programs=new Set();
   try{
-    for(const target of [null,reflection]){
+    for(const target of reflection?[null,reflection]:[null]){
       renderer.setRenderTarget(target);
       for(const mesh of meshes){
+        if(target&&mesh.userData.prepareDirectMaterial)continue;
         for(const material of renderer.compile(mesh,camera,scene)){
-          programs.add(renderer.properties.get(material).currentProgram);
+          const properties=renderer.properties.get(material);
+          if(mesh.userData.prepareDirectMaterial){
+            // Three compiles BackSide and FrontSide for transparent double-sided detail.
+            // currentProgram refers only to the second one.
+            for(const program of properties.programs.values())programs.add(program);
+          }else programs.add(properties.currentProgram);
         }
       }
     }
   }finally{
-    renderer.setRenderTarget(original,face,mip);reflection.dispose();
+    renderer.setRenderTarget(original,face,mip);reflection?.dispose();
   }
   while(programs.size){
     if(renderer.getContext().isContextLost())return;

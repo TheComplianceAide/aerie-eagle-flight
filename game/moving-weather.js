@@ -21,9 +21,10 @@ window.makeMovingWeather = async function makeMovingWeather(THREE, scene, world)
   const [height, span, threshold, strength, upperWind, width] = profiles[world.region] ||
     [(world.waterLevel ?? world.spawn.y) + 1600, 4400, .49, .43, 2.5, .85];
   const field = world.windField;
-  const photographedDeck = !!world.cloudDensityMap;
-  const texture = await new THREE.TextureLoader().loadAsync(world.cloudDensityMap || 'cloud-field.png');
-  texture.wrapS = THREE.RepeatWrapping;
+  const lakePanorama = world.region === 'moosehead';
+  const photographedDeck = lakePanorama || !!world.cloudDensityMap;
+  const texture = lakePanorama ? world.skyTexture : await new THREE.TextureLoader().loadAsync(world.cloudDensityMap || 'cloud-field.png');
+  if (!lakePanorama) texture.wrapS = THREE.RepeatWrapping;
   if (!photographedDeck) texture.wrapT = THREE.RepeatWrapping;
   const uniforms = {
     cloudField: {value:texture}, cloudHeight: {value:height}, cloudSpan: {value:span},
@@ -31,8 +32,7 @@ window.makeMovingWeather = async function makeMovingWeather(THREE, scene, world)
     cloudSun: {value:world.sunDirection}, cloudDirection: {value:new THREE.Vector2(field.direction.x,field.direction.z)},
     cloudTravel: {value:0}, cloudSeed: {value:new THREE.Vector2(.19*field.phase,.37*field.phase)}
   };
-  // The colored panorama and its ungraded cloud-density map move together.
-  // Amber light in clear air must still let sunlight reach the water and shore.
+  // Project the moving sky onto land and water. A separately graded sky can supply its own cloud-density map.
   const deckCoordinates = photographedDeck ? `
     uniform vec3 cloudAnchor;
     vec3 deckDirection(vec2 p) {
@@ -70,7 +70,8 @@ window.makeMovingWeather = async function makeMovingWeather(THREE, scene, world)
     ${deckCoordinates}
     float cloudDensity(vec2 p){
       ${photographedDeck ? `
-      return deckSample(cloudField,p).r;
+      ${lakePanorama?`vec3 sky=deckSample(cloudField,p);
+      return smoothstep(.36,.91,(sky.r+.75*sky.g)/(1.75*max(.015,sky.b)));`:'return deckSample(cloudField,p).r;'}
       ` : `
       vec2 crosswind=vec2(-cloudDirection.y,cloudDirection.x);
       vec2 coord=vec2(dot(p,cloudDirection)-cloudTravel,dot(p,crosswind)*cloudWidth)/cloudSpan;
