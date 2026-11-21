@@ -493,6 +493,7 @@
     let stopped=false,offset=grid?trees.length:0,lastCheck=-Infinity,lastBuild=-Infinity,lastShadow=-Infinity,dirty=true,pendingAssets=false,assetRetry=0;
     const previous=new T.Vector3(Infinity,Infinity,Infinity),eye=new T.Vector3(),shadowEye=new T.Vector3(Infinity,Infinity,Infinity);
     let detailCamera=null;
+    let warmIdle=null,warmTimer=null;
     const detailEye=new T.Vector3(),lastDetailEye=new T.Vector3(Infinity,Infinity,Infinity);
     const lead=new T.Vector2();
     let lodState=new Map(),idleIndex=null;
@@ -1093,7 +1094,55 @@
       }
       shadowPass(seconds);
     }
+    // The crossing from open water at Kineo first encounters these programs
+    // in quick succession. Compile one real material/pass per idle opportunity
+    // and let KHR_parallel_shader_compile report when the driver has finished.
+    function warmApproachPrograms(viewCamera){
+      if(!maine||mobile||stopped||!counters.ready||counters.nearWarmup||
+         !window.requestIdleCallback||!renderer.extensions?.has('KHR_parallel_shader_compile'))return;
+      const fallback=groups.find(g=>g?.mesh?.material.defines.MAINE_CROWN&&Object.keys(g.mesh.material.defines).length===1);
+      if(!fallback)return;
+      const passes=[[fallback.mesh,scene,viewCamera,null],[fallback.mesh,scene,viewCamera,target],[fallback.caster,shadowScene,camera,target]];
+      const limb=world.habitat?.branchShaderMesh?.();
+      if(limb)passes.push([limb,scene,viewCamera,null]);
+      const done=new Set();
+      scene.traverse(o=>{
+        const mat=o.material;
+        if(!o.isInstancedMesh||mat?.userData.canopyRoot!=='instanceMatrix[3].xyz'||done.has(mat))return;
+        // Surveyed spruce receives an instance color when its first tree is promoted.
+        if(o.geometry.hasAttribute('nearBand')&&!o.instanceColor)o.setColorAt(0,new T.Color());
+        done.add(mat);passes.push([o,scene,viewCamera,null]);
+      });
+      const progress=counters.nearWarmup={submitted:0,ready:0,total:passes.length};
+      let pending=null;
+      const schedule=()=>{if(!stopped)warmIdle=window.requestIdleCallback(next);};
+      function next(deadline){
+        warmIdle=null;
+        if(stopped||renderer.getContext().isContextLost())return;
+        if(deadline.timeRemaining()<4){schedule();return;}
+        try{
+          if(pending){
+            if(pending.isReady()){
+              pending.getUniforms();progress.ready++;pending=null;
+            }
+          }else{
+            const [object,lighting,view,output]=passes[progress.submitted];
+            const prior=renderer.getRenderTarget(),face=renderer.getActiveCubeFace(),mip=renderer.getActiveMipmapLevel();
+            try{
+              if(prior!==output)renderer.setRenderTarget(output);
+              renderer.compile(object,view,lighting);
+              pending=renderer.properties.get(object.material).currentProgram;
+              progress.submitted++;
+            }finally{if(prior!==output)renderer.setRenderTarget(prior,face,mip);}
+          }
+        }catch(error){progress.error=String(error?.message||error);return;}
+        if(pending||progress.submitted<passes.length)schedule();
+      }
+      warmTimer=setTimeout(()=>{warmTimer=null;schedule();},1800);
+    }
     function dispose(){
+      if(warmTimer!==null)clearTimeout(warmTimer);
+      if(warmIdle!==null)window.cancelIdleCallback?.(warmIdle);
       stopped=true;if(idleIndex!=null)window.cancelIdleCallback?.(idleIndex);ab.abort();maskEnabled.value=shadows.regionalCanopyShadowOn.value=0;
       for(const [mat,hooks] of patched){mat.onBeforeCompile=hooks.old;mat.customProgramCacheKey=hooks.oldKey;mat.needsUpdate=true;}
       for(const batch of regionalBatches)batch.dispose();
@@ -1110,6 +1159,6 @@
       // Outer silhouettes wait until coverage is known, including independent lidar cells.
       return offset<trees.length||inSurvey(surveyRegion,ix,iz)||originalTrees(ix,iz,0,true);
     }
-    return {ready,getCanopyNeighbors:getNearby,hasOriginalCell,isSurveyCell:(ix,iz)=>inSurvey(surveyRegion,ix,iz),clearance,update,dispose,maskMaterial,stats:()=>({...counters,lod:[...counters.lod],species:{...counters.species},sitkaForms:{...counters.sitkaForms},regionalSheets:[...counters.regionalSheets],regionalForms:Object.fromEntries(Object.entries(counters.regionalForms).map(([k,v])=>[k,[...v]]))})};
+    return {ready,warmApproachPrograms,getCanopyNeighbors:getNearby,hasOriginalCell,isSurveyCell:(ix,iz)=>inSurvey(surveyRegion,ix,iz),clearance,update,dispose,maskMaterial,stats:()=>({...counters,lod:[...counters.lod],species:{...counters.species},sitkaForms:{...counters.sitkaForms},regionalSheets:[...counters.regionalSheets],regionalForms:Object.fromEntries(Object.entries(counters.regionalForms).map(([k,v])=>[k,[...v]]))})};
   };
 })();

@@ -540,6 +540,8 @@
       if(region==="surry")window.lightKeeneStreet(THREE,renderer,scene,world,eagle.object);
       updateWeather=await window.makeMovingWeather(THREE,scene,world);
       updateOptics=window.addAtmosphericOptics(THREE,scene,world);
+      const departingCanopy=canopy;
+      departingCanopy.ready?.then(()=>departingCanopy.warmApproachPrograms?.(camera));
       if(launchPicker.value==='canopy'&&canopy.ready){
         // Start this departure beside its authored branches when bandwidth allows.
         // A slow optional pack can still hand over naturally in flight.
