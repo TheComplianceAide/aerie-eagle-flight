@@ -1,5 +1,82 @@
 // Hamnøy, Moskenes. OSM building axes and bridge centerline; attribution in regional-field-fixtures-credits.txt.
 (()=>{
+  // The camera can see the few centimetres between Hamnøy's tidal rock and
+  // the fjord. Trim the local water plane to the actual exposed triangles so a
+  // long, low-angle depth comparison cannot alternately cover the rock.
+  window.fitHamnoyTidalWater=function(T,water,harbor){
+    const geometry=water.geometry,{width,height,widthSegments:cols,heightSegments:rows}=geometry.parameters;
+    if(!cols||!rows||geometry.userData.hamnoyTidalLedges)return;
+    const left=3750,right=3984,north=3034,south=3258;
+    const floor=water.position.y+.004;
+    const cellW=width/cols,cellH=height/rows;
+    const minCol=Math.floor((left+width/2)/cellW),maxCol=Math.floor((right+width/2)/cellW);
+    const minRow=Math.floor((north+height/2)/cellH),maxRow=Math.floor((south+height/2)/cellH);
+    const indices=[],positions=Array.from(geometry.attributes.position.array),normals=Array.from(geometry.attributes.normal.array),uv=Array.from(geometry.attributes.uv.array);
+    const source=geometry.index.array,added=new Map();
+    function index(x,z){
+      x=Math.fround(x);z=Math.fround(z);
+      const key=x+','+z;
+      if(added.has(key))return added.get(key);
+      const i=positions.length/3;positions.push(x,-z,0);normals.push(0,0,1);uv.push(.5+x/width,.5-z/height);
+      added.set(key,i);return i;
+    }
+    function quad(x0,z0,x1,z1){
+      if(x1<=x0||z1<=z0)return;
+      const a=index(x0,z0),b=index(x0,z1),c=index(x1,z1),d=index(x1,z0);
+      indices.push(a,b,d,b,c,d);
+    }
+    for(let iz=0;iz<rows;iz++)for(let ix=0;ix<cols;ix++){
+      const at=(iz*cols+ix)*6;
+      if(ix<minCol||ix>maxCol||iz<minRow||iz>maxRow){
+        for(let k=0;k<6;k++)indices.push(source[at+k]);
+      }else{
+        const x=ix*cellW-width/2,z=iz*cellH-height/2,X=x+cellW,Z=z+cellH;
+        const l=Math.max(x,left),r=Math.min(X,right),n=Math.max(z,north),s=Math.min(Z,south);
+        quad(x,z,X,n);quad(x,s,X,Z);quad(x,n,l,s);quad(r,n,X,s);
+      }
+    }
+    // Clip each surveyed triangle to a vertical plane or the water level.
+    // A deliberate four-millimetre overlap covers sub-pixel rasterization at the lip.
+    function clip(poly,axis,value,sign){
+      const out=[];
+      for(let i=0;i<poly.length;i++){
+        const a=poly[i],b=poly[(i+1)%poly.length],da=sign*(a[axis]-value),db=sign*(b[axis]-value);
+        if(da>=0)out.push(a);
+        if((da<0&&db>0)||(da>0&&db<0)){
+          const q=da/(da-db);out.push([a[0]+q*(b[0]-a[0]),a[1]+q*(b[1]-a[1]),a[2]+q*(b[2]-a[2])]);
+        }
+      }
+      return out;
+    }
+    let covered=0;
+    harbor.traverse(mesh=>{
+      if(!mesh.isMesh||!mesh.userData.terrainCaster)return;
+      const {position}=mesh.geometry.attributes,faces=mesh.geometry.index.array;
+      for(let i=0;i<faces.length;i+=3){
+        const a=faces[i],b=faces[i+1],c=faces[i+2];
+        const ax=position.getX(a),bx=position.getX(b),cx=position.getX(c);
+        const az=position.getZ(a),bz=position.getZ(b),cz=position.getZ(c);
+        if(Math.max(ax,bx,cx)<=left||Math.min(ax,bx,cx)>=right||Math.max(az,bz,cz)<=north||Math.min(az,bz,cz)>=south)continue;
+        let poly=[[ax,az,position.getY(a)],[bx,bz,position.getY(b)],[cx,cz,position.getY(c)]];
+        poly=clip(poly,0,left,1);poly=clip(poly,0,right,-1);poly=clip(poly,1,north,1);poly=clip(poly,1,south,-1);
+        for(let k=1;k+1<poly.length;k++){
+          const [ox,oz]=poly[0],[x,z]=poly[k],[xx,zz]=poly[k+1];
+          covered+=Math.abs((x-ox)*(zz-oz)-(z-oz)*(xx-ox))*.5;
+        }
+        poly=clip(poly,2,floor,-1);
+        if(poly.length<3)continue;
+        const first=index(poly[0][0],poly[0][1]);
+        for(let k=1;k+1<poly.length;k++)indices.push(first,index(poly[k][0],poly[k][1]),index(poly[k+1][0],poly[k+1][1]));
+      }
+    });
+    const targetArea=(right-left)*(south-north);
+    if(Math.abs(covered-targetArea)>targetArea*.0005)return;
+    geometry.setAttribute('position',new T.Float32BufferAttribute(positions,3));
+    geometry.setAttribute('normal',new T.Float32BufferAttribute(normals,3));
+    geometry.setAttribute('uv',new T.Float32BufferAttribute(uv,2));
+    geometry.setIndex(indices);
+    geometry.userData.hamnoyTidalLedges=true;
+  };
   const buildings=[
     [4027.7,3022.6,16.6,11.5,-3.0913,"h"],
     [3968.4,3036.3,15.8,9.0,-0.6689,"h"],

@@ -220,6 +220,11 @@
       "url": "https://www.fws.gov/sites/default/files/2021-08/Egg%20Rock%207.JPG",
       "bytes": 6287872,
       "sha256": "d2a3f421183f6bb24abcab02f8562017e0462d1c1fd413b2defd7ba7b88765ae"
+    },
+    "baker-inventory.pdf": {
+      "url": "https://irma.nps.gov/DataStore/FileSource/Get/2185669?filename=ACAD_Baker+Island_CLI+Update+Park+Report_2025.pdf",
+      "sha256": "edabbca62fec1d36c4fc4eb3414063cc9319cd66adc1bb2d21df20af4fe32820",
+      "bytes": 11796275
     }
   }
 }

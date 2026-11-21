@@ -12,7 +12,7 @@ async function fetchAsset(name) {
 }
 async function check() {
   const context = vm.createContext({window,fetch:fetchAsset,console});
-  for(const file of ['regional-landforms.js','acadia-station-optics.js','acadia-light-stations.js'])
+  for(const file of ['regional-landforms.js','acadia-baker-dance.js','acadia-ledge-surf.js','acadia-station-optics.js','acadia-light-stations.js'])
     vm.runInContext(await fs.readFile(path.join(root,file),'utf8'),context);
   await Promise.all(['eggrock','bakerisland'].map(k=>window.aerieRegionalLandforms.prepare(k)));
   await window.prepareAcadiaStationCrowns();

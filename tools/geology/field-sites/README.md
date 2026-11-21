@@ -127,3 +127,9 @@ Coordinates use LV95 E2622000/N1150000 and 1,574.9 m LN02 as the simulation orig
 | `full-61888645.jpg` | `e4b9585e3971ef100c7513ca14a55636bae1b43c4b424ac65b6793f48e93bd1f` |
 | `full-60724717.jpg` | `2a35b93e8d8477043854d3ee21efa78b2d01a34131de333df663821e50456234` |
 | `full-120320903.jpg` | `15b03d747224775011db564d3648da936a695f5b16ba44fbd45e306716484f1c` |
+
+### Lac Cabert outlet
+
+Rebuild the lidar corridor, 2022 ortho, 341 flow stations, reflected terrain and crown atlas with `python tools/geology/field-sites/bake_cabert_outlet.py --cache /path/to/cabert/cache --game game`. The bake uses the scientific Python packages above, requests and scikit-image. The original Lac Berté regional terrain in the game directory supplies the longer upper-lake sightlines. Source records, datum, adaptations and licence appear in `game/labrador-credits.txt`.
+
+On macOS, `python tools/geology/field-sites/bake_cabert_audio.py --cache /path/to/cabert/cache --game game` rebuilds the two monaural AAC loops from the credited CC0 Mont-Bélair field recording via NumPy, SciPy and Audio Toolbox. Positional mixing uses the observed steep reaches in the channel profile. The heights and geographic positions are real. Discharge and small clasts are inferred.

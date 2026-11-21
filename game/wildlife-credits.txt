@@ -31,7 +31,11 @@ https://www.quebec.ca/agriculture-environnement-et-ressources-naturelles/faune/a
 
 Mendenhall Glacier, Alaska
 Alaska Department of Fish and Game describes American black bears drawn to
-salmon at Mendenhall's Steep Creek. The game encounter follows a lake bank.
+salmon at Mendenhall's Steep Creek. The bear encounter follows a lake bank.
+The mapped tributary also hosts spawning adult sockeye near its viewing platforms.
+Alaska AWC code 111-50-10500-2006, USFS trail 33744.
+https://www.adfg.alaska.gov/index.cfm?adfg=bearviewing.mendenhallglacier
+https://www.adfg.alaska.gov/FDDDOCS/NOM_PDFs/SEA/18-517.PDF
 https://www.adfg.alaska.gov/index.cfm?adfg=southeastviewing.juneaumendenhallglacier
 
 Horseshoe Bend, Arizona
@@ -148,3 +152,17 @@ fauna-acadia-barred-owl.webp — “Barred owl perched on a branch in the spring
 https://www.fws.gov/media/barred-owl-perched-branch-spring
 fauna-acadia-harbor-seal.webp — NOAA Fisheries, harbor seal species illustration. NOAA credit. United States Government work. Isolated species artwork mirrored and contoured into the body of a hauled-out harbor seal.
 https://www.fisheries.noaa.gov/species/harbor-seal
+
+EGG ROCK, FRENCHMAN BAY
+Four resting Atlantic harbor seals and one seal surfacing in a tidal channel represent late-summer use of Egg Rock. Their resting planes follow NOAA's Maine coastal topobathymetric lidar. Individual sizes, positions, breathing cycles and coat patterns are interpretations. The original regional harbor seal illustration above continues to represent other Acadia shore sightings.
+
+acadia-seal-pelts.webp uses fur details from Bob Houston, U.S. Fish and Wildlife Service, Matinicus Rock, Maine; forehead details from Amanda Boyd, U.S. Fish and Wildlife Service, Nantucket National Wildlife Refuge; and dorsal markings from NOAA Fisheries' Chatham harbor-seal photograph. The two USFWS records explicitly mark the images public domain. The Chatham photograph is credited to NOAA Fisheries. Only registered fur patches were adapted. The three-dimensional body, hind flippers, eyes, whiskers and animation are original.
+https://www.fws.gov/media/harbor-seal-pup-2
+https://www.fws.gov/media/harbor-seal-2
+https://www.fisheries.noaa.gov/feature-story/cape-cod-seals-and-sharks-shared-traits-and-top-10-facts
+https://www.fisheries.noaa.gov/species/harbor-seal
+
+The Acadia Guide's Guide identifies Egg Rock as a harbor-seal haul-out. The Bar Harbor Whale Watch photograph captioned “Harbor seals at Egg Rock!” and the National Park Service coastal wayside are visual references only.
+https://www.nps.gov/parkhistory/online_books/acad/guides_guide.pdf
+https://www.visitbarharbor.com/list/member/lobster-fishing-and-seal-watching-2398
+https://www.nps.gov/places/axs_209.htm

@@ -67,7 +67,7 @@ def otter(cache, output):
     tile.save(output / "acadia-otter-granite.webp", quality=90, method=6)
 
 
-def survey(height, vegetation, bounds, chunk, error, low, scale, samples, sun, horizon_scale, target):
+def survey(height, vegetation, bounds, chunk, error, low, scale, samples, sun, horizon_scale, target, shore_detail=None):
     """Store two-metre adaptive triangles and the four-metre flight/shading field."""
     left, top, right, bottom = bounds
     coarse = height[::2, ::2]
@@ -94,7 +94,10 @@ def survey(height, vegetation, bounds, chunk, error, low, scale, samples, sun, h
             tile = height[(z-top)//2:(z1-top)//2+1, (x-left)//2:(x1-left)//2+1]
             if tile.max() < 0.18:
                 continue
-            mesh = Delatin(tile, max_error=error)
+            metric = tile
+            if shore_detail is not None:
+                metric = shore_detail[(z-top)//2:(z1-top)//2+1, (x-left)//2:(x1-left)//2+1]
+            mesh = Delatin(metric, max_error=error)
             col = mesh.vertices[:, 0].astype(int)
             row = tile.shape[0] - 1 - mesh.vertices[:, 1].astype(int)
             u, v = x - left + col * 2, z - top + row * 2
@@ -145,9 +148,32 @@ def hamnoy(cache, game, output):
     photo = Image.fromarray(np.clip(rgb,0,255).astype("u1"))
     photo.save(output / "landform-hamnoy-aerial.webp", quality=90, method=6)
     angle = np.deg2rad(-115)
+    # The bridge approach crosses two tidal ledges where a 32 cm height
+    # error creates broad flat triangles at the 16 cm modelled waterline.
+    # Emphasize the low rock shelf in the triangulation error metric. Vertex
+    # heights, the four-metre flight field and the outer tile remain surveyed.
+    focus = np.clip((112 - np.abs(x-3852))/28, 0, 1) * np.clip((128 - np.abs(z-3176))/28, 0, 1)
+    # One-metre Kartverket returns retain the small shoulders around the
+    # former coplanar ledges. Values near zero are sea-surface returns, with
+    # no surveyed bottom; keep the pre-existing underwater field beneath them.
+    apron_url = 'https://hoydedata.no/arcgis/rest/services/DTM/ImageServer/exportImage?' + urlencode(dict(
+        bbox='421591.409,7537745.927,421891.409,7538055.927', bboxSR=25833, imageSR=25833, size='300,310', format='tiff',
+        pixelType='F32', interpolation='RSP_BilinearInterpolation', f='image', adjustAspectRatio='false'))
+    apron = fetch(cache, 'hamnoy-tidal-apron.tif', apron_url)
+    if hashlib.sha256(apron.read_bytes()).hexdigest() != '7469eb46bae2e14952cbd6ca37eda7794a31b2f5b60b0af08d5bf4e9059978e9':
+        raise ValueError('Hamnøy tidal apron survey changed')
+    with rasterio.open(apron) as ds:
+        apron_h = sample(ds.read(1), (ds.transform.f-origin_y+z)/(-ds.transform.e)-.5,
+                         (origin_x+x-ds.transform.c)/ds.transform.a-.5)
+    wet = apron_h <= .035
+    # The water column below the mapped shoreline is illustrative. Keep the
+    # same kind of recessed bed used by the original fjord survey.
+    apron_h = np.where(wet, -.22-np.minimum(distance_transform_edt(wet)*.19,2.55), apron_h)
+    h = h + focus * (apron_h-h)
+    shore_detail = h + focus * 8 * np.clip(h-.16, -.45, .45)
     survey(h, vegetation[::2, ::2], bounds, 220, .32, -3, 1/40,
            [4,8,13,22,31,45,64,90,132,170,240,360], (np.cos(angle), np.sin(angle)),
-           np.pi*.49, output / "landform-hamnoy.bin")
+           np.pi*.49, output / "landform-hamnoy.bin", shore_detail)
 
 
 def oeschinen(cache, game, output):

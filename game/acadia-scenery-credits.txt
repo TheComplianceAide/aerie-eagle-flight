@@ -107,3 +107,6 @@ https://www.fws.gov/sites/default/files/2021-08/Egg%20Rock%207.JPG
 https://irma.nps.gov/DataStore/FileSource/Get/2198730?filename=Yocum%2C_B.A._-_Baker_Island_Light_Station_Historic_Structures_Report_Final_-_2013.pdf
 https://irma.nps.gov/DataStore/FileSource/Get/2185669?filename=ACAD_Baker+Island_CLI+Update+Park+Report_2025.pdf
 https://navcen.uscg.gov/sites/default/files/pdf/lightLists/LightList_V1_2025.pdf
+
+Baker Island Dance Floor. The westward view in the National Park Service's Baker Island Cultural Landscapes Inventory (figure 17, printed page 79, photograph by Olmsted Center for Landscape Preservation, 2008) supplied the exposed slab, damp surface and fracture-face textures. The 2022 NOAA coastal point cloud fixes the upper surfaces and the traces of the exposed risers. The hidden undersides and the animated sea state at night are interpretations. At Egg Rock and Baker Island, breakers use the surveyed shoreline and water depths. Spray originates where shallow water meets rising rock.
+https://irma.nps.gov/DataStore/FileSource/Get/2185669?filename=ACAD_Baker+Island_CLI+Update+Park+Report_2025.pdf

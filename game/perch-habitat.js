@@ -33,6 +33,7 @@ window.makePerchHabitat=function makePerchHabitat(T,scene,world,region){
 
   const treeTiles=new Map(),cached=new Map(),routeSites=new Map();
   for(const tree of world.trees||[]){
+    if(tree.steepCreekStem&&tree.aerieSpecies?.family==='shrub')continue;
     if(!(tree.height>=4.8&&tree.width>1&&Number.isFinite(tree.y)))continue;
     const id=key(Math.floor(tree.x/tile),Math.floor(tree.z/tile));
     let group=treeTiles.get(id);if(!group)treeTiles.set(id,group=[]);
@@ -170,6 +171,7 @@ window.makePerchHabitat=function makePerchHabitat(T,scene,world,region){
   function rockSite(x,z,hint,route=false){
     if(!boundsOK(x,z,5))return null;
     if(world.glacierDistance?.(x,z)>68)return terrainPerch(x,z,hint,'Glacier ice');
+    if(Number.isFinite(world.eggRockSealShelf?.(x,z)))return terrainPerch(x,z,hint,'Egg Rock tidal ledge',world.eggRockSealShelf);
     if(region==='acadia'&&window.acadiaSandOpening(x,z)){
       if(window.acadiaLagoonAt(x,z)&&ground(x,z)<2.38)return null;
       return terrainPerch(x,z,hint,'Sand Beach landing');
@@ -215,11 +217,12 @@ window.makePerchHabitat=function makePerchHabitat(T,scene,world,region){
       return finish({id,type:'rock',label:dryRock?'Sandstone ledge':'Rock ledge',x,y:height,z,seed,radius:radial,root:{x,y,z}},dx,dz,slope);
     });
   }
-  function terrainPerch(x,z,hint,label='Rock shelf'){
-    const y=ground(x,z);
+  function terrainPerch(x,z,hint,label='Rock shelf',support=ground){
+    const y=support(x,z);
     if(!Number.isFinite(y)||wet(x,z,y)||floor(x,z)>y+.11)return null;
     for(const [dx,dz] of [[.30,0],[-.30,0],[0,.25],[0,-.25],[.24,.18],[-.24,-.18]]){
-      if(Math.abs(ground(x+dx,z+dz)-y)>.11)return null;
+      const sample=support(x+dx,z+dz);
+      if(!Number.isFinite(sample)||Math.abs(sample-y)>.11)return null;
     }
     const seed=noise(Math.round(x*5),Math.round(z*5),59);
     return orient(seed,hint,(dx,dz)=>{
@@ -363,6 +366,13 @@ window.makePerchHabitat=function makePerchHabitat(T,scene,world,region){
       const len=p.length,h=p.tree.height,side=p.seed>.5?1:-1;
       const baseRadius=clamp(h*.017,.16,.46),r=.083;
       const c=[.82,.79,.72],weathered=[.94,.88,.77];
+      // The point return locates the real crown, whose near model may have several
+      // leaning stems. Carry the selected limb into a supported trunk at this root.
+      if(p.tree.steepCreekStem){
+        const foot=p.tree.y-p.y-.14,split=-Math.min(h*.15,2.9),bend=.29*(p.seed-.5);
+        tube([[0,foot,-len],[bend,foot*.61,-len+.16],[0,split,-len],[-.16,split+.98,-len-.23]],
+          [baseRadius*1.39,baseRadius*1.18,baseRadius*.90,baseRadius*.48],c,12);
+      }
       tube([[0,-Math.min(h*.15,2.9),-len],[.05,-1.07,-len*.68],[-.12,-.39,-len*.27],[-.52,-.18,-.49],[-.66,-.12,-.13],[-.49,-r,-.025],[-.18,-r,0],[.19,-r,0],[.54,-r,.004],[.82,-.05,.04],[1.01,.10,.10]],
         [baseRadius,baseRadius*.80,baseRadius*.63,.144,.123,.103,.091,r,.078,.047,.011],c,16);
       tube([[-.18,-.45,-len*.28],[-.52*side,-.02,-len*.24],[-.91*side,.32,-len*.22],[-1.1*side,.50,-len*.21]],[.11,.078,.038,.01],weathered);

@@ -577,6 +577,12 @@
     },
     labrador: {
       shower: true,
+      // GRHQ line and lidar profile put these emitters on three separate short sills.
+      loops: [
+        {clip: 'scape-cabert-brook', ref: 9, reach: 145, gain: .48, where: fixed(-3718.6, 379.9, 1330.8)},
+        {clip: 'scape-cabert-sill', ref: 13, reach: 190, gain: .67, where: fixed(-3661.7, 375.1, 1364.2)},
+        {clip: 'scape-cabert-brook', ref: 13, reach: 180, gain: .65, where: fixed(-3523.1, 367.3, 1450.2)}
+      ],
       events: [
         {clip: 'scape-labrador-mosquitoes', every: [16, 36], ref: 1.2, reach: 20, gain: .35, when: lowAndLeafy, where: nearEar()},
         {clip: 'scape-labrador-swainsons-thrush', every: [16, 34], ref: 16, reach: 420, gain: .6, where: inTrees(40, 300, .4)},

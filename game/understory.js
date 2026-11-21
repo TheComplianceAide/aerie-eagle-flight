@@ -416,6 +416,7 @@
       // rather than the valley floor's fallback shade ferns. Filter after the
       // seeded sequence, preserving every neighboring woodland placement.
       const plants=world.elCapitanMeadowCover?result.filter(p=>world.elCapitanMeadowCover(p[0],p[2])<.65||p[6]===7):result;
+      world.steepCreek?.addGroundPlants(plants,ix*size,iz*size,size,records);
       tiles.set(key,plants);
       return plants;
     }

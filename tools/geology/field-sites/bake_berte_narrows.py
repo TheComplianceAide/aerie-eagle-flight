@@ -50,11 +50,14 @@ BASE = "da35cedcc0a44da4a91abb93dc67b253da1fc557"
 BASE_DIGEST = "a415e874f1693abcbecfcaab3c90aabd385e19fd189ff9860902ca68d1e67ae8"
 
 
-def ortho(p, year, z, level, name):
+CAMP_RECT = (-435, 1502, 165, 1934)
+
+
+def ortho(p, year, z, level, name, rect=CAMP_RECT):
     out_path = p / name
     if out_path.exists():
         return out_path
-    left, top, right, bottom = -435, 1502, 165, 1934
+    left, top, right, bottom = rect
     frame = (535259 + left, 5621856 - bottom, 535259 + right, 5621856 - top)
     w = round((right - left) / level)
     h = round((bottom - top) / level)
@@ -135,17 +138,17 @@ def ortho(p, year, z, level, name):
     return out_path
 
 
-def lidar(root, kind):
-    path = root / f"berte-{kind}.tif"
+def lidar(root, kind, rect=CAMP_RECT, sheets=("22K10NE", "22K09NO"), prefix="berte"):
+    path = root / f"{prefix}-{kind}.tif"
     if path.exists():
         return
-    l, t, r, b = -435, 1502, 165, 1934
+    l, t, r, b = rect
     bounds = (535259 + l, 5621856 - b, 535259 + r, 5621856 - t)
     w = round(r - l)
     h = round(b - t)
     tr = from_bounds(*bounds, w, h)
     result = np.full((h, w), -9999, dtype=np.float32)
-    for sheet in ["22K10NE", "22K09NO"]:
+    for sheet in sheets:
         url = f"{LIDAR}/{sheet}/{kind}_{sheet}.tif"
         with (
             rasterio.Env(
@@ -206,7 +209,7 @@ def local_coast(game, control):
 
 
 def bake_optical(p, game, rings, ortho2022, ortho2015):
-    left, top, right, bottom = -435, 1502, 165, 1934
+    left, top, right, bottom = CAMP_RECT
     spacing = 0.6
     rows, cols = np.mgrid[
         : round((bottom - top) / spacing), : round((right - left) / spacing)

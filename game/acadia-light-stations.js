@@ -218,6 +218,7 @@
     bar('white',vert(0,22.14,-3.22),vert(0,24.48,-3.22),.076);
     frame(0,-3.11,25.3,.73,.94,-1,false,true);
     detail=false;
+    const surf=water?.geometry ? window.makeAcadiaLedgeSurf(T,scene,water,ground) : null;
     const stationState={roots,sites,signal};
     for(const {pos,norm,uv,mat,group,detail:small} of batches.values()){
       const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(pos,3));
@@ -227,7 +228,8 @@
     for(const [id,s] of Object.entries(sites))lamps.push(window.acadiaNavigationLamp(T,scene,id,s));
     const optics=[{value:0},{value:0}];
     return {...stationState,
-      lightWater(){window.acadiaOffshoreWater(T,water,texture,sites,optics);},
+      seaSurface:surf?.seaSurface,
+      lightWater(){window.acadiaOffshoreWater(T,water,texture,sites,optics);surf?.lightWater();},
       roof(x,z){
         const bucket=solids.get(Math.floor(x/4)*65536+Math.floor(z/4));
         if(!bucket)return -Infinity;let h=-Infinity;
@@ -245,6 +247,7 @@
         }
       },
       update(t,player){
+        surf?.update(t,player);
         for(let i=0;i<lamps.length;i++){
           const s=i?sites.baker:sites.egg,value=signal(t,s);lamps[i].value=value;optics[i].value=value;
           const near=Math.hypot(player.x-s.lamp[0],player.z-s.lamp[2])<620;
