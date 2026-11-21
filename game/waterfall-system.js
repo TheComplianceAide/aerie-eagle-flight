@@ -61,7 +61,7 @@ window.makeWaterfallSystem=function makeWaterfallSystem(T,scene,{ground,level,cl
   }
   function poolFan(source,poolLevel){
     const {x,z,y,dx,dz,width,drop}=source;
-    const radius=width*(1.22+Math.min(1.5,drop/100)),up=radius*.65,down=radius*3.75;
+    const radius=width*(1.22+Math.min(1.5,drop/100)),up=radius*.65,down=Math.min(radius*3.75,source.foamRunout??Infinity);
     const pos=[],uv=[],index=[],cols=26,rows=37;
     for(let j=0;j<=rows;j++)for(let i=0;i<=cols;i++){
       const across=(i/cols*2-1)*radius*1.7,along=-up+(up+down)*j/rows;
@@ -89,6 +89,7 @@ window.makeWaterfallSystem=function makeWaterfallSystem(T,scene,{ground,level,cl
           float crest=smoothstep(.75,.99,sin(road))*aa;
           float wave=crest*(1.-smoothstep(.72,2.25,length(fan)))*(.07+.18*pulse)*(.20+.8*smoothstep(.21,.65,broad));
           float alpha=clamp(core*(.48+.51*fine)+streamers*(.36+.39*broad)+wave,0.,.94);
+          ${Number.isFinite(source.foamRunout)?'alpha*=1.-smoothstep('+(.59*down).toFixed(3)+','+down.toFixed(3)+',fan.y*fanRadius);':''}
           alpha*=1.-smoothstep(.5,2.1,wp.y-poolY);if(alpha<.012)discard;vec3 film=mix(vec3(.42,.60,.61),vec3(.94,.96,.92),.22+.47*fine+.31*core);
           gl_FragColor=vec4(film,alpha);}`});
     const mesh=new T.Mesh(geometry(pos,uv,index,{}),mat);mesh.name=source.name+' · aerated pool and drifting foam';mesh.userData.prepareFlightMaterial=true;mesh.renderOrder=1;scene.add(mesh);
@@ -188,7 +189,7 @@ window.makeWaterfallSystem=function makeWaterfallSystem(T,scene,{ground,level,cl
       if(chosen.length>=3||chosen.some(c=>Math.abs(nodes[c.i].travel-nodes[hit.i].travel)<32)||end.travel-nodes[hit.i].travel<11)continue;
       chosen.push(hit);
     }
-    function contact(n,w,head,pool,withFoam){const src={name,x:n.x,z:n.z,y:pool??n.floor,dx:n.dx,dz:n.dz,width:w,drop:head};impacts.push(src);plume(src);if(withFoam)poolFan(src,pool);return src;}
+    function contact(n,w,head,pool,withFoam){const src={name,x:n.x,z:n.z,y:pool??n.floor,dx:n.dx,dz:n.dz,width:w,drop:head,foamRunout:options.foamRunout};impacts.push(src);plume(src);if(withFoam)poolFan(src,pool);return src;}
     for(const hit of chosen){const site=nodes[hit.i],hz=level!=null&&site.floor<level+.35?level:undefined;
       const src=contact(site,width*.77,hit.energy,hz,true);if(hz!==undefined)outlets.push(src);}
     if(options.pool!==false){

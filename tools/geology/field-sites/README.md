@@ -42,3 +42,18 @@ python tools/geology/field-sites/bake_oeschinen_wall.py --cache /path/to/cache -
 | `oeschinen-shore-july-2022-3840.jpg` | `8c1650f6dee17742678fd6d55ed8f87c52d8ec759d543d0d71867795071abcfa` |
 
 **Hamnøy sheltered water.** `bake_hamnoy_shelter.py` packs wave exposure in the alpha of the existing fjord shore image. It casts 13 inbound bearings through the 2 m local terrain and surrounding fjord DEM up to 2.4 km. The map describes the modeled east-southeast wave field at this departure, with open water outside the local coverage. The original shore color payload is copied intact. Rebuild with `python tools/geology/field-sites/bake_hamnoy_shelter.py --game game --output /path/to/atlas-lofoten-shore.webp`. Original inputs are the credited installed Hamnøy terrain model, fjord survey and shore RGB. Comparison photography of the working harbor is reference only. [Kartverket national terrain model](https://kartverket.no/en/api-and-data/terrengdata) · [Kartverket terms](https://www.kartverket.no/en/api-and-data/terms-of-use) · [Harbor operator](https://rorbuer.no/history/)
+
+**Oeschinensee eastern low-stage fan.** The original high-stage photo and broad 15-triangle lake section hid exposed gravel under surface water color. The revised survey reconstructs the shoreline from 2025 swissALTI3D, adds 4,706 triangles across four existing sections, and updates the signed reach and modeled shoal depth. SWISSIMAGE's historic 2004 map selection contains color flights from 1999 and 2000 over sheet 1248-31. Its 50 cm orthophotography exposes the actual braided alluvium. It was sampled, balanced and clipped to the dry low-stage terrace. Exact archive-day stage, simulated summer flow, and subaqueous details remain estimates. [swisstopo open-data terms](https://www.swisstopo.admin.ch/en/terms-of-use-free-geodata-and-geoservices) · [Cantonal Oeschinensee monitoring and seasonal stage](https://www.bvd.be.ch/content/dam/bvd/dokumente/de/awa/wasser/gew%C3%A4sserschutz/gew%C3%A4sserqualit%C3%A4t/berichte-zur-gew%C3%A4sserqualit%C3%A4t/berichte-2025-2026/kleinseen/2023-kleinseen-oes-gbl.pdf)
+
+The east main stem follows swissTLM3D records 7324093, 7254911, 7722945, 7254910, 7324090, 7324089 and 7254909. They belong to CH0017910000. The 7254908 in-lake continuation was used only as far as the exposed fan. Its submerged, cartographic centerline does not give an active surface channel. The two lower braids instead follow the dark channels in the low-stage photograph to the 2025 contour. [swissTLM3D hydrography](https://www.swisstopo.admin.ch/en/landscape-model-swisstlm3d) · [Hydrography service](https://api3.geo.admin.ch/rest/services/api/MapServer/ch.swisstopo.swisstlm3d-gewaessernetz/7254909?geometryFormat=geojson&sr=2056)
+
+Run the following from a git checkout with the earlier pre-bake asset revision available. Install `shapely>=2` and the Python `triangle` package in the geology bake environment alongside the dependencies above. The runtime has no geometric processing dependency.
+
+```sh
+python tools/geology/field-sites/bake_oeschinen_fan.py --cache /path/to/cache --output /path/to/comparison
+```
+
+| Additional source | SHA-256 |
+| --- | --- |
+| 2025 east fan swissALTI3D 2 m tile | `e6908d6a1161868d27a02f63f383f68f500bd48b2291baa8cb6c4fbadf578470` |
+| Historical low-stage SWISSIMAGE WMS response | `e98ded8ed9f6c5035b5443b069df32b8eaae763d1d424c3361fba7fc9bf15412` |

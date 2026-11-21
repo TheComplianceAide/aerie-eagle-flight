@@ -668,12 +668,18 @@ class Water extends Mesh {
   const rivers=[
     [[369,1730],[379,1560],[399,1395],[425,1220],[435,1115],[458,1008],[466,953],[478,883],[479,834],[492,776],[498,739]],
     [[720,1680],[720,1540],[690,1430],[662,1320],[613,1210],[568,1128],[531,1044],[504,1020],[480,1009],[458,1008]],
-    [[1890,824],[1780,786],[1670,772],[1560,786],[1440,746],[1320,680],[1230,630],[1150,600],[1090,580],[1040,570],[1010,560],[988,550],[975,550],[964,550]]
+    [[1934,927],[1882,918],[1863,908],[1820,899],[1771,896],[1731,863],[1703,847],[1682,841],[1639,813],[1615,804],[1595,786],[1548,769],[1538,770],[1537,765],[1518,760],[1494,745],[1477,743],[1470,752],[1462,753],[1454,768],[1459,780],[1458,788],[1439,804],[1428,795],[1413,796],[1386,775],[1384,767],[1367,770],[1353,765],[1338,769],[1295,717],[1280,714],[1275,710],[1266,711],[1260,705],[1250,706],[1236,697],[1227,697],[1221,689],[1163,669],[1131,646],[1113,637],[1093,634],[1087,637],[1089,646],[1064,655],[1055,654],[1040,640],[1033,645],[1016,647],[1000,649]]
   ];
   waterfalls.chute('Fründen Falls',rivers[0],14,{pool:true});
   waterfalls.chute('Fründen tributary',rivers[1],8,{pool:false});
   waterfalls.chute('Eastwall headwaters',rivers[2],12,{pool:false});
-  waterfalls.chute('Eastwall Cascade',[[964,550],[954,550],[944,552],[935,553],[924,555],[914,554],[900,553],[886,554],[873,556]],14);
+  // swissTLM3D channel CH0017910000 descends southeast of the older course.
+  // The two low-stage outlets follow dark braids visible in the 1999/2000
+  // SWISSIMAGE archive. Their widths depend on the modeled summer flow.
+  waterfalls.chute('Eastwall Cascade',[[1000,649],[992,647],[983,649],[982,660],[973,666],[969,664],[957,659],[955,655],[954,647],[947,641],[945,641],[935,632],[932,626],[931,618],[923,610],[914,603],[902,592]],8.8,{pool:false,foamRunout:9});
+  waterfalls.chute('Eastwall fan stream',[[902,592],[896,590],[890,587],[885,583],[879,578],[875,573],[871,568],[869,562],[867,556]],5.2,{pool:false});
+  waterfalls.chute('Eastwall west braid',[[867,556],[863,549],[859,545],[852,543],[846,542],[841,539],[835,533],[832,528],[824,524],[818,521],[811,519],[805,515],[801,510],[797,504],[791,498],[786,492],[781,489],[775,484],[769,480],[765,476]],2.3,{poolLevel:lake.position.y});
+  waterfalls.chute('Eastwall north braid',[[867,556],[873,551],[877,548],[877,542],[874,535],[871,530],[868,523],[865,515],[866,508],[869,502],[870,496],[871,488],[870,483],[865,475],[861,468],[857,460],[853,453],[852,447],[849,442],[844,435],[840,429],[837,424],[835,421]],3.4,{poolLevel:lake.position.y});
   waterfalls.couple(lake);
   // Regional canopy sequence is independent of spray density.
   let rng=2480920427;const rand=()=>((rng=(Math.imul(rng,1664525)+1013904223)>>>0)/4294967296);
@@ -741,7 +747,7 @@ class Water extends Mesh {
     waterfalls,height,elevation,clearance,spawn,launches,trees,skyTexture:skyMap,sunMask:visibility,sunDirection:sun,waterLevel:0,lakeLevel:0,lakePolygon:shore,altitudeOffset:survey.heightOffset,
     bounds:{minX:-3700,maxX:3700,minZ:-3700,maxZ:3700},
     landmarks:[{name:'Western gravel beach',x:-647,z:466},{name:'Lakeshore meadow',x:-688,z:497,discoveryRadius:42},{name:'Oeschinensee',x:30,z:260},{name:'Fründen Falls',x:472,z:922},
-      {name:'Eastwall Cascade',x:936,z:550},{name:'Fründenschnuer',x:978,z:264},{name:'Blüemlisalp Ridge',x:3135,z:-380}],
+      {name:'Eastwall Cascade',x:947,z:641,approach:[985,700,841,539,24,0,18]},{name:'Fründenschnuer',x:978,z:264},{name:'Blüemlisalp Ridge',x:3135,z:-380}],
     update(dt,time){clock.value=time;lake.material.uniforms.time.value=time*.52;}
   };
 };

@@ -808,3 +808,10 @@ Oeschinensee east wall field photographs. The desktop and mobile oeschinen-east-
 https://commons.wikimedia.org/wiki/File:Oeschinen_Lake_(Oeschinensee)_panorama_from_above_140622.jpg
 https://commons.wikimedia.org/wiki/File:Oeschinensee_panorama_view_with_turquoise_water.jpg
 https://creativecommons.org/licenses/by-sa/4.0/
+
+Eastwall Cascade, Oeschinensee. Historical SWISSIMAGE, current swissALTI3D 2 m and swissTLM3D hydrography are © Federal Office of Topography swisstopo, used under the Swiss free-geodata terms. The georeferenced 2004 archive mosaic covers LV95 E2622532–2622982 / N1149194–1149686. swisstopo's tile metadata reports color aerial flights in 1999 and 2000 at 50 cm spacing. The lake stood lower in the archive than in the current SWISSIMAGE; the photographed dry fan and dark stream braids are used as a local terrain material. The two outlet widths, summer discharge, water depth and small unphotographed fringe are reconstructed at the modeled lake level. The principal chute follows swissTLM3D watercourse CH0017910000. The interface name Eastwall Cascade is descriptive.
+https://www.swisstopo.admin.ch/en/orthoimage-swissimage
+https://www.swisstopo.admin.ch/en/height-model-swissalti3d
+https://www.swisstopo.admin.ch/en/landscape-model-swisstlm3d
+https://www.swisstopo.admin.ch/en/terms-of-use-free-geodata-and-geoservices
+https://map.geo.admin.ch/#/map?lang=en&center=2622860,1149460&z=13&bgLayer=ch.swisstopo.pixelkarte-farbe&topic=ech&layers=ch.swisstopo.swissimage-product@year=2004
