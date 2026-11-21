@@ -428,7 +428,7 @@ Excerpt: 46.00 to 58.00 seconds; faded; rumble removed; level matched.
 
 ANIMAL MOVEMENT
 
-move-moose.m4a — “A cow breathing near and walking on the dry foliage, with a bird singing soflty, road hum and a plane passing, recorded in the forest in Missouri.” Félix Blume (felix.blume, Freesound). Forest in Missouri, USA, May 2013 (no geotag). The animal is a domestic cow walking on dry leaf litter, used as a stand-in for a moose moving through woods. CC0 1.0.
+move-moose.m4a — “A cow breathing near and walking on the dry foliage, with a bird singing soflty, road hum and a plane passing, recorded in the forest in Missouri.” Félix Blume (felix.blume, Freesound). Forest in Missouri, USA, May 2013 (no geotag). The animal is a domestic cow walking on dry leaf litter, used as a stand-in for a moose moving through woods and, played faster and quieter, for a deer. CC0 1.0.
 https://freesound.org/people/felix.blume/sounds/653949/
 https://creativecommons.org/publicdomain/zero/1.0/
 Excerpt: 77.20 to 90.70 seconds; loop seam crossfaded; road hum removed below 300 Hz; 2.05 to 3.85 kHz notched to suppress a singing bird; peaks limited; level matched.
