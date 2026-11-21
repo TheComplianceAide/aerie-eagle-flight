@@ -37,7 +37,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 const {values: options} = parseArgs({options: {
   output: {type: 'string'}, seconds: {type: 'string', default: '100'}, world: {type: 'string', default: 'moosehead'},
   launch: {type: 'string', default: 'lake'}, route: {type: 'string'}, game: {type: 'string'}, chrome: {type: 'string'}, 'no-wav': {type: 'boolean'},
-  perch: {type: 'boolean'}, keys: {type: 'string'}
+  perch: {type: 'boolean'}, keys: {type: 'string'}, script: {type: 'string'}
 }});
 if (!options.output) throw Error('Required argument: --output <directory>');
 const tools = path.dirname(fileURLToPath(import.meta.url));
@@ -188,9 +188,11 @@ try {
     await delay(4000);                      // let the landing and its sounds finish
   }
   await evaluate(pilot + '(' + JSON.stringify(route) + ',' + JSON.stringify(keys) + ')');
+  // --script <file>: page JavaScript run as the recording starts, for test signals. What it leaves in window.__extra is saved.
+  if (options.script) await evaluate(await fs.readFile(options.script, 'utf8'));
   await delay(seconds * 1000);
   const run = await evaluate(`(() => { const r = window.__run; r.stop();
-    return {rows: r.rows, frames: r.frames.slice(5), spent: r.spent, updates: r.updates, rate: __capture.rate, blocks: __capture.left.length}; })()`);
+    return {rows: r.rows, frames: r.frames.slice(5), spent: r.spent, updates: r.updates, rate: __capture.rate, blocks: __capture.left.length, extra: window.__extra ?? null}; })()`);
   await fs.mkdir(options.output, {recursive: true});
 
   // ---- the recording ------------------------------------------------------------
@@ -238,7 +240,7 @@ try {
       screeningOpen: e.open.length ? +mean(e.open).toFixed(2) : null, screeningLee: e.lee.length ? +mean(e.lee).toFixed(2) : null,
       keptOpen: e.keptOpen.length ? +mean(e.keptOpen).toFixed(2) : null, keptLee: e.keptLee.length ? +mean(e.keptLee).toFixed(2) : null})),
     errors};
-  await fs.writeFile(path.join(options.output, 'directional-sound.json'), JSON.stringify({summary, rows: run.rows}));
+  await fs.writeFile(path.join(options.output, 'directional-sound.json'), JSON.stringify({summary, rows: run.rows, extra: run.extra}));
   console.log(`${options.world} ${options.launch}: ${seconds} s flown, ${open.length / 10} s in the open, ${lee.length / 10} s in the lee` + (wav ? `; recording ${wav}` : ''));
   console.log(`frame ${summary.frame.meanMs} ms mean, ${summary.frame.p95Ms} ms 95th percentile; audio update ${summary.audioUpdate.meanMs} ms a frame (${(100 * summary.audioUpdate.shareOfFrame).toFixed(1)}% of the frame)`);
   if (open.length && lee.length) console.log(`wind masker ${summary.wind.maskerOpen} in the open at ${summary.wind.airspeedOpen} m/s, ${summary.wind.maskerLee} in the lee at ${summary.wind.airspeedLee} m/s`);
