@@ -582,6 +582,7 @@
     perching.reset(s,el("launchPoint").value==="lookout");
     nextPerchHUD=0;perchNotice="";perchNoticeUntil=0;
     resetCamera(s,launch.glance,launch.lookDown);
+    canopy?.prepareDeparture?.();
     gameVision.startFlight(["game","wildlife"].includes(launchPicker.value));
     fieldAudio?.resetEncounters();
     elapsed=0;distance=0;accumulator=0;nextReadout=0;noticeUntil=0;
@@ -758,6 +759,7 @@
     fieldAudio?.resetEncounters();
     perching.reset(dynamics.state,false);nextPerchHUD=0;perchNotice="";
     resetCamera(dynamics.state,launch.glance,launch.lookDown);
+    canopy?.prepareDeparture?.();
     resetInput();
     accumulator=0;nextReadout=0;
     noticeUntil=elapsed+4;

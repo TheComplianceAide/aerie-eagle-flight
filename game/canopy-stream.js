@@ -964,7 +964,14 @@
       if(b-a>.001)draw(t,1,record,a,b);
       if(opacity-b>.001)draw(t,2,record,b,opacity);
     }
-    function refresh(now,seconds){
+    // On a deliberate departure the previous camera view is already gone. Fill the
+    // first visible neighborhood at its normal opacity, with a one-time work cap.
+    let firstView=false;
+    function prepareDeparture(){
+      firstView=!!(counters.ready&&offset===trees.length&&!stopped&&
+        (world.region==='moosehead'||world.region==='winnipesaukee'));
+    }
+    function refresh(now,seconds,opening=false){
       const started=performance.now(),cx=Math.floor(eye.x/CELL),cz=Math.floor(eye.z/CELL),active=[],rows=[];
       const elapsed=seconds-lastBuild,dx=eye.x-previous.x,dz=eye.z-previous.z;
       if(elapsed>0&&elapsed<=.65&&Math.hypot(dx,dz)<=90){
@@ -984,10 +991,12 @@
       }
       active.sort((a,b)=>a.priority-b.priority||a.d-b.d);
       for(const a of active)if(inSurvey(surveyRegion,a.ix,a.iz))fetchSurvey(a.ix,a.iz,now);
+      const cellLimit=opening?(mobile?6:10):2;
+      const cellBudgetMs=opening?(mobile?8:14):2.5;
       let made=0,remaining=false;
       for(const a of active){
         if(!cells.has(a.id)){
-          if(made>=2||(made&&performance.now()-started>2.5)){remaining=true;continue;}
+          if(made>=cellLimit||(made&&performance.now()-started>cellBudgetMs)){remaining=true;continue;}
           cells.set(a.id,makeCell(a.ix,a.iz));made++;
         }
         const cell=cells.get(a.id);cell.lastUse=now;
@@ -1029,7 +1038,7 @@
         const outer=Math.min(far,capEdge),fadeDist=Math.max(9,outer*.18);
         const reach=outer-fadeDist*((t.seed%997)/997);
         const wanted=maine?1-rangeFade(reach-4,reach+4,d):1-rangeFade(outer-fadeDist,outer,d);
-        const opacity=move(old?.opacity||0,wanted,timeStep*2.5);
+        const opacity=opening?wanted:move(old?.opacity||0,wanted,timeStep*2.5);
         if(opacity<.004)continue;
         const near=move(old?.near??(lod===0?1:0),lod===0?1:0,timeStep*2.4);
         const solid=move(old?.solid??(lod<2?1:0),lod<2?1:0,timeStep*2.4);
@@ -1100,6 +1109,7 @@
       shadowEye.copy(eye);lastShadow=seconds;shadows.regionalCanopyShadowOn.value=1;counters.shadowDraws++;
     }
     function update(position,seconds,view=position,camera=null){
+      const opening=firstView;firstView=false;
       detailCamera=camera;
       if(stopped||!Number.isFinite(position?.y))return;
       eye.copy(position);detailEye.copy(view||position);common.clock.value=seconds;
@@ -1111,9 +1121,9 @@
         lastCheck=lastBuild=lastShadow=-Infinity;dirty=true;
         for(const cell of cells.values())for(const t of cell.rows)if(t.solidAfter!=null){t.solidAfter=seconds+.48;t.armed=false;}
       }
-      if(seconds-lastCheck>=(mobile?.07:.055)&&(dirty||previous.distanceToSquared(eye)>3||
-          lastDetailEye.distanceToSquared(detailEye)>.36||seconds-lastBuild>1.25)){
-        refresh(now,seconds);lastCheck=seconds;
+      if(opening||(seconds-lastCheck>=(mobile?.07:.055)&&(dirty||previous.distanceToSquared(eye)>3||
+          lastDetailEye.distanceToSquared(detailEye)>.36||seconds-lastBuild>1.25))){
+        refresh(now,seconds,opening);lastCheck=seconds;
       }
       shadowPass(seconds);
     }
@@ -1182,6 +1192,6 @@
       // Outer silhouettes wait until coverage is known, including independent lidar cells.
       return offset<trees.length||inSurvey(surveyRegion,ix,iz)||originalTrees(ix,iz,0,true);
     }
-    return {ready,warmApproachPrograms,getCanopyNeighbors:getNearby,hasOriginalCell,isSurveyCell:(ix,iz)=>inSurvey(surveyRegion,ix,iz),clearance,update,dispose,maskMaterial,stats:()=>({...counters,lod:[...counters.lod],species:{...counters.species},sitkaForms:{...counters.sitkaForms},regionalSheets:[...counters.regionalSheets],regionalForms:Object.fromEntries(Object.entries(counters.regionalForms).map(([k,v])=>[k,[...v]]))})};
+    return {ready,prepareDeparture,warmApproachPrograms,getCanopyNeighbors:getNearby,hasOriginalCell,isSurveyCell:(ix,iz)=>inSurvey(surveyRegion,ix,iz),clearance,update,dispose,maskMaterial,stats:()=>({...counters,lod:[...counters.lod],species:{...counters.species},sitkaForms:{...counters.sitkaForms},regionalSheets:[...counters.regionalSheets],regionalForms:Object.fromEntries(Object.entries(counters.regionalForms).map(([k,v])=>[k,[...v]]))})};
   };
 })();
