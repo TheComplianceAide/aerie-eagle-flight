@@ -196,6 +196,20 @@ window.prepareWaterfallPrograms=async function prepareWaterfallPrograms(T,render
     }
   });
   if(!meshes.length)return;
+  // The linked program still has to upload its images on first draw. The
+  // surveyed bed, stream and bank stones can enter view on consecutive frames.
+  const textures=new Set();
+  function collect(texture){
+    if(texture?.isTexture&&texture.image&&!texture.isRenderTargetTexture&&!texture.isDepthTexture&&!texture.isVideoTexture)
+      textures.add(texture);
+  }
+  for(const material of materials){
+    for(const value of Object.values(material))collect(value);
+    for(const uniform of Object.values(material.uniforms||{})){
+      if(Array.isArray(uniform.value))uniform.value.forEach(collect);else collect(uniform.value);
+    }
+  }
+  for(const texture of textures)renderer.initTexture(texture);
   const original=renderer.getRenderTarget(),face=renderer.getActiveCubeFace(),mip=renderer.getActiveMipmapLevel();
   const reflection=new T.WebGLRenderTarget(1,1);
   const programs=new Set();
