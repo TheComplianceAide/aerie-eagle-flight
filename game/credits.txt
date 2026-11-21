@@ -757,7 +757,7 @@ Moosehead Lake (Mount Kineo), Lake Winnipesaukee (Rattlesnake Island), Dixville 
 https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer
 https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer
 
-Mendenhall Glacier (Nugget Falls headwall) uses two-metre 3DEP samples and the existing Juneau Copernicus aerial mosaic credited above. The playable drainage channel follows the waterfall course modeled in the game.
+Mendenhall Glacier (Nugget Falls headwall) uses two-metre 3DEP samples and the regional mosaic blending 2013 City and Borough of Juneau orthophotography (Watershed Sciences Inc.) with 2024 Copernicus Sentinel-2 imagery credited above. The Nugget Creek centerline follows visible whitewater in the local aerial mosaic. Its downhill profile is registered to the 3DEP terrain. Red and near-infrared Sentinel-2 bands guide cover on the forested banks. Individual tree positions and sizes are inferred.
 https://www.usgs.gov/3d-elevation-program
 https://dataspace.copernicus.eu/data-collections/copernicus-sentinel-data/sentinel-2
 

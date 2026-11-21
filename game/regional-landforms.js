@@ -42,6 +42,11 @@
       sector.parts.push({xyz,light,triangles});sector.vertices+=n;sector.indices+=triangles.length;
       sectors.set(key,sector);
     }
+    let woodland=null;
+    if(at+8<=buffer.byteLength&&head.getUint32(at,true)===0x31525446){
+      const roots=head.getUint32(at+4,true);at+=8;
+      woodland=new Int16Array(buffer,at,roots*3);at+=woodland.byteLength;
+    }
     if(at!==buffer.byteLength)throw Error('Incomplete regional terrain survey');
     const sections=[];
     for(const sector of sectors.values()){
@@ -98,6 +103,18 @@
         const local=localUV.replace(/xz\./g,point+'.xz.');
         const uv=spec.style==='alaska'?'texture2D(localPhoto,uvLocal)':spec.style==='swiss'?'texture2D(photo,tileUv)':'texture2D(photo,tc)';
         material.fragmentShader=material.fragmentShader.replace(uv,uv.replace(uv.slice(uv.indexOf(',')+1,-1),local));
+        if(spec.style==='alaska')material.fragmentShader=material.fragmentShader
+          .replace('vec3 nn=normalize(n);','vec3 mappedForestPhoto=base;vec3 nn=normalize(n);')
+          .replace('vec3 substrate=mix(stone,',`
+            // A shaded Sitka spruce stand can appear slate grey in RGB.
+            // The registered red/NIR cover separates those crowns from the bare wall.
+            float bankForest=landformHorizon.z*landformHorizon.w;
+            forest=max(forest,bankForest*.97);
+            vec3 substrate=mix(stone,`)
+          .replace('float viewSky=mix(',`
+            vec3 photographedBank=mappedForestPhoto*(.89+.17*max(nn.y,0.));
+            base=mix(base,photographedBank,bankForest*.86);
+            float viewSky=mix(`);
         if(spec.style==='swiss')material.fragmentShader=material.fragmentShader.replace('texture2D(photo,tileUv,4.)','texture2D(photo,'+local+',4.)');
         const marker=spec.style==='alaska'?'gl_FragColor=vec4(base,1.);':spec.style==='canyon'?'color=mix(color,haze,':'gl_FragColor=vec4(aerial(rgb,d),1.);';
         const color=spec.style==='alaska'?'base':spec.style==='canyon'?'color':'rgb';
@@ -172,7 +189,7 @@
       material.fragmentShader=material.fragmentShader.replace(/void main\(\)\s*\{/,m=>m+'if('+test+')discard;');
       material.needsUpdate=true;
     }
-    return {rect,edge,sample,height,add,maskOriginal,spec};
+    return {rect,edge,sample,height,add,maskOriginal,spec,woodland};
   }
   async function prepare(region){
     if(!catalog[region])return;

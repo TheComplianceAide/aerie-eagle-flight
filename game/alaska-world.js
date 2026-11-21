@@ -783,8 +783,9 @@ class Water extends Mesh {
   const waters=map('waternormals.jpg',true);
   const lake=new Water(new THREE.ShapeGeometry(outline),{textureWidth:960,textureHeight:640,waterNormals:waters,sunDirection:sun,sunColor:0xffe9cd, waterColor:0x396c70,distortionScale:1.82,fog:true});
   lake.name="Lake surface";lake.rotation.x=-Math.PI/2;lake.position.y=.18;lake.material.uniforms.size.value=3.1;scene.add(lake);
-  const treeData=unpack(survey.trees),trees=[],cells=new Map(),cell=(x,z)=>Math.floor(x/48)*1024+Math.floor(z/48);
-  for(let i=0;i<treeData.length;i+=3){
+  const treeSections=[unpack(survey.trees),landmarkTerrain?.woodland||[]];
+  const trees=[],cells=new Map(),cell=(x,z)=>Math.floor(x/48)*1024+Math.floor(z/48);
+  for(const treeData of treeSections)for(let i=0;i<treeData.length;i+=3){
     const x=treeData[i],z=treeData[i+1],h=treeData[i+2],y=elevation(x,z),seed=((i*1583)%65521)/65521;
     const stream=channelAt(x,z);
     if(stream && stream.distance<10+h*.20)continue;
