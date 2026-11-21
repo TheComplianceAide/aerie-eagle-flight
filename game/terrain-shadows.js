@@ -186,12 +186,12 @@ window.makeTerrainShadows=function makeTerrainShadows(T,renderer,scene,world){
     sun:direction.toArray(),nativeCompare:hardware,tile};}};
 };
 
-// A waterfall can first enter the water reflection and then the direct view a
-// frame later. Link both variants before takeoff using the actual scene lights.
-window.prepareWaterfallPrograms=async function prepareWaterfallPrograms(T,renderer,scene,camera){
+// Surveyed shore and waterfall materials can enter the lake reflection before
+// the direct view. Link both variants before takeoff using the actual scene lights.
+window.prepareFlightMaterials=async function prepareFlightMaterials(T,renderer,scene,camera){
   const materials=new Set(),meshes=[];
   scene.traverse(object=>{
-    if(object.userData.prepareFallsMaterial&&!materials.has(object.material)){
+    if(object.userData.prepareFlightMaterial&&!materials.has(object.material)){
       materials.add(object.material);meshes.push(object);
     }
   });
