@@ -98,7 +98,9 @@ window.makeFishSchools=function(region,waterAt,disturb){
       const y=a.level-(normalDepth*(1-lift)+a.length*.09*lift)-.36*a.scare;
       const bed=school.stream?a.level-school.stream.depth(a.x,a.z)+a.length*.15:-Infinity;
       const swim=Math.max(bed,y);
-      a.pitch=clamp((swim-a.y)*1.3,-.22,.22);a.y=Math.max(bed,a.y+(swim-a.y)*(1-Math.exp(-3*dt)));
+      const ceiling=school.stream?a.level-a.length*.12:Infinity;
+      a.pitch=clamp((swim-a.y)*1.3,-.22,.22);
+      a.y=clamp(a.y+(swim-a.y)*(1-Math.exp(-3*dt)),bed,ceiling);
       a.bank=clamp(-delta*.16,-.38,.38)+.38*lift*Math.sin(a.seed+cycle*tau);a.phase+=dt*tau*(.76+effort*1.35);
       a.effort=clamp(pulse*.56+a.scare,.1,1);
       const depth=a.level-a.y;

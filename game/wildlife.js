@@ -480,7 +480,9 @@ window.addRegionalWildlife=function(T,scene,w){
             if(Number.isFinite(level)){
               const gain=1-Math.exp(-absence*.1);
               const px=a.x+(x-a.x)*gain,pz=a.z+(z-a.z)*gain,py=waterAt(px,pz);
-              if(Number.isFinite(py)){a.x=px;a.z=pz;a.level=py;}
+              if(Number.isFinite(py)&&(!school.stream||school.stream.depth(px,pz)>=a.length*.36)){
+                a.x=px;a.z=pz;a.level=py;
+              }
             }
           }
         }
