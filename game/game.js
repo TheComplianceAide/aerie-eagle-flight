@@ -417,6 +417,17 @@
     }
     audio.resume().catch(()=>{});
   }
+  function startAudio(){
+    try{
+      prepareAudio();
+    }catch(error){
+      // A denied audio device can still leave a playable 3D flight.
+      audio?.close?.().catch(()=>{});
+      audio=null;fieldAudio=null;
+      console.warn("Flight audio could not start",error);
+    }
+    if(!audio){soundOn=false;audioIcon();}
+  }
   function syncAudio(){
     if(!audio)return;
     const audible=soundOn&&started&&!paused;
@@ -427,7 +438,7 @@
   function toggleSound(){
     soundOn=!soundOn;
     try { localStorage.setItem("aerie:sound",soundOn?"on":"off"); } catch {}
-    if(soundOn)prepareAudio();
+    if(soundOn)startAudio();
     syncAudio();audioIcon();
   }
   el("sound").onclick=toggleSound;audioIcon();
@@ -437,6 +448,7 @@
   function showDialog(type) {
     if(type==="places"&&!started)return;
     previousFocus=document.activeElement;
+    modal.dataset.dialog=type;
     paused=true;resetInput();modal.hidden=false;syncAudio();
     if(audio){wingRush.gain.setTargetAtTime(0,audio.currentTime,.08);windLevel.gain.setTargetAtTime(.25,audio.currentTime,.3);}
     const inFlight=started, controls=type==="controls";
@@ -446,7 +458,7 @@
     el("instructions").hidden=!controls;
     const progress=inFlight ? (distance/1000).toFixed(1)+" km flown · "+found.size+" / "+world.landmarks.length+" landmarks discovered" : "";
     el("summary").textContent=type==="places"?"Choose a landmark to fly nearby. "+progress:progress;
-    el("back").textContent=inFlight?(dynamics?.state.contact?"Fly again":"Resume flight"):"Back";
+    el("back").textContent=type==="launchError"?"Try again":inFlight?(dynamics?.state.contact?"Fly again":"Resume flight"):"Back";
     el("end").hidden=!inFlight;el("back").focus();
   }
   function closeDialog(){
@@ -455,7 +467,12 @@
   }
   el("visionToggle").onclick=()=>{if(started&&!paused)gameVision.toggle();};
   el("places").onclick=()=>showDialog("places");
-  el("help").onclick=()=>showDialog("controls");el("pause").onclick=()=>showDialog("pause");el("back").onclick=closeDialog;
+  el("help").onclick=()=>showDialog("controls");el("pause").onclick=()=>showDialog("pause");
+  el("back").onclick=()=>{
+    const retry=modal.dataset.dialog==="launchError";
+    closeDialog();
+    if(retry)el("fly").click();
+  };
   el("end").onclick=()=>{started=false;app.dataset.mode="title";closeDialog();el("fly").focus();};
   async function init() {
     if (world && eagle && loadPromise) return loadPromise;
@@ -471,14 +488,14 @@
     previousRotation=new THREE.Quaternion();transitionRotation=new THREE.Quaternion();
     const manager=THREE.DefaultLoadingManager;
     const priorLoad=manager.onLoad,priorProgress=manager.onProgress,priorError=manager.onError;
-    let done, fail, failedAsset=false;
+    let done, fail, failedAsset="";
     const assets=new Promise((resolve,reject)=>{done=resolve;fail=reject;});
-    manager.onLoad=()=>{priorLoad?.();if(failedAsset)fail(new Error("A scenery image could not be loaded."));else done();};
+    manager.onLoad=()=>{priorLoad?.();if(failedAsset)fail(new Error("Unable to open scenery asset "+failedAsset));else done();};
     manager.onProgress=(url,complete,total)=>{
       priorProgress?.(url,complete,total);
       if(launchPending)el("fly").lastChild.textContent=complete===total?" Preparing flight scenery…":" Opening range · "+Math.round(complete/total*100)+"%";
     };
-    manager.onError=url=>{failedAsset=true;priorError?.(url);};
+    manager.onError=url=>{failedAsset||=String(url).split("?")[0].split("/").pop()||"image";priorError?.(url);};
     try {
       const factory={swiss:window.makeWorld,alaska:window.makeAlaska,canyon:window.makeCanyon}[region];
       world=factory?await factory(THREE,scene):await window.makeAtlasWorld(THREE,scene,region);
@@ -563,14 +580,16 @@
   }
   el("fly").onclick=async()=>{
     if(launchPending)return;
-    if(soundOn)prepareAudio();
+    if(soundOn)startAudio();
     const button=el("fly");launchPending=true;button.disabled=true;button.lastChild.textContent=" Opening range…";
     try{
       await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
       await init();startFlight();
     }catch(error){
-      console.error(error);started=false;app.dataset.mode="title";showDialog("controls");el("dialogTitle").textContent="Unable to start flight";
-      el("instructions").hidden=true;el("summary").textContent="The 3D range could not load. Open the offline game in Chrome with graphics acceleration enabled.";
+      console.error(error);started=false;app.dataset.mode="title";showDialog("launchError");el("dialogTitle").textContent="Unable to start flight";
+      el("summary").textContent=/webgl|graphics context/i.test(String(error))
+        ?"Chrome could not start 3D graphics. Enable graphics acceleration in Chrome settings, then reopen the game."
+        :"The range could not finish loading. Try again to reopen this flight.";
     }finally{launchPending=false;button.disabled=false;button.lastChild.textContent="Take flight";}
   };
   function choosePerch(){
