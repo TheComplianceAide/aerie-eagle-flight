@@ -26,9 +26,19 @@
   };
 
   function lowSunReflection(mat,shader,light){
+    mat.userData.shadowDirectWater=true;
     mat.uniforms.waterColor.value.setHex(light.body);
     mat.uniforms.sunColor.value.setHex(light.sun);
     mat.uniforms.seaState.value=light.state;
+    if(light===lowSunWater.moosehead){
+      // Sunlight scattered near the surface of this tea-colored lake travels
+      // furthest toward the viewer across the brighter, sunward reaches.
+      shader=shader.replace('vec3 body=mix(deep,shoal,shallow);',`
+        float waterPath=pow(max(0.,dot(-v.xz,sunDirection.xz)),1.65);
+        deep+=vec3(.15,.077,.016)*waterPath*(.52+.48*daylight);
+        vec3 body=mix(deep,shoal,shallow);
+      `);
+    }
     return shader
       .replace('float fresnel=.0204+.9796*pow(1.-cosV,5.);',`
         // Unpolarized Fresnel reflectance for air over fresh or salt water.

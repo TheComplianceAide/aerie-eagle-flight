@@ -87,7 +87,8 @@ window.makeTerrainShadows=function makeTerrainShadows(T,renderer,scene,world){
     if(receivers.has(mat))return;
     const previous=mat.onBeforeCompile,cacheKey=mat.customProgramCacheKey,baseKey=cacheKey.call(mat);
     receivers.set(mat,{previous,cacheKey});
-    mat.customProgramCacheKey=()=>baseKey+'|survey-sun-'+Number(staticGround)+'-'+(hardware?'pcf':'packed');
+    const directWater=mat.userData.shadowDirectWater===true;
+    mat.customProgramCacheKey=()=>baseKey+'|survey-sun-'+Number(staticGround)+'-'+(hardware?'pcf':'packed')+(directWater?'-water-light':'');
     mat.onBeforeCompile=function(shader,...args){
       previous.call(this,shader,...args);
       Object.assign(shader.uniforms,uniforms);
@@ -108,10 +109,13 @@ window.makeTerrainShadows=function makeTerrainShadows(T,renderer,scene,world){
         finishMain(shader.vertexShader,worldPosition+
           'vec3 ridgePoint=(terrainLocalPV*vec4(surveyPosition,1.)).xyz*.5+.5;'+
           (atVertex?'vertexRidgeShade=terrainOcclusion(ridgePoint);':'localSunCoord=ridgePoint;'));
-      shader.fragmentShader=interpolator+(atVertex?'uniform float terrainShadeStrength;\n':lighting)+
-        finishMain(shader.fragmentShader,'float ridgeShade=terrainShadeStrength*'+
-          (atVertex?'vertexRidgeShade;':'terrainOcclusion(localSunCoord);')+
-          'gl_FragColor.rgb*=mix(vec3(1.),vec3(.63,.66,.70),ridgeShade);');
+      const shade='terrainShadeStrength*'+(atVertex?'vertexRidgeShade':'terrainOcclusion(localSunCoord)');
+      // The ridge blocks the sun on the wave and lake bed. The same wave
+      // still sees the open sky, as well as shore already shaded in the mirror.
+      const receiveSun=directWater?shader.fragmentShader.replace('float visibleSun=getShadowMask();',
+        'float visibleSun=getShadowMask()*(1.-'+shade+');'):
+        finishMain(shader.fragmentShader,'float ridgeShade='+shade+';gl_FragColor.rgb*=mix(vec3(1.),vec3(.63,.66,.70),ridgeShade);');
+      shader.fragmentShader=interpolator+(atVertex?'uniform float terrainShadeStrength;\n':lighting)+receiveSun;
     };
     mat.needsUpdate=true;
   }
