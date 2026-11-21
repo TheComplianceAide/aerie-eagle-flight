@@ -105,7 +105,7 @@ def bake(cache,out,diagnostics=None):
   # Segment near the top; preserve an elongated fracture instead of making
   # anything accidentally joined by the watershed into a huge oval.
   radius=np.hypot(xx-px,yy-py)*hs;keep=(radius<4.8)&(rough[yy,xx]>rough[py,px]*.07-.024)
-  yy,xx=yy[keep],xx[keep]; 
+  yy,xx=yy[keep],xx[keep]
   if len(xx)<4:continue
   # A local rock plane comes from the published ground gradient. All dimensions
   # are measured from this individual positive-relief facet.
