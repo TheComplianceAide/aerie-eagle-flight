@@ -476,6 +476,7 @@ class Water extends Mesh {
     lofoten:{sky:'atlas-qwantani_sunrise_puresky.webp',sun:[-.66,.35,.58],water:0,sea:0x225060,stone:[.37,.38,.37],treeH:6,top:330,cover:.6,launch:[600,2470,-450,-1890,320],low:[310,1680,-770,-1750,56]},
     milford:{flightHalf:6370,sky:'atlas-wasteland_clouds_puresky.webp',sun:[-.4,.43,.71],water:0,sea:0x1c4548,stone:[.34,.37,.36],treeH:17,top:1060,cover:1.15,launch:[2370,3200,-2000,-700,330],low:[2630,4340,560,1900,105]}
   }[region]||window.ATLAS_PROFILES?.[region];
+  if(region==='labrador')window.registerBerteNarrows(survey,settings);
   const acadia=region==='acadia';
   const surry=region==='surry';
   const dixville=region==='dixville';
@@ -559,6 +560,13 @@ class Water extends Mesh {
     }
     for(const a of fjordSurveys){const dx=x-a.x,dz=z-a.z,r=Math.max(Math.abs(dx),Math.abs(dz));
       if(r<a.half)val=lerp(sample(a.grid,a.half,dx,dz),val,smoothstep(r,a.half-27,a.half));}
+    if(region==='labrador'&&landmarkTerrain&&x> -435&&x<165&&z>1502&&z<1934){
+      // The regional chart assigns a generic ten-metre floor to this narrows.
+      // Its registered optical bed and dry gravel now occupy the complete
+      // high-resolution slot. Let those triangles set the vertical relief.
+      const edge=Math.min(x+435,165-x,z-1502,1934-z);
+      val=lerp(val,Math.max(val,settings.water+.16),smoothstep(edge,0,20));
+    }
     if(region!=='crater')return val;
     const bed=shoreDetail.calderaBed(x,z,val);
     return includeIslet&&ship?Math.max(bed,ship.surface(x,z)):bed;
@@ -1672,7 +1680,7 @@ class Water extends Mesh {
     region==='lofoten'?window.addHamnoyHarbor(THREE,scene,elevation,settings.water):
     settlement?window.addLakesideBuildings(THREE,scene,settlement,elevation,settings.water):null;
   const waterfrontHeight=waterfront?.build(elevation,settings.water,clock);
-  const cabin=survey.cabin?window.addLabradorCabin(THREE,scene,{elevation,height:elevation,surveyGround:!!campSurface,waterLevel:settings.water,lakeLevel:settings.water},survey.cabin):null;
+  const cabin=survey.cabin?window.addLabradorCabin(THREE,scene,{elevation,height:elevation,surveyGround:!!campSurface,measuredTrees:survey.berteCrowns,waterLevel:settings.water,lakeLevel:settings.water},survey.cabin):null;
   const resort=dixville?window.addDixvilleLandmarks(THREE,scene,survey.sites,elevation):null;
   const inLake=makeAtlasWorld.indexLakeOutline(survey.shore,survey.shoreHoles);
   const birchCover=region==='lofoten'?window.aerieLandClassSampler(region):null;
@@ -1683,6 +1691,7 @@ class Water extends Mesh {
   }
   function plant(tree,isFir){
     if(acadia&&window.acadiaSandOpening(tree.x,tree.z))return;
+    if(survey.inBerteCanopy&&!tree.measuredBerte&&survey.inBerteCanopy(tree.x,tree.z))return;
     if(acadia&&window.thunderHoleBareLedge(tree.x,tree.z))return;
     // Heath and coastal grass are green in the imagery too. Only mapped tree
     // cover supports tall birch crowns; the habitat layer supplies low scrub.
@@ -1714,6 +1723,9 @@ class Water extends Mesh {
       plant({x,z,y:elevation(x,z),height:crowns[i+2]/8,width:crowns[i+3]/8,seed:(i*.618034)%1},false);}
   }
   for(const tree of ship?.trees||[])plant(tree,true);
+  for(const measured of survey.berteCrowns||[]){
+    plant({...measured,y:elevation(measured.x,measured.z)},true);
+  }
   for(const tree of cabin?.campTrees||[])plant(tree,true);
   for(const tree of resort?.lawnTrees||[])plant(tree,true);
   const crownPoints=region==='yosemite'?window.yosemiteCanopy:dixville?window.dixvilleCanopy:survey.crownPoints;
@@ -1837,7 +1849,8 @@ class Water extends Mesh {
   const updateUplandWoods=uplands?.woods(THREE,scene,world,clock,localDEM,bankSurveys);
   if(bankGrowth)world.shoreThickets=bankGrowth;
   for(const bank of bankSurveys)bank.add(THREE,scene,terrain,(x,z)=>regionalElevation(x,z,false),texture);
-  if(landmarkTerrain)world.landformMesh=landmarkTerrain.add(THREE,scene,terrain,(x,z)=>regionalElevation(x,z,false),texture);
+  const addLocalLandform=()=>landmarkTerrain.add(THREE,scene,terrain,(x,z)=>regionalElevation(x,z,false),texture);
+  if(landmarkTerrain&&region!=='labrador')world.landformMesh=addLocalLandform();
   if(easternSummits)world.easternSummits=easternSummits.add(THREE,scene,terrain,(x,z)=>regionalElevation(x,z,false),texture);
   waterfront?.finishIslandTerrain(world.landformMesh);
   if(harborTerrain){
@@ -1847,6 +1860,13 @@ class Water extends Mesh {
   if(kineo){world.kineoTerrainMaterial=terrain;world.kineoBase=(x,z)=>regionalElevation(x,z,false);}
   if(region==='yosemite')world.talusFans=survey.talusFans;
   const rainTrace=window.makeRainTrace(THREE,scene,{world,terrain,water,cabin,survey,inLake,ground:(x,z)=>Math.max(shoreFloor?.ground(x,z)??elevation(x,z),shoreFloor?.(x,z)??-Infinity)});
+  if(landmarkTerrain&&region==='labrador'){
+    // The camp's finite rain volume must be in the shader before the ortho
+    // inset clones it, otherwise its rectangular edge cuts through the woods.
+    world.landformMesh=addLocalLandform();
+    world.berteCanopyAir=window.berteCanopyAir(terrain.uniforms);
+  }
+
   if(localDEM){
     // Reuse the lit regional rock and forest shader. Only the local photograph's
     // coordinates change, so even the busiest waterfront stays in its texture budget.
@@ -1868,6 +1888,7 @@ class Water extends Mesh {
     }
   }
   if(tableHeight)buildTable();
+  if(region==='labrador')window.lightBerteNarrows(THREE,scene,world.berteCanopyAir);
   return world;
 };
 

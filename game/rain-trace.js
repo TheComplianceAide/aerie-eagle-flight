@@ -74,13 +74,7 @@ window.makeRainTrace=function makeRainTrace(T,scene,{world,terrain,water,cabin,s
     // integrate a finite volume of backlit rain over the approach to the camp.
     const campAir=`
       uniform vec2 stormAnchor,stormDir;uniform float stormTime,stormSpeed;
-      float campDistance(vec2 xz){return 1.-smoothstep(300.,720.,length(xz-stormAnchor));}
-      float campShadow(vec2 xz){
-        vec2 q=xz-stormAnchor;
-        float crosswise=dot(q,vec2(-stormDir.y,stormDir.x));
-        float age=stormTime+16.-dot(q,stormDir)/stormSpeed-3.*sin(crosswise*.012);
-        return (1.-smoothstep(4.,18.,age))*(1.-smoothstep(180.,430.,abs(crosswise)));
-      }
+      ${window.berteRainColumn}
       vec3 campAirlight(vec3 base,vec3 ray,float depth){
         float local=campDistance(cameraPosition.xz);
         if(local<.001)return base;
@@ -112,23 +106,8 @@ window.makeRainTrace=function makeRainTrace(T,scene,{world,terrain,water,cabin,s
         base=mix(base,gold,breakthrough*(.44+.55*tex));
         // Sampling in world metres makes the rain front sit between the bird
         // and the far bank. Near forest and cabin silhouettes stay in front.
-        float mass=0.;
-        for(int i=0;i<5;i++){
-          float d=12.+float(i)*42.;
-          if(d>=depth)break;
-          vec3 pos=cameraPosition+ray*d;
-          vec2 q=pos.xz-stormAnchor;
-          float across=dot(q,vec2(-stormDir.y,stormDir.x));
-          float h=pos.y-berteLake;
-          vec2 detailUv=vec2(across*.0067+h*.0013,stormTime*.004+h*.0009);
-          float tail=texture2D(berteCloud,detailUv+vec2(.4,.23)).r;
-          float sheet=campShadow(pos.xz)*campDistance(pos.xz);
-          mass+=(.10+.36*tail)*sheet*(1.-smoothstep(35.,160.,h))*clamp((depth-d)/30.,0.,1.);
-        }
-        float scatter=(1.-exp(-mass*.67))*local;
-        float sunward=max(0.,dot(ray,berteSun));
-        vec3 curtain=mix(vec3(.166,.209,.248),vec3(.475,.378,.239),sunward*sunward);
-        return mix(base,curtain,scatter);
+        vec4 medium=campRainMedium(ray,depth,local);
+        return mix(base,medium.rgb,medium.a);
       }`;
     if(sky){
       const mark='/* before local precipitation */';

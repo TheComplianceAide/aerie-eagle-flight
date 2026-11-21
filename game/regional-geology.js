@@ -130,6 +130,9 @@
           const angle=rand()*Math.PI*2,radius=anchor.radius*Math.sqrt(rand());
           x=anchor.x+Math.cos(angle)*radius;z=anchor.z+Math.sin(angle)*radius;
         }
+        // The surveyed South Camp lawn and two gravel bars carry small mineral
+        // fractions. Open aerials from 2015 and 2022 resolve this same margin.
+        if(world.region==='labrador'&&!small&&window.ATLAS_SURVEYS.labrador.inBerteCanopy(x,z))continue;
         const surveyed=elevation(x,z),drawn=surface(x,z),visible=world.height(x,z);
         const land=profile?.landAt(x,z)||0;
         if(land===7||(!armor&&(land===4||land===5)))continue;
