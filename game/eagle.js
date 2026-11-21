@@ -812,6 +812,7 @@ window.makeEagle = function makeEagle(THREE) {
     return moving?blend(foot.oldHeight,foot.height,smooth(.12,.88,stance.progress)):foot.height;
   }
   const tiltAngles=new THREE.Euler(),bodyTilt=new THREE.Quaternion(),levelFeet=new THREE.Quaternion(),bodyUp=new THREE.Vector3();
+  const tailClear={stance:null,heading:0,limit:0},tailRoot=new THREE.Vector3();
   const stepRotation=new THREE.Quaternion(),standingAxis=new THREE.Vector3(0,1,0),weightShift=new THREE.Vector3();
   const blend=(flight,landing,amount)=>flight+(landing-flight)*amount;
   let phase = 0, effort = 0, tuck = 0, lastBank = 0, turnDemand = 0;
@@ -908,9 +909,14 @@ window.makeEagle = function makeEagle(THREE) {
     localHead.multiply(chest.quaternion).invert();
     worldHead.setFromEuler(headAngles.set(lockedPitch,lockedYaw,bank*.17,'YXZ'));
     headAngles.setFromQuaternion(localHead.multiply(worldHead),'YXZ');
-    const yaw=blend(clamp(headAngles.y,-1.33,1.33),clamp(s.perchLook??0,-1.42,1.42),fold);
-    const nod=blend(clamp(headAngles.x,s.gazeLanding?-1.19:-.72,.62),clamp((s.perchLookPitch??0)-chest.rotation.x,-.93,.52),fold);
-    const roll=blend(clamp(headAngles.z,-.98,.98),0,fold);
+    const flightYaw=clamp(headAngles.y,-1.33,1.33),flightNod=clamp(headAngles.x,s.gazeLanding?-1.19:-.72,.62),flightRoll=clamp(headAngles.z,-.98,.98);
+    // Perched, the head turns about the world's vertical however upright the
+    // breast sits, so it stays level as it swings round over a shoulder.
+    worldHead.setFromEuler(headAngles.set(s.perchLookPitch??0,clamp(s.perchLook??0,-1.42,1.42),0,'YXZ'));
+    headAngles.setFromQuaternion(localHead.copy(chest.quaternion).invert().multiply(worldHead),'YXZ');
+    const yaw=blend(flightYaw,clamp(headAngles.y,-1.6,1.6),fold);
+    const nod=blend(flightNod,clamp(headAngles.x,-1.45,.6),fold);
+    const roll=blend(flightRoll,clamp(headAngles.z,-1.25,1.25),fold);
     const settle=reset?1:1-Math.exp(-65*step),maxMotion=reset?Math.PI:8.6*step;
     neckPose.y+=clamp((yaw-neckPose.y)*settle,-maxMotion,maxMotion);
     neckPose.x+=clamp((nod-neckPose.x)*settle,-maxMotion,maxMotion);
@@ -988,7 +994,11 @@ window.makeEagle = function makeEagle(THREE) {
     chest.rotation.x = -.022 * effort * Math.cos(phase - .45);
     chest.position.y=blend(chest.position.y,.053+.002*Math.sin(time*2.2),folded)+legSupport*Math.cos(pitch);
     chest.position.z=-legSupport*Math.sin(pitch);
-    chest.rotation.x=blend(chest.rotation.x+.11*flare,.64+.006*Math.sin(time*2.2),folded);
+    // A bald eagle at rest on a limb sits nearly upright, breast over its
+    // feet and tail hanging behind the branch. On a ledge it stands lower,
+    // so the tail clears the rock.
+    const stand=air.perchOnRock ? .9 : 1.15;
+    chest.rotation.x=blend(chest.rotation.x+.11*flare,stand+.006*Math.sin(time*2.2),folded);
     for (const part of tuckedFeet)part.visible=grip<.18;
     // As the breast pitches up the feet keep reaching toward the perch. The
     // yaw belongs to the bird; the ankles counter the body's pitch and bank.
@@ -1105,9 +1115,27 @@ window.makeEagle = function makeEagle(THREE) {
     rudder.rotation.x=blend(rudder.rotation.x-.30*tailBrake,-.19,folded)-(air.perchBalance||0)*.12;
     // Long rectrices clear a ledge as the eagle loads its legs. From a tree
     // limb they can hang further below its feet as the breast rises.
-    const tailDownLimit=air.perchOnRock ? .14+.14*folded-.11*compression : .56+.10*folded-.42*perchPivot;
+    const tailDownLimit=air.perchOnRock ? .14+.14*folded-.11*compression : .56+(.10+stand-.64)*folded-.42*perchPivot;
+    // On a thick limb the hanging tail still has to clear the wood behind the feet.
+    const limb=air.perchOnRock?null:air.perchStep;
+    if(limb?.supportAt&&folded>.6){
+      if(tailClear.stance!==limb||Math.abs(wrap(heading-tailClear.heading))>.04){
+        tailClear.stance=limb;tailClear.heading=heading;tailClear.limit=tailDownLimit;
+        rudder.getWorldPosition(tailRoot);
+        const bx=Math.sin(heading),bz=Math.cos(heading);
+        for(let down=tailDownLimit;down>.3;down-=.08){
+          let clear=true;
+          for(const reach of [.14,.26,.38]){
+            const surface=limb.supportAt(tailRoot.x+bx*reach*Math.cos(down),tailRoot.z+bz*reach*Math.cos(down));
+            if(Number.isFinite(surface)&&surface>tailRoot.y-reach*Math.sin(down)-.025){clear=false;break;}
+          }
+          tailClear.limit=down;
+          if(clear)break;
+        }
+      }
+    }else if(!limb)tailClear.stance=null;
     const tailDown=pitch+chest.rotation.x+rudder.rotation.x;
-    rudder.rotation.x-=footPlant*Math.max(0,tailDown-tailDownLimit);
+    rudder.rotation.x-=footPlant*Math.max(0,tailDown-(tailClear.stance?Math.min(tailDownLimit,tailClear.limit):tailDownLimit));
     rudder.rotation.z=blend(.22*bank+(air.tailTwist??-.12*rollTrim),0,folded);
     const priorYaw=neckPose.y;
     updateGaze(time,step,pitch,bank,fixation,folded,air,reset);
