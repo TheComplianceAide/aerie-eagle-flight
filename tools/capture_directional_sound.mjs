@@ -17,7 +17,9 @@
 //
 // usage: node tools/capture_directional_sound.mjs --output <dir> [--seconds 100]
 //          [--world moosehead] [--launch lake] [--route '[[x,z,altitude],...]']
-//          [--perch] [--game <game dir>] [--chrome <path>] [--no-wav]
+//          [--perch] [--keys '[[from,to,"Space"],...]'] [--game <game dir>] [--chrome <path>] [--no-wav]
+// With --keys the autopilot is off and the listed keys are held between the
+// given seconds of the recording (a take-off and climb, for instance).
 // With --perch the eagle lands on the launch's perch first and the recording
 // is made from there, with no flight wind in it: what a microphone left at
 // that spot would hear. Use it with a launch that has a perch, such as lookout.
@@ -35,7 +37,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 const {values: options} = parseArgs({options: {
   output: {type: 'string'}, seconds: {type: 'string', default: '100'}, world: {type: 'string', default: 'moosehead'},
   launch: {type: 'string', default: 'lake'}, route: {type: 'string'}, game: {type: 'string'}, chrome: {type: 'string'}, 'no-wav': {type: 'boolean'},
-  perch: {type: 'boolean'}
+  perch: {type: 'boolean'}, keys: {type: 'string'}
 }});
 if (!options.output) throw Error('Required argument: --output <directory>');
 const tools = path.dirname(fileURLToPath(import.meta.url));
@@ -43,7 +45,8 @@ const game = path.resolve(options.game || path.join(tools, '../game'));
 // The Kineo pass: x, z and altitude in metres. The lake is at 312 m, the
 // summit near 540 m, and the wind blows toward the north-east, so the water
 // under the east-facing cliffs is in their lee.
-const route = options.perch ? [] : options.route ? JSON.parse(options.route) : [[420, -880, 372], [392, -1010, 362], [395, -1160, 362], [640, -1210, 385], [860, -800, 415], [836, -455, 432]];
+const keys = options.keys ? JSON.parse(options.keys) : [];
+const route = options.perch || keys.length ? [] : options.route ? JSON.parse(options.route) : [[420, -880, 372], [392, -1010, 362], [395, -1160, 362], [640, -1210, 385], [860, -800, 415], [836, -455, 432]];
 const seconds = +options.seconds;
 
 const candidates = [options.chrome, process.env.CHROME_PATH, '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
@@ -113,7 +116,7 @@ const tap = `(() => {
 })();`;
 
 // Runs in the page once flight has begun: the autopilot, the trace and the cost.
-const pilot = `(route => {
+const pilot = `((route, keys) => {
   const scape = window.aerieSoundscapeDebug, ear = scape.engine.ear, capture = window.__capture;
   const held = new Set(), rows = [], frames = [];
   const press = (code, on) => {
@@ -140,6 +143,8 @@ const pilot = `(route => {
       press('KeyW', ear.y < ty - 5); press('KeyS', ear.y > ty + 8);
       press('Space', ear.y < ty - 22 || speed < 12);
     }
+    const elapsed = capture.context.currentTime - began;
+    for (const [from, to, code] of keys) press(code, elapsed >= from && elapsed < to);
     rows.push({t: +(capture.context.currentTime - began).toFixed(2), x: +ear.x.toFixed(1), y: +ear.y.toFixed(1), z: +ear.z.toFixed(1),
       speed: +Math.hypot(ear.vx, ear.vy, ear.vz).toFixed(1), leg, shelter: scape.shelter === undefined ? null : +scape.shelter.toFixed(3),
       masker: scape.engine.masker === undefined ? null : +scape.engine.masker.toFixed(5), sources: scape.trace ? scape.trace() : []});
@@ -182,7 +187,7 @@ try {
     await until(() => evaluate("app.dataset.perch==='perched'"), 'landing on the perch', 150000);
     await delay(4000);                      // let the landing and its sounds finish
   }
-  await evaluate(pilot + '(' + JSON.stringify(route) + ')');
+  await evaluate(pilot + '(' + JSON.stringify(route) + ',' + JSON.stringify(keys) + ')');
   await delay(seconds * 1000);
   const run = await evaluate(`(() => { const r = window.__run; r.stop();
     return {rows: r.rows, frames: r.frames.slice(5), spent: r.spent, updates: r.updates, rate: __capture.rate, blocks: __capture.left.length}; })()`);

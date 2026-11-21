@@ -463,3 +463,14 @@ https://creativecommons.org/licenses/by/4.0/
 CC0 dedication for the three surf sources: https://creativecommons.org/publicdomain/zero/1.0/
 
 The existing field cricket recording credited under Moosehead plays from dry forest margins. Otter Cliff, Sand Beach and Boulder Beach have fixed coastal sound sources. Straight-line distance, altitude, wind masking and terrain shielding affect the sound reaching the eagle.
+
+THE EAGLE'S OWN WIND AND WINGS
+wind-at-ears.m4a — “air over mic.wav,” cognito perceptu, Freesound. Air rushing over the microphones on a fast bicycle descent: the wind at the eagle's ears in flight. Seventeen seconds, band-limited 35 Hz to 6.2 kHz, both channels levelled, loop seam crossfaded. CC0 1.0.
+https://freesound.org/people/cognito%20perceptu/sounds/20108/
+
+eagle-wing-a.m4a, eagle-wing-c.m4a — “200906 Bald Eagle, wing flaps flying overhead,” TRP, Freesound. Two wing strokes of a bald eagle passing overhead (23.55 to 23.99 and 24.09 to 24.24 seconds), band-limited 140 Hz to 3.2 kHz and faded. CC0 1.0.
+https://freesound.org/people/TRP/sounds/568810/
+
+eagle-wing-b.m4a — “baldeagle-flap_and_cry.ogg,” stackpool, Freesound. One wing stroke of a bald eagle (1.03 to 1.31 seconds), band-limited 70 Hz to 3.2 kHz and faded. CC0 1.0.
+https://freesound.org/people/stackpool/sounds/39338/
+https://creativecommons.org/publicdomain/zero/1.0/

@@ -237,17 +237,21 @@
   // upwind ear (sideslip, bank) is louder and brighter; gusts arrive as
   // turbulent bursts; above ~26 m/s the contour feathers flutter (AM noise).
   function makeAirflow(context, destination) {
+    // The wind is a recording of air rushing over a cyclist's microphones on
+    // a fast descent, shaped and levelled by airspeed. Until it has loaded,
+    // shaped noise stands in for it.
     const fs = context.sampleRate, len = Math.floor(6 * fs), buf = context.createBuffer(2, len, fs);
+    let rms = .1, real = false;
     for (let ch = 0; ch < 2; ch++) {
       const d = buf.getChannelData(ch); let b0 = 0, b1 = 0, b2 = 0;
       for (let i = 0; i < len; i++) { // pink-ish (Kellet) noise
         const w = Math.random() * 2 - 1; b0 = .99765 * b0 + w * .099046; b1 = .963 * b1 + w * .2965164; b2 = .57 * b2 + w * 1.0526913;
         d[i] = (b0 + b1 + b2 + w * .1848) * .12;
       }
-      if (ch === 0) { let sum = 0; for (let i = 0; i < len; i++) sum += d[i] * d[i]; makeAirflow.rms = Math.sqrt(sum / len); }
+      if (ch === 0) { let sum = 0; for (let i = 0; i < len; i++) sum += d[i] * d[i]; rms = Math.sqrt(sum / len); }
       for (let i = 0; i < 4096; i++) d[len - 4096 + i] = d[len - 4096 + i] * (1 - i / 4096) + d[i] * (i / 4096);
     }
-    const src = context.createBufferSource(); src.buffer = buf; src.loop = true;
+    let src = context.createBufferSource(); src.buffer = buf; src.loop = true;
     const split = context.createChannelSplitter(2), merge = context.createChannelMerger(2), out = context.createGain();
     out.gain.value = 0;
     const ears = [0, 1].map(i => {
@@ -265,6 +269,17 @@
     src.start(); lfo.start();
     let burst = 0;
     return {
+      get real() { return real; },
+      // Swap the stand-in noise for the recording once it has been decoded.
+      adopt(recording) {
+        if (real || !recording || recording.numberOfChannels < 2) return;
+        const d = recording.getChannelData(0); let sum = 0, n = 0;
+        for (let i = 0; i < d.length; i += 3) { sum += d[i] * d[i]; n++; }
+        const next = context.createBufferSource(); next.buffer = recording; next.loop = true;
+        next.connect(split); next.connect(band); next.start(0, Math.random() * recording.duration);
+        try { src.stop(); src.disconnect(); } catch (e) {}
+        src = next; rms = Math.sqrt(sum / n) || .1; real = true;
+      },
       update(s, gust, now) {
         const v = Math.max(0, (s.indicatedAirspeed ?? s.airspeed) || 0);
         // Wind at the ears is the loudest thing in flight. Flow noise grows as
@@ -272,14 +287,20 @@
         // cyclists: 85 dBA at 6.7 m/s, 120 dBA at 27 m/s), so its amplitude
         // follows v^2.6: a whisper at 8 m/s, level with a loud call close by
         // at 15 m/s (about -22 dBFS), and held from 19 m/s so a dive cannot clip.
-        const level = .08 * Math.pow(clamp(v, 0, 19) / 15, 2.6) * 1.35 / ((makeAirflow.rms || .1) * .32 * .86);
+        const level = .08 * Math.pow(clamp(v, 0, 19) / 15, 2.6) * (real ? 1 : 1.35) / (rms * .32 * .86);
+        // The recording was made at about cruising speed: slower air loses its
+        // hiss, faster air keeps all of it.
+        const reach = real ? clamp(1500 * Math.pow(2, (v - 8) / 3), 700, 12000) : 280 + 55 * v;
         const slip = clamp((s.yawSlip || 0) * 2.2 + (s.bank || 0) * .45, -1, 1);
         burst = burst * .9 + (Math.random() < (.02 + .08 * gust) ? rand(.3, .9) * gust : 0);
-        const turb = 1 + .3 * burst + .15 * (gust - .5);
+        // Each downstroke drives air past the head: the rush swells with it
+        // and falls back on the upstroke, in time with the wings on screen.
+        const swell = clamp(s.effort || 0, 0, 1.2) * Math.max(0, Math.sin((s.phase || 0) - .25)) ** 1.5;
+        const turb = (1 + .3 * burst + .15 * (gust - .5)) * (1 + 1.5 * swell);
         ears.forEach((e, i) => {
           const side = i === 0 ? -slip : slip; // positive: this ear faces the airflow
-          e.g.gain.setTargetAtTime(level * turb * (1 + .25 * side), now, .06);
-          e.lp.frequency.setTargetAtTime(280 + 55 * v * (1 + .3 * side) + 900 * burst, now, .08);
+          e.g.gain.setTargetAtTime(level * turb * (1 + .25 * side), now, .035);
+          e.lp.frequency.setTargetAtTime(reach * (1 + .3 * side) + 900 * burst + 260 * swell, now, .08);
         });
         const flap = smooth(26, 42, v);
         flutter.gain.setTargetAtTime(.16 * flap, now, .1); // AM around this base: 0 to 2x
@@ -836,7 +857,8 @@
     // rattling); a landing adds a soft thump as the feet take the weight.
     let bodyNoise = null;
     function bodySound(d) {
-      if (!enabled || !d) return;
+      // Synthesised, so heard with Eagle Ears only (see preyCues).
+      if (!enabled || !d || !eagleEars) return;
       const now = context.currentTime, strength = clamp(d.strength ?? 1, 0, 1.5);
       if (!bodyNoise) {
         bodyNoise = context.createBuffer(1, Math.round(context.sampleRate * 1.5), context.sampleRate);
@@ -861,6 +883,30 @@
         osc.connect(og).connect(destination); osc.start(now); osc.stop(now + .22);
         osc.onended = () => { try { osc.disconnect(); og.disconnect(); } catch (e) {} };
       }
+    }
+    // The eagle's own wings. Each downstroke is heard twice over: the wind at
+    // the ears swells with it (see makeAirflow), and a recording of a bald
+    // eagle's wing stroke plays under it, clearest on a take-off or a slow
+    // climb where the wind does not cover it.
+    const strokes = ['eagle-wing-a', 'eagle-wing-b', 'eagle-wing-c'];
+    strokes.forEach(id => load(id));
+    load('wind-at-ears');
+    let strokeTurn = null, lastStroke = '';
+    function wingStroke(s, now) {
+      const turn = Math.floor(((s.phase || 0) - .25) / (2 * Math.PI)), began = strokeTurn !== null && turn > strokeTurn;
+      strokeTurn = turn;
+      const effort = clamp(s.effort || 0, 0, 1.2);
+      if (!began || effort < .2) return;
+      const ready = strokes.filter(id => id !== lastStroke && buffers.get(id)); if (!ready.length) return;
+      const id = lastStroke = pick(ready), v = (s.indicatedAirspeed ?? s.airspeed) || 0;
+      const src = context.createBufferSource(), g = context.createGain(), pan = context.createStereoPanner?.();
+      src.buffer = buffers.get(id); src.playbackRate.value = rand(.9, 1.1) * (.92 + .16 * effort);
+      // Loud on a take-off, half covered by the wind at cruising speed.
+      g.gain.value = .7 * effort * clamp(1.3 - v / 45, .55, 1) * (id === 'eagle-wing-c' ? .6 : 1) * rand(.8, 1.1);
+      src.connect(g);
+      if (pan) { pan.pan.value = rand(-.3, .3); g.connect(pan).connect(destination); } else g.connect(destination);
+      src.start(now);
+      src.onended = () => { for (const node of [src, g, pan]) try { node?.disconnect(); } catch (e) {} };
     }
     if (window.aerieBodySoundHandler) window.removeEventListener('aerie-eagle-body', window.aerieBodySoundHandler);
     window.aerieBodySoundHandler = e => bodySound(e.detail);
@@ -904,9 +950,11 @@
       }
       const gust = listenerWeather?.gust ?? extras.gust ?? .5;
       airflow = airflow || makeAirflow(context, destination);
+      if (!airflow.real && buffers.get('wind-at-ears')) airflow.adopt(buffers.get('wind-at-ears'));
       // Indicated airspeed already includes the air velocity relative to the
       // moving bird. The local pressure pulse adds independent ear turbulence.
       airflow.update(s, gust, now);
+      wingStroke(s, now);
       engine.setMasker(windMasker(s.airspeed || 0, gust, listenerWeather?.exposure ?? extras.open ?? extras.exposure ?? 1, lee(s)));
       const agl = Math.max(0, ear.y - ground(world, ear.x, ear.z));
       const elevationGain = extras.exposure ?? clamp(agl / 200, 0, 1);
