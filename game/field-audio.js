@@ -436,7 +436,7 @@
       started=true;tick=0;
     }
     const actorIds=new WeakMap();let actorCount=0;
-    function voice(id,gain,pan,cutoff,anchor=null){
+    function voice(id,gain,pan,cutoff,anchor=null,priority=false){
       const buffer=buffers.get(id);
       if(!buffer)return false;
       if(anchor&&scape?.engine){
@@ -454,7 +454,8 @@
         if(s&&anchor.actor)s.onUpdate=()=>{s.x=anchor.actor.x;s.y=anchor.actor.y;s.z=anchor.actor.z;};
         // A songbird or frog that is already singing stops if the eagle closes inside its hush radius.
         if(s&&hushOf(id))scape.hush?.(s,hushOf(id));
-        return !!s;
+        if(s)scape.noteVoice?.(s,priority ? .7 : random(1.1,2.6),priority);
+        return s;
       }
       const c=channel(buffer,anchor);
       c.gain.gain.value=gain;
@@ -496,6 +497,7 @@
         manualDue=at+Math.max(3.6,duration+.5);
         pending=null;
         quietUntil=Math.max(quietUntil,at+duration+.4);
+        scape?.noteVoice?.(null,duration+.65,true);
         wildlifeUntil=Math.max(wildlifeUntil,at+duration+.3);
         eagleDue=Math.max(eagleDue,at+duration+8);
         const gain=environmentMix.gain;
@@ -529,9 +531,10 @@
         if(d>reach*.94||d<hushOf(id))continue;
         const signal=gain*(1-clamp((d/reach-.54)/.46,0,1));
         const clip=id==='loon-moosehead'&&loonTake%2&&buffers.has('maine-loon-reply')?'maine-loon-reply':id;
-        if(voice(clip,signal,0,14000,a)){
+        const played=voice(clip,signal,0,14000,a);
+        if(played){
           if(id==='loon-moosehead')loonTake++;
-          return {index:(slot+1)%list.length,duration:buffers.get(clip).duration};
+          return {index:(slot+1)%list.length,duration:played.endsAt ? played.endsAt-context.currentTime : buffers.get(clip).duration};
         }
       }
       return null;
@@ -562,7 +565,7 @@
       }
     }
     let lastShore=null,shoreX=Infinity,shoreZ=Infinity,shoreSearchLow=false;
-    function update(s,world,dt,camera,stage='free'){
+    function update(s,world,dt,camera,stage='free',perch=null){
       if(!enabled||!s||!world)return;
       if(scape===null&&window.makeSoundscape){
         try{
@@ -571,7 +574,10 @@
           for(const [id,c] of [...loops])if(scape.adopt(id,c.source.buffer)){c.source.stop();loops.delete(id);scapeBeds.add(id);}
         }catch(error){console.warn('Aerie soundscape unavailable',error);scape=false;}
       }
-      if(scape)scape.update(s,camera,dt,scapeExtras);
+      if(scape){
+        scapeExtras.perchStage=stage;scapeExtras.perch=perch;
+        scape.update(s,camera,dt,scapeExtras);
+      }
       if(camera){
         const listener=context.listener,eye=camera.position;
         place(listener,eye.x,eye.y,eye.z);
@@ -623,8 +629,8 @@
       const open=clamp((agl-12)/190+.51*ridge*(1-.63*canopy),0,1),exposure=open*(1-.7*(scape?.lee?.(s)??0));
       const gust=world.windField?.sample(s.x,s.y,s.z,s.elapsed||0,gustSample)?.gust??window.aerieWind(s.x,s.z,s.elapsed||0);
       const speed=clamp((s.airspeed||0)/32,0,1.3);
-      scapeExtras={exposure,open,gust,canopy,shore:lastShore};
-      air.gain.setTargetAtTime((.045+.12*speed+.63*exposure)*(.70+.37*gust)*(1-.46*canopy)*(window.aerieWindTrim??1),now,.55);
+      scapeExtras={exposure,open,gust,canopy,shore:lastShore,perchStage:stage,perch};
+      air.gain.setTargetAtTime((.018+.09*speed+.57*exposure)*(.51+.53*gust)*(1-.52*canopy)*(window.aerieWindTrim??1),now,.55);
       shelf.frequency.setTargetAtTime(550+1320*speed+2850*exposure+530*gust,now,.55);
       for(const shot of shots){
         if(!shot.anchor)continue;
@@ -689,7 +695,7 @@
         });
         if(sighted){recognized.set(sighted.actor,now);lastEncounter=now;pending='encounter';eagleDue=now;}
       }
-      if(now>=eagleDue&&now>=quietUntil&&(now>=wildlifeUntil||pending==='encounter')){
+      if(now>=eagleDue&&now>=quietUntil&&(pending==='encounter'||now>=wildlifeUntil&&(scape?.canVoice?.(now)??true))){
         const nearWater=waterGap<62&&(shore<115||Number.isFinite(world.waterLevel)&&here<waterY+.12);
         const occasion=pending||(stage==='perched'?'perched':nearWater?'shoreline':
           s.effort>.5||s.verticalSpeed>2.6?'climbing':'soaring');
@@ -701,6 +707,7 @@
         if(voice(id,occasion==='encounter'?.95:occasion==='perched'?.59:.70,-.10,15500)){
           announceCall(id,buffers.get(id));
           wildlifeUntil=Math.max(wildlifeUntil,now+buffers.get(id).duration+.3);
+          scape?.noteVoice?.(null,buffers.get(id).duration+.8,occasion==='encounter');
           nextPhrase.set(occasion,(index+1)%choices.length);pending=null;
           quietUntil=now+buffers.get(id).duration+2.8;
           // Bald eagles call from perches and at the nest; on the wing they are mostly silent.
@@ -713,7 +720,7 @@
       const daylight=region==='acadia'?0:clamp(((world.sunDirection?.y??.4)-.05)/.2,0,1);
       const pause=id=>{const manner=timingOf(id);return between(manner.idle)*(daylight>0&&manner.night?1+(manner.night-1)*daylight:1);};
       for(const id of localMammals){
-        if(now<wildlifeUntil||now<mammalDue.get(id))continue;
+        if(now<wildlifeUntil||now<mammalDue.get(id)||scape?.canVoice?.(now)===false)continue;
         const [reach,gain]=calls[id],actor=world.wildlife?.land?.caller(id,s,reach);
         if(!actor){mammalDue.set(id,now+random(2,5));continue;}
         const anchor={x:actor.x,y:actor.y,z:actor.z,actor,reach,gain};
@@ -726,7 +733,7 @@
       // its bout is due and one of its kind is in earshot, it calls and its
       // own clock starts again. An animal the eagle is beside is left to the
       // alarm below: it is watching the eagle, not singing.
-      if(now>=wildlifeUntil&&idleIds.length){
+      if(now>=wildlifeUntil&&idleIds.length&&(scape?.canVoice?.(now)??true)){
         const id=idleIds[idleTurn++%idleIds.length],wary=alarms.get(id);
         if(now>=idleDue.get(id)&&pause(id)<1e6&&!(wary&&now-wary.seen<8)){
           const call=callWildlife([id],0,s,world,lastShore,waterY,agl);
@@ -759,7 +766,7 @@
           const range=manner.range??clamp(reach*.45,40,130);
           const d=Math.hypot(s.x-near.x,s.y-near.y,s.z-near.z),close=1-clamp((d-.2*range)/(.8*range),0,1);
           const length=buffers.get(clip)?.duration||2;
-          if(voice(clip,gain*(.62+.38*close),0,14000,{...near,reach,gain})){
+          if(voice(clip,gain*(.62+.38*close),0,14000,{...near,reach,gain},true)){
             state.left--;
             state.due=now+(state.left?Math.max(.8,length+between(manner.gap)):length+between(manner.rest));
             wildlifeUntil=Math.max(wildlifeUntil,now+Math.min(length,1.4)+.2);

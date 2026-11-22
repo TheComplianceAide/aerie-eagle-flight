@@ -483,3 +483,7 @@ RAIN
 rain-steady.m4a — “woodlands downpour Ekelund part 1,” forestfjord, Freesound. A summer downpour in forest outside Ekelund, Sweden, recorded from a cabin terrace. Twenty seconds from 2:35, band-limited 55 Hz to 9.5 kHz, mono, loop seam crossfaded. It carries the body of the rain in every world that has rain. CC0 1.0.
 https://freesound.org/people/forestfjord/sounds/818932/
 https://creativecommons.org/publicdomain/zero/1.0/
+
+scape-labrador-cabin-rain.m4a — “Rain light porch last wave and pass over”, kyles, Freesound. Rural Canada, province unspecified. A 16-second excerpt filtered and mixed to mono, used as a Canadian porch-rain analogue near South Camp cabin. CC0 1.0.
+https://freesound.org/people/kyles/sounds/454134/
+https://www.panor.tech/sound/zh-hans/r/644/

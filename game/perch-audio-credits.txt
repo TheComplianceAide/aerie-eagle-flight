@@ -1,0 +1,29 @@
+AERIE PERCH CONTACT AND CANOPY RECORDINGS
+
+Short Foley analogues in the game's spatial sound field. All clips were trimmed, folded to mono when necessary, filtered, level-matched, and faded. They are material analogues for simulated eagle contact.
+
+perch-creak-a.m4a and perch-creak-b.m4a: Department64, "tree_creak.wav", from inside a tree. Based on the CC0 cleanup by AntumDeluge. Excerpts at 1.13–1.90 and 2.21–2.66 seconds of that edition.
+https://freesound.org/people/Department64/sounds/95259/
+https://opengameart.org/content/tree-creaking
+https://creativecommons.org/publicdomain/zero/1.0/
+
+perch-bark.m4a, perch-stone.m4a, perch-grit.m4a, and perch-wet.m4a: wood02.ogg, stone01.ogg, gravel.ogg and mud02.ogg, respectively, from "Different steps on wood, stone, leaves, gravel and mud", curated and edited by TinyWorlds from pdsounds.org recordings. CC0 1.0.
+https://opengameart.org/content/different-steps-on-wood-stone-leaves-gravel-and-mud
+https://creativecommons.org/publicdomain/zero/1.0/
+
+perch-ice.m4a: snow_step_wet-05.flac from "9 wet snow steps", recorded by Iwan "qubodup" Gabovitch in Berlin in winter 2008–2009. CC0 1.0. A short crusted snow scrape represents ice grains under talons.
+https://opengameart.org/content/9-wet-snow-steps
+https://creativecommons.org/publicdomain/zero/1.0/
+
+perch-sand.m4a: excerpt from "Water Splash and sand footsteps", recorded by Peludo. CC0 1.0.
+https://opengameart.org/content/water-splash-and-sand-footsteps
+https://rnan.itch.io/
+https://creativecommons.org/publicdomain/zero/1.0/
+
+perch-leaf.m4a: kvgarlic, "Winds and Leaves MIX From October 23rd 2019 Smaller File Size", recorded in oak-hickory woods in Illinois. CC0 1.0. Excerpt from the existing scape-dixville-dry-leaves edition.
+https://freesound.org/people/kvgarlic/sounds/489774/
+https://creativecommons.org/publicdomain/zero/1.0/
+
+perch-needle.m4a: Hear_it_use_it, "Wind in Pine Trees, Soft Rustle, Slaley Forest, ORTF Stereo", recorded among Sitka spruce and Scots pine, Northumberland, England. Excerpt from the existing scape-acadia-spruce edition. CC BY 4.0.
+https://freesound.org/people/Hear_it_use_it/sounds/849627/
+https://creativecommons.org/licenses/by/4.0/

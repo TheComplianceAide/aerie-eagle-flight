@@ -145,7 +145,7 @@ window.makePerchHabitat=function makePerchHabitat(T,scene,world,region){
       const px=x+dx*length,pz=z+dz*length,top=y+level;
       if(!boundsOK(px,pz,3)||floor(px,pz)>top-.32)return null;
       const slope=corridor(px,top,pz,dx,dz);if(slope===null)return null;
-      return finish({id,type:'branch',label:'Exposed tree limb',x:px,y:top,z:pz,seed,length,tree,root:{x,y,z}},dx,dz,slope);
+      return finish({id,type:'branch',substrate:'bark',label:'Exposed tree limb',x:px,y:top,z:pz,seed,length,tree,root:{x,y,z}},dx,dz,slope);
     });
   }
   const moosehead=region==='moosehead'&&!!world.regionalGeology?.perchNear;
@@ -165,7 +165,9 @@ window.makePerchHabitat=function makePerchHabitat(T,scene,world,region){
     const seed=noise(Math.round(x*5),Math.round(z*5),59);
     return orient(seed,hint,(dx,dz)=>{
       const slope=corridor(x,y,z,dx,dz);if(slope===null)return null;
-      return finish({id:'substrate:'+x.toFixed(3)+','+z.toFixed(3),type:'rock',label,x,y,z,seed,radius:radial,root:{x,y,z},existingSurface:true},dx,dz,slope);
+      const substrate=stone?'stone':'grit';
+      const splashZone=y<world.waterLevel+1.1;
+      return finish({id:'substrate:'+x.toFixed(3)+','+z.toFixed(3),type:'rock',substrate,splashZone,label,x,y,z,seed,radius:radial,root:{x,y,z},existingSurface:true},dx,dz,slope);
     });
   }
   function rockSite(x,z,hint,route=false){
@@ -189,7 +191,7 @@ window.makePerchHabitat=function makePerchHabitat(T,scene,world,region){
         const seed=noise(Math.round(cap.x*5),Math.round(cap.z*5),59);
         return orient(seed,hint,(dx,dz)=>{
           const slope=corridor(cap.x,cap.y,cap.z,dx,dz);
-          return slope===null?null:finish({id:'armor:'+cap.x.toFixed(3)+','+cap.z.toFixed(3),type:'rock',
+          return slope===null?null:finish({id:'armor:'+cap.x.toFixed(3)+','+cap.z.toFixed(3),type:'rock',substrate:'stone',
             label:'Quarry stone',x:cap.x,y:cap.y,z:cap.z,seed,radius:cap.radius,root:cap,existingSurface:true},dx,dz,slope);
         });
       }
@@ -215,7 +217,7 @@ window.makePerchHabitat=function makePerchHabitat(T,scene,world,region){
     if(!hint&&Math.hypot(fallX,fallZ)>.36)hint={x:fallX,z:fallZ};
     return orient(seed,hint,(dx,dz)=>{
       const slope=corridor(x,height,z,dx,dz);if(slope===null)return null;
-      return finish({id,type:'rock',label:dryRock?'Sandstone ledge':'Rock ledge',x,y:height,z,seed,radius:radial,root:{x,y,z}},dx,dz,slope);
+      return finish({id,type:'rock',substrate:dryRock?'grit':'stone',label:dryRock?'Sandstone ledge':'Rock ledge',x,y:height,z,seed,radius:radial,root:{x,y,z}},dx,dz,slope);
     });
   }
   function terrainPerch(x,z,hint,label='Rock shelf',support=ground){
@@ -226,9 +228,11 @@ window.makePerchHabitat=function makePerchHabitat(T,scene,world,region){
       if(!Number.isFinite(sample)||Math.abs(sample-y)>.11)return null;
     }
     const seed=noise(Math.round(x*5),Math.round(z*5),59);
+    const substrate=label==='Glacier ice'?'ice':label==='Sand Beach landing'?'sand':'stone';
+    const splashZone=substrate==='sand'&&y<world.waterLevel+1.3;
     return orient(seed,hint,(dx,dz)=>{
       const slope=corridor(x,y,z,dx,dz);
-      return slope===null?null:finish({id:'terrain:'+x.toFixed(2)+','+z.toFixed(2),type:'rock',label,
+      return slope===null?null:finish({id:'terrain:'+x.toFixed(2)+','+z.toFixed(2),type:'rock',substrate,splashZone,label,
         x,y,z,radius:.31,seed,root:{x,y,z},existingSurface:true},dx,dz,slope);
     });
   }

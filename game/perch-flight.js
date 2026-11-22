@@ -12,7 +12,18 @@ window.makePerchFlight=function(T,world,habitat,route){
   let strokeForce=0,limbTravel=0,drive=0,beat=0,brakeBeat=0;
   let stance=null,arrivalYaw=0,nextFoot=1,stepPause=0,stepStart=0,stepEnd=0,stepDuration=0,exitLook=0;
   let settleTime=0,openYaw=0,selectionRange=750,lookYaw=0,lookPitch=0,baseYaw=0,pushTime=0,refresh=0,selection=[],selectionTime=-99;
+  let soundId=0,branchCreaked=false;
   const station=new T.Vector3(),ahead=new T.Vector3(),velocity=new T.Vector3();
+  function sound(s,kind,strength,foot=0){
+    const site=selected;
+    const limb=kind==='strain';
+    const x=limb?lerp(site.x,site.root?.x??site.x,.44):site.x+Math.cos(s.yaw)*foot*.10;
+    const z=limb?lerp(site.z,site.root?.z??site.z,.44):site.z-Math.sin(s.yaw)*foot*.10;
+    const y=site.y+(site.type==='branch'?limbTravel:0);
+    const cues=s.perchSound;
+    cues.push({id:++soundId,at:s.elapsed,kind,site,strength,position:{x,y,z},foot});
+    if(cues.length>8)cues.shift();
+  }
   function select(target){
     selected=target||null;habitat.select(selected);selectionTime=-99;
     if(!target)usingRoute=false;
@@ -22,6 +33,7 @@ window.makePerchFlight=function(T,world,habitat,route){
     if(onRoute&&!routeTarget)routeTarget=habitat.resolveRoute(route.perch);
     select(onRoute?routeTarget:null);
     stance=null;s.perchStep=null;s.perchLaunchPending=false;
+    s.perchSound=[];s.perchSoundSite=null;branchCreaked=false;
     s.perchOnRock=false;s.perchCompression=0;
     s.perchGrip=s.perchFold=s.perchFlare=s.perchLook=s.perchLookPitch=0;
   }
@@ -164,6 +176,7 @@ window.makePerchFlight=function(T,world,habitat,route){
     velocity.set(-Math.sin(s.yaw)*s.airspeed*Math.cos(s.path),s.verticalSpeed,-Math.cos(s.yaw)*s.airspeed*Math.cos(s.path));
     s.perchFold=s.perchGrip=s.perchFlare=0;
     s.perchOnRock=selected.type==='rock';strokeForce=0;
+    branchCreaked=false;
     drive=s.effort||0;beat=s.phase||0;brakeBeat=0;
   }
   function cancel(s,planFlight){
@@ -204,6 +217,7 @@ window.makePerchFlight=function(T,world,habitat,route){
     stance[side]=lerp(stepStart,stepEnd,swing);
     s.yaw=(stance.leftYaw+stance.rightYaw)*.5;
     if(stance.progress>=1){
+      sound(s,'step',clamp(.27+.48*Math.abs(stepEnd-stepStart),.27,.56),stance.moving);
       nextFoot=-stance.moving;stance.moving=0;stepPause=s.perchLaunchPending?.055:.12;
     }
   }
@@ -247,6 +261,13 @@ window.makePerchFlight=function(T,world,habitat,route){
     }else s.perchBalance=(s.perchBalance||0)*Math.exp(-7*dt);
     limbTravel=travel;
     if(stage==='free')return false;
+    if(onBranch&&stage==='perched'&&!branchCreaked&&-travel>.035){
+      sound(s,'strain',clamp(-travel*8+s.perchBalance*.6,.21,.88));
+      branchCreaked=true;
+    }
+    if(onBranch&&stage==='push'&&pushTime<.125&&pushTime+dt>=.125&&-travel>.045){
+      sound(s,'strain',clamp(-travel*3+s.perchBalance*.5,.24,.73));
+    }
     const update=(p)=>{
       velocity.set((p.x-s.x)/dt,(p.y-s.y)/dt,(p.z-s.z)/dt);
       s.distance+=Math.hypot(p.x-s.x,p.y-s.y,p.z-s.z);
@@ -290,6 +311,11 @@ window.makePerchFlight=function(T,world,habitat,route){
         s.airspeed=s.verticalSpeed=s.effort=s.strokeBeat=0;
         s.pitch+=(.23-s.pitch)*ease(8,dt);
         return true;
+      }
+      if(!track.released){
+        sound(s,'release',.56);
+        s.perchSoundSite=null;
+        track.released=true;
       }
       s.perchStep=null;stance=null;
       const flightTime=pushTime-preload;
@@ -369,6 +395,9 @@ window.makePerchFlight=function(T,world,habitat,route){
       update(station);
       if(along===track.length){
         s.touchdownSpeed=s.airspeed;
+        const impact=clamp(.28+.10*s.touchdownSpeed+.19*Math.abs(velocity.y),.32,.93);
+        sound(s,'touchdown',impact);
+        s.perchSoundSite=selected;
         stage='perched';baseYaw=s.yaw;lookYaw=lookPitch=settleTime=0;track=null;
         arrivalYaw=s.yaw;
         openYaw=s.yaw+angle(Math.atan2(selected.x-selected.exit.x,selected.z-selected.exit.z)-s.yaw);

@@ -78,19 +78,19 @@ function makeWorld() {
 }
 
 // ---- the flight -----------------------------------------------------------------
-// Two laps over the shore, round the south end of the rock, two laps low in
-// its lee, round the north end and two more laps over the shore.
+// Four laps over the shore, round the south end of the rock, two laps low
+// in its lee, round the north end and four more laps over the shore.
 function lap(cx, cz, rx, rz, y, turns, from) {
   const out = [];
   for (let i = 0; i <= 40 * turns; i++) { const a = from + i / 40 * Math.PI * 2; out.push([cx + rx * Math.cos(a), y, cz + rz * Math.sin(a)]); }
   return out;
 }
 const route = [
-  ...lap(-250, 0, 110, 230, 70, 2, Math.PI / 2).map(p => [...p, 'approach']),
+  ...lap(-250, 0, 110, 230, 70, 4, Math.PI / 2).map(p => [...p, 'approach']),
   ...[[-140, 70, -420], [-60, 70, -640], [60, 60, -640], [105, 50, -420]].map(p => [...p, 'round']),
   ...lap(105, 0, 28, 250, 50, 2, -Math.PI / 2).map(p => [...p, 'shelter']),
   ...[[105, 55, 420], [60, 65, 640], [-60, 70, 640], [-140, 70, 420]].map(p => [...p, 'round']),
-  ...lap(-250, 0, 110, 230, 70, 2, Math.PI / 2).map(p => [...p, 'return'])
+  ...lap(-250, 0, 110, 230, 70, 4, Math.PI / 2).map(p => [...p, 'return'])
 ];
 const lengths = [0];
 for (let i = 1; i < route.length; i++) lengths.push(lengths[i - 1] + Math.hypot(route[i][0] - route[i - 1][0], route[i][1] - route[i - 1][1], route[i][2] - route[i - 1][2]));
@@ -235,11 +235,21 @@ if (require.main === module) (async () => {
 
   // The rock screens the shore from the lee water and not from the open side.
   const mean = a => a.reduce((x, y) => x + y, 0) / Math.max(1, a.length);
-  const screened = callers.filter(s => s.shield.shelter), open = callers.filter(s => s.shield.approach || s.shield.return);
-  assert.ok(screened.length >= 2, 'some shore callers should still be heard from behind the rock');
-  const shieldLee = mean(screened.map(s => mean(s.shield.shelter))), shieldOpen = mean(open.map(s => mean([...(s.shield.approach || []), ...(s.shield.return || [])])));
-  assert.ok(shieldLee > .6, `the rock should screen shore callers from its lee (${shieldLee.toFixed(2)})`);
-  assert.ok(shieldOpen < .1, `nothing should screen them over the shore (${shieldOpen.toFixed(2)})`);
+  // The acoustic path depends on position, not on which caller happens to be
+  // singing in a quieter mix. Hold one actual source fixed for all three legs.
+  const {scape, context} = first, engine = scape.engine;
+  const speaker = engine.loop(scape.buffers.get('scape-moosehead-ovenbird'), {x: -220, y: 17, z: 50},
+    {label: 'screening witness', gain: .55, ref: 20, reach: 900});
+  const view = {position: new first.box.THREE.Vector3(), quaternion: new first.box.THREE.Quaternion()};
+  const shieldAt = (x, y, z) => {
+    view.position.set(x, y, z);
+    for (let i = 0; i < 20; i++) { context.currentTime += .1; engine.update(view, .1); }
+    return speaker.shield;
+  };
+  const shieldOpen = shieldAt(-280, 70, 0), shieldLee = shieldAt(105, 50, 0), shieldReturn = shieldAt(-280, 70, 0);
+  assert.ok(shieldLee > .6, `the rock should screen a fixed shore source from its lee (${shieldLee.toFixed(2)})`);
+  assert.ok(shieldOpen < .1 && shieldReturn < .1, 'the same source should be clear from both open approaches');
+  speaker.stop(.15);
 
   // Wind masking: stronger at speed and in the open, weaker in the lee.
   const legs = {};

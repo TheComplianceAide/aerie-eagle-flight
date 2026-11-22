@@ -50,6 +50,11 @@
   }
   const irLevel = {canyon: .020, lofoten: .016, yosemite: .0013, swiss: .019, dixville: .088, alaska: .017, crater: .011, lake: .00012};
 
+  // Two slow envelopes keep wave groups and canopy gusts from cycling together.
+  function swell(t, phase) {
+    return clamp(.5 + .29 * Math.sin(t * .53 + phase) + .20 * Math.sin(t * .21 - phase * 1.7), 0, 1);
+  }
+
   // ---- placement helpers ------------------------------------------------------
   function ground(world, x, z) { return (world.elevation || world.height)(x, z); }
   function waterLevel(world) { return world.waterLevel ?? world.lakeLevel ?? null; }
@@ -302,8 +307,7 @@
         try { src.stop(); src.disconnect(); } catch (e) {}
         src = next; rms = Math.sqrt(sum / n) || .1; real = true;
       },
-      update(s, gust, now) {
-        const v = Math.max(0, (s.indicatedAirspeed ?? s.airspeed) || 0);
+      update(s, gust, now, v = Math.max(0, (s.indicatedAirspeed ?? s.airspeed) || 0)) {
         // Wind at the ears is the loudest thing in flight. Flow noise grows as
         // about the sixth power of airspeed in sound power (measured on
         // cyclists: 85 dBA at 6.7 m/s, 120 dBA at 27 m/s), so its amplitude
@@ -594,7 +598,7 @@
         {clip: 'scape-acadia-cobbles', ref: 12, reach: 225, gain: .55, where: fixed(-208.5, .5, 9022.5)}
       ],
       surge: {clip: 'scape-acadia-chamber', where: c => c.world.acadiaCoast.thunder, ref: 40, reach: 1150},
-      choruses: [{clip: 'scape-acadia-spruce', habitat: 'trees', count: 3, r: [18,145], ref: 12, reach: 235, gain: .43}]
+      choruses: [{clip: 'scape-acadia-spruce', foliage: true, habitat: 'trees', count: 3, r: [18,145], ref: 12, reach: 235, gain: .43}]
     },
     winnipesaukee: {
       choruses: [{clip: 'scape-winnipesaukee-snowy-tree-cricket', night: true, rate: 1.11 /* Dolbear's law: recorded at 21 C, sung at 23 C */, habitat: 'trees', count: 3, r: [15, 140], ref: 9, reach: 350, gain: .45},
@@ -637,12 +641,14 @@
       ]
     },
     labrador: {
-      shower: true, rainSurfaces: ['lake', 'spruce'], rainAmbience: 'scape-moosehead-mosquitoes',
+      shower: true, rainSurfaces: ['lake', 'spruce'],
       // GRHQ line and lidar profile put these emitters on three separate short sills.
       loops: [
         {clip: 'scape-cabert-brook', ref: 9, reach: 145, gain: .48, where: fixed(-3718.6, 379.9, 1330.8)},
         {clip: 'scape-cabert-sill', ref: 13, reach: 190, gain: .67, where: fixed(-3661.7, 375.1, 1364.2)},
-        {clip: 'scape-cabert-brook', ref: 13, reach: 180, gain: .65, where: fixed(-3523.1, 367.3, 1450.2)}
+        {clip: 'scape-cabert-brook', ref: 13, reach: 180, gain: .65, where: fixed(-3523.1, 367.3, 1450.2)},
+        {clip: 'scape-labrador-cabin-rain', ref: 9, reach: 145, gain: .58, where: at(/South Camp cabin/, 3.4),
+          level: (c, p) => c.world.windField?.weatherAt?.(p.x, p.y, p.z, c.t)?.rain ?? c.rain}
       ],
       events: [
         {clip: 'scape-labrador-mosquitoes', every: [16, 36], ref: 1.2, reach: 20, gain: .35, when: lowAndLeafy, where: nearEar()},
@@ -742,7 +748,7 @@
         if (!extraWater.some(w => w.role === role)) extraWater.push({role, buffer, kind: 'shore', ref: role === 'lake' ? 16 : 28, reach: role === 'lake' ? 650 : 1000, gain: role === 'lake' ? .7 : .85, maxR: 700, span: 150});
         // Small wavelets directly below when skimming open water.
         if (role === 'lake' && !extraBeds.some(b => b.role === 'wavelets'))
-          extraBeds.push({role: 'wavelets', buffer, height: -8, gain: c => c.overWater ? .26 * (1 - smooth(6, 45, c.agl)) * (.7 + .4 * c.gust) : 0});
+          extraBeds.push({role: 'wavelets', buffer, height: -8, gain: c => c.overWater ? .20 * (1 - smooth(5, 38, c.waterClearance)) * (.45 + .45 * c.gust + .35 * swell(c.t, 3.2)) * (.5 + .5 * smooth(8, 95, c.shoreRange)) : 0});
         return true;
       }
       if (role === 'cascade') { fallback.falls = buffer; return true; }
@@ -752,7 +758,8 @@
         return true;
       }
       if (role === 'canopy') {
-        if (!extraBeds.some(b => b.role === role)) extraBeds.push({role, buffer, gain: c => (.20 + .45 * c.gust) * c.canopy});
+        if (!extraBeds.some(b => b.role === role)) extraBeds.push({role, buffer, height: -4, gain: c =>
+          (.035 + .22 * c.gust + .48 * c.canopyMotion) * c.canopy * (1 - .55 * c.lee)});
         return true;
       }
       return false;
@@ -778,7 +785,7 @@
             } else if (ch.habitat !== 'trees') patch = {x, y: ground(world, x, z) + .3, z};
             else { const t = world.habitat?.nearestTree?.(x, z, 30); if (t) patch = {x: t.x, y: t.y + t.height * (.4 + .45 * random()), z: t.z}; }
           }
-          if (patch) Object.assign(patch, {key, gain: .7 + .45 * random(), rate: .97 + .06 * random()});
+          if (patch) Object.assign(patch, {key, gain: .7 + .45 * random(), rate: .97 + .06 * random(), phase: random() * Math.PI * 2});
           state.posts.set(key, patch);
         }
         if (!patch || sounding.some(e => e.patch === key)) continue;
@@ -790,6 +797,23 @@
     let enabled = false;
     const state = {falls: new Map(), water: [], beds: [], loops: [], choruses: [], movers: new Set(), rain: null, due: new Map(),
       posts: new Map(), singers: new Map(), voices: new Set(), thunder: new Set()};
+    let foreground = null, foregroundUntil = 0, perchSince = -Infinity, perched = false;
+    // All three wildlife schedulers share this gate. Visible alarms bypass it
+    // and push an incidental phrase into the background while they answer.
+    function canVoice(now = context.currentTime) {
+      return now >= foregroundUntil && (ctx?.rain ?? 0) < .72;
+    }
+    function noteVoice(source, tail = 1.1, priority = false) {
+      const now = context.currentTime;
+      if (priority && foreground?.source !== source && foreground?.source.alive && !foreground.priority) {
+        const quieted = foreground.source;
+        quieted.gain *= .22;
+      }
+      if (source) foreground = {source, tail, priority};
+      foregroundUntil = Math.max(foregroundUntil, (source?.endsAt ?? now) + tail);
+    }
+
+    const perchAudio = window.makePerchAcoustics?.(context, engine, world, region, load, buffers);
     const rainTex = {};
     function rainTexture(surface, density) {
       const key = surface + density;
@@ -809,7 +833,9 @@
       for (const source of state.thunder) source.stop(.2);
       state.thunder.clear();
       if (state.rain) state.rain.emitters.forEach(s => s.stop(.4));
-      state.falls.clear(); state.water = []; state.beds = []; state.loops = []; state.choruses = []; state.movers.clear(); state.rain = null; regionalCall = null;
+      state.rainFront?.stop(.4);
+      state.rainFront = null; nextRainScan = 0; state.dripDue = 0;
+      state.falls.clear(); state.water = []; state.beds = []; state.loops = []; state.choruses = []; state.movers.clear(); state.rain = null; regionalCall = null; foreground = null; foregroundUntil = 0; perched = false; perchSince = -Infinity; perchAudio?.reset();
     }
     function setEnabled(value) {
       if (enabled === value) return; enabled = value;
@@ -825,12 +851,12 @@
     }
 
     // Four decorrelated emitters 18 m around the listener form a diffuse bed.
-    function makeBed(clip, gain, height = 4) {
+    function makeBed(clip, gain, height = 4, label) {
       const b = typeof clip === 'string' ? buffers.get(clip) : clip; if (!b) return null;
       const emitters = [], family = {seed: Math.random() * 997, size: 4};   // four copies round the listener, each kept to its own part of the recording
       for (let i = 0; i < 4; i++) {
         const a = i * Math.PI / 2 + Math.PI / 4;
-        const s = engine.loop(b, {x: engine.ear.x, y: engine.ear.y, z: engine.ear.z}, {gain: 0, ref: 18, spread: 'none', occlude: false, doppler: false, wet: .25, offset: (i * .27 * b.duration) % b.duration, family, member: i});
+        const s = engine.loop(b, {x: engine.ear.x, y: engine.ear.y, z: engine.ear.z}, {gain: 0, label, ref: 18, spread: 'none', occlude: false, doppler: false, wet: .25, offset: (i * .27 * b.duration) % b.duration, family, member: i});
         s.angle = a; s.height = height; emitters.push(s);
       }
       return {clip, emitters, gainFn: gain};
@@ -1063,7 +1089,48 @@
     let listenerWeather = null, sampledField = null, lastWeatherTime = -Infinity;
     let sampledX = 0, sampledY = 0, sampledZ = 0;
 
-    let nextScan = 0, shore = null;
+    let nextScan = 0, nextRainScan = 0;
+    const rainProbe = {};
+    function updatePassingRain(now) {
+      if ((!spec.storm && !spec.shower && !world.rainCellAt) || now < nextRainScan) return;
+      nextRainScan = now + .7;
+      const {ear, t, rain, wetness, canopy} = ctx;
+      const recording = buffers.get(spec.storm ? 'scape-' + region + '-rain-approach' : 'scape-' + region + '-rain-on-lake');
+      if (rain < .25) {
+        let best = null;
+        // The front is audible where rain is already striking a surface.
+        // Sample the same precipitation field that draws the visible cell.
+        for (let i = 0; i < 8; i++) {
+          const a = Math.PI * i / 4;
+          const x = ear.x + 225 * Math.cos(a), z = ear.z + 225 * Math.sin(a);
+          const y = Math.max(ground(world, x, z), waterLevel(world) ?? -Infinity) + 3;
+          const drops = world.windField?.weatherAt?.(x, y, z, t, rainProbe)?.rain ?? 0;
+          if (drops > (best?.drops ?? .20)) best = {x, y, z, drops};
+        }
+        if (best) {
+          const surface = isWet(world, best.x, best.z) ? 'water' : 'rock';
+          const texture = recording || rainTexture(surface, 420);
+          if (!state.rainFront) state.rainFront = engine.loop(texture, best, {label: 'rain front', switchable: true, gain: 0, ref: 66, reach: 700, wet: .35});
+          const source = state.rainFront;
+          source.replaceBuffer(texture);
+          source.x += .38 * (best.x - source.x);
+          source.y += .38 * (best.y - source.y);
+          source.z += .38 * (best.z - source.z);
+          source.gain = best.drops * .52 * (1 - smooth(.02, .25, rain));
+        } else if (state.rainFront) state.rainFront.gain = 0;
+      } else if (state.rainFront) state.rainFront.gain = 0;
+      const drip = buffers.get('scape-' + region + '-rain-on-spruce');
+      if (drip && wetness > .12 && rain < .07 && canopy > .25 && now >= (state.dripDue ?? 0)) {
+        state.dripDue = now + rand(3.5, 8) / wetness;
+        const tree = world.habitat?.nearestTree?.(ear.x, ear.z, 32);
+        if (tree) {
+          const part = engine.excerpt(drip, Math.random, true);
+          const source = engine.play(drip, {x: tree.x, y: tree.y + tree.height * .72, z: tree.z},
+            {label: 'wet canopy drips', gain: .46 * wetness, ref: 6, reach: 58, offset: part?.offset, duration: Math.min(3.5, part?.duration ?? drip.duration)});
+          if (source) state.voices.add({source, hush: 0});
+        }
+      }
+    }
     function update(s, camera, dt, extras = {}) {
       if (!enabled) return;
       engine.update(camera, dt); lastCamera = camera;
@@ -1079,14 +1146,26 @@
       if (!airflow.real && buffers.get('wind-at-ears')) airflow.adopt(buffers.get('wind-at-ears'));
       // Indicated airspeed already includes the air velocity relative to the
       // moving bird. The local pressure pulse adds independent ear turbulence.
-      airflow.update(s, gust, now);
+      const stage = extras.perchStage ?? 'free';
+      const velocity = Math.max(0, (stage === 'free' ? s.indicatedAirspeed : s.airspeed) ?? s.airspeed ?? 0);
+      airflow.update(s, gust, now, velocity);
       wingStroke(s, now);
-      engine.setMasker(windMasker(s.airspeed || 0, gust, listenerWeather?.exposure ?? extras.open ?? extras.exposure ?? 1, lee(s)));
+      const sheltered = lee(s);
       const agl = Math.max(0, ear.y - ground(world, ear.x, ear.z));
       const elevationGain = extras.exposure ?? clamp(agl / 200, 0, 1);
       const exposure = listenerWeather ? listenerWeather.exposure * (.34 + .66 * elevationGain) : elevationGain;
-      ctx = {world, ear, agl, exposure, gust, rain: listenerWeather?.rain, wetness: listenerWeather?.wetness ?? 0, canopy: extras.canopy ?? 0,
-        shore: extras.shore, town: 0, t, overWater: isWet(world, ear.x, ear.z)};
+      const rain = listenerWeather?.rain ?? window.aerieRainAt(world, region, ear.x, ear.z, t);
+      if (stage === 'perched' && !perched) perchSince = now;
+      perched = stage === 'perched';
+      const shoreRange = extras.shore ? Math.hypot(ear.x - extras.shore.x, ear.z - extras.shore.z) : Infinity;
+      const masker = windMasker(velocity, gust, listenerWeather?.exposure ?? extras.open ?? exposure, sheltered);
+      engine.setMasker(masker);
+      ctx = {world, ear, agl, exposure, gust, rain, lee: sheltered, wetness: listenerWeather?.wetness ?? 0, canopy: extras.canopy ?? 0,
+        shore: extras.shore, shoreRange, town: 0, t, masker, speed: velocity, overWater: isWet(world, ear.x, ear.z),
+        waterClearance: Math.max(0, ear.y - (waterLevel(world) ?? ear.y - agl)),
+        canopyMotion: smooth(.3, .78, .66 * gust + .34 * swell(t, ear.x * .012 + ear.z * .009)),
+        perchStage: stage, perch: extras.perch, settledFor: perched ? now - perchSince : 0};
+      perchAudio?.update(s, ctx);
       const keene = landmark(world, /Central Square/);
       if (keene) ctx.town = 1 - smooth(300, 1400, Math.hypot(ear.x - keene.x, ear.z - keene.z));
       // Air is squeezed out of Thunder Hole only as the visual pulse rises.
@@ -1103,6 +1182,7 @@
       preyCues(now);
       if (now < nextScan) { tickEvents(now); return; }
       nextScan = now + .25;
+      updatePassingRain(now);
 
       // Waterfalls: keep the nearest three impacts as looping 3D sources.
       const fallsClip = spec.falls ? (buffers.get(spec.falls.clip) || fallback.falls) : fallback.falls;
@@ -1116,11 +1196,13 @@
         for (const {p, i} of ranked) {
           const take = spec.fallTakes?.find(o => o.where.test(p.name || ''));
           const clip = (take && buffers.get(take.clip)) || fallsClip;
-          const current = state.falls.get(i);
-          if (current) { current.replaceBuffer(clip); continue; }
           const y = (p.y ?? ground(world, p.x, p.z)) + Math.min(14, 3 + .2 * (p.drop || 20));
           const size = clamp(.55 + (p.drop || 40) / 160 + (p.width || 10) / 80, .5, 1.25);
-          state.falls.set(i, engine.loop(clip, {x: p.x, y, z: p.z}, {label: 'falls', switchable: true, gain: fallsSpec.gain * size, ref: fallsSpec.ref * size, reach: fallsSpec.reach, wet: .6, echo: true, rate: clamp(1.08 - (p.drop || 40) / 900, .9, 1.08)}));
+          const plunge = window.aerieChutePulse?.(p.x, p.z, t) ?? .5;
+          const gain = fallsSpec.gain * size * (.78 + .3 * plunge + .13 * rain);
+          const current = state.falls.get(i);
+          if (current) { current.replaceBuffer(clip); current.gain = gain; continue; }
+          state.falls.set(i, engine.loop(clip, {x: p.x, y, z: p.z}, {label: 'falls', switchable: true, gain, ref: fallsSpec.ref * size, reach: fallsSpec.reach, wet: .6, echo: true, rate: clamp(1.08 - (p.drop || 40) / 900, .9, 1.08)}));
         }
       }
       // Rivers, streams and rocky shores: spread the sound along the water.
@@ -1144,7 +1226,10 @@
           return (Number.isFinite(level) ? level : ground(world, x, z)) + .5;
         };
         pts.forEach((q, i) => {
-          const gain = w.gain * (i === 0 ? 1 : .7);
+          const wave = swell(t, k * 2.9 + i * 2.27);
+          const wash = w.kind === 'river' ? .70 + .26 * wave + .16 * rain
+            : .30 + wave * (.29 + .23 * gust) + .28 * gust * (1 - .6 * sheltered);
+          const gain = w.gain * wash * (i === 0 ? 1 : .46);
           const e = emitters[i];
           if (!e) {
             emitters[i] = engine.loop(b, {x: q.x, y: yAt(q.x, q.z), z: q.z}, {label: w.kind, switchable: true, gain, ref: w.ref, reach: w.reach, spread: w.kind === 'river' ? 'line' : 'point', wet: .45});
@@ -1164,7 +1249,11 @@
         let entry = state.loops[k];
         if (!entry) { const pos = l.where({...ctx}); if (!pos) return; entry = state.loops[k] = {pos}; }
         const d = Math.hypot(entry.pos.x - ear.x, entry.pos.z - ear.z);
-        const gain = l.gain * (l.level?.(ctx) ?? 1);
+        const wave = swell(t, k * 1.57);
+        const activity = /dock/.test(l.clip) ? .10 + .75 * wave ** 3 + .25 * gust
+          : /acadia-(?:cove|ledge|cobbles)/.test(l.clip) ? .43 + .52 * wave + .23 * gust
+          : 1;
+        const gain = d < l.reach * 1.1 ? l.gain * (l.level?.(ctx, entry.pos) ?? 1) * activity : 0;
         if (d < l.reach && gain > .02 && !entry.source) entry.source = engine.loop(b, entry.pos, {label: l.clip, gain, ref: l.ref, reach: l.reach, wet: .5});
         else if (entry.source && d > l.reach * 1.1) { entry.source.stop(1); entry.source = null; }
         else if (entry.source) entry.source.gain = gain;
@@ -1177,22 +1266,30 @@
         if (ch.night && daylight > .5) { entry.forEach(e => e.stop(2.5)); entry.length = 0; return; }
         for (let i = entry.length - 1; i >= 0; i--) {
           const e = entry[i];
-          if (Math.hypot(e.x - ear.x, e.z - ear.z) > ch.r[1] * 1.8) { e.stop(2.5); entry.splice(i, 1); }
+          const d = Math.hypot(e.x - ear.x, e.y - ear.y, e.z - ear.z);
+          if (d > ch.r[1] * 1.8) { e.stop(2.5); entry.splice(i, 1); continue; }
+          const patch = e.habitatPatch;
+          const calling = smooth(.28, .81, swell(t * .67, patch.phase));
+          const weather = (1 - .88 * smooth(.08, .64, rain)) * (1 - .58 * smooth(.36, .86, gust));
+          // A nearby patch quiets during an approach, then resumes in its own phase.
+          const disturbed = stage === 'approach' || stage === 'flare' || velocity > 6 || perched && ctx.settledFor < 7;
+          const cover = disturbed ? .3 + .7 * smooth(14, 50, d) : 1;
+          const leaves = (.10 + .32 * gust + .54 * ctx.canopyMotion) * (1 - .32 * rain);
+          e.gain = ch.gain * patch.gain * (ch.foliage ? leaves : calling * weather * cover);
         }
-        if (entry.length < ch.count && Math.random() < .5) {
+        if (entry.length < Math.min(2, ch.count) && agl < ch.r[1] && Math.random() < .5) {
           const patch = chorusPatch(ch, k, entry);
           const source = patch && engine.loop(b, {x: patch.x, y: patch.y, z: patch.z}, {label: ch.clip, id: ch.clip + ' patch ' + patch.key.split(':').slice(1).join(','),
-            gain: ch.gain * patch.gain, ref: ch.ref, reach: ch.reach, wet: .3, rate: (ch.rate || 1) * patch.rate});
-          if (source) { source.patch = patch.key; entry.push(source); }
+            gain: 0, ref: ch.ref, reach: ch.reach, wet: .3, rate: (ch.rate || 1) * patch.rate});
+          if (source) { source.patch = patch.key; source.habitatPatch = patch; entry.push(source); }
         }
       });
       // Diffuse beds driven by local conditions.
       [...(spec.beds || []), ...extraBeds].forEach((b, k) => {
-        if (!state.beds[k]) { const bed = makeBed(b.buffer || b.clip, b.gain, b.height ?? 4); if (!bed) return; state.beds[k] = bed; }
+        if (!state.beds[k]) { const bed = makeBed(b.buffer || b.clip, b.gain, b.height ?? 4, b.role || b.clip); if (!bed) return; state.beds[k] = bed; }
         placeBed(state.beds[k], clamp(b.gain(ctx), 0, 1.2), now);
       });
       // Rain at the eagle: recorded rain plus synthesised near drops on the surface below.
-      const rain = ctx.rain ?? window.aerieRainAt(world, region, ear.x, ear.z, t);
       if (rain > .01 || (state.rain && rain >= .005)) {
         const below = ctx.overWater ? 'water' : (world.habitat?.nearestTree?.(ear.x, ear.z, 25) ? 'leaves' : 'rock');
         const surfaceClip = below === 'water' ? 'rain-on-lake' : below === 'leaves' ? 'rain-on-spruce' : 'rain-on-rock';
@@ -1270,25 +1367,35 @@
     }
     let nextRegional = Infinity, regionalCall = null;
     const regionalHistory = new Map(), lastRegional = new Map();
+    function historyFor(index) {
+      let history = regionalHistory.get(index);
+      if (!history?.size) { history = new Set(banks[index].clips); regionalHistory.set(index, history); }
+      return history;
+    }
     function regionalWildlife(now) {
       if (!banks.length) return;
       const ear = engine.ear;
       if (regionalCall) {
         const {bank, id, where, until} = regionalCall;
         const gap = Math.hypot(where.x - ear.x, where.y - ear.y, where.z - ear.z);
-        if (now > until || gap < bank.hush || gap > bank.reach) regionalCall = null;
-        else if (buffers.has(id)) {
+        if (now > until || gap < bank.hush || gap > bank.reach || ctx.agl > 340) regionalCall = null;
+        else if (canVoice(now) && buffers.has(id)) {
           const b = buffers.get(id); regionalCall = null;
           if (b) {
+            const index = banks.indexOf(bank);
+            historyFor(index).delete(id);
+            lastRegional.set(index, now);
+            const part = engine.excerpt(b, Math.random, true);
             const source = engine.play(b, where, {label: id, id: bank.name + ' post ' + where.key,
-              gain: bank.gain ?? .48, ref: bank.ref, reach: bank.reach, wet: .4, masking: .68});
+              gain: bank.gain ?? .48, ref: bank.ref, reach: bank.reach, wet: .4, masking: .68, offset: part?.offset, duration: part?.duration});
             quiet(source, bank.hush);
+            noteVoice(source, rand(1.4, 3.4));
           }
         }
       }
       if (regionalCall || now < nextRegional) return;
-      nextRegional = now + rand(8, 16);
-      if (ctx.agl > 340 || (ctx.rain ?? 0) > .58) return;
+      nextRegional = now + rand(8, 17);
+      if (!canVoice(now) || ctx.agl > 340 || ctx.rain > .58) return;
       const night = region === 'acadia' || (world.sunDirection?.y ?? .4) < -.025;
       const start = Math.floor(Math.random() * banks.length);
       for (let i = 0; i < banks.length; i++) {
@@ -1297,9 +1404,7 @@
         if (now - (lastRegional.get(k) ?? -Infinity) < (bank.rest ?? 48)) continue;
         const where = stablePost(bank, k + 1000, bank.hush);
         if (!where) continue;
-        let history = regionalHistory.get(k);
-        if (!history?.size) { history = new Set(bank.clips); regionalHistory.set(k, history); }
-        const id = pick([...history]); history.delete(id); lastRegional.set(k, now);
+        const id = pick([...historyFor(k)]);
         regionalCall = {bank, id, where, until: now + 5};
         regionalBuffer(id);
         return;
@@ -1311,7 +1416,14 @@
       for (const v of state.voices) {
         const s0 = v.source;
         if (!s0.alive) { state.voices.delete(v); continue; }
-        if (v.hush > 0 && Math.hypot(s0.x - ear.x, s0.y - ear.y, s0.z - ear.z) < v.hush) { s0.stop(.35); state.voices.delete(v); }
+        if (v.hush > 0 && Math.hypot(s0.x - ear.x, s0.y - ear.y, s0.z - ear.z) < v.hush) {
+          s0.stop(.35);
+          state.voices.delete(v);
+          if (foreground?.source === s0) {
+            foregroundUntil = now + Math.max(2, foreground.tail);
+            foreground = null;
+          }
+        }
       }
       regionalWildlife(now);
       // Moving sources follow their paths.
@@ -1332,6 +1444,10 @@
           if (wait) state.due.set(i, now + rand(...wait));
         };
         if (e.when && !e.when(ctx)) { retry(); return; }
+        if (isWildlife && !e.moving && !canVoice(now)) {
+          state.due.set(i, Math.max(now + .5, foregroundUntil) + rand(1, 3));
+          return;
+        }
         const b = clip && buffers.get(clip); if (!b) { if (loading.has(clip)) retry(); return; }
         const hush = hushRadius(clip);
         const where = e.where.stable ? stablePost(e, i, hush) : e.where(ctx);
@@ -1352,7 +1468,10 @@
               masking, rate: e.repeat ? 1 : rand(.965, 1.035), when: k * (e.spacing || 0), echo: e.echo ?? e.ref >= 20, label: clip,
               offset: part?.offset, duration: part?.duration,
               id: where.key ? clip + ' post ' + where.key.split(':').slice(1).join(',') : ''});
-            if (source) state.voices.add({source, hush});
+            if (source) {
+              state.voices.add({source, hush});
+              if (isWildlife) noteVoice(source, rand(1.1, 2.7));
+            }
           }
         }
       });
@@ -1378,6 +1497,11 @@
         x: +s.x.toFixed(1), y: +s.y.toFixed(1), z: +s.z.toFixed(1),
         distance: Math.round(s.distance || 0), shield: +(s.shield || 0).toFixed(2), arrived: +(s.arrived || 0).toFixed(4), heard: +(s.heard || 0).toFixed(4)}));
     }
-    return {engine, setEnabled, update, load, buffers, adopt, setEagleEars, get eagleEars() { return eagleEars; }, trace, lee, hush: quiet, get shelter() { return shelter.value; }, get posts() { return state.posts; }};
+    function acousticState() {
+      return ctx && {stage: ctx.perchStage, agl: ctx.agl, overWater: ctx.overWater, speed: ctx.speed, masker: ctx.masker,
+        rain: ctx.rain, gust: ctx.gust, lee: ctx.lee, canopy: ctx.canopy, shoreRange: ctx.shoreRange,
+        settle: ctx.settledFor, foreground: foreground?.source.alive ? foreground.source.label : null, spacing: Math.max(0, foregroundUntil - context.currentTime)};
+    }
+    return {engine, setEnabled, update, load, buffers, adopt, canVoice, noteVoice, acousticState, setEagleEars, get eagleEars() { return eagleEars; }, trace, lee, hush: quiet, get shelter() { return shelter.value; }, get posts() { return state.posts; }};
   };
 })();

@@ -987,7 +987,7 @@
     updateTalus?.(player,elapsed);updateForest?.(player,elapsed);updateHabitat?.(player,elapsed);
     updateUnderstory(player,elapsed);
     windSoarer.update(dt,s);
-    if(fieldAudio&&soundOn)fieldAudio.update(s,world,dt,camera,perching.stage);
+    if(fieldAudio&&soundOn)fieldAudio.update(s,world,dt,camera,perching.stage,perching.selected);
     updateWeather(elapsed);
     world.update(dt,elapsed,player);updateLight?.(player,elapsed);updateMist?.(player,elapsed);updateOptics?.(player,elapsed);
     canopy?.update(player,elapsed,camera.position,camera);
@@ -1007,7 +1007,8 @@
       nearestLandmark();
       if(audio&&soundOn){
         wind.frequency.setTargetAtTime(350+s.airspeed*33,audio.currentTime,.24);
-        windLevel.gain.setTargetAtTime(.16+Math.min(1.4,s.airspeed**1.55/175),audio.currentTime,.24);
+        const windFloor=perching.stage==='perched'?.018:.07;
+        windLevel.gain.setTargetAtTime(windFloor+Math.min(1.4,s.airspeed**1.55/175),audio.currentTime,.24);
       }
     }
   }
