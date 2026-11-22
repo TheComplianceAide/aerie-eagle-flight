@@ -93,16 +93,18 @@ async function flight(region, blocked = []) {
   const shoreLevel = shore.gain;
   norway.observe(-20, 960, 4);
   assert.ok(Math.abs(shore.gain - shoreLevel) > .01, 'swell changes shore sound at a stationary observer');
+  norway.context.currentTime += norway.scape.acousticState().spacing + .01;
   const quietCaller = {alive: true, gain: .6, endsAt: norway.context.currentTime + 2};
   norway.scape.noteVoice(quietCaller, 1.5);
   assert.equal(norway.scape.canVoice(), false, 'another incidental caller waits through the foreground phrase and its tail');
-  const alarm = {alive: true, gain: .6, endsAt: norway.context.currentTime + 1};
+  const alarm = {alive: true, gain: .6, endsAt: norway.context.currentTime + 1, stop() { this.alive = false; }};
   norway.scape.noteVoice(alarm, .7, true);
   assert.ok(quietCaller.gain < .2 && alarm.gain === .6, 'a nearby alarm can answer immediately while the older incidental call recedes');
   norway.context.currentTime += 4;
   assert.equal(norway.scape.canVoice(), true);
   norway.scape.setEnabled(false);
   assert.equal(norway.sources('shore').length, 0, 'muting retires the active regional water source');
+  assert.equal(alarm.alive, false, 'muting retires a positioned alarm even without a hush radius');
 
   const lake = await flight('moosehead');
   assert.ok(!Array.from(lake.requested).some(n => n.startsWith('voice-')), 'regional wildlife is not a startup download');

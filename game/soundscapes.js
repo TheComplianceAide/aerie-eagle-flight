@@ -796,7 +796,7 @@
     }
     let enabled = false;
     const state = {falls: new Map(), water: [], beds: [], loops: [], choruses: [], movers: new Set(), rain: null, due: new Map(),
-      posts: new Map(), singers: new Map(), voices: new Set(), thunder: new Set()};
+      posts: new Map(), singers: new Map(), voices: new Map(), thunder: new Set()};
     let foreground = null, foregroundUntil = 0, perchSince = -Infinity, perched = false;
     // All three wildlife schedulers share this gate. Visible alarms bypass it
     // and push an incidental phrase into the background while they answer.
@@ -809,7 +809,10 @@
         const quieted = foreground.source;
         quieted.gain *= .22;
       }
-      if (source) foreground = {source, tail, priority};
+      if (source) {
+        quiet(source);
+        foreground = {source, tail, priority};
+      }
       foregroundUntil = Math.max(foregroundUntil, (source?.endsAt ?? now) + tail);
     }
 
@@ -828,7 +831,7 @@
       state.loops.forEach(l => l.source?.stop(.4));
       state.choruses.forEach(c => c.forEach(e => e.stop(.4)));
       for (const m of state.movers) m.source.stop(.3);
-      for (const v of state.voices) v.source.stop?.(.3);
+      for (const source of state.voices.keys()) source.stop?.(.3);
       state.voices.clear();
       for (const source of state.thunder) source.stop(.2);
       state.thunder.clear();
@@ -1127,7 +1130,7 @@
           const part = engine.excerpt(drip, Math.random, true);
           const source = engine.play(drip, {x: tree.x, y: tree.y + tree.height * .72, z: tree.z},
             {label: 'wet canopy drips', gain: .46 * wetness, ref: 6, reach: 58, offset: part?.offset, duration: Math.min(3.5, part?.duration ?? drip.duration)});
-          if (source) state.voices.add({source, hush: 0});
+          quiet(source);
         }
       }
     }
@@ -1413,12 +1416,11 @@
     function tickEvents(now) {
       const ear = engine.ear;
       // A songbird or frog stops mid-phrase if the eagle closes within its hush radius.
-      for (const v of state.voices) {
-        const s0 = v.source;
-        if (!s0.alive) { state.voices.delete(v); continue; }
-        if (v.hush > 0 && Math.hypot(s0.x - ear.x, s0.y - ear.y, s0.z - ear.z) < v.hush) {
+      for (const [s0, radius] of state.voices) {
+        if (!s0.alive) { state.voices.delete(s0); continue; }
+        if (radius > 0 && Math.hypot(s0.x - ear.x, s0.y - ear.y, s0.z - ear.z) < radius) {
           s0.stop(.35);
-          state.voices.delete(v);
+          state.voices.delete(s0);
           if (foreground?.source === s0) {
             foregroundUntil = now + Math.max(2, foreground.tail);
             foreground = null;
@@ -1469,7 +1471,7 @@
               offset: part?.offset, duration: part?.duration,
               id: where.key ? clip + ' post ' + where.key.split(':').slice(1).join(',') : ''});
             if (source) {
-              state.voices.add({source, hush});
+              quiet(source, hush);
               if (isWildlife) noteVoice(source, rand(1.1, 2.7));
             }
           }
@@ -1487,7 +1489,9 @@
       return shelter.value;
     }
     // A voice that should stop if the eagle comes within `radius` metres of it.
-    function quiet(source, radius) { if (source && radius > 0) state.voices.add({source, hush: radius}); }
+    function quiet(source, radius = 0) {
+      if (source) state.voices.set(source, Math.max(radius, state.voices.get(source) ?? 0));
+    }
     // Every live positioned source: what it is, which individual (a fixed post,
     // a fixed site or a visible animal it follows), where it is, how much
     // terrain shades it, the level arriving at the ears and the level left
