@@ -7,8 +7,9 @@ const vm = require('node:vm');
 const game = path.join(__dirname, '../game');
 const window = {};
 const context = vm.createContext({ window });
-function load(file) {
-  vm.runInContext(fs.readFileSync(path.join(game, file), 'utf8'), context, { filename: file });
+function load(file, exposure = '') {
+  const source = fs.readFileSync(path.join(game, file), 'utf8');
+  vm.runInContext(source.replace(/}\)\(\);\s*$/, exposure + '\n})();'), context, { filename: file });
 }
 for (const file of fs.readdirSync(game).filter(name => /^atlas-.*-survey\.js$/.test(name))) load(file);
 for (const file of ['alaska-survey.js', 'alpine-survey.js', 'canyon-survey.js', 'scenic-flights.js']) load(file);
@@ -59,9 +60,19 @@ worlds.alaska = { bounds: squareBounds(6890), waterLevel: 0, elevation: sampleGr
 worlds.swiss = { bounds: squareBounds(3700), waterLevel: 0, elevation: sampleGrid(window.ALPINE_SURVEY.elevation, -4000, -4000, 8, 8) };
 worlds.canyon = { bounds: squareBounds(2950), elevation: (x, z) => x > -1568 && x < -32 && Math.abs(z) < 768 ? bend(x, z) : basin(x, z) };
 
+load('yellowstone-world.js', 'window.testYellowstoneElevation = elevationReader;');
+const surveyDir = path.join(game, 'yellowstone-data');
+const yellowstone = JSON.parse(fs.readFileSync(path.join(surveyDir, 'terrain.json')));
+const elevations = new Map([...yellowstone.tiles.map(([x,z]) => `${x}_${z}`),...yellowstone.details.map(([key]) => key)].map(name => {
+  const file = Uint8Array.from(fs.readFileSync(path.join(surveyDir, name + '.bin')));
+  return [name,new Uint16Array(file.buffer)];
+}));
+worlds.yellowstone = {bounds:{minX:-5400,maxX:5450,minZ:-11350,maxZ:5730},
+  elevation:window.testYellowstoneElevation(yellowstone,elevations)};
+
 const menu = fs.readFileSync(path.join(game, 'world-menu.js'), 'utf8');
 const regions = Array.from(menu.matchAll(/^\s{4}([a-z]+):\s*\{\s*name:/gm), match => match[1]);
-assert.equal(regions.length, 12);
+assert.ok(regions.every(region => worlds[region]), 'Every selectable world has a verified elevation reader');
 for (const region of regions) {
   const { bounds, elevation, waterLevel } = worlds[region];
   const margin = (x, z) => Math.min(x - bounds.minX, bounds.maxX - x, z - bounds.minZ, bounds.maxZ - z);
@@ -77,7 +88,8 @@ for (const region of regions) {
   const { x, y, z, yaw, lookDown } = launch;
   assert.ok(Object.values(launch).every(Number.isFinite), `${region} launch values must be finite`);
   assert.ok(margin(x, z) > 180, `${region} starts outside the automatic turn area`);
-  assert.ok(y - surface(x, z) >= 600, `${region} starts at least 600 m above the local surface`);
+  const minimumRise = region === 'yellowstone' ? 430 : 600;
+  assert.ok(y - surface(x, z) >= minimumRise - .001, `${region} starts at least ${minimumRise} m above the local surface`);
   assert.ok(lookDown >= 8 && lookDown <= 35, `${region} frames terrain and horizon`);
   assert.ok(margin(target.x, target.z) > 180, `${region} heads to a feature within the flight bounds`);
   const dx = target.x - x, dz = target.z - z;

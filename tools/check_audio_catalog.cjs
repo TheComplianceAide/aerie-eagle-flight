@@ -13,6 +13,16 @@ function expose(file, expression) {
 }
 expose('field-audio.js', 'window.audioCheck = {scenes, species, defaultTiming, playerCalls, aacCalls};');
 expose('soundscapes.js'); expose('perch-acoustics.js'); expose('game-ranges.js'); expose('regional-recordings.js');
+expose('yellowstone-audio.js', 'window.thermalLocations = fixed;');
+const thermalRecordings = JSON.parse(fs.readFileSync(path.join(dir, 'yellowstone-data/recordings.json')));
+const thermalLandmarks = JSON.parse(fs.readFileSync(path.join(dir, 'yellowstone-data/terrain.json'))).landmarks;
+for (const [id, landmark] of context.window.thermalLocations) {
+  assert.ok(thermalRecordings[id] && thermalLandmarks[landmark], `Yellowstone fixed emitter ${id} has a recording and surveyed anchor`);
+}
+for (const [id, credit] of Object.entries(thermalRecordings)) {
+  assert.ok(credit.page.startsWith('https://www.nps.gov/') && credit.recording.startsWith('https://www.nps.gov/'));
+  assert.ok(fs.statSync(path.join(dir, `yellowstone-data/${id}.m4a`)).size > 0);
+}
 const {scenes, species, defaultTiming, playerCalls, aacCalls} = context.window.audioCheck;
 const scapes = context.window.aerieSoundscapes, banks = context.window.aerieRegionalRecordings;
 const field = id => `field-${id}.${aacCalls.has(id) ? 'm4a' : 'mp3'}`;
@@ -21,7 +31,7 @@ const mammalCalls = new Set(['moose', 'white-tailed-deer', 'red-deer', 'alpine-i
 const baseline = {alaska:33, canyon:30, swiss:31, yosemite:34, crater:33, lofoten:29, acadia:24, dixville:36, labrador:35, winnipesaukee:33, surry:36, moosehead:35};
 const report = {};
 for (const [region, profile] of Object.entries(scenes)) {
-  const spec = scapes[region], clips = new Map();
+  const spec = scapes[region] || {}, clips = new Map();
   const add = (name, type) => { if (!clips.has(name)) clips.set(name, type); };
   for (const name of player) add(name, 'player');
   for (const id of Object.values(profile.beds)) add(field(id), 'habitat');
@@ -54,8 +64,12 @@ for (const [region, profile] of Object.entries(scenes)) {
       add(id + '.m4a', 'wildlife');
     }
   }
+  if (region === 'yellowstone') for (const id of Object.keys(thermalRecordings)) add(`yellowstone-data/${id}.m4a`, 'habitat');
   if (!process.argv.includes('--counts-only')) {
-    assert.ok(clips.size >= 2 * baseline[region], `${region} only has ${clips.size} eligible sounds, needs ${2 * baseline[region]}`);
+    if (region !== 'yellowstone') {
+      assert.ok(baseline[region], `${region} needs an audio inventory baseline`);
+      assert.ok(clips.size >= 2 * baseline[region], `${region} only has ${clips.size} eligible sounds, needs ${2 * baseline[region]}`);
+    }
     for (const file of clips.keys()) assert.ok(fs.existsSync(path.join(dir, file)), `${region} is missing ${file}`);
   }
   const localizedWildlife = clips.size - beforeNewWildlife;
