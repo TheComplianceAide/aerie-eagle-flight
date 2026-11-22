@@ -369,6 +369,40 @@
   const headProfiles = [['default', 'Dummy head (KU100, Omnitone default)'], ['fabian', 'Dummy head (FABIAN)'], ['small', 'Small head'],
     ['small-medium', 'Small to medium head'], ['medium', 'Medium head'], ['large-medium', 'Medium to large head'], ['large', 'Large head']];
 
+  const dbGain = db => 10 ** (db / 20);
+  const dayExposure = world => smooth(-.07, .16, world.sunDirection?.y ?? .4);
+  // Field differences drive individual layers. Distance, recording level and
+  // occlusion still determine the final mix. See docs/field-sound-calibration.md.
+  const fieldLevels = {
+    alaskaQuietTrail: 42, alaskaQuietRidge: 32,
+    canyonCliffs: 19.1, canyonWater: 24.3,
+    dixvilleWind4mps: 32, dixvilleWind10mps: 38,
+    lacBerteDay: 37, lacBerteNight: 33.7,
+    mooseheadDay: 27.4, mooseheadNight: 26,
+    lofotenSurfCalm: 60, lofotenSurfRough: 78, norwegianCoastWindSlope: 2.7,
+    swissThinFlow: -1.54, swissFullFlow: 1.50,
+    paugusQuiet: 30, paugusActive: 50,
+    keeneQuiet: 33, keeneActive: 48
+  };
+  function naturalBedTrim(region, world, terrainY) {
+    if (region === 'alaska')
+      return dbGain((fieldLevels.alaskaQuietRidge - fieldLevels.alaskaQuietTrail) * smooth(152, 762, terrainY));
+    if (region === 'labrador')
+      return dbGain((fieldLevels.lacBerteNight - fieldLevels.lacBerteDay) * (1 - dayExposure(world)));
+    if (region === 'moosehead')
+      return dbGain((fieldLevels.mooseheadNight - fieldLevels.mooseheadDay) * (1 - dayExposure(world)));
+    return 1;
+  }
+  function dixvilleWindTrim(mps) {
+    // The survey used normalized winds at 10 m. The authored mix is the midpoint at 7 m/s.
+    const fraction = clamp((mps - 4) / 6, 0, 1) - .5;
+    return dbGain(fraction * (fieldLevels.dixvilleWind10mps - fieldLevels.dixvilleWind4mps));
+  }
+  function roadGain(quiet, active) {
+    // Half the observed contrast gives the road a share of neighborhood activity.
+    return .23 * dbGain(.5 * (active - quiet));
+  }
+
   // ---- regional definitions -----------------------------------------------------
   // Events: clip, every [min,max] seconds, where(ctx) -> position or path,
   // gain at ref metres, reach in metres, optional when(ctx) condition.
@@ -379,6 +413,11 @@
     const p = landmark(c.world, re); if (!p) return null;
     const x = p.x + rand(-jitter, jitter), z = p.z + rand(-jitter, jitter);
     return {x, y: ground(c.world, x, z) + dy, z};
+  };
+  const atRoad = (re, dx, dz) => c => {
+    const p = landmark(c.world, re); if (!p) return null;
+    const x = p.x + dx, z = p.z + dz;
+    return {x, y: ground(c.world, x, z) + 1.2, z};
   };
   const atWater = re => c => {
     const p = landmark(c.world, re); if (!p) return null;
@@ -604,7 +643,10 @@
       choruses: [{clip: 'scape-winnipesaukee-snowy-tree-cricket', night: true, rate: 1.11 /* Dolbear's law: recorded at 21 C, sung at 23 C */, habitat: 'trees', count: 3, r: [15, 140], ref: 9, reach: 350, gain: .45},
                  {clip: 'scape-winnipesaukee-true-katydid', night: true, habitat: 'trees', count: 3, r: [20, 160], ref: 12, reach: 450, gain: .45}],
       // Creaking boards and moored hulls at the modeled Weirs Beach and Alton Bay docks.
-      loops: [{clip: 'scape-winnipesaukee-dock-creak', ref: 7, reach: 260, gain: .55, where: at(/Weirs Beach Boardwalk/, 1, 0)},
+      loops: [{clip: 'scape-road-pass', kind: 'traffic', ref: 38, reach: 420,
+                gain: roadGain(fieldLevels.paugusQuiet, fieldLevels.paugusActive),
+                where: atRoad(/Weirs Beach Boardwalk/, -25, -5), level: c => .24 + .76 * dayExposure(c.world)},
+              {clip: 'scape-winnipesaukee-dock-creak', ref: 7, reach: 260, gain: .55, where: at(/Weirs Beach Boardwalk/, 1, 0)},
               {clip: 'scape-winnipesaukee-dock-creak', ref: 7, reach: 260, gain: .5, where: at(/Alton Bay Water Bandstand/, 1, 0)},
               {clip: 'scape-winnipesaukee-dock-creak', ref: 7, reach: 180, gain: .42, where: at(/Cate Park town docks/, 1, 0)},
               {clip: 'scape-winnipesaukee-dock-creak', ref: 7, reach: 180, gain: .42, where: at(/Hesky Park town docks/, 1, 0)}],
@@ -616,7 +658,10 @@
     },
     surry: {
       water: [{clip: 'scape-surry-ashuelot-riffles', kind: 'river', ref: 16, reach: 600, gain: .65, maxR: 500, span: 90}],
-      loops: [{clip: 'scape-surry-dam-outlet', ref: 55, reach: 2400, gain: .85, where: at(/Surry Mountain Dam/, 4, 0)}],
+      loops: [{clip: 'scape-surry-dam-outlet', ref: 55, reach: 2400, gain: .85, where: at(/Surry Mountain Dam/, 4, 0)},
+              {clip: 'scape-road-pass', kind: 'traffic', ref: 44, reach: 420,
+                gain: roadGain(fieldLevels.keeneQuiet, fieldLevels.keeneActive),
+                where: atRoad(/Central Square/, -25, -85), level: c => .30 + .70 * dayExposure(c.world)}],
       choruses: [{clip: 'scape-surry-dog-day-cicada', habitat: 'trees', count: 4, r: [20, 170], ref: 16, reach: 650, gain: .5},
                  {clip: 'scape-surry-meadow-katydid', habitat: 'grass', count: 3, r: [12, 110], ref: 8, reach: 300, gain: .4}],
       events: [
@@ -730,7 +775,8 @@
     const ids = new Set();
     const listClips = c => Array.isArray(c) ? c : [c];
     for (const e of spec.events || []) listClips(e.clip).forEach(id => ids.add(id));
-    for (const g of [spec.falls, spec.surge, ...(spec.fallTakes || []), ...(spec.water || []), ...(spec.beds || []), ...(spec.loops || []), ...(spec.choruses || [])]) if (g) ids.add(g.clip);
+    for (const g of [spec.falls, spec.surge, ...(spec.fallTakes || []), ...(spec.water || []), ...(spec.beds || []), ...(spec.loops || []), ...(spec.choruses || [])])
+      if (g && g.kind !== 'traffic') ids.add(g.clip);
     for (const w of spec.water || []) for (const id of w.alternates || []) ids.add(id);
     for (const id of ids) load(id);
     load('ir-' + (air.ir || 'lake')).then(b => engine.setImpulse(b, (irLevel[air.ir || 'lake'] || .0002) * 7.5));
@@ -1097,7 +1143,7 @@
     let sampledX = 0, sampledY = 0, sampledZ = 0;
 
     let nextScan = 0, nextRainScan = 0;
-    const rainProbe = {};
+    const rainProbe = {}, windReferenceSample = {};
     function updatePassingRain(now) {
       if ((!spec.storm && !spec.shower && !world.rainCellAt) || now < nextRainScan) return;
       nextRainScan = now + .7;
@@ -1158,7 +1204,8 @@
       airflow.update(s, gust, now, velocity);
       wingStroke(s, now);
       const sheltered = lee(s);
-      const agl = Math.max(0, ear.y - ground(world, ear.x, ear.z));
+      const terrainY = ground(world, ear.x, ear.z);
+      const agl = Math.max(0, ear.y - terrainY);
       const elevationGain = extras.exposure ?? clamp(agl / 200, 0, 1);
       const exposure = listenerWeather ? listenerWeather.exposure * (.34 + .66 * elevationGain) : elevationGain;
       const rain = listenerWeather?.rain ?? window.aerieRainAt(world, region, ear.x, ear.z, t);
@@ -1171,7 +1218,8 @@
         shore: extras.shore, shoreRange, town: 0, t, masker, speed: velocity, overWater: isWet(world, ear.x, ear.z),
         waterClearance: Math.max(0, ear.y - (waterLevel(world) ?? ear.y - agl)),
         canopyMotion: smooth(.3, .78, .66 * gust + .34 * swell(t, ear.x * .012 + ear.z * .009)),
-        perchStage: stage, perch: extras.perch, settledFor: perched ? now - perchSince : 0};
+        perchStage: stage, perch: extras.perch, settledFor: perched ? now - perchSince : 0,
+        naturalTrim: naturalBedTrim(region, world, terrainY), windTrim: ctx?.windTrim ?? 1};
       perchAudio?.update(s, ctx);
       const keene = landmark(world, /Central Square/);
       if (keene) ctx.town = 1 - smooth(300, 1400, Math.hypot(ear.x - keene.x, ear.z - keene.z));
@@ -1190,6 +1238,19 @@
       if (now < nextScan) { tickEvents(now); return; }
       nextScan = now + .25;
       updatePassingRain(now);
+      if (region === 'dixville' || region === 'lofoten') {
+        ctx.windTrim = 1;
+        const northerlyCoast = region === 'lofoten';
+        if (!northerlyCoast || (!ctx.overWater && agl < 100)) {
+          const wind = field?.weatherAt?.(ear.x, terrainY + (northerlyCoast ? 2 : 10), ear.z, t, windReferenceSample);
+          if (Number.isFinite(wind?.windX) && Number.isFinite(wind?.windZ)) {
+            const speed = Math.hypot(wind.windX, wind.windZ);
+            ctx.windTrim = northerlyCoast
+              ? dbGain(clamp(.5 * fieldLevels.norwegianCoastWindSlope * (speed - 4.5), -3, 3))
+              : dixvilleWindTrim(speed);
+          }
+        }
+      }
 
       // Waterfalls: keep the nearest three impacts as looping 3D sources.
       const fallsClip = spec.falls ? (buffers.get(spec.falls.clip) || fallback.falls) : fallback.falls;
@@ -1200,13 +1261,19 @@
           .filter(o => o.d < fallsSpec.reach);
         const keep = new Set(ranked.map(o => o.i));
         for (const [i, src] of state.falls) if (!keep.has(i)) { src.stop(1.5); state.falls.delete(i); }
-        for (const {p, i} of ranked) {
+        for (const {p, i, d} of ranked) {
           const take = spec.fallTakes?.find(o => o.where.test(p.name || ''));
           const clip = (take && buffers.get(take.clip)) || fallsClip;
           const y = (p.y ?? ground(world, p.x, p.z)) + Math.min(14, 3 + .2 * (p.drop || 20));
           const size = clamp(.55 + (p.drop || 40) / 160 + (p.width || 10) / 80, .5, 1.25);
           const plunge = window.aerieChutePulse?.(p.x, p.z, t) ?? .5;
-          const gain = fallsSpec.gain * size * (.78 + .3 * plunge + .13 * rain);
+          const ridgeCarry = region === 'alaska' ? 1 + (ctx.naturalTrim - 1) * smooth(80, 360, d) : 1;
+          // Apply the measured alpine variation band to the relative
+          // balance of narrow and broad chutes. The onscreen pulse is faster.
+          const coverage = smooth(5, 34, p.width || 10);
+          const alpineCoverage = region === 'swiss'
+            ? dbGain(fieldLevels.swissThinFlow + (fieldLevels.swissFullFlow - fieldLevels.swissThinFlow) * coverage) : 1;
+          const gain = fallsSpec.gain * size * (.78 + .30 * plunge + .13 * rain) * ridgeCarry * alpineCoverage;
           const current = state.falls.get(i);
           if (current) { current.replaceBuffer(clip); current.gain = gain; continue; }
           state.falls.set(i, engine.loop(clip, {x: p.x, y, z: p.z}, {label: 'falls', switchable: true, gain, ref: fallsSpec.ref * size, reach: fallsSpec.reach, wet: .6, echo: true, rate: clamp(1.08 - (p.drop || 40) / 900, .9, 1.08)}));
@@ -1214,7 +1281,9 @@
       }
       // Rivers, streams and rocky shores: spread the sound along the water.
       [...(spec.water || []), ...extraWater].forEach((w, k) => {
-        const b = (w.select && buffers.get(w.select(ctx))) || clipOf(w) || (w.kind === 'river' ? fallback.river : w.kind === 'shore' ? fallback.shore : null); if (!b) return;
+        const selected = w.select?.(ctx);
+        const b = (selected && buffers.get(selected)) || clipOf(w) || (w.kind === 'river' ? fallback.river : w.kind === 'shore' ? fallback.shore : null);
+        if (!b) return;
         let entry = state.water[k];
         if (!entry) entry = state.water[k] = {emitters: []};
         const emitters = entry.emitters;
@@ -1232,11 +1301,21 @@
           const level = river ? river(x, z) : w.kind === 'shore' ? waterY : null;
           return (Number.isFinite(level) ? level : ground(world, x, z)) + .5;
         };
+        let fieldTrim = ctx.naturalTrim;
+        if (region === 'canyon' && w.kind === 'river') {
+          const aboveWater = ear.y - yAt(p.x, p.z);
+          fieldTrim *= dbGain((fieldLevels.canyonWater - fieldLevels.canyonCliffs) * (1 - smooth(12, 105, aboveWater)));
+        }
+        if (region === 'lofoten' && selected === 'landscape-lofoten-fredvang-surf' && b === buffers.get(selected)) {
+          // Map one third of the Baltic open-coast range onto modeled roughness.
+          const seaState = smooth(.23, .85, gust) * (1 - .72 * sheltered);
+          fieldTrim *= dbGain((fieldLevels.lofotenSurfRough - fieldLevels.lofotenSurfCalm) / 3 * seaState);
+        }
         pts.forEach((q, i) => {
           const wave = swell(t, k * 2.9 + i * 2.27);
           const wash = w.kind === 'river' ? .70 + .26 * wave + .16 * rain
             : .30 + wave * (.29 + .23 * gust) + .28 * gust * (1 - .6 * sheltered);
-          const gain = w.gain * wash * (i === 0 ? 1 : .46);
+          const gain = w.gain * wash * (i === 0 ? 1 : .46) * fieldTrim;
           const e = emitters[i];
           if (!e) {
             emitters[i] = engine.loop(b, {x: q.x, y: yAt(q.x, q.z), z: q.z}, {label: w.kind, switchable: true, gain, ref: w.ref, reach: w.reach, spread: w.kind === 'river' ? 'line' : 'point', wet: .45});
@@ -1252,16 +1331,24 @@
       });
       // Fixed loops at modeled structures (the Surry dam outlet).
       (spec.loops || []).forEach((l, k) => {
-        const b = buffers.get(l.clip); if (!b) return;
         let entry = state.loops[k];
         if (!entry) { const pos = l.where({...ctx}); if (!pos) return; entry = state.loops[k] = {pos}; }
-        const d = Math.hypot(entry.pos.x - ear.x, entry.pos.z - ear.z);
+        const traffic = l.kind === 'traffic', dx = entry.pos.x - ear.x, dz = entry.pos.z - ear.z;
+        const d = traffic ? Math.hypot(dx, entry.pos.y - ear.y, dz) : Math.hypot(dx, dz);
+        const b = buffers.get(l.clip);
+        if (!b) {
+          if (traffic && d < l.reach && !buffers.has(l.clip)) load(l.clip);
+          return;
+        }
         const wave = swell(t, k * 1.57);
         const activity = /dock/.test(l.clip) ? .10 + .75 * wave ** 3 + .25 * gust
           : /acadia-(?:cove|ledge|cobbles)/.test(l.clip) ? .43 + .52 * wave + .23 * gust
           : 1;
         const gain = d < l.reach * 1.1 ? l.gain * (l.level?.(ctx, entry.pos) ?? 1) * activity : 0;
-        if (d < l.reach && gain > .02 && !entry.source) entry.source = engine.loop(b, entry.pos, {label: l.clip, gain, ref: l.ref, reach: l.reach, wet: .5});
+        if (d < l.reach && gain > .02 && !entry.source) {
+          entry.source = engine.loop(b, entry.pos, {label: l.clip, gain, ref: l.ref, reach: l.reach,
+            wet: traffic ? .12 : .5, ...(traffic ? {shuffle: false, offset: 0} : {})});
+        }
         else if (entry.source && d > l.reach * 1.1) { entry.source.stop(1); entry.source = null; }
         else if (entry.source) entry.source.gain = gain;
       });
@@ -1294,7 +1381,7 @@
       // Diffuse beds driven by local conditions.
       [...(spec.beds || []), ...extraBeds].forEach((b, k) => {
         if (!state.beds[k]) { const bed = makeBed(b.buffer || b.clip, b.gain, b.height ?? 4, b.role || b.clip); if (!bed) return; state.beds[k] = bed; }
-        placeBed(state.beds[k], clamp(b.gain(ctx), 0, 1.2), now);
+        placeBed(state.beds[k], clamp(b.gain(ctx) * ctx.naturalTrim * ctx.windTrim, 0, 1.2), now);
       });
       // Rain at the eagle: recorded rain plus synthesised near drops on the surface below.
       if (rain > .01 || (state.rain && rain >= .005)) {
@@ -1510,6 +1597,8 @@
         rain: ctx.rain, gust: ctx.gust, lee: ctx.lee, canopy: ctx.canopy, shoreRange: ctx.shoreRange,
         settle: ctx.settledFor, foreground: foreground?.source.alive ? foreground.source.label : null, spacing: Math.max(0, foregroundUntil - context.currentTime)};
     }
-    return {engine, setEnabled, update, load, buffers, adopt, canVoice, noteVoice, acousticState, setEagleEars, get eagleEars() { return eagleEars; }, trace, lee, hush: quiet, get shelter() { return shelter.value; }, get posts() { return state.posts; }};
+    return {engine, setEnabled, update, load, buffers, adopt, canVoice, noteVoice, acousticState, setEagleEars,
+      get ambientWindTrim() { return ctx?.windTrim ?? 1; },
+      get eagleEars() { return eagleEars; }, trace, lee, hush: quiet, get shelter() { return shelter.value; }, get posts() { return state.posts; }};
   };
 })();

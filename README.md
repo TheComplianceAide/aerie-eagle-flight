@@ -152,3 +152,7 @@ Perch sounds follow the eagle's footing. Talon contact uses recordings of bark, 
 The regional soundscape gives nearby animal alarms precedence over background calls and leaves pauses between undisturbed phrases. Wind, moving water and terrain affect what can be heard at different heights. In the worlds with rain fronts, hear the front approach from the wet side before it passes. Rain at Lac Berté changes as it hits the lake, spruce or the South Camp cabin.
 
 Check source movement and shelter with `node tools/check_directional_sound.cjs`. Check weather, foreground calls and shoreline behavior with `node tools/check_location_audio.cjs`, and perch contact with `node tools/check_perch_acoustics.cjs`.
+
+## Field sound and cliff reflections in 0.32.0
+
+Field measurements guide the background contrast between trails and ridges, small and large chutes, day and night at sheltered shores, and exposed wind and surf. Cliff and eagle-call echoes follow a checked reflection path. [Sources and tuning details](docs/field-sound-calibration.md)

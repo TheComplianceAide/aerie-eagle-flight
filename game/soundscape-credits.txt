@@ -487,3 +487,6 @@ https://creativecommons.org/publicdomain/zero/1.0/
 scape-labrador-cabin-rain.m4a — “Rain light porch last wave and pass over”, kyles, Freesound. Rural Canada, province unspecified. A 16-second excerpt filtered and mixed to mono, used as a Canadian porch-rain analogue near South Camp cabin. CC0 1.0.
 https://freesound.org/people/kyles/sounds/454134/
 https://www.panor.tech/sound/zh-hans/r/644/
+
+scape-road-pass.m4a — “Cars passing ona quiet road”, dmacara, Freesound. Shared physical vehicle recording used for localized traffic near the modeled Weirs and Keene streets. Mono excerpt, filtered and faded. CC0 1.0.
+https://freesound.org/people/dmacara/sounds/318883/

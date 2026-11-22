@@ -17,34 +17,67 @@
     }
     return shield*shield*(3-2*shield);
   };
-  window.aerieEchoSurfaces=function(world,ear){
+  window.aerieEchoSurfaces=function(world,ear,extended=false){
     const floor=world.elevation||world.height,hits=[];
-    for(let i=0;i<20;i++){
-      const a=2*Math.PI*i/20,dx=Math.cos(a),dz=Math.sin(a);
-      let lo=0;
-      for(const r of [10,20,34,53,79,115,165,232,315]){
-        const x=ear.x+r*dx,z=ear.z+r*dz;
-        if(floor(x,z)<ear.y+.8){lo=r;continue;}
-        let hi=r;
+    const ranges=extended?[10,20,34,53,79,115,165,232,315,430,580,770,1020,1350]:[10,20,34,53,79,115,165,232,315];
+    const originY=floor(ear.x,ear.z),rise=Math.max(originY+3,ear.y-60);
+    for(let i=0;i<24;i++){
+      const a=2*Math.PI*i/24,dx=Math.cos(a),dz=Math.sin(a);
+      let previous=0,previousY=originY;
+      for(const r of ranges){
+        const x=ear.x+r*dx,z=ear.z+r*dz,y=floor(x,z);
+        const change=y-previousY;
+        if(y<rise||change<Math.max(4,.20*(r-previous))){
+          previous=r;previousY=y;continue;
+        }
+        let lo=previous,hi=r;
+        const crossing=Math.max(rise,previousY+.40*change);
         for(let n=0;n<5;n++){
           const m=(hi+lo)*.5;
-          if(floor(ear.x+m*dx,ear.z+m*dz)<ear.y+.8)lo=m;else hi=m;
+          if(floor(ear.x+m*dx,ear.z+m*dz)<crossing)lo=m;else hi=m;
         }
-        const range=(hi+lo)*.5,px=ear.x+range*dx,pz=ear.z+range*dz;
+        const range=hi,px=ear.x+range*dx,pz=ear.z+range*dz;
         const gx=(floor(px+3,pz)-floor(px-3,pz))/6,gz=(floor(px,pz+3)-floor(px,pz-3))/6;
-        const slope=Math.hypot(gx,gz),face=(gx*dx+gz*dz)/Math.hypot(1,slope);
-        if(range>9&&slope>.49&&face>.39){
-          const rock=clamp((slope-.37)/.82,0,1);
-          const strength=rock*face*face/(1+range/90);
-          const canopy=world.groundCover?.(px,pz)||0;
-          hits.push({x:px,y:ear.y+.8,z:pz,dx,dz,range,strength:strength*(1-.46*clamp(canopy,0,1))});
+        const slope=Math.hypot(gx,gz);
+        const face=(gx*dx+gz*dz)/Math.hypot(1,slope);
+        if(range>9&&slope>.7&&face>.36){
+          const rock=clamp((slope-.48)/1.35,.16,1);
+          hits.push({x:px,z:pz,nx:-gx/slope,nz:-gz/slope,range,rock});
+          break;
         }
-        break;
+        previous=r;previousY=y;
       }
     }
-    hits.sort((a,b)=>b.strength-a.strength);
-    const best=hits[0],other=best&&hits.find(h=>h.dx*best.dx+h.dz*best.dz<.48);
+    hits.sort((a,b)=>b.rock/(1+b.range/120)-a.rock/(1+a.range/120));
+    const best=hits[0],other=best&&hits.find(h=>h.nx*best.nx+h.nz*best.nz<.68);
     return best?(other?[best,other]:[best]):[];
+  };
+  // Intersect the image ray with the cliff, then test both real legs. The
+  // height map can support a local face, with no orographic surface above its rim.
+  window.aerieCliffReturn=function(world,source,ear,face,out={},path=window.aerieSoundPath){
+    const {x,z,nx,nz,range,rock}=face;
+    const a=(source.x-x)*nx+(source.z-z)*nz,b=(ear.x-x)*nx+(ear.z-z)*nz;
+    if(a<=1||b<=1)return null;
+    out.x=source.x-2*a*nx;out.y=source.y;out.z=source.z-2*a*nz;
+    const f=b/(a+b);
+    const hit=out.hit||(out.hit={});
+    hit.x=ear.x+(out.x-ear.x)*f;hit.y=ear.y+(out.y-ear.y)*f;hit.z=ear.z+(out.z-ear.z)*f;
+    const lateral=Math.hypot(hit.x-x,hit.z-z);
+    if(lateral>clamp(.9*range,35,220))return null;
+    const floor=world.elevation||world.height;
+    let back=-Infinity;
+    for(const depth of [4,8,14])back=Math.max(back,floor(hit.x-depth*nx,hit.z-depth*nz));
+    const front=floor(hit.x+5*nx,hit.z+5*nz);
+    if(back-front<10||hit.y>back+2||hit.y<front-2)return null;
+    // Offset the endpoint toward air before screening to avoid self-shadowing.
+    hit.x+=2.5*nx;hit.y+=.5;hit.z+=2.5*nz;
+    const shadow=Math.max(path(world,ear,hit),path(world,source,hit));
+    if(shadow>.9)return null;
+    const cover=clamp(world.groundCover?.(hit.x,hit.z)||0,0,1);
+    const incidence=(a+b)/Math.hypot(out.x-ear.x,out.y-ear.y,out.z-ear.z);
+    out.strength=rock*(.50+.36*incidence)*(1-.55*cover)*(1-.78*shadow);
+    out.cutoff=(5000+9000*rock)*(1-.53*cover)*(1-.7*shadow);
+    return out;
   };
   window.aerieCascadeSource=function(world,ear){
     const land=world.elevation||world.height;

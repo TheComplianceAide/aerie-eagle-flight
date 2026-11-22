@@ -540,20 +540,24 @@
       return null;
     }
     const ears={x:0,y:0,z:0},gustSample={},returns=new Set();
-    let walls=[],nextWalls=-1,wallX=Infinity,wallY=Infinity,wallZ=Infinity;
+    let walls=[],lastWorld=null,nextWalls=-1,wallX=Infinity,wallY=Infinity,wallZ=Infinity;
     function reflectCall(c,anchor){
       const now=context.currentTime;
+      if(!lastWorld||!window.aerieCliffReturn)return;
       for(const wall of walls){
         const source=anchor||ears;
+        const bounce=window.aerieCliffReturn(lastWorld,source,ears,wall);
+        if(!bounce)continue;
         const direct=Math.hypot(source.x-ears.x,source.y-ears.y,source.z-ears.z);
-        const path=wall.range+Math.hypot(source.x-wall.x,source.y-wall.y,source.z-wall.z);
+        const path=Math.hypot(bounce.x-ears.x,bounce.y-ears.y,bounce.z-ears.z);
         const delay=(path-direct)/343;
-        if(delay<.041||delay>1.9)continue;
-        const level=wall.strength*.53*(anchor?.gain||.77)/(1+Math.max(0,path-2*wall.range)/210);
-        if(level<.022)continue;
+        if(delay<.018||delay>1.9)continue;
+        const level=bounce.strength*(anchor?.gain||.77)*16/(16+path);
+        if(level<.012)continue;
         const lag=context.createDelay(2),muffle=context.createBiquadFilter(),pan=context.createStereoPanner(),send=context.createGain();
-        lag.delayTime.value=delay;muffle.type='lowpass';muffle.frequency.value=7000/(1+path/360);
-        pan.pan.value=clamp(wall.dx*(-forward.z)+wall.dz*forward.x,-1,1)*.92;send.gain.value=level;
+        lag.delayTime.value=delay;muffle.type='lowpass';muffle.frequency.value=bounce.cutoff/(1+path/700);
+        const x=bounce.hit.x-ears.x,z=bounce.hit.z-ears.z;
+        pan.pan.value=clamp((x*(-forward.z)+z*forward.x)/Math.max(1,Math.hypot(x,z)),-1,1)*.92;send.gain.value=level;
         c.source.connect(lag).connect(muffle).connect(pan).connect(send).connect(c.bus);
         const endAt=now+c.source.buffer.duration/c.source.playbackRate.value+delay+.12;
         returns.add({lag,muffle,pan,send,endAt});
@@ -593,7 +597,9 @@
       const now=context.currentTime,points=world.landmarks||[];
       const listener=camera?.position||s;
       ears.x=listener.x;ears.y=listener.y;ears.z=listener.z;
-      if(now>=nextWalls||Math.hypot(ears.x-wallX,ears.y-wallY,ears.z-wallZ)>25){
+      lastWorld=world;
+      if(scape)walls=scape.engine.walls||[];
+      else if(now>=nextWalls||Math.hypot(ears.x-wallX,ears.y-wallY,ears.z-wallZ)>25){
         walls=window.aerieEchoSurfaces(world,ears);nextWalls=now+.54;wallX=ears.x;wallY=ears.y;wallZ=ears.z;
       }
       retireEchoes();
@@ -630,7 +636,7 @@
       const gust=world.windField?.sample(s.x,s.y,s.z,s.elapsed||0,gustSample)?.gust??window.aerieWind(s.x,s.z,s.elapsed||0);
       const speed=clamp((s.airspeed||0)/32,0,1.3);
       scapeExtras={exposure,open,gust,canopy,shore:lastShore,perchStage:stage,perch};
-      air.gain.setTargetAtTime((.018+.09*speed+.57*exposure)*(.51+.53*gust)*(1-.52*canopy)*(window.aerieWindTrim??1),now,.55);
+      air.gain.setTargetAtTime((.018+.09*speed+.57*exposure)*(.51+.53*gust)*(1-.52*canopy)*(window.aerieWindTrim??1)*(scape?.ambientWindTrim??1),now,.55);
       shelf.frequency.setTargetAtTime(550+1320*speed+2850*exposure+530*gust,now,.55);
       for(const shot of shots){
         if(!shot.anchor)continue;
