@@ -70,9 +70,7 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
   const skyColor=`
     vec3 skyColor(vec3 d) {
       float u=(atan(d.z,d.x)-atan(sun.z,sun.x))*.159154943+.650;
-      // The photograph's horizon is at the equator. Keep its lower, mirrored
-      // fill below the horizon rather than projecting it onto the visible sky.
-      float v=asin(clamp(d.y,-1.,1.))*.318309886+.500;
+      float v=asin(clamp(d.y,-1.,1.))*.318309886+.457;
       vec3 c=texture2D(panorama,vec2(u,clamp(v,.015,.998))).rgb;
       float a=distance(d,sun);
       return c*vec3(1.06,.97,.94)+vec3(.20,.083,.029)*exp(-5.6*a)+vec3(.65,.5,.26)*(1.-smoothstep(.004,.009,a));
@@ -701,7 +699,7 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
   }
   // The overlook stands on the eastern rim. Fly just above its rock lip,
   // looking down into both arms of the Colorado as they wrap the promontory.
-  const spawn={x:-74,z:98,y:elevation(-74,98)+18,yaw:1.26,lookDown:26};
+  const spawn={x:45,z:76,y:elevation(45,76)+72,yaw:1.38};
   const ridge={x:-425,z:-2450,y:elevation(-425,-2450)+90,yaw:1.54};
   const shore={x:-441,z:-76,y:elevation(-441,-76)+7.2,yaw:.24};
   let landformMesh=null;
