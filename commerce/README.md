@@ -51,4 +51,4 @@ AppTraces
 | summarize Reports = count() by tostring(error.kind), tostring(error.world), tostring(error.version), bin(TimeGenerated, 15m)
 ```
 
-Use the same query as the basis for an Azure Monitor scheduled query alert when the desired threshold and action group are known.
+`rg-aerie-prod` uses two Azure Monitor scheduled query alerts. They evaluate every five minutes over a 15-minute window. `aerie-client-launch-and-webgl` fires at five reported startup or WebGL failures. `aerie-api-server-failures` fires at three API requests with HTTP 5xx responses. Both use the `ag-playaerie-prod` action group, which sends to the owner address configured in Azure.
