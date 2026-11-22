@@ -129,25 +129,23 @@ main[data-mode=flight] header button,main[data-mode=flight] footer a,main[data-m
 
 #airBrake{touch-action:none;user-select:none;-webkit-user-select:none}#airBrake:active{color:#172323;background:#edd7aa}
 
-#visionToggle{width:auto;padding:0 13px;gap:7px;border-radius:24px;font-size:12px;font-weight:600}
 #visionToggle[aria-pressed=true]{background:#efe0b9;color:#192720;border-color:#fff1ca}
 #gameVision{position:absolute;inset:0;pointer-events:none;z-index:1}
 main:not([data-mode=flight]) #gameVision,main.clearView #gameVision,main:has(.modal:not([hidden])) #gameVision{display:none}
 .gameReadout{position:absolute;left:4.4%;top:max(98px,15%);max-width:255px;padding:10px 13px;border-left:2px solid #d4c59d;background:#14201ce3;border-radius:0 5px 5px 0;color:#fff7e7}
-.gameReadout strong{font-size:10px;font-weight:650;letter-spacing:.15em;text-transform:uppercase;color:#f1d99f}
-.gameReadout ul{margin:5px 0 0;padding:0;list-style:none}
+.gameReadout ul{margin:0;padding:0;list-style:none}
 .gameReadout li{display:flex;align-items:baseline;gap:12px;justify-content:space-between;font-size:13px;line-height:1.6}
 .gameReadout small{font-size:10px;letter-spacing:.025em;font-variant-numeric:tabular-nums;white-space:nowrap;color:#ded9ca}
 .gamePin{position:absolute;left:0;top:0}
 .gamePin i{position:absolute;left:-5px;top:-5px;width:10px;height:10px;border:1.5px solid #ffe8a7;border-radius:50%;box-shadow:0 0 0 1px #222d23a0}
 .gamePin span{position:absolute;left:6px;bottom:7px;background:#10211ddd;color:#fff3d3;font-size:11px;font-weight:600;white-space:nowrap;padding:2px 5px;border-radius:3px}
-@media(max-width:790px){#visionToggle{padding:0 10px;white-space:nowrap}.gameReadout{top:75px;max-width:48vw;padding:7px 9px}.gameReadout li{font-size:11px;gap:7px}}
+@media(max-width:790px){.gameReadout{top:75px;max-width:48vw;padding:7px 9px}.gameReadout li{font-size:11px;gap:7px}}
 @media(max-width:405px){main[data-mode=flight] nav{gap:3px}main[data-mode=flight] .brand{width:44px}main[data-mode=flight] nav .icon{width:36px;min-width:36px}}
 
 @media(max-width:600px){
   main[data-mode=flight] nav #visionToggle{
     position:absolute;right:0;top:calc(100% + 8px);
-    width:auto;min-height:44px;padding:0 12px;gap:7px;
+    width:44px;height:44px;
     background:#172722e8;border-color:#f5e5bb9c;
   }
   main[data-mode=flight] nav #visionToggle[aria-pressed=true]{background:#efe0b9;color:#192720}

@@ -67,7 +67,7 @@
     try { history.replaceState(null, '', '#'+params); } catch { location.hash = params.toString(); }
     app.dataset.departure = launch.value;
     const descriptions={
-      game:'Follow the animals at the forest or shoreline edge. Game Vision identifies nearby species as you fly.',
+      game:'Follow the animals at the forest or shoreline edge. The eye icon identifies nearby species as you fly.',
       wall:'Follow the broken ledges on your right. Bank left past the fallen sandstone blocks into the open canyon.',
       cabin:'Fly out of the shower toward the white cabin. Look for sunlight catching the wet roof and the puddles by the shore.',
       spruce:'Follow the spruce-lined bank, then bank left toward the lake for a view of the exposed rock.',
@@ -80,8 +80,8 @@
     if(picker.value==='acadia')Object.assign(descriptions,{
       ridge:'Follow the breakers into Thunder Hole. Listen for the low boom as a swell fills the narrow granite inlet.',
       beach:'Glide across Sand Beach and bank along Great Head. The sound of the surf changes as the sand gives way to ledges.',
-      wildlife:'Skim Newport Cove for common eiders. Turn on Game Vision to pick out wildlife along the dark shoreline.',
-      game:'Follow the spruce edge above Newport Cove. Listen for barred owls and use Game Vision to spot deer and snowshoe hare.'
+      wildlife:'Skim Newport Cove for common eiders. Use the eye icon to pick out wildlife along the dark shoreline.',
+      game:'Follow the spruce edge above Newport Cove. Listen for barred owls and use the eye icon to spot deer and snowshoe hare.'
     });
     document.querySelector('.intro p').textContent=descriptions[launch.value]||
       (launch.value==='lookout'?window.PERCH_ROUTE_DESCRIPTIONS[picker.value]:worlds[picker.value].description);

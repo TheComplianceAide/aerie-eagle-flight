@@ -1,7 +1,7 @@
 ACADIA NATIONAL PARK · MOUNT DESERT ISLAND, MAINE
 The coastal terrain and close shoreline follow USGS elevation data. Aerial ground textures use USDA NAIP imagery. The landmarks are positioned using USGS GNIS; the slot at Thunder Hole follows the visible inlet. Vegetation cover is derived from ESA WorldCover 2021. Near-field plants and stones are representative. The sea surface and its breaking waves are simulated.
 
-Night sky: NASA/Goddard Space Flight Center Scientific Visualization Studio, Deep Star Maps 2020, Ernie Wright. Based on Hipparcos-2, Tycho-2 and Gaia DR2 star catalogs. The sky is oriented for Mount Desert Island on a clear late-summer night. The visual exposure and sea-level airglow are artistic interpretations.
+Night sky: NASA/Goddard Space Flight Center Scientific Visualization Studio, Deep Star Maps 2020, Ernie Wright. Based on Hipparcos-2, Tycho-2 and Gaia DR2 star catalogs. The sky is oriented for Mount Desert Island on a clear late-summer night. The visual exposure and sea-level airglow are artistic interpretations. The fixed east-southeast moon, its reflection and lighting are a modeled night scene, not an astronomical reconstruction for a specified date.
 https://svs.gsfc.nasa.gov/4851/
 https://www.usgs.gov/3d-elevation-program
 https://www.fsa.usda.gov/resources/programs/national-agriculture-imagery-program

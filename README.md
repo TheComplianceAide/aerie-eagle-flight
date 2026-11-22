@@ -102,6 +102,12 @@ Dark patches of rough water travel downwind. A circling bird on open wings marks
 
 Cloud banks drift across all twelve ranges. Their shadows follow the ridges, forest and water, and narrow mist banks drift with the local wind. In Alaska, choose [Nugget Falls spray pass](https://aerie-valley-flight.randyb308826.chatgpt.site/#world=alaska&launch=spray) to fly alongside the cascade. Fine spray blows off the ledges while larger drops fall back into the chute.
 
+## Regional audio in 0.29.0
+
+Every flight range has twice as many playable recordings as 0.27.0, including 422 new wildlife takes and 14 landscape recordings across the game. The eagle's calls, wingbeats and wind at its ears travel with the player. Local calls stay in their habitat, with Acadia using calls recorded after dark or during twilight. New takes decode on demand.
+
+Rain follows open water, trees and bare stone. Shore sounds stay at the waterline. At a waterfall, a newly available regional recording fades in at the same source as the fallback. Turn, climb or pass behind a ridge to hear distance, wind, and terrain change the mix. The [recording credits](game/regional-recording-credits.txt) document actual recording locations and regional analogues. `node tools/check_audio_catalog.cjs` checks all twelve inventories. `node tools/check_location_audio.cjs` exercises the playback transitions.
+
 ## Waterfall flights
 
 Take the **Nugget Falls spray pass** in Alaska to see the water separate into streams, blow sideways in gusts and send ripples across Mendenhall Lake. At **Thunder Hole** in Acadia, follow the night surf into the granite inlet. Use **Explore** for Plaikni Falls, Falls of Song, Beaver Brook Falls, Cold Stream Falls and Rostadforsen. Each follows the local streambed down to its receiving water. [Regional waterfall surveys](game/regional-waterfalls-credits.txt)

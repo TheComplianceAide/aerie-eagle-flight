@@ -1,7 +1,7 @@
 // Feed normalized demands to the same aerodynamic controls as the keyboard.
-window.makeFlightPointer = function ({surface, cue, currentStage, pick, pan}) {
+window.makeFlightPointer = function ({surface, cue, currentStage, pick, pan, call, land}) {
   const input = {x:0, y:0};
-  let contact = null;
+  let contact = null, chord = null;
   let awaitingMouseMotion = true;
   let firstMouseX, firstMouseY;
   function neutral() {
@@ -9,11 +9,11 @@ window.makeFlightPointer = function ({surface, cue, currentStage, pick, pan}) {
     cue.hidden = true;
   }
   function clear() {
-    const id = contact?.id;
-    contact = null;
+    const ids = [contact?.id, chord?.id];
+    contact = chord = null;
     awaitingMouseMotion = true;
     firstMouseX = firstMouseY = undefined;
-    if (id != null && surface.hasPointerCapture(id)) surface.releasePointerCapture(id);
+    for(const id of ids)if (id != null && surface.hasPointerCapture(id)) surface.releasePointerCapture(id);
     neutral();
   }
   function axis(value, dead) {
@@ -30,10 +30,32 @@ window.makeFlightPointer = function ({surface, cue, currentStage, pick, pan}) {
     cue.style.top = y+'px';
     cue.hidden = false;
   }
+  function still(point,e) {
+    return Math.hypot(e.clientX-point.x,e.clientY-point.y)<=7;
+  }
+  surface.addEventListener('contextmenu', e => {
+    const stage=currentStage();
+    if (!stage || e.button!==2 || (e.pointerType && e.pointerType!=='mouse')) return;
+    e.preventDefault();
+    if (stage==='free') land?.(e.clientX,e.clientY);
+  });
   surface.addEventListener('pointerdown', e => {
     const stage=currentStage();
-    if (!stage || e.button!==0 || !e.isPrimary || contact) return;
-    contact={id:e.pointerId, x:e.clientX, y:e.clientY, lastX:e.clientX, lastY:e.clientY, moved:false};
+    if (!stage || e.button!==0) return;
+    // Any additional finger before the pair finishes invalidates the call.
+    if(e.pointerType==='touch' && chord){chord.valid=false;return;}
+    if (!e.isPrimary) {
+      if(e.pointerType==='touch' && contact?.type==='touch'){
+        if(stage==='free' && !contact.moved && e.timeStamp-contact.time<280){
+          chord={id:e.pointerId,x:e.clientX,y:e.clientY,time:contact.time,valid:true,primaryUp:false,secondaryUp:false};
+          surface.setPointerCapture(e.pointerId);
+          neutral();
+        }
+      }
+      return;
+    }
+    if(contact || chord || (e.pointerType==='mouse' && (e.ctrlKey||e.metaKey)))return;
+    contact={id:e.pointerId,x:e.clientX,y:e.clientY,lastX:e.clientX,lastY:e.clientY,moved:false,type:e.pointerType,time:e.timeStamp};
     surface.setPointerCapture(e.pointerId);
     if (e.pointerType!=='mouse' && stage==='free') {
       neutral();
@@ -42,7 +64,14 @@ window.makeFlightPointer = function ({surface, cue, currentStage, pick, pan}) {
   });
   surface.addEventListener('pointermove', e => {
     const stage=currentStage();
-    if (!stage || !e.isPrimary || (contact && contact.id!==e.pointerId)) return;
+    if (!stage) return;
+    if(chord && (contact?.id===e.pointerId || chord.id===e.pointerId)){
+      const point=contact?.id===e.pointerId?contact:chord;
+      if(!still(point,e))chord.valid=false;
+      if(!e.isPrimary || chord.valid)return;
+      // An invalid chord falls back to the primary finger's normal steering.
+    }
+    if (!e.isPrimary || (contact && contact.id!==e.pointerId)) return;
     if (contact) {
       const dx=e.clientX-contact.x, dy=e.clientY-contact.y;
       if (Math.hypot(dx,dy)>7) contact.moved=true;
@@ -70,14 +99,26 @@ window.makeFlightPointer = function ({surface, cue, currentStage, pick, pan}) {
     } else if (stage!=='free') neutral();
   });
   surface.addEventListener('pointerup', e => {
+    if(chord && (contact?.id===e.pointerId || chord.id===e.pointerId)){
+      const primary=contact?.id===e.pointerId, point=primary?contact:chord;
+      if(!still(point,e) || e.timeStamp-chord.time>=280)chord.valid=false;
+      if(primary){chord.primaryUp=true;contact=null;neutral();}
+      else chord.secondaryUp=true;
+      if(chord.primaryUp && chord.secondaryUp){
+        const valid=chord.valid;chord=null;
+        if(valid && currentStage()==='free')call?.();
+      }
+      return;
+    }
     if (!contact || contact.id!==e.pointerId) return;
-    const tapped=!contact.moved && Math.hypot(e.clientX-contact.x,e.clientY-contact.y)<=7;
+    const tapped=!contact.moved && still(contact,e), stage=currentStage();
     contact=null;
     if (e.pointerType!=='mouse') neutral();
-    if (tapped && currentStage()==='free') pick(e.clientX,e.clientY);
+    if(tapped && e.pointerType==='mouse' && !e.ctrlKey && !e.metaKey && (stage==='free'||stage==='perched'))call?.();
+    else if(tapped && e.pointerType!=='mouse' && stage==='free')pick(e.clientX,e.clientY);
   });
-  surface.addEventListener('pointercancel', e => {if (contact?.id===e.pointerId) clear();});
-  surface.addEventListener('lostpointercapture', e => {if (contact?.id===e.pointerId) clear();});
+  surface.addEventListener('pointercancel', e => {if (contact?.id===e.pointerId || (chord?.id===e.pointerId && !chord.secondaryUp)) clear();});
+  surface.addEventListener('lostpointercapture', e => {if (contact?.id===e.pointerId || (chord?.id===e.pointerId && !chord.secondaryUp)) clear();});
   surface.addEventListener('pointerleave', e => {if (!contact && e.pointerType==='mouse') neutral();});
   window.addEventListener('resize', clear);
   return {input,clear};

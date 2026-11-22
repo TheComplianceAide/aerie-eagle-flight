@@ -1,10 +1,16 @@
+// Signed distance inside the moving squall, shared by rain and thunder.
+function calderaStormDepth(x,z,t){
+  const side=-.316228*x+.948683*z;
+  const bend=175*Math.sin(side*.00073)+112*Math.sin(side*.00181+.7)+43*Math.sin(side*.0031);
+  const raw=.948683*x+.316228*z+2590+t*17-bend+7000;
+  return raw-18000*Math.floor(raw/18000)-7000;
+}
+window.aerieCalderaStormDepth=calderaStormDepth;
 // Rain below the actual broken squall, including the gaps between its shafts.
 window.aerieCalderaRain=function(x,y,z,t){
-  const mod=(v,n)=>v-n*Math.floor(v/n);
   const ease=(x,a,b)=>{const u=Math.max(0,Math.min(1,(x-a)/(b-a)));return u*u*(3-2*u);};
   const nearSide=-.316228*x+.948683*z;
-  const bend=175*Math.sin(nearSide*.00073)+112*Math.sin(nearSide*.00181+.7)+43*Math.sin(nearSide*.0031);
-  const local=mod(.948683*x+.316228*z+2590+t*17-bend+7000,18000)-7000;
+  const local=calderaStormDepth(x,z,t);
   const broken=.70+.22*Math.cos(nearSide*.0019+.4)+.08*Math.sin(nearSide*.0043);
   const ribbon=ease(local,-94,58)*(1-ease(local,368,690));
   const core=ease(local,930,1430)*(1-ease(local,4600,5900));

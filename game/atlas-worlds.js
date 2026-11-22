@@ -162,7 +162,7 @@ class Water extends Mesh {
 
 				uniform sampler2D shoreField, pebbles, terrainLight;
         uniform float shoreTexel;
-        uniform float basinSpan, oceanSurf, seaState, rockyBed, shoreExposure;
+        uniform float basinSpan, oceanSurf, seaState, rockyBed, shoreExposure, lakeGlancingFilter;
         uniform sampler2D bedRelief,bedSand,foamCells;
         ${shoreOptics}
         // Crossing wind swells and travelling capillary waves in metres. Dampen
@@ -241,7 +241,11 @@ class Water extends Mesh {
         screenSlope.y+=dot(slope,v.xz)*.62;
         vec2 jitter=screenSlope*(.19+.13*(1.-cosV));
         float roughLod=-.85+fetch*.44+clamp(footprint*.022,0.,.95);
-        vec3 reflectLight=texture2D(mirrorSampler,clamp(mirrorUV+jitter,.002,.998),roughLod).rgb;
+        // A distant ridge departure compresses many reflected tree edges into
+        // a pixel at grazing angles. Filter those edges without softening
+        // the close reflections or reducing the natural motion of the waves.
+        float glancing=lakeGlancingFilter*(1.-smoothstep(.10,.38,cosV))*smoothstep(.65,3.5,footprint);
+        vec3 reflectLight=texture2D(mirrorSampler,clamp(mirrorUV+jitter*(1.-.25*glancing),.002,.998),roughLod+.90*glancing).rgb;
         float waterDepth=.06+bank*mix(.14,.27,shoreExposure);
         float shallow=exp(-.47*waterDepth);
         vec3 deep=waterColor*(.40+.30*daylight+.09*wind);
@@ -638,13 +642,15 @@ class Water extends Mesh {
   // The solar bearing also locates the illuminated gap in each panorama.
   // Scene-light colors are sRGB. The terrain irradiances below are linear RGB.
   const twilight={
-    acadia:{sky:'acadia-night',fog:0x32454d,sun:0xabbcde,power:.18,skyFill:0x6e85ae,ground:0x273442,
-      diffuse:[.10,.145,.22],beam:[.15,.19,.28]},
+    acadia:{sky:'acadia-night',fog:0x32454d,sun:0xc8d7f2,power:.24,skyFill:0x6e85ae,ground:0x273442,
+      diffuse:[.10,.145,.22],beam:[.17,.22,.32]},
     lofoten:{sky:'lofoten-dusk',fog:0x99858d,sun:0xffb680,power:1.06,skyFill:0xbdafc9,ground:0x574d50,
       diffuse:[.34,.34,.46],beam:[1.08,.68,.49]}
   }[region];
-  const lightAngles={acadia:[174,9],moosehead:[-84,15.5],winnipesaukee:[-112,4.2],surry:[167,19],yosemite:[157,12.4],crater:[-70,8],lofoten:[-115,4.3],milford:[-71,8]};
-  const [azimuth,altitude]=(settings.lightAngles||lightAngles[region]).map(THREE.MathUtils.degToRad);
+  const lightAngles={moosehead:[-84,15.5],winnipesaukee:[-112,4.2],surry:[167,19],yosemite:[157,12.4],crater:[-70,8],lofoten:[-115,4.3],milford:[-71,8]};
+  // The modeled Acadia scene uses a low moon over the ESE ocean. Local area
+  // coordinates run east/up/south; sky, terrain, objects and water share it.
+  const [azimuth,altitude]=(acadia?[31,15]:(settings.lightAngles||lightAngles[region])).map(THREE.MathUtils.degToRad);
   const sun=new THREE.Vector3(Math.cos(azimuth)*Math.cos(altitude),Math.sin(altitude),Math.sin(azimuth)*Math.cos(altitude));
   const skyMap=texture(twilight?twilight.sky+'-sky.webp':settings.skyMap||'atlas-'+region+'-sky.webp');
   skyMap.colorSpace=THREE.SRGBColorSpace;skyMap.wrapS=THREE.RepeatWrapping;
@@ -750,7 +756,7 @@ class Water extends Mesh {
         c*=vec3(1.025,.999,.965);
         float skyView=occ.g,relief=(occ.b-.5)*(1.-.68*veg);
         vec3 ambient=vec3(${twilight?twilight.diffuse.join(','):'.51,.61,.76'})*(.66+.34*max(normal.y,0.))*(.69+.31*skyView);
-        vec3 direct=vec3(${twilight?twilight.beam.join(','):'1.25,.98,.69'})*(.14+1.02*incidence)*sunlit;
+        vec3 direct=vec3(${twilight?twilight.beam.join(','):'1.25,.98,.69'})${acadia?'*incidence*(1. /* direct terrain visibility */)':'*(.14+1.02*incidence)*sunlit'};
         ambient*=mix(vec3(1.),vec3(.74,.87,1.02),desert*(1.-.63*skyView));
         c=pow(max(c,vec3(0.)),vec3(2.2))*(ambient+direct)*(1.+(.32+.42*desert)*relief);
         /* lake bank surface */
@@ -808,7 +814,8 @@ class Water extends Mesh {
           vec3 rock=texture2D(coastalWall,p.zy*vec2(.096,-.13)+vec2(.25,.14)).rgb*w.x+
                     texture2D(coastalWall,p.xz*vec2(.12,.10)+vec2(.62,.56)).rgb*w.y+
                     texture2D(coastalWall,p.xy*vec2(-.103,-.138)).rgb*w.z;
-          float surfaceLight=.70+.26*measured.b+.18*max(0.,dot(ledgeNormal,sun));
+          float lunarIncidence=max(0.,dot(ledgeNormal,sun))*(1. /* direct terrain visibility */);
+          float surfaceLight=.64+.23*measured.b+.68*lunarIncidence;
           float wetRock=mix(.43,1.,smoothstep(.9,4.8,wp.y+1.25*(measured.b-.5)));
           float blocks=.26+1.62*lum(rock);
           vec3 lunarFace=vec3(.026,.029,.038)*surfaceLight*wetRock*blocks*blocks;
@@ -1737,7 +1744,7 @@ class Water extends Mesh {
       shoreField:{value:texture('atlas-'+region+'-shore.webp')},terrainLight:{value:terrainLight},
       pebbles:{value:texture('shore-pebbles.webp',true)},basinSpan:{value:h*2},
       oceanSurf:{value:acadia?.15:region==='lofoten'?.24:region==='milford'?.09:0},seaState:{value:acadia?1.38:region==='lofoten'?1.28:surry?.14:newEngland?.87:.94},
-      rockyBed:{value:newEngland?1:.75}
+      rockyBed:{value:newEngland?1:.75},lakeGlancingFilter:{value:region==='winnipesaukee'?1:0}
     });
     Object.assign(water.material.uniforms,shoreDetail.uniforms,{
       shoreExposure:{value:exposure},bedRelief:{value:texture('shore-pebbles-normal.webp',true)},
