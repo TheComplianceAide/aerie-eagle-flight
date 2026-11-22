@@ -1,0 +1,22 @@
+{
+  "name": "aerie-commerce",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "main": "src/functions.mjs",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test",
+    "review": "node src/review.mjs"
+  },
+  "dependencies": {
+    "@azure/communication-email": "^1.1.0",
+    "@azure/data-tables": "^13.3.2",
+    "@azure/functions": "^4.17.1",
+    "@azure/identity": "^4.14.1",
+    "@azure/storage-blob": "^12.34.0",
+    "stripe": "^23.2.0"
+  }
+}

@@ -1,0 +1,54 @@
+# Aerie checkout and access
+
+This Azure Functions app lets a player buy the **Support the Founder** digital-access pass for themselves and receive one one-use gift. Lake Winnipesaukee is public. An approved, disclosed social post grants Moosehead Lake, Horseshoe Bend, and Lac Berté by default. Nothing here creates a Stripe product, charges a card, or configures production.
+
+## Test the checkout
+
+Run `npm ci` and `npm test` with Node.js 22 or later. The tests use the official Stripe SDK to verify synthetic webhook signatures. Payment responses, inbox, storage and downloads in the test suite are synthetic. To test Apple Pay and Google Pay specifically, run the Stripe sandbox checkout from physical iPhone and Android devices, verify the signed webhook and return link, then redeem the gift from a second email address. This device and external endpoint test needs actual sandbox and Azure configuration.
+
+1. Create a one-time USD Price in a Stripe sandbox on a product named **Support the Founder — Aerie + one gift copy**. Use $4.99 in the sandbox. Set the appropriate digital game tax category on the Product and tax behavior on the Price. The hosted checkout enables Stripe Tax and collects billing details. Configure Stripe Tax registrations for the production seller before activation. Set the live Price only after the owner confirms it.
+2. Allow the eligible card and wallet methods in the Stripe Dashboard. Stripe Checkout handles Apple Pay and Google Pay presentation based on the device and payment settings. Use the Dashboard payment-method review with the actual currency, eligibility and tax setup.
+3. Create a Stripe webhook endpoint for `https://<Aerie origin>/api/aerie/stripe/webhook`. Subscribe to `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `charge.refunded`, `charge.dispute.created` and `charge.dispute.closed`. Store its signing secret in the function app. Use separate Azure and Stripe sandbox settings for test and live.
+4. Publish `commerce/` as a standalone Azure Functions v4 app with managed identity. Keep `/api/aerie/` on the same browser origin as the flight app. Azure Static Web Apps Standard can [link the Functions app](https://learn.microsoft.com/en-us/azure/static-web-apps/functions-bring-your-own). Managed Functions on the Free tier do not support managed identity for this backend. An existing first-party HTTPS reverse proxy can also route the API. For a local sandbox, serve the frontend and proxy the API under one localhost origin.
+5. Create the private Table Storage table, private paid asset container and sender. Assign the function identity Table Storage Data Contributor on the commerce table, permission to obtain a user-delegation key at storage-account scope and read access on the paid container, and Azure Communication Services permission to send email using the verified sender. Run `python3 tools/prepare_paid_worlds.py path/to/dist path/to/private-assets` against a generated Azure game build. It puts the paid flight entry files in `<private-assets>/<world>/<entry file>` and enables required access in the generated page. Upload the private tree before deploying that page. Configure Blob CORS for the game origin's reads and test the returned redirects from the actual origin. URLs contain a read-only token that expires after 15 minutes. Keep future paid entry files in private release storage. Previous public builds and repository assets remain accessible where they were published.
+
+## Settings
+
+| Function app setting | Purpose |
+| --- | --- |
+| `AERIE_SITE_URL` | Canonical first-party origin with both game and API routes. |
+| `AERIE_ALLOWED_ORIGINS` | Optional comma-separated exact origins for CORS. Session cookies are first-party. Checkout must return to the origin that set its cookie. |
+| `AERIE_IDENTITY_SECRET` | Stable randomly generated server secret of at least 32 bytes for email/account lookup and gift codes. Store privately. Rotation requires migrating the stored identities and redeemed gift records. |
+| `AERIE_TABLE_URL` | Azure Table service HTTPS endpoint. |
+| `AERIE_TABLE_NAME` | Existing table. Default `AerieCommerce`. Each mode has a separate transaction partition. |
+| `AERIE_EMAIL_ENDPOINT`, `AERIE_EMAIL_SENDER` | Azure Communication Services endpoint and verified email sender. |
+| `AERIE_BLOB_URL`, `AERIE_PRIVATE_CONTAINER` | Azure Blob service endpoint and private paid container. |
+| `AERIE_STRIPE_MODE`, `AERIE_STRIPE_SECRET_KEY` | Mode defaults to `test`. Use the matching Stripe key and keep it in Function settings or Key Vault. |
+| `AERIE_STRIPE_PRICE_ID`, `AERIE_STRIPE_WEBHOOK_SECRET` | Mode-matched one-time USD Stripe Price and endpoint signing secret. |
+| `AERIE_SIGNUP_ENABLED`, `AERIE_CHECKOUT_ENABLED`, `AERIE_SHARE_CLAIMS_ENABLED` | Set the individual feature's value to `true` after its backing services are configured. |
+| `AERIE_REWARD_WORLDS` | Optional list of exactly three distinct paid world IDs separated by commas. |
+| `AERIE_MONITORING_ENABLED` | Enable sanitized startup, script, graphics and promise error intake from the game origins. |
+
+Azure Functions host settings such as `AzureWebJobsStorage` and `FUNCTIONS_WORKER_RUNTIME=node` are supplied separately by Azure. Use a low-cost Functions consumption plan and have an ingress rate-limit policy for email link requests before opening to the public. Set retention handling for old email-link, pending-checkout, session, and review records according to the business's data retention needs. Signups are stored as contact opt-ins; mailing campaigns are separate.
+
+## Application flow
+
+- `GET /api/aerie/config` advertises real availability and the server-verified Stripe amount. A completed purchase sends the original browser through the verified return endpoint and gives it access to just that purchase. An email verification lets the same customer restore their prior access. A success URL alone does not confer any access.
+- `GET /api/aerie/status` returns the free, earned or paid world IDs and an unredeemed gift link where appropriate. A one-time emailed link opens the join page, which confirms the token with `POST /api/aerie/restore/confirm`. The optional `gift` field on `POST /api/aerie/restore` lets a gift recipient open the email in a new tab.
+- `POST /api/aerie/gift/redeem` accepts a verified recipient session and a gift code. The code is redeemed by just one inbox identity and can safely be retried by that recipient. Refunds and disputes suspend the grants from the associated purchase.
+- `GET /api/aerie/asset?world=<id>&path=<game-relative-file>&redirect=1` checks the entitlement before redirecting to private Blob Storage. Without `redirect=1` it returns `{url}`. A production load test should measure the authorization requests across the paid world assets as well as Blob bandwidth.
+- `POST /api/aerie/share-claim` queues a public post for review. With authorized Azure Table access, run `npm run review -- list` to see pending public links and `npm run review -- approve <id>` or `npm run review -- reject <id>`. Confirm the claimant authored the post, played Aerie and clearly disclosed the reward. Judge the disclosure and eligibility independently of sentiment, follower counts and engagement. Approving the claim grants three extra worlds. The order of the checks is documented in the [FTC endorsement guidance](https://www.ftc.gov/business-guidance/resources/ftcs-endorsement-guides-what-people-are-asking).
+
+## Monitoring
+
+Connect the workspace-based Application Insights resource using `APPLICATIONINSIGHTS_CONNECTION_STRING`. The host targets 5 telemetry items per second per running instance with adaptive sampling. Browser reports have five bounded fields, are deduplicated per minute, and accept at most 30 distinct reports per minute per running instance. They do not carry raw URLs, user identity, email, or free-form browser exception text.
+
+```kusto
+AppTraces
+| where TimeGenerated > ago(24h)
+| where Message startswith "aerie_client_error "
+| extend error = parse_json(substring(Message, strlen("aerie_client_error ")))
+| summarize Reports = count() by tostring(error.kind), tostring(error.world), tostring(error.version), bin(TimeGenerated, 15m)
+```
+
+`rg-aerie-prod` uses two Azure Monitor scheduled query alerts. They evaluate every five minutes over a 15-minute window. `aerie-client-launch-and-webgl` fires at five reported startup or WebGL failures. `aerie-api-server-failures` fires at three API requests with HTTP 5xx responses. Both use the `ag-playaerie-prod` action group, which sends to the owner address configured in Azure.
