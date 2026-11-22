@@ -15,7 +15,22 @@
     lofoten: {name:['Lofoten','Islands'],region:'Reinefjorden, Norway',paletteLaunch:'lake',description:'Follow the copper light down Reinefjorden beneath a low violet cloud bank. The fjord narrows between steep mountain walls.',launches:{lake:'Fjord overlook',ridge:'Reinefjorden channel'}},
     acadia: {name:['Acadia','National Park'],region:'Night · Maine, USA',paletteLaunch:'lake',description:'Fly south along Otter Cliff with the Milky Way over the Atlantic. Follow the breakers to Thunder Hole, or cross the pale crescent of Sand Beach.',launches:{lake:'Otter Cliff under the Milky Way',ridge:'Thunder Hole surf run',beach:'Sand Beach and Great Head'}}
   });
+  const grandViewDescriptions={
+    alaska:'Glide high above the Juneau Icefield and trace Mendenhall Glacier down to the lake and the spruce shore.',
+    canyon:'See the full sweep of Horseshoe Bend from above the rim, then descend into the sandstone gorge toward the Colorado River.',
+    swiss:'Start above the Bernese Alps and look down on Oeschinen Lake, its hanging valleys and the cliffs that feed its waterfalls.',
+    winnipesaukee:'Look out over the Broads from high above the lake. Pick a route between the wooded islands or follow the far shore.',
+    surry:'Look across the Surry Mountain reservoir and down the Ashuelot valley toward Keene. Follow the river to town.',
+    dixville:'See how Table Rock closes in over Lake Gloriette and the Balsams, then drop into the notch in the dawn light.',
+    labrador:'Float high above Lac Berté and follow the spruce islands and narrow channels as a sun shower crosses the lake.',
+    moosehead:'Look across the open lake toward Mount Kineo, where the peninsula and its steep cliffs break the shoreline.',
+    yosemite:'Start high above the Merced River and look along Yosemite Valley between its granite walls.',
+    crater:'Look down into the caldera above Wizard Island. The dark storm front beyond the far rim contrasts with the sunlit water.',
+    lofoten:'Glide high over Reinefjorden as copper twilight settles between the mountain walls and reflects off the water.',
+    acadia:'Look out from high above Acadia’s rocky coast and island channels with the Milky Way over the Atlantic.'
+  };
   for(const [id,w] of Object.entries(worlds)){
+    w.launches.grand='Grand View';
     const game=window.aerieLandWildlife.regions[id];
     if(game)w.launches.game=game.title;
     w.launches.lookout=window.PERCH_ROUTE_NAMES[id];
@@ -33,6 +48,10 @@
   document.getElementById('creditsLink').href=asset('credits.txt');
   document.getElementById('wildlifeCredits').href=asset('wildlife-credits.txt');
   document.getElementById('opticCredits').href=asset('atmospheric-optics-credits.txt');
+  function featuredLaunch(id){
+    const world=worlds[id];
+    return world.paletteLaunch||{alaska:'spruce',moosehead:'reeds',winnipesaukee:'game'}[id]||Object.keys(world.launches)[0];
+  }
   function previewName(id,start){
     if(worlds[id].paletteLaunch)return 'departure-light/'+id+'-'+start+'.webp';
     if(['game','wildlife','wall','spur','reeds','spray','spruce'].includes(start))return id+'-'+start+'-view.webp';
@@ -44,7 +63,10 @@
     return id+'-'+start+'-view.jpg';
   }
   function preview(id,start){
-    document.getElementById('landscape').style.backgroundImage='url("'+asset(previewName(id,start))+'")';
+    const images=start==='grand'
+      ? [`grand-views/${id}.webp`,previewName(id,featuredLaunch(id))]
+      : [previewName(id,start)];
+    document.getElementById('landscape').style.backgroundImage=images.map(name=>`url("${asset(name)}")`).join(', ');
   }
   const initialWorld=initial.get('world')==='lac-berte'?'labrador':initial.get('world')==='milford'?'acadia':initial.get('world');
   picker.value = Object.hasOwn(worlds, initialWorld) ? initialWorld : 'alaska';
@@ -67,6 +89,7 @@
     try { history.replaceState(null, '', '#'+params); } catch { location.hash = params.toString(); }
     app.dataset.departure = launch.value;
     const descriptions={
+      grand:grandViewDescriptions[picker.value],
       game:'Follow the animals at the forest or shoreline edge. The eye icon identifies nearby species as you fly.',
       wall:'Follow the broken ledges on your right. Bank left past the fallen sandstone blocks into the open canyon.',
       cabin:'Fly out of the shower toward the white cabin. Look for sunlight catching the wet roof and the puddles by the shore.',
@@ -102,11 +125,7 @@
     lowFlight.append(new Option(w.launches.lookout,'lookout'));
     const departures=Object.entries(w.launches).filter(([value])=>value!=='lookout');
     launch.replaceChildren(...departures.map(([value,label])=>new Option(label,value)),lowFlight);
-    if (Object.hasOwn(w.launches,start)) launch.value = start;
-    else {
-      const featured=w.paletteLaunch||{alaska:'spruce',moosehead:'reeds',winnipesaukee:'game'}[picker.value];
-      if(featured)launch.value=featured;
-    }
+    launch.value=Object.hasOwn(w.launches,start)?start:featuredLaunch(picker.value);
     for (const button of list.children) button.setAttribute('aria-pressed', String(button.dataset.choice === picker.value));
     remember();
   }
