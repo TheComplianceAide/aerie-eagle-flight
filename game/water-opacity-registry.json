@@ -1,0 +1,1017 @@
+{
+  "worlds": {
+    "acadia": [
+      "ocean_crest",
+      "ocean_rebound",
+      "ocean_wash",
+      "ocean_backwash"
+    ],
+    "alaska": [
+      "lake_gentle",
+      "lake_windy",
+      "river_bank",
+      "falls_curtain",
+      "falls_impact",
+      "falls_plume"
+    ],
+    "canyon": [
+      "river_bank"
+    ],
+    "crater": [
+      "lake_gentle",
+      "lake_windy",
+      "falls_curtain",
+      "falls_impact",
+      "falls_plume"
+    ],
+    "dixville": [
+      "lake_gentle",
+      "lake_windy",
+      "river_bank",
+      "falls_curtain",
+      "falls_impact",
+      "falls_plume",
+      "wildlife_fish"
+    ],
+    "labrador": [
+      "lake_gentle",
+      "lake_windy",
+      "river_bank",
+      "wildlife_fish"
+    ],
+    "lofoten": [
+      "ocean_crest",
+      "ocean_rebound",
+      "ocean_wash",
+      "ocean_backwash",
+      "falls_curtain",
+      "falls_impact",
+      "falls_plume"
+    ],
+    "moosehead": [
+      "lake_gentle",
+      "lake_windy",
+      "falls_curtain",
+      "falls_impact",
+      "falls_plume",
+      "wildlife_paddle",
+      "wildlife_fish"
+    ],
+    "surry": [
+      "lake_gentle",
+      "lake_windy",
+      "river_bank",
+      "falls_curtain",
+      "falls_impact",
+      "falls_plume"
+    ],
+    "swiss": [
+      "lake_gentle",
+      "lake_windy",
+      "falls_curtain",
+      "falls_impact",
+      "falls_plume"
+    ],
+    "winnipesaukee": [
+      "lake_gentle",
+      "lake_windy",
+      "falls_curtain",
+      "falls_impact",
+      "falls_plume",
+      "wildlife_paddle"
+    ],
+    "yosemite": [
+      "river_bank",
+      "falls_curtain",
+      "falls_impact",
+      "falls_plume"
+    ],
+    "yellowstone": [
+      "river_bank",
+      "falls_curtain",
+      "falls_impact",
+      "falls_plume"
+    ],
+    "freshwater": [
+      "falls_curtain",
+      "falls_impact",
+      "falls_plume"
+    ]
+  },
+  "pages": {
+    "acadia": {
+      "file": "water-opacity-acadia.png",
+      "size": [
+        1024,
+        384
+      ],
+      "slots": {
+        "ocean/curling_backwash": 0,
+        "ocean/curling_crest": 1,
+        "ocean/dendritic_backwash": 2,
+        "ocean/fragmented_crest": 3,
+        "ocean/headland_whitewater": 4,
+        "ocean/large_retreat_cell": 5,
+        "ocean/parallel_backwash": 6,
+        "ocean/rolling_foam_patch": 7,
+        "ocean/shoal_break": 8,
+        "ocean/thin_connected_foam_cells": 9,
+        "ocean/vortex_retreat_cell": 10,
+        "public_domain/acadia/ocean_backwash/05": 11,
+        "public_domain/acadia/ocean_crest/00": 12,
+        "public_domain/acadia/ocean_crest/01": 13,
+        "public_domain/acadia/ocean_rebound/02": 14,
+        "public_domain/acadia/ocean_rebound/03": 15,
+        "public_domain/acadia/ocean_wash/04": 16
+      },
+      "storage": "red",
+      "sha256": "f609e7a3586249b68a8fdb3d3fb2fb2394a5e8eaf9f3e76ceb78785aae8049fe"
+    },
+    "alaska": {
+      "file": "water-opacity-alaska.png",
+      "size": [
+        1024,
+        512
+      ],
+      "slots": {
+        "fall_filament/close_vertical_threads": 0,
+        "fall_filament/fine_parallel_threads": 1,
+        "fall_filament/localized_impact_mist": 2,
+        "fall_filament/separated_column": 3,
+        "fall_filament/wide_broken_curtain": 4,
+        "freshwater/broken_bank_wash": 5,
+        "freshwater/broken_shore_contact": 6,
+        "freshwater/long_thin_contact_line": 7,
+        "freshwater/short_contact_beads": 8,
+        "public_domain/alaska/falls_curtain/06": 9,
+        "public_domain/alaska/falls_curtain/07": 10,
+        "public_domain/alaska/falls_impact/08": 11,
+        "public_domain/alaska/falls_impact/09": 12,
+        "public_domain/alaska/falls_plume/10": 13,
+        "public_domain/alaska/falls_plume/11": 14,
+        "shore_contact/asymmetric_tiny_lap": 15,
+        "shore_contact/bank_curl_train": 16,
+        "shore_contact/slender_gentle_arc": 17,
+        "shore_contact/split_gentle_arc": 18,
+        "shore_contact/windward_crest_train": 19,
+        "shore_contact/windy_contact_break": 20,
+        "waterfall/broad_impact_front": 21,
+        "waterfall/crescent_impact_front": 22,
+        "waterfall/lateral_entrained_mist": 23,
+        "waterfall/left_leaning_spray": 24,
+        "waterfall/low_entrained_mist": 25,
+        "waterfall/rising_entrained_mist": 26,
+        "waterfall/split_impact_front": 27
+      },
+      "storage": "red",
+      "sha256": "db70f1b004dc6af0d17d51226ac3d7c122edc5ff19ab36269fa147fee70afa1b"
+    },
+    "canyon": {
+      "file": "water-opacity-canyon.png",
+      "size": [
+        1024,
+        128
+      ],
+      "slots": {
+        "freshwater/broken_bank_wash": 0,
+        "freshwater/broken_shore_contact": 1,
+        "freshwater/long_thin_contact_line": 2,
+        "horseshoe/bank_contact/12": 3,
+        "horseshoe/bank_contact/15": 4,
+        "horseshoe/shear_lines/00": 5,
+        "horseshoe/shear_lines/03": 6,
+        "shore_contact/bank_curl_train": 7
+      },
+      "storage": "bank-alpha",
+      "sha256": "2bba4f896ebddb87f8915aefa09590822fe50a10aa5623e9d64b1e685c2754df"
+    },
+    "crater": {
+      "file": "water-opacity-crater.png",
+      "size": [
+        1024,
+        384
+      ],
+      "slots": {
+        "cleetwood/gentle_lap/00": 0,
+        "cleetwood/gentle_lap/01": 1,
+        "fall_filament/close_vertical_threads": 2,
+        "fall_filament/fine_parallel_threads": 3,
+        "fall_filament/localized_impact_mist": 4,
+        "fall_filament/separated_column": 5,
+        "fall_filament/wide_broken_curtain": 6,
+        "freshwater/broken_bank_wash": 7,
+        "freshwater/short_contact_beads": 8,
+        "shore_contact/asymmetric_tiny_lap": 9,
+        "shore_contact/bank_curl_train": 10,
+        "shore_contact/slender_gentle_arc": 11,
+        "shore_contact/split_gentle_arc": 12,
+        "shore_contact/windward_crest_train": 13,
+        "shore_contact/windy_contact_break": 14,
+        "waterfall/broad_impact_front": 15,
+        "waterfall/crescent_impact_front": 16,
+        "waterfall/lateral_entrained_mist": 17,
+        "waterfall/left_leaning_spray": 18,
+        "waterfall/low_entrained_mist": 19,
+        "waterfall/rising_entrained_mist": 20,
+        "waterfall/split_impact_front": 21
+      },
+      "storage": "red",
+      "sha256": "2593008cb7a5cf0db409386913bc177eba40ac62bc2545d8cc1b77615c49154e"
+    },
+    "dixville": {
+      "file": "water-opacity-dixville.png",
+      "size": [
+        1024,
+        512
+      ],
+      "slots": {
+        "fall_filament/close_vertical_threads": 0,
+        "fall_filament/fine_parallel_threads": 1,
+        "fall_filament/localized_impact_mist": 2,
+        "fall_filament/separated_column": 3,
+        "fall_filament/wide_broken_curtain": 4,
+        "freshwater/broken_bank_wash": 5,
+        "freshwater/broken_shore_contact": 6,
+        "freshwater/long_thin_contact_line": 7,
+        "freshwater/short_contact_beads": 8,
+        "shore_contact/asymmetric_tiny_lap": 9,
+        "shore_contact/bank_curl_train": 10,
+        "shore_contact/slender_gentle_arc": 11,
+        "shore_contact/split_gentle_arc": 12,
+        "shore_contact/windward_crest_train": 13,
+        "shore_contact/windy_contact_break": 14,
+        "waterfall/broad_impact_front": 15,
+        "waterfall/crescent_impact_front": 16,
+        "waterfall/lateral_entrained_mist": 17,
+        "waterfall/left_leaning_spray": 18,
+        "waterfall/low_entrained_mist": 19,
+        "waterfall/rising_entrained_mist": 20,
+        "waterfall/split_impact_front": 21,
+        "wildlife_contact/breach_arc": 22,
+        "wildlife_contact/broken_surface_ring": 23,
+        "wildlife_contact/small_surface_ring": 24,
+        "wildlife_contact/two_surface_bubbles": 25
+      },
+      "storage": "red",
+      "sha256": "51d6bce7a5c5cfce6fddb663f81b073e178dc2bca84527786c7c019d7e32f1d4"
+    },
+    "labrador": {
+      "file": "water-opacity-labrador.png",
+      "size": [
+        1024,
+        256
+      ],
+      "slots": {
+        "freshwater/broken_bank_wash": 0,
+        "freshwater/broken_shore_contact": 1,
+        "freshwater/long_thin_contact_line": 2,
+        "freshwater/short_contact_beads": 3,
+        "shore_contact/asymmetric_tiny_lap": 4,
+        "shore_contact/bank_curl_train": 5,
+        "shore_contact/slender_gentle_arc": 6,
+        "shore_contact/split_gentle_arc": 7,
+        "shore_contact/windward_crest_train": 8,
+        "shore_contact/windy_contact_break": 9,
+        "wildlife_contact/breach_arc": 10,
+        "wildlife_contact/broken_surface_ring": 11,
+        "wildlife_contact/small_surface_ring": 12,
+        "wildlife_contact/two_surface_bubbles": 13
+      },
+      "storage": "red",
+      "sha256": "a83aabab4e4c13e2a6b21ad21027790b8a678ebc4e291ff329b8c2a2b4cebac6"
+    },
+    "lofoten": {
+      "file": "water-opacity-lofoten.png",
+      "size": [
+        1024,
+        384
+      ],
+      "slots": {
+        "fall_filament/close_vertical_threads": 0,
+        "fall_filament/fine_parallel_threads": 1,
+        "fall_filament/localized_impact_mist": 2,
+        "fall_filament/separated_column": 3,
+        "fall_filament/wide_broken_curtain": 4,
+        "ocean/curling_backwash": 5,
+        "ocean/curling_crest": 6,
+        "ocean/dendritic_backwash": 7,
+        "ocean/fragmented_crest": 8,
+        "ocean/headland_whitewater": 9,
+        "ocean/large_retreat_cell": 10,
+        "ocean/parallel_backwash": 11,
+        "ocean/rolling_foam_patch": 12,
+        "ocean/shoal_break": 13,
+        "ocean/thin_connected_foam_cells": 14,
+        "ocean/vortex_retreat_cell": 15,
+        "waterfall/broad_impact_front": 16,
+        "waterfall/crescent_impact_front": 17,
+        "waterfall/lateral_entrained_mist": 18,
+        "waterfall/left_leaning_spray": 19,
+        "waterfall/low_entrained_mist": 20,
+        "waterfall/rising_entrained_mist": 21,
+        "waterfall/split_impact_front": 22
+      },
+      "storage": "red",
+      "sha256": "cc6801c8d832ae96edbf0ecf9f24ba326abf86636b320178b0560452bd5fa07c"
+    },
+    "moosehead": {
+      "file": "water-opacity-moosehead.png",
+      "size": [
+        1024,
+        512
+      ],
+      "slots": {
+        "fall_filament/close_vertical_threads": 0,
+        "fall_filament/fine_parallel_threads": 1,
+        "fall_filament/localized_impact_mist": 2,
+        "fall_filament/separated_column": 3,
+        "fall_filament/wide_broken_curtain": 4,
+        "freshwater/broken_bank_wash": 5,
+        "freshwater/short_contact_beads": 6,
+        "shore_contact/asymmetric_tiny_lap": 7,
+        "shore_contact/bank_curl_train": 8,
+        "shore_contact/slender_gentle_arc": 9,
+        "shore_contact/split_gentle_arc": 10,
+        "shore_contact/windward_crest_train": 11,
+        "shore_contact/windy_contact_break": 12,
+        "waterfall/broad_impact_front": 13,
+        "waterfall/crescent_impact_front": 14,
+        "waterfall/lateral_entrained_mist": 15,
+        "waterfall/left_leaning_spray": 16,
+        "waterfall/low_entrained_mist": 17,
+        "waterfall/rising_entrained_mist": 18,
+        "waterfall/split_impact_front": 19,
+        "wildlife_contact/angled_paddle": 20,
+        "wildlife_contact/breach_arc": 21,
+        "wildlife_contact/broken_surface_ring": 22,
+        "wildlife_contact/one_sided_paddle": 23,
+        "wildlife_contact/rolling_paddle": 24,
+        "wildlife_contact/small_surface_ring": 25,
+        "wildlife_contact/split_paddle": 26,
+        "wildlife_contact/two_surface_bubbles": 27
+      },
+      "storage": "red",
+      "sha256": "fe2553ea0336854d606077eecbcfd16d6d9894105aa2b7cc3457386c58e818da"
+    },
+    "surry": {
+      "file": "water-opacity-surry.png",
+      "size": [
+        1024,
+        384
+      ],
+      "slots": {
+        "fall_filament/close_vertical_threads": 0,
+        "fall_filament/fine_parallel_threads": 1,
+        "fall_filament/localized_impact_mist": 2,
+        "fall_filament/separated_column": 3,
+        "fall_filament/wide_broken_curtain": 4,
+        "freshwater/broken_bank_wash": 5,
+        "freshwater/broken_shore_contact": 6,
+        "freshwater/long_thin_contact_line": 7,
+        "freshwater/short_contact_beads": 8,
+        "shore_contact/asymmetric_tiny_lap": 9,
+        "shore_contact/bank_curl_train": 10,
+        "shore_contact/slender_gentle_arc": 11,
+        "shore_contact/split_gentle_arc": 12,
+        "shore_contact/windward_crest_train": 13,
+        "shore_contact/windy_contact_break": 14,
+        "waterfall/broad_impact_front": 15,
+        "waterfall/crescent_impact_front": 16,
+        "waterfall/lateral_entrained_mist": 17,
+        "waterfall/left_leaning_spray": 18,
+        "waterfall/low_entrained_mist": 19,
+        "waterfall/rising_entrained_mist": 20,
+        "waterfall/split_impact_front": 21
+      },
+      "storage": "red",
+      "sha256": "cd66baf533d60cfb5be60dc5971c002a3bf08e04d7a44240e9465aea9e71f451"
+    },
+    "swiss": {
+      "file": "water-opacity-swiss.png",
+      "size": [
+        1024,
+        384
+      ],
+      "slots": {
+        "fall_filament/close_vertical_threads": 0,
+        "fall_filament/fine_parallel_threads": 1,
+        "fall_filament/localized_impact_mist": 2,
+        "fall_filament/separated_column": 3,
+        "fall_filament/wide_broken_curtain": 4,
+        "freshwater/broken_bank_wash": 5,
+        "freshwater/short_contact_beads": 6,
+        "shore_contact/asymmetric_tiny_lap": 7,
+        "shore_contact/bank_curl_train": 8,
+        "shore_contact/slender_gentle_arc": 9,
+        "shore_contact/split_gentle_arc": 10,
+        "shore_contact/windward_crest_train": 11,
+        "shore_contact/windy_contact_break": 12,
+        "waterfall/broad_impact_front": 13,
+        "waterfall/crescent_impact_front": 14,
+        "waterfall/lateral_entrained_mist": 15,
+        "waterfall/left_leaning_spray": 16,
+        "waterfall/low_entrained_mist": 17,
+        "waterfall/rising_entrained_mist": 18,
+        "waterfall/split_impact_front": 19
+      },
+      "storage": "red",
+      "sha256": "dd158eae2f09f69b4ce2dce2ae437ce040dee81b5aa8f6087ded9b59d1091953"
+    },
+    "winnipesaukee": {
+      "file": "water-opacity-winnipesaukee.png",
+      "size": [
+        1024,
+        384
+      ],
+      "slots": {
+        "fall_filament/close_vertical_threads": 0,
+        "fall_filament/fine_parallel_threads": 1,
+        "fall_filament/localized_impact_mist": 2,
+        "fall_filament/separated_column": 3,
+        "fall_filament/wide_broken_curtain": 4,
+        "freshwater/broken_bank_wash": 5,
+        "freshwater/short_contact_beads": 6,
+        "shore_contact/asymmetric_tiny_lap": 7,
+        "shore_contact/bank_curl_train": 8,
+        "shore_contact/slender_gentle_arc": 9,
+        "shore_contact/split_gentle_arc": 10,
+        "shore_contact/windward_crest_train": 11,
+        "shore_contact/windy_contact_break": 12,
+        "waterfall/broad_impact_front": 13,
+        "waterfall/crescent_impact_front": 14,
+        "waterfall/lateral_entrained_mist": 15,
+        "waterfall/left_leaning_spray": 16,
+        "waterfall/low_entrained_mist": 17,
+        "waterfall/rising_entrained_mist": 18,
+        "waterfall/split_impact_front": 19,
+        "wildlife_contact/angled_paddle": 20,
+        "wildlife_contact/one_sided_paddle": 21,
+        "wildlife_contact/rolling_paddle": 22,
+        "wildlife_contact/split_paddle": 23
+      },
+      "storage": "red",
+      "sha256": "d7a0e3d635fa7989ee12de1e0dc3e25ba32aba9f5041def7a2bb35e07d40c37d"
+    },
+    "yosemite": {
+      "file": "water-opacity-yosemite.png",
+      "size": [
+        1024,
+        256
+      ],
+      "slots": {
+        "fall_filament/close_vertical_threads": 0,
+        "fall_filament/fine_parallel_threads": 1,
+        "fall_filament/localized_impact_mist": 2,
+        "fall_filament/separated_column": 3,
+        "fall_filament/wide_broken_curtain": 4,
+        "freshwater/broken_bank_wash": 5,
+        "freshwater/broken_shore_contact": 6,
+        "freshwater/long_thin_contact_line": 7,
+        "shore_contact/bank_curl_train": 8,
+        "waterfall/broad_impact_front": 9,
+        "waterfall/crescent_impact_front": 10,
+        "waterfall/lateral_entrained_mist": 11,
+        "waterfall/left_leaning_spray": 12,
+        "waterfall/low_entrained_mist": 13,
+        "waterfall/rising_entrained_mist": 14,
+        "waterfall/split_impact_front": 15
+      },
+      "storage": "red",
+      "sha256": "cf31761eda499ab748cde45edf78cc4385d0d2bf7950275cec1d948d1037f18f"
+    },
+    "yellowstone": {
+      "file": "water-opacity-yellowstone.png",
+      "size": [
+        1024,
+        256
+      ],
+      "slots": {
+        "fall_filament/close_vertical_threads": 0,
+        "fall_filament/fine_parallel_threads": 1,
+        "fall_filament/localized_impact_mist": 2,
+        "fall_filament/separated_column": 3,
+        "fall_filament/wide_broken_curtain": 4,
+        "freshwater/broken_bank_wash": 5,
+        "freshwater/broken_shore_contact": 6,
+        "freshwater/long_thin_contact_line": 7,
+        "shore_contact/bank_curl_train": 8,
+        "waterfall/broad_impact_front": 9,
+        "waterfall/crescent_impact_front": 10,
+        "waterfall/lateral_entrained_mist": 11,
+        "waterfall/left_leaning_spray": 12,
+        "waterfall/low_entrained_mist": 13,
+        "waterfall/rising_entrained_mist": 14,
+        "waterfall/split_impact_front": 15
+      },
+      "storage": "red",
+      "sha256": "cf31761eda499ab748cde45edf78cc4385d0d2bf7950275cec1d948d1037f18f"
+    },
+    "freshwater": {
+      "file": "water-opacity-freshwater.png",
+      "size": [
+        1024,
+        256
+      ],
+      "slots": {
+        "fall_filament/close_vertical_threads": 0,
+        "fall_filament/fine_parallel_threads": 1,
+        "fall_filament/localized_impact_mist": 2,
+        "fall_filament/separated_column": 3,
+        "fall_filament/wide_broken_curtain": 4,
+        "waterfall/broad_impact_front": 5,
+        "waterfall/crescent_impact_front": 6,
+        "waterfall/lateral_entrained_mist": 7,
+        "waterfall/left_leaning_spray": 8,
+        "waterfall/low_entrained_mist": 9,
+        "waterfall/rising_entrained_mist": 10,
+        "waterfall/split_impact_front": 11
+      },
+      "storage": "red",
+      "sha256": "48e9b196aee06685870e5eb196b4264686b8f41f268cd960a3987ea803d6529c"
+    }
+  },
+  "selectors": {
+    "falls_curtain": {
+      "hook": "waterfall-system.js and yosemite-falls.js flow geometry; modulation of current curtain geometry only",
+      "status": "stock_hook_candidate",
+      "variants": [
+        "fall_filament/close_vertical_threads",
+        "fall_filament/wide_broken_curtain",
+        "fall_filament/fine_parallel_threads",
+        "fall_filament/separated_column",
+        "fall_filament/long_split_droplets",
+        "fall_filament/diagonal_droplet_thread",
+        "fall_filament/thick_droplet_thread"
+      ]
+    },
+    "falls_impact": {
+      "hook": "waterfall-system.js local contact(), poolFan() and outlet timed decay",
+      "status": "stock_hook_candidate",
+      "variants": [
+        "waterfall/broad_impact_front",
+        "waterfall/split_impact_front",
+        "waterfall/crescent_impact_front",
+        "waterfall/left_leaning_spray",
+        "waterfall/upright_spray",
+        "waterfall/low_fan_spray",
+        "fall_filament/localized_impact_mist",
+        "fall_filament/low_flat_mist",
+        "fall_filament/broken_downstream_drift",
+        "fall_filament/downstream_curl"
+      ]
+    },
+    "falls_plume": {
+      "hook": "waterfall-system.js plume() and existing Yosemite mist; multiply density down, no curtain substitute",
+      "status": "stock_hook_candidate",
+      "variants": [
+        "waterfall/low_entrained_mist",
+        "waterfall/rising_entrained_mist",
+        "waterfall/lateral_entrained_mist",
+        "fall_filament/localized_impact_mist",
+        "fall_filament/low_flat_mist",
+        "fall_filament/rising_spray_mist",
+        "fall_filament/sideways_impact_mist"
+      ]
+    },
+    "lake_gentle": {
+      "hook": "water-surface.js wet shoreline lookup; local shoreland measurement",
+      "status": "stock_hook_candidate",
+      "variants": [
+        "shore_contact/asymmetric_tiny_lap",
+        "shore_contact/slender_gentle_arc",
+        "shore_contact/split_gentle_arc",
+        "freshwater/short_contact_beads",
+        "freshwater/long_thin_contact_line",
+        "freshwater/broken_shore_contact"
+      ]
+    },
+    "lake_windy": {
+      "hook": "wind-water.js direction/gust plus water-surface.js shoreline; only on actual windward wet edge",
+      "status": "stock_hook_candidate",
+      "variants": [
+        "shore_contact/bank_curl_train",
+        "shore_contact/windward_crest_train",
+        "shore_contact/windy_contact_break",
+        "freshwater/broken_bank_wash"
+      ]
+    },
+    "ocean_backwash": {
+      "hook": "acadia-coast.js and atlas-worlds.js exposed ebb directional mask",
+      "status": "stock_hook_candidate",
+      "variants": [
+        "ocean/vortex_retreat_cell",
+        "ocean/parallel_backwash",
+        "ocean/dendritic_backwash",
+        "ocean/curling_backwash"
+      ]
+    },
+    "ocean_crest": {
+      "hook": "acadia-coast.js and atlas-worlds.js crest/shore shoaling phase",
+      "status": "stock_hook_candidate",
+      "variants": [
+        "ocean/shoal_break",
+        "ocean/curling_crest",
+        "ocean/fragmented_crest",
+        "ocean/headland_whitewater"
+      ]
+    },
+    "ocean_rebound": {
+      "hook": "acadia-coast.js Thunder Hole advancing/reflected chamber; no general coast rebound",
+      "status": "stock_hook_candidate",
+      "variants": [
+        "ocean/curling_crest",
+        "ocean/vortex_retreat_cell",
+        "ocean/curling_backwash",
+        "ocean/rolling_foam_patch"
+      ]
+    },
+    "ocean_wash": {
+      "hook": "acadia-coast.js surveyed ledge wash and surveyed local wet mask",
+      "status": "stock_hook_candidate",
+      "variants": [
+        "ocean/large_retreat_cell",
+        "ocean/thin_connected_foam_cells",
+        "ocean/headland_whitewater",
+        "ocean/rolling_foam_patch",
+        "ocean/broken_ledge_wash"
+      ]
+    },
+    "river_bank": {
+      "hook": "water-surface.js surveyed bank/wet channel; existing shear/shore event only",
+      "status": "stock_hook_candidate",
+      "variants": [
+        "freshwater/long_thin_contact_line",
+        "freshwater/broken_shore_contact",
+        "freshwater/broken_bank_wash",
+        "shore_contact/bank_curl_train",
+        "shore_contact/windy_contact_break",
+        "shore_contact/asymmetric_tiny_lap",
+        "river/narrow_rapid_streak"
+      ]
+    },
+    "wildlife_fish": {
+      "hook": "fish-schools.js surfacing/fleeing -> makeFishRipples; adult spawning stream salmon do not make feeding rises",
+      "status": "stock_hook_candidate",
+      "variants": [
+        "wildlife_contact/two_surface_bubbles",
+        "wildlife_contact/breach_arc",
+        "wildlife_contact/small_surface_ring",
+        "wildlife_contact/broken_surface_ring"
+      ]
+    },
+    "wildlife_paddle": {
+      "hook": "wildlife.js has disturbance/paddling; nearby disturbance ripple only, cadence/wake synced to paddles still prototype",
+      "status": "stock_hook_candidate",
+      "variants": [
+        "wildlife_contact/one_sided_paddle",
+        "wildlife_contact/split_paddle",
+        "wildlife_contact/rolling_paddle",
+        "wildlife_contact/angled_paddle",
+        "wildlife_contact/narrow_wake_single",
+        "wildlife_contact/narrow_wake_rolling"
+      ]
+    }
+  },
+  "photoOverrides": {
+    "crater": {
+      "lake_gentle": [
+        "cleetwood/gentle_lap/00",
+        "cleetwood/gentle_lap/01"
+      ]
+    },
+    "canyon": {
+      "river_bank": [
+        "horseshoe/bank_contact/12",
+        "horseshoe/bank_contact/15",
+        "horseshoe/shear_lines/00",
+        "horseshoe/shear_lines/03"
+      ]
+    },
+    "acadia": {
+      "ocean_crest": [
+        "public_domain/acadia/ocean_crest/00",
+        "public_domain/acadia/ocean_crest/01"
+      ],
+      "ocean_rebound": [
+        "public_domain/acadia/ocean_rebound/02",
+        "public_domain/acadia/ocean_rebound/03"
+      ],
+      "ocean_wash": [
+        "public_domain/acadia/ocean_wash/04"
+      ],
+      "ocean_backwash": [
+        "public_domain/acadia/ocean_backwash/05"
+      ]
+    },
+    "alaska": {
+      "falls_curtain": [
+        "public_domain/alaska/falls_curtain/06",
+        "public_domain/alaska/falls_curtain/07"
+      ],
+      "falls_impact": [
+        "public_domain/alaska/falls_impact/08",
+        "public_domain/alaska/falls_impact/09"
+      ],
+      "falls_plume": [
+        "public_domain/alaska/falls_plume/10",
+        "public_domain/alaska/falls_plume/11"
+      ]
+    }
+  },
+  "photoProvenance": {
+    "cleetwood/gentle_lap/00": {
+      "site": "cleetwood",
+      "selector": "gentle_lap",
+      "photoReferences": [
+        {
+          "credit": "Vulturesong",
+          "license": "CC0",
+          "url": "https://commons.wikimedia.org/wiki/File:Crater_Lake_National_Park_-_HCP_-_October_13,_2022_-_058_-_Cleetwood_Cove_Trail.jpg"
+        }
+      ],
+      "generatedSheetSha256": "8c44e2b30e66f1a30838cae8bc25e64f36821974e539fb8a5232bcd87e93c7ea",
+      "payloadSha256": "7fee202e8876857338318d6b62e9988039d7457ef8abc63c8201d1723c5d086f"
+    },
+    "cleetwood/gentle_lap/01": {
+      "site": "cleetwood",
+      "selector": "gentle_lap",
+      "photoReferences": [
+        {
+          "credit": "Vulturesong",
+          "license": "CC0",
+          "url": "https://commons.wikimedia.org/wiki/File:Crater_Lake_National_Park_-_HCP_-_October_13,_2022_-_058_-_Cleetwood_Cove_Trail.jpg"
+        }
+      ],
+      "generatedSheetSha256": "8c44e2b30e66f1a30838cae8bc25e64f36821974e539fb8a5232bcd87e93c7ea",
+      "payloadSha256": "38de444d7d84145092f4e50a74d167f9bab64ec6468b2d009b98e2db1f12591e"
+    },
+    "horseshoe/bank_contact/12": {
+      "site": "horseshoe",
+      "selector": "bank_contact",
+      "photoReferences": [
+        {
+          "credit": "John Fowler",
+          "license": "CC BY 2.0",
+          "url": "https://commons.wikimedia.org/wiki/File:Horseshoe_Bend_in_the_Colorado_River_-_Page,_Arizona,_USA.jpg"
+        }
+      ],
+      "generatedSheetSha256": "3203b6e5d3a2162e05eb1e3cfc18faee66f03177d81f19c638b60f6dd7e0a79b",
+      "payloadSha256": "6e4c1f1aab890a8dfe705605fc703539c668c1f86f5e2aca467be6f6b1ab1f35"
+    },
+    "horseshoe/bank_contact/15": {
+      "site": "horseshoe",
+      "selector": "bank_contact",
+      "photoReferences": [
+        {
+          "credit": "John Fowler",
+          "license": "CC BY 2.0",
+          "url": "https://commons.wikimedia.org/wiki/File:Horseshoe_Bend_in_the_Colorado_River_-_Page,_Arizona,_USA.jpg"
+        }
+      ],
+      "generatedSheetSha256": "3203b6e5d3a2162e05eb1e3cfc18faee66f03177d81f19c638b60f6dd7e0a79b",
+      "payloadSha256": "086e09a7e673075352a3a3c4ecf4d5e7933b511ceac1f572bef2c12e17418c0c"
+    },
+    "horseshoe/shear_lines/00": {
+      "site": "horseshoe",
+      "selector": "shear_lines",
+      "photoReferences": [
+        {
+          "credit": "John Fowler",
+          "license": "CC BY 2.0",
+          "url": "https://commons.wikimedia.org/wiki/File:Horseshoe_Bend_in_the_Colorado_River_-_Page,_Arizona,_USA.jpg"
+        }
+      ],
+      "generatedSheetSha256": "3203b6e5d3a2162e05eb1e3cfc18faee66f03177d81f19c638b60f6dd7e0a79b",
+      "payloadSha256": "d52c6f8f17474c0ecc495f4b062bd94a805499ce58cbd3538bc82e7357d44ba6"
+    },
+    "horseshoe/shear_lines/03": {
+      "site": "horseshoe",
+      "selector": "shear_lines",
+      "photoReferences": [
+        {
+          "credit": "John Fowler",
+          "license": "CC BY 2.0",
+          "url": "https://commons.wikimedia.org/wiki/File:Horseshoe_Bend_in_the_Colorado_River_-_Page,_Arizona,_USA.jpg"
+        }
+      ],
+      "generatedSheetSha256": "3203b6e5d3a2162e05eb1e3cfc18faee66f03177d81f19c638b60f6dd7e0a79b",
+      "payloadSha256": "b89abc9982a9c7f26823fc4d7b69d44026f7362745c68889e70be82ae413bdd2"
+    },
+    "public_domain/acadia/ocean_crest/00": {
+      "site": "acadia",
+      "selector": "ocean_crest",
+      "photoReferences": [
+        {
+          "credit": "Victoria Stauffenberg / National Park Service, Schoodic Point",
+          "license": "public domain",
+          "url": "https://npgallery.nps.gov/AssetDetail/4a9c4786-1356-44be-aa0b-b2556b27b753",
+          "sha256": "5a8379a5cd8c9a01d7f20a33b8209cb0150182b39ffc19cc888f82c0428ce364"
+        },
+        {
+          "credit": "Alex Demas / USGS, Thunder Hole (location context only)",
+          "license": "public domain",
+          "url": "https://www.usgs.gov/media/images/acadia-national-park-12",
+          "sha256": "4b2c7841d9fbb42ff9153757442c898c4e9173059b5b63501c643641be831554"
+        }
+      ],
+      "method": "feathered opacity study extracted by tools/water-opacity/public_domain.py",
+      "payloadSha256": "f295e2c34dc738e51f7288f9e2e6db601b08bf268c17e99233af0f00c183b493"
+    },
+    "public_domain/acadia/ocean_crest/01": {
+      "site": "acadia",
+      "selector": "ocean_crest",
+      "photoReferences": [
+        {
+          "credit": "Victoria Stauffenberg / National Park Service, Schoodic Point",
+          "license": "public domain",
+          "url": "https://npgallery.nps.gov/AssetDetail/4a9c4786-1356-44be-aa0b-b2556b27b753",
+          "sha256": "5a8379a5cd8c9a01d7f20a33b8209cb0150182b39ffc19cc888f82c0428ce364"
+        },
+        {
+          "credit": "Alex Demas / USGS, Thunder Hole (location context only)",
+          "license": "public domain",
+          "url": "https://www.usgs.gov/media/images/acadia-national-park-12",
+          "sha256": "4b2c7841d9fbb42ff9153757442c898c4e9173059b5b63501c643641be831554"
+        }
+      ],
+      "method": "feathered opacity study extracted by tools/water-opacity/public_domain.py",
+      "payloadSha256": "0c9f0e70c8abc62e8001a7c804d9e3a25f8b3f3f704f781850ae7fc1f3929d9e"
+    },
+    "public_domain/acadia/ocean_rebound/02": {
+      "site": "acadia",
+      "selector": "ocean_rebound",
+      "photoReferences": [
+        {
+          "credit": "Victoria Stauffenberg / National Park Service, Schoodic Point",
+          "license": "public domain",
+          "url": "https://npgallery.nps.gov/AssetDetail/4a9c4786-1356-44be-aa0b-b2556b27b753",
+          "sha256": "5a8379a5cd8c9a01d7f20a33b8209cb0150182b39ffc19cc888f82c0428ce364"
+        },
+        {
+          "credit": "Alex Demas / USGS, Thunder Hole (location context only)",
+          "license": "public domain",
+          "url": "https://www.usgs.gov/media/images/acadia-national-park-12",
+          "sha256": "4b2c7841d9fbb42ff9153757442c898c4e9173059b5b63501c643641be831554"
+        }
+      ],
+      "method": "feathered opacity study extracted by tools/water-opacity/public_domain.py",
+      "payloadSha256": "1fc758f49a13058e48ca59aa75adf41917bbdc6bd99c196b166c6b0aef7fbfe7"
+    },
+    "public_domain/acadia/ocean_rebound/03": {
+      "site": "acadia",
+      "selector": "ocean_rebound",
+      "photoReferences": [
+        {
+          "credit": "Victoria Stauffenberg / National Park Service, Schoodic Point",
+          "license": "public domain",
+          "url": "https://npgallery.nps.gov/AssetDetail/4a9c4786-1356-44be-aa0b-b2556b27b753",
+          "sha256": "5a8379a5cd8c9a01d7f20a33b8209cb0150182b39ffc19cc888f82c0428ce364"
+        },
+        {
+          "credit": "Alex Demas / USGS, Thunder Hole (location context only)",
+          "license": "public domain",
+          "url": "https://www.usgs.gov/media/images/acadia-national-park-12",
+          "sha256": "4b2c7841d9fbb42ff9153757442c898c4e9173059b5b63501c643641be831554"
+        }
+      ],
+      "method": "feathered opacity study extracted by tools/water-opacity/public_domain.py",
+      "payloadSha256": "ef7fcafef9fb290e6336f919a11bde8142a9a6e6842b808e334723cb02223267"
+    },
+    "public_domain/acadia/ocean_wash/04": {
+      "site": "acadia",
+      "selector": "ocean_wash",
+      "photoReferences": [
+        {
+          "credit": "Victoria Stauffenberg / National Park Service, Schoodic Point",
+          "license": "public domain",
+          "url": "https://npgallery.nps.gov/AssetDetail/4a9c4786-1356-44be-aa0b-b2556b27b753",
+          "sha256": "5a8379a5cd8c9a01d7f20a33b8209cb0150182b39ffc19cc888f82c0428ce364"
+        },
+        {
+          "credit": "Alex Demas / USGS, Thunder Hole (location context only)",
+          "license": "public domain",
+          "url": "https://www.usgs.gov/media/images/acadia-national-park-12",
+          "sha256": "4b2c7841d9fbb42ff9153757442c898c4e9173059b5b63501c643641be831554"
+        }
+      ],
+      "method": "feathered opacity study extracted by tools/water-opacity/public_domain.py",
+      "payloadSha256": "5a20a88113ca5940d03ec3f7b78e519145d98c1655c8cad3adb9eb57d897c2af"
+    },
+    "public_domain/acadia/ocean_backwash/05": {
+      "site": "acadia",
+      "selector": "ocean_backwash",
+      "photoReferences": [
+        {
+          "credit": "Victoria Stauffenberg / National Park Service, Schoodic Point",
+          "license": "public domain",
+          "url": "https://npgallery.nps.gov/AssetDetail/4a9c4786-1356-44be-aa0b-b2556b27b753",
+          "sha256": "5a8379a5cd8c9a01d7f20a33b8209cb0150182b39ffc19cc888f82c0428ce364"
+        },
+        {
+          "credit": "Alex Demas / USGS, Thunder Hole (location context only)",
+          "license": "public domain",
+          "url": "https://www.usgs.gov/media/images/acadia-national-park-12",
+          "sha256": "4b2c7841d9fbb42ff9153757442c898c4e9173059b5b63501c643641be831554"
+        }
+      ],
+      "method": "feathered opacity study extracted by tools/water-opacity/public_domain.py",
+      "payloadSha256": "2bfd090ab4895f6ec34ea048ed5184abf3832ae275ffa6fff2be7221b4f5ce0a"
+    },
+    "public_domain/alaska/falls_curtain/06": {
+      "site": "alaska",
+      "selector": "falls_curtain",
+      "photoReferences": [
+        {
+          "credit": "Aubree Benson / USDA Forest Service, Nugget Falls",
+          "license": "CC0",
+          "url": "https://www.flickr.com/photos/alaska_region/52503184720",
+          "sha256": "f534212f81e7bf186b12b52143629086c520c9cf6583efa4aaec7755bf5319be"
+        }
+      ],
+      "method": "feathered opacity study extracted by tools/water-opacity/public_domain.py",
+      "payloadSha256": "1dad52bfac3705b14fa3eec978beffc6a954a87987cde4a6629095f2c4aa1b68"
+    },
+    "public_domain/alaska/falls_curtain/07": {
+      "site": "alaska",
+      "selector": "falls_curtain",
+      "photoReferences": [
+        {
+          "credit": "Aubree Benson / USDA Forest Service, Nugget Falls",
+          "license": "CC0",
+          "url": "https://www.flickr.com/photos/alaska_region/52503184720",
+          "sha256": "f534212f81e7bf186b12b52143629086c520c9cf6583efa4aaec7755bf5319be"
+        }
+      ],
+      "method": "feathered opacity study extracted by tools/water-opacity/public_domain.py",
+      "payloadSha256": "f2d4c81f40e13cbd02c9cfcf002a9bc41025ebf8faf9f6e45207adecbf8ca36e"
+    },
+    "public_domain/alaska/falls_impact/08": {
+      "site": "alaska",
+      "selector": "falls_impact",
+      "photoReferences": [
+        {
+          "credit": "Aubree Benson / USDA Forest Service, Nugget Falls",
+          "license": "CC0",
+          "url": "https://www.flickr.com/photos/alaska_region/52503184720",
+          "sha256": "f534212f81e7bf186b12b52143629086c520c9cf6583efa4aaec7755bf5319be"
+        }
+      ],
+      "method": "feathered opacity study extracted by tools/water-opacity/public_domain.py",
+      "payloadSha256": "543b0ab4ead25a26a54875bd8468cf349c4b3830a1c701022c84d17624bcf8af"
+    },
+    "public_domain/alaska/falls_impact/09": {
+      "site": "alaska",
+      "selector": "falls_impact",
+      "photoReferences": [
+        {
+          "credit": "Aubree Benson / USDA Forest Service, Nugget Falls",
+          "license": "CC0",
+          "url": "https://www.flickr.com/photos/alaska_region/52503184720",
+          "sha256": "f534212f81e7bf186b12b52143629086c520c9cf6583efa4aaec7755bf5319be"
+        }
+      ],
+      "method": "feathered opacity study extracted by tools/water-opacity/public_domain.py",
+      "payloadSha256": "971ffae0d6774d325c4b5f0f2f5bad728cfb0bff96c14f5fd45a12e41499066b"
+    },
+    "public_domain/alaska/falls_plume/10": {
+      "site": "alaska",
+      "selector": "falls_plume",
+      "photoReferences": [
+        {
+          "credit": "Aubree Benson / USDA Forest Service, Nugget Falls",
+          "license": "CC0",
+          "url": "https://www.flickr.com/photos/alaska_region/52503184720",
+          "sha256": "f534212f81e7bf186b12b52143629086c520c9cf6583efa4aaec7755bf5319be"
+        }
+      ],
+      "method": "feathered opacity study extracted by tools/water-opacity/public_domain.py",
+      "payloadSha256": "b6e03a9be2d5a481d1d30a85d2c34552cfcb90625a8978a02f009d7e8054c126"
+    },
+    "public_domain/alaska/falls_plume/11": {
+      "site": "alaska",
+      "selector": "falls_plume",
+      "photoReferences": [
+        {
+          "credit": "Aubree Benson / USDA Forest Service, Nugget Falls",
+          "license": "CC0",
+          "url": "https://www.flickr.com/photos/alaska_region/52503184720",
+          "sha256": "f534212f81e7bf186b12b52143629086c520c9cf6583efa4aaec7755bf5319be"
+        }
+      ],
+      "method": "feathered opacity study extracted by tools/water-opacity/public_domain.py",
+      "payloadSha256": "c414f728822b56e42e05703be3b2b2a673bd38e42d1e9d2979c0083b226b6410"
+    }
+  },
+  "sourceAtlases": {
+    "aerie-water-opacity-base.png": {
+      "payloadCount": 48,
+      "sha256": "27b560cba950dedde87b53e4b74e2c2ae3bd0114ce548a18b687289c5a2345fa",
+      "sourceCells": 64
+    },
+    "aerie-water-opacity-supplement.png": {
+      "payloadCount": 40,
+      "sha256": "bee947f32476b6ea9ebeb61f405eb92d98daa7d1cfbbefbd4eba03688ab14617",
+      "sourceCells": 48
+    }
+  }
+}

@@ -86,7 +86,7 @@
     return skyMap;
   }
 
-  function terrainMaterial(T, photo, details, rock, soil, sinter, rect, sun, fog) {
+  function terrainMaterial(T, photo, details, rock, soil, sinter, rect, sun, fog, poolBounds) {
     const uniforms = {
       photo: {value: photo}, frame: {value: new T.Vector4(...rect)},
       stone: {value: rock}, soil: {value: soil}, deposit: {value: sinter},
@@ -104,6 +104,9 @@
         if(weight>0.) rgb=mix(rgb,texture2D(localMap${i},vec2(sub.x,1.-sub.y)).rgb,weight);
       }`;
     }
+    const poolGuard=poolBounds.filter(([x,z,radius])=>x>=rect[0]-radius&&z>=rect[1]-radius&&
+      x<=rect[0]+rect[2]+radius&&z<=rect[1]+rect[2]+radius)
+      .map(([x,z,radius])=>`close*=smoothstep(${radius-3}.,${radius}.,length(xz-vec2(${Number(x).toFixed(2)},${Number(z).toFixed(2)})));`).join('\n');
     return new T.ShaderMaterial({
       uniforms,
       vertexShader: `
@@ -115,6 +118,7 @@
         uniform vec3 sun,haze;
         varying vec3 wp,n;
         ${declarations}
+        ${window.aerieCloseMaterial?.fieldShader||''}
         void main(){
           vec2 xz=wp.xz;
           vec2 uv=(xz-frame.xy)/frame.z;
@@ -122,6 +126,7 @@
           ${sampler}
           vec3 normal=normalize(n);
           float dist=length(cameraPosition-wp);
+          vec3 rockDx=dFdx(wp),rockDy=dFdy(wp);
           float near=1.-smoothstep(25.,270.,dist);
           float mid=1.-smoothstep(80.,670.,dist);
           float grey=dot(rgb,vec3(.25,.6,.15));
@@ -136,6 +141,21 @@
           float sinter=texture2D(deposit,xz*.64).r;
           float ledges=texture2D(deposit,xz*.054+vec2(terrace*.11,0.)).r;
           float micro=chalk*(.63*terrace+.37*sinter)+(1.-chalk)*(.55*gravel+.45*grain);
+          ${window.aerieCloseMaterial?.fieldShader?`
+          // Continue the registered deposit and gravel at close range. Leave
+          // the optically distinctive thermal water to its own native shader.
+          float close=closeFieldWeight(rockDx,rockDy,dist)*(1.-.55*plant);
+          ${poolGuard}
+          if(close>.005){
+            vec2 uv=xz*.64, dx=rockDx.xz*.64, dy=rockDy.xz*.64;
+            vec4 soilDetail=fieldCloseCapture(stone,uv,dx,dy,-1.);
+            float nativeRock=dot(soilDetail.rgb,vec3(.299,.587,.114));
+            if(chalk>.018){
+              float crust=fieldCloseCapture(deposit,uv+vec2(.41,1.8),dx,dy,-1.).r;
+              nativeRock=mix(nativeRock,crust,chalk);
+            }
+            micro=mix(micro,nativeRock,.70*close);
+          }`:''}
           vec3 rgbWarm=rgb*vec3(1.13,1.04,.87);
           rgb=mix(rgb,rgbWarm,.62*chalk+.27*plant);
           rgb*=1.+(micro-.37)*1.02*near+(ledges-.38)*.45*chalk*mid;
@@ -323,9 +343,12 @@
     for(const t of [rock,soil,sinter])t.wrapS=t.wrapT=T.RepeatWrapping;
     const surfacePhoto=name=>texture((isTouch?'touch/':'')+name+'.webp');
     const details=meta.details.map(([key,x,z])=>({x,z,image:surfacePhoto(key)}));
+    // Preserve the distinctive submerged colors and mineral bands around the pools.
+    const poolBounds=Object.entries({prismatic:84,excelsior:66,morning:20,sapphire:27,'black-sand':23,fountain:19})
+      .map(([name,radius])=>[...meta.landmarks[name],radius]);
     for(const [x,z,step] of meta.tiles){
       const targets=details.filter(d=>d.x<x+SPAN&&d.x+1000>x&&d.z<z+SPAN&&d.z+1000>z);
-      const mat=terrainMaterial(T,surfacePhoto(x+'_'+z),targets,rock,soil,sinter,[x,z,SPAN,0],sun,fog);
+      const mat=terrainMaterial(T,surfacePhoto(x+'_'+z),targets,rock,soil,sinter,[x,z,SPAN,0],sun,fog,poolBounds);
       // Split the route tiles for visibility while using the same ortho and sample grid.
       const chunks=step===8?4:2;
       for(let j=0;j<chunks;j++)for(let i=0;i<chunks;i++){

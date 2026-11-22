@@ -1,0 +1,26 @@
+AERIE WATER CONTACT AND CLOSE TERRAIN MATERIALS
+
+The regional opacity pages are grayscale masks for existing native shoreline, fall, river and wildlife events. They do not supply terrain, water color, surveyed currents or new discharge events. The original Aerie-generated generic studies were selected for this project by Randy Blasik.
+
+Acadia wave shape: Victoria Stauffenberg / National Park Service, Schoodic Point, public domain. The runtime studies are extracted grayscale opacity, cropped, rotated, contrast-normalized and feathered. Schoodic Point is a coastal reference for local turbulent shapes. Soundings, rock placement and timing remain the Thunder Hole survey.
+https://npgallery.nps.gov/AssetDetail/4a9c4786-1356-44be-aa0b-b2556b27b753
+Alex Demas / USGS, Thunder Hole, public domain, used as location context.
+https://www.usgs.gov/media/images/acadia-national-park-12
+
+Nugget Falls: Aubree Benson / USDA Forest Service, dedicated CC0 1.0. The runtime studies use selected grayscale water patches cropped, rotated, contrast-normalized and feathered from this image.
+https://www.flickr.com/photos/alaska_region/52503184720
+https://creativecommons.org/publicdomain/zero/1.0/
+
+Cleetwood Cove: Vulturesong, CC0 1.0. Photographic location reference for newly generated and repacked gentle opacity shapes. The photograph does not measure individual waves.
+https://commons.wikimedia.org/wiki/File:Crater_Lake_National_Park_-_HCP_-_October_13,_2022_-_058_-_Cleetwood_Cove_Trail.jpg
+
+Horseshoe Bend in the Colorado River - Page, Arizona, USA: John Fowler, Creative Commons Attribution 2.0 Generic. Photographic location reference for newly generated bank-contact and shear-line opacity shapes, then resized and repacked. Field textures do not reproduce surveyed surface eddies.
+https://commons.wikimedia.org/wiki/File:Horseshoe_Bend_in_the_Colorado_River_-_Page,_Arizona,_USA.jpg
+https://creativecommons.org/licenses/by/2.0/
+
+Rock Face 03, Dario Barresi (photography) and Rico Cilliers (processing), Poly Haven, CC0. Close material analogue on Yosemite granite, not a surveyed piece of El Capitan. Sandstone Cracks, Rob Tuytel, Poly Haven, CC0, is a close sedimentary analogue at Horseshoe Bend. Diffuse high-frequency residual, normal XY and roughness have been packed into linear textures. Existing calibrated aerials and cliff photographs remain the mapped color.
+https://polyhaven.com/a/rock_face_03
+https://polyhaven.com/a/sandstone_cracks
+https://polyhaven.com/license
+
+The wider selection of scanned habitat and geology surfaces is documented in field-ground-credits.txt and the individual region credits. Per-patch water sources and digests are in water-opacity-registry.json.

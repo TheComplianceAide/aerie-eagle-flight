@@ -722,6 +722,15 @@ class Water extends Mesh {
         vec3 lithology=stoneTint*(.32+cliff*.99+fissure*.72+layers+(.11*grit));
         lithology*=mix(vec3(1.),scan/max(.06,cliff),.21+.19*desert);
         lithology*=1.+.35*temperate*face;
+        ${region==='crater'&&window.aerieCloseMaterial?.fieldShader?`
+        vec3 cliffDx=dFdx(wp),cliffDy=dFdy(wp);
+        float pumice=closeFieldWeight(cliffDx,cliffDy,d)*(1.-smoothstep(.32,.74,veg))*(1.-snow);
+        pumice*=smoothstep(7.,28.,wp.y-shoreLevel);
+        if(pumice>.006){
+          float mineral=fieldCloseRock(sod,wp,cliffDx,cliffDy,normal,10.);
+          lithology*=1.+pumice*mineral*.55;
+        }
+        `:''}
         /* exposed field geology */
         float photoGain=.58+.69*clamp(lum(photo)*1.45,0.,1.);
         vec3 stoneColor=lithology*mix(.99,photoGain,orthoCoverage);
@@ -862,6 +871,7 @@ class Water extends Mesh {
   }
   const meadowField=region==='yosemite'?window.readElCapitanField():null;
   if(region==='yosemite'){
+    const closeRock=window.aerieCloseMaterial?.graniteReady?.() ? window.aerieCloseMaterial : null;
     const granite=texture('atlas-yosemite-cathedral.webp');
     granite.wrapS=granite.wrapT=THREE.MirroredRepeatWrapping;
     terrain.uniforms.cathedralGranite={value:granite};
@@ -928,6 +938,11 @@ class Water extends Mesh {
         materialWeight=max(materialWeight,.93*registeredWall);
 
       `);
+    if(closeRock){
+      terrain.uniforms.closeRock={value:closeRock.graniteTexture(THREE)};
+      terrain.fragmentShader=closeRock.shader+terrain.fragmentShader.replace(
+        'void main(){','void main(){vec3 rockDx=dFdx(wp),rockDy=dFdy(wp);');
+    }
     terrain.fragmentShader=terrain.fragmentShader.replace('/* canopy transmission */',`
       // Re-light the surveyed oblique photographs with the same western sun
       // that casts the valley's shadows. Preserve crack contrast in shade.
@@ -954,6 +969,10 @@ class Water extends Mesh {
         granite=mix(granite,visor.rgb*(.97+.11*(cliff-.4)),shape*.98);
         wallMask=max(wallMask,shape*.985);
       }
+      ${closeRock?`
+      RockDetail detail=RockDetail(vec3(0.),0.,.78,0.);
+      if(exposed>.03&&d<24.)detail=closeRockDetail(wp,rockDx,rockDy,normal,d,0.);
+      `:''}
       if(exposed>.03&&d<200.){
         // Named granite was photographed vertically from afar. Scale the
         // jointed rock scan independently to restore the meter-scale fractures.
@@ -961,6 +980,7 @@ class Water extends Mesh {
                                 texture2D(rockScan,wp.zy*.088+warp*.075).rgb,axis));
         float seams=clamp(.78+.61*cliff+.42*(nearJoints-.47),.55,1.25);
         granite*=mix(1.,seams,1.-smoothstep(36.,200.,d));
+        ${closeRock?'granite*=1.+detail.visibility*(.69*detail.pigment-.036);':`
         if(d<18.){
           // NPS/G. Stock's granite specimen uses a penny for scale. Sample
           // its fine crystals only at the distances where they can resolve.
@@ -971,10 +991,19 @@ class Water extends Mesh {
                                 texture2D(westFace,vec2(uv2.x,1.-uv2.y)).rgb,axis));
           granite*=1.+(crystal-.72)*(.51*(1.-smoothstep(3.,18.,d)));
         }
+        `}
       }
       float convex=clamp(.86+.42*relief,.63,1.18);
       float fill=.43+.23*skyView+.10*max(relieved.y,0.);
       vec3 wallLight=vec3(.85,.98,1.17)*fill+vec3(1.73,1.11,.64)*sunlit*(.12+1.01*incidence);
+      ${closeRock?`
+      if(detail.visibility>.001){
+        vec3 finalNormal=closeRockNormal(relieved,detail,detail.visibility);
+        float faceChange=max(0.,dot(sun,finalNormal))-incidence;
+        float shimmer=closeRockSheen(finalNormal,sun,normalize(cameraPosition-wp),detail.rough);
+        wallLight+=vec3(1.73,1.11,.64)*sunlit*(1.01*faceChange+detail.visibility*shimmer);
+      }
+      `:''}
       c=mix(c,pow(max(granite,vec3(.018)),vec3(2.03))*wallLight*convex,wallMask);
       // Sedges follow the floodplain, cottonwood/willow strips follow mapped
       // watercourses and dry summer meadow grasses pick up grazing sunlight.

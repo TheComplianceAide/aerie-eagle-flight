@@ -717,6 +717,15 @@ class Water extends Mesh {
       float till=(1.-max(snowfield,sheet))*(1.-smoothstep(.29,.85,exposed))*smoothstep(.51,.90,nn.y);
       float lowWood=forest*(1.-smoothstep(320.,650.,p.y));
       base=regionalSoil(groundScan,p,nn,base,sun,d,lowWood,1.-smoothstep(2.,26.,abs(p.y)),till);
+      ${window.aerieCloseMaterial?.fieldShader?`
+      vec3 rockDx=dFdx(p),rockDy=dFdy(p);
+      float dryRock=closeFieldWeight(rockDx,rockDy,d)*(1.-max(snowfield,sheet));
+      dryRock*=smoothstep(4.,23.,p.y)*(1.-smoothstep(.31,.80,forest))*(.40+.54*exposed);
+      if(dryRock>.006){
+        float grain=fieldCloseRock(groundScan,p,rockDx,rockDy,nn,4.);
+        base*=1.+dryRock*grain*.51;
+      }
+      `:''}
 #ifdef MENDENHALL_BANK
       base=visitorShore(base,p,nn,d);
 #endif
