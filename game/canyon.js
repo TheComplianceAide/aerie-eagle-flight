@@ -70,7 +70,9 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
   const skyColor=`
     vec3 skyColor(vec3 d) {
       float u=(atan(d.z,d.x)-atan(sun.z,sun.x))*.159154943+.650;
-      float v=asin(clamp(d.y,-1.,1.))*.318309886+.457;
+      // The photograph's horizon is at the equator. Keep its lower, mirrored
+      // fill below the horizon rather than projecting it onto the visible sky.
+      float v=asin(clamp(d.y,-1.,1.))*.318309886+.500;
       vec3 c=texture2D(panorama,vec2(u,clamp(v,.015,.998))).rgb;
       float a=distance(d,sun);
       return c*vec3(1.06,.97,.94)+vec3(.20,.083,.029)*exp(-5.6*a)+vec3(.65,.5,.26)*(1.-smoothstep(.004,.009,a));
