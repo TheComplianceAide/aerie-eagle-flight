@@ -1,6 +1,6 @@
 // A destination's elevation surveys and textures are opened when the player takes flight.
 (() => {
-  const base = ['geodata.js','geodata-spectral.js','eagle-motion.js','eagle.js','terrain-bounce.js','terrain-shadows.js','flight-light.js','terrain-acoustics.js','field-audio.js','perch-flight.js','perch-habitat.js','plant-models.js','regional-habitat.js','regional-growth.js','regional-geology.js','regional-field-scenery.js','regional-forest.js','canopy-stream.js','understory.js','wildlife-models.js','fauna-shapes.js','land-models.js','land-wildlife.js','fish-schools.js','wildlife.js','game-vision.js','scenic-flights.js','range-relief.js','water-surface.js','wind-field.js','wind-water.js','wind-soarer.js','moving-weather.js','sky-optics.js','valley-mist.js','omnitone.min.js','spatial-audio.js','regional-recordings.js','soundscapes.js'];
+  const base = ['geodata.js','geodata-spectral.js','eagle-motion.js','eagle.js','terrain-bounce.js','terrain-shadows.js','flight-light.js','terrain-acoustics.js','field-audio.js','perch-flight.js','perch-habitat.js','plant-models.js','regional-habitat.js','regional-growth.js','regional-geology.js','regional-field-scenery.js','regional-forest.js','canopy-stream.js','understory.js','wildlife-models.js','fauna-shapes.js','land-models.js','land-wildlife.js','fish-schools.js','wildlife.js','game-vision.js','scenic-flights.js','range-relief.js','water-surface.js','wind-field.js','wind-water.js','wind-soarer.js','moving-weather.js','sky-optics.js','valley-mist.js','omnitone.min.js','spatial-audio.js','regional-recordings.js','perch-acoustics.js','soundscapes.js'];
   const trees = ['fir-data.js','forest.js'];
   const scripts = {
     alaska: ['lake-reflection-domain.js','terrain-indices.js','alaska-cove.js','alaska-steep-survey.js','alaska-steep-creek.js','survey-parked-cars.js','alaska-sediment.js','nugget-surface.js','waterfall-system.js','alaska-survey.js','alaska-ice-survey.js','alaska-world.js','talus-data.js','habitat.js',...trees],
@@ -15,7 +15,7 @@
         tag.onload=resolve;
         tag.onerror=()=>reject(new Error('Unable to open '+name));
         const url=window.aerieAssetURL?.(name)||name;
-        tag.src=url===name&&location.protocol!=='file:'?url+'?v=0.29.0':url;
+        tag.src=url===name&&location.protocol!=='file:'?url+'?v=0.30.0':url;
         document.head.appendChild(tag);
       });
       loaded.set(name,request.catch(error=>{loaded.delete(name);throw error;}));

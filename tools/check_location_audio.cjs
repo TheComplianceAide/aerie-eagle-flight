@@ -28,10 +28,11 @@ async function flight(region, blocked = []) {
     vm.runInContext(fs.readFileSync(path.join(game, file), 'utf8'), box, {filename: file});
   const scape = box.makeSoundscape(context, world, region, node()); await drain(); scape.setEnabled(true);
   const camera = {position: new box.THREE.Vector3(), quaternion: new box.THREE.Quaternion()};
-  function observe(x, z = 0, delta = .8) {
+  function observe(x, z = 0, delta = .8, stage = 'free') {
     context.currentTime += delta;
     camera.position.set(x, 10, z);
-    scape.update({x, y: 10, z, airspeed: 13, elapsed: context.currentTime}, camera, delta);
+    scape.update({x, y: 10, z, airspeed: stage === 'perched' ? 0 : 13, indicatedAirspeed: 13, elapsed: context.currentTime}, camera, delta,
+      {perchStage: stage, canopy: x > 0 && x < 90 ? .75 : 0});
   }
   const sources = label => Array.from(scape.engine.sources).filter(s => s.label === label && s.gain > 0);
   return {scape, world, context, requested, observe, sources, held};
@@ -55,6 +56,15 @@ async function flight(region, blocked = []) {
   rain.world.windField.weatherAt = () => ({rain: 0, gust: 0, exposure: 1});
   rain.observe(-20);
   assert.equal(rain.sources('rain surface').length, 0);
+  rain.world.windField.weatherAt = x => ({rain: x > 100 ? .8 : 0, wetness: .5, gust: 0, exposure: 1});
+  rain.observe(20);
+  assert.ok(rain.sources('rain front').some(s => s.x > 100), 'rain on the approaching side is audible from that direction');
+  assert.ok(rain.sources('wet canopy drips').length, 'wet canopy continues to drip after local rain stops');
+  rain.observe(20, 0, .8, 'perched');
+  assert.equal(rain.scape.acousticState().speed, 0, 'on a perch the previous indicated airspeed does not mask wildlife');
+  assert.equal(rain.scape.engine.masker, 0);
+  rain.scape.setEnabled(false);
+  assert.equal(rain.sources('rain front').length, 0, 'pausing retires the passing rain source');
 
   const recording = 'scape-alaska-nugget-falls.m4a';
   const alaska = await flight('alaska', [recording]);
@@ -80,10 +90,23 @@ async function flight(region, blocked = []) {
   norway.observe(-20, 960);
   assert.equal(norway.sources('shore')[0], shore);
   assert.equal(shore.buffer.name, 'landscape-lofoten-fredvang-surf.m4a');
+  const shoreLevel = shore.gain;
+  norway.observe(-20, 960, 4);
+  assert.ok(Math.abs(shore.gain - shoreLevel) > .01, 'swell changes shore sound at a stationary observer');
+  norway.context.currentTime += norway.scape.acousticState().spacing + .01;
+  const quietCaller = {alive: true, gain: .6, endsAt: norway.context.currentTime + 2};
+  norway.scape.noteVoice(quietCaller, 1.5);
+  assert.equal(norway.scape.canVoice(), false, 'another incidental caller waits through the foreground phrase and its tail');
+  const alarm = {alive: true, gain: .6, endsAt: norway.context.currentTime + 1, stop() { this.alive = false; }};
+  norway.scape.noteVoice(alarm, .7, true);
+  assert.ok(quietCaller.gain < .2 && alarm.gain === .6, 'a nearby alarm can answer immediately while the older incidental call recedes');
+  norway.context.currentTime += 4;
+  assert.equal(norway.scape.canVoice(), true);
   norway.scape.setEnabled(false);
   assert.equal(norway.sources('shore').length, 0, 'muting retires the active regional water source');
+  assert.equal(alarm.alive, false, 'muting retires a positioned alarm even without a hush radius');
 
   const lake = await flight('moosehead');
   assert.ok(!Array.from(lake.requested).some(n => n.startsWith('voice-')), 'regional wildlife is not a startup download');
-  console.log('Passed rain surface, late waterfall, coastal position and crossfade, mute cleanup, and lazy wildlife loading checks.');
+  console.log('Passed rain arrival and wet canopy, waterfall crossfades, shore swell, wildlife priority, quiet perching, mute cleanup, and lazy loading checks.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

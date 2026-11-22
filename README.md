@@ -140,3 +140,11 @@ In Moosehead, the low-sun cloud bank moves with the wind and appears in the lake
 Choose **Wildlife shallows** for a low departure past each region’s fish and shore birds. At Moosehead and Winnipesaukee, watch for mixed mallard and American black duck rafts, individual loons or pairs, and passing Canada goose flocks. Lac Berté’s shallows include brook trout.
 
 See the [scenery and field-recording credits](game/credits.txt) for the source imagery, terrain, bird recordings, and their individual licenses. [Three.js](game/three-LICENSE.txt) and the bundled [pako decompressor](tools/pako/LICENSE) include their license notices.
+
+## Sound in 0.30.0
+
+Perch sounds follow the eagle's footing. Talon contact uses recordings of bark, stone, grit, sand, rough ice or wet ground as appropriate. Branch creaks follow limb flex under load, and gusts move audible leaves or needles in the selected tree. The [perch sound credits](game/perch-audio-credits.txt) identify the material recordings.
+
+The regional soundscape gives nearby animal alarms precedence over background calls and leaves pauses between undisturbed phrases. Wind, moving water and terrain affect what can be heard at different heights. In the worlds with rain fronts, hear the front approach from the wet side before it passes. Rain at Lac Berté changes as it hits the lake, spruce or the South Camp cabin.
+
+Check source movement and shelter with `node tools/check_directional_sound.cjs`. Check weather, foreground calls and shoreline behavior with `node tools/check_location_audio.cjs`, and perch contact with `node tools/check_perch_acoustics.cjs`.

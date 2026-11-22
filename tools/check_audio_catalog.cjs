@@ -12,7 +12,7 @@ function expose(file, expression) {
   vm.runInContext(source, context, {filename: file});
 }
 expose('field-audio.js', 'window.audioCheck = {scenes, species, defaultTiming, playerCalls, aacCalls};');
-expose('soundscapes.js'); expose('game-ranges.js'); expose('regional-recordings.js');
+expose('soundscapes.js'); expose('perch-acoustics.js'); expose('game-ranges.js'); expose('regional-recordings.js');
 const {scenes, species, defaultTiming, playerCalls, aacCalls} = context.window.audioCheck;
 const scapes = context.window.aerieSoundscapes, banks = context.window.aerieRegionalRecordings;
 const field = id => `field-${id}.${aacCalls.has(id) ? 'm4a' : 'mp3'}`;
@@ -58,7 +58,14 @@ for (const [region, profile] of Object.entries(scenes)) {
     assert.ok(clips.size >= 2 * baseline[region], `${region} only has ${clips.size} eligible sounds, needs ${2 * baseline[region]}`);
     for (const file of clips.keys()) assert.ok(fs.existsSync(path.join(dir, file)), `${region} is missing ${file}`);
   }
-  report[region] = {baseline: baseline[region], total: clips.size, beforeNewWildlife, localizedWildlife: clips.size - beforeNewWildlife, files: Object.fromEntries(clips)};
+  const localizedWildlife = clips.size - beforeNewWildlife;
+  const perchSounds = context.window.aeriePerchRecordingIds(region);
+  for (const id of perchSounds) {
+    const file = id + '.m4a';
+    add(file, 'perch contact');
+    assert.ok(fs.existsSync(path.join(dir, file)), `${region} is missing ${file}`);
+  }
+  report[region] = {baseline: baseline[region], total: clips.size, beforeNewWildlife, localizedWildlife, perchSounds: perchSounds.length, files: Object.fromEntries(clips)};
 }
 const reused = new Map();
 for (const {files} of Object.values(report)) for (const [file, role] of Object.entries(files)) {
