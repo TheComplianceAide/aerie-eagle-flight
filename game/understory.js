@@ -4,6 +4,7 @@
   const profiles = {
     // Relative abundance of meadow grass, sedge, low grass, fern, herbaceous shrub,
     // tall herb and woody scrub, followed by stature, density and dry-leaf fraction.
+    yellowstone:     [[27,27,17,1,11,9,8], .83, .84, .31],
     acadia:          [[8,18,14,27,9,4,20], .74, .82, .12],
     alaska:          [[23,23,6,19,13,10,6], .87, .81, .09],
     swiss:           [[40,18,15,8,6,12,1], .87, .92, .17],
@@ -21,6 +22,7 @@
   // Indices in field-ground-scans.webp. Each regional assemblage specifies an
   // opening, canopy litter, stream margin, exposed substrate and aerial outcrop.
   const soils={
+    yellowstone:   [6,1,7,4,8],
     alaska:        [0,1,7,4,8],     swiss:       [6,1,7,5,8],
     canyon:        [10,11,3,13,9],  yosemite:    [6,1,3,5,9],
     crater:        [10,1,7,5,9],    lofoten:     [0,6,7,4,8],
@@ -31,7 +33,7 @@
   };
   window.aerieFieldShader=function(region){
     const [opening,litter,bank,stone,aerial]=soils[region];
-    const humidity={acadia:.83,alaska:.91,swiss:.74,canyon:.05,yosemite:.27,crater:.24,lofoten:.80,milford:.98,dixville:.49,labrador:.86,winnipesaukee:.49,surry:.53,moosehead:.87}[region];
+    const humidity={yellowstone:.43,acadia:.83,alaska:.91,swiss:.74,canyon:.05,yosemite:.27,crater:.24,lofoten:.80,milford:.98,dixville:.49,labrador:.86,winnipesaukee:.49,surry:.53,moosehead:.87}[region];
     return `
     float fieldGrain(vec2 grid){
       vec2 cell=floor(grid),f=fract(grid);f=f*f*(3.-2.*f);

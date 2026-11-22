@@ -8,7 +8,7 @@ output=Path(sys.argv[1]).resolve() if len(sys.argv)>1 else root/'Aerie.html'
 html=(dist/'index.html').read_text()
 css=(dist/'style.css').read_text()
 assert not re.search(r'url\([^)]*\.(?:webp|jpg|png)\)',css), 'Menu photos must use the same asset resolver as the scene.'
-html=html.replace('<link rel="stylesheet" href="style.css">','<style>'+css+'</style>')
+html=re.sub(r'<link rel="stylesheet" href="style\.css(?:\?[^"]*)?">',lambda _:'<style>'+css+'</style>',html)
 script_src=r'<script src="([^"?]+)(?:\?[^"]*)?"></script>'
 attached=set(re.findall(script_src,html))
 # The title and favicon load before the asset resolver in a standalone file.
@@ -58,7 +58,7 @@ with NamedTemporaryFile('w',dir=output.parent,prefix='.Aerie-',delete=False) as 
             content=base64.b64encode(p.read_bytes()).decode('ascii');mime='application/json';encoding='base64'
         elif p.suffix in {'.js','.txt'}:
             content=safe(p.read_text());mime='text/javascript' if p.suffix=='.js' else 'text/plain;charset=utf-8';encoding='text'
-        elif p.suffix in {'.jpg','.jpeg','.png','.webp','.mp3','.m4a','.ogg','.wav','.opus','.bin','.glb'}:
+        elif p.suffix in {'.jpg','.jpeg','.png','.webp','.mp3','.m4a','.ogg','.wav','.opus','.bin','.glb','.mesh'}:
             content=base64.b64encode(p.read_bytes()).decode();mime=mimetypes.guess_type(name)[0] or 'application/octet-stream';encoding='base64'
         else:continue
         f.write(f'<script type="application/octet-stream" id="offline:{name}" data-mime="{mime}" data-encoding="{encoding}">{content}</script>\n')

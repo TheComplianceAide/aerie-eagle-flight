@@ -58,7 +58,7 @@ window.makeLandWildlife=function makeLandWildlife(T,scene,w){
   }
   function addGroup(key,p,id,curated,random){
     const family=catalog.species[id].family;
-    const count=family==='bear'||family==='otter'||id==='moose'?1:family==='hare'?2:2+Math.floor(random()*3);
+    const count=family==='bear'||family==='otter'||id==='moose'?1:family==='hare'?2:family==='bison'?5+Math.floor(random()*3):2+Math.floor(random()*3);
     const heading=random()*tau,animals=[];
     for(let i=0;i<count;i++){
       const dir=heading+i*2.4,spread=family==='hare'?2.5:3.5;
@@ -255,7 +255,7 @@ window.makeLandWildlife=function makeLandWildlife(T,scene,w){
   function caller(id,p,reach){
     let nearest=null,best=reach*reach;
     for(const a of drawn){
-      if(a.id!==id||id==='moose'&&a.horns||id==='red-deer'&&!a.horns||id==='white-tailed-deer'&&a.horns)continue;
+      if(a.id!==id||id==='moose'&&a.horns||(id==='red-deer'||id==='elk')&&!a.horns||id==='white-tailed-deer'&&a.horns)continue;
       const d=(a.x-p.x)**2+(a.y-p.y)**2+(a.z-p.z)**2;
       if(d<best){nearest=a;best=d;}
     }

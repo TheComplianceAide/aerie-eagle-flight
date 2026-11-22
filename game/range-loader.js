@@ -3,6 +3,7 @@
   const base = ['geodata.js','geodata-spectral.js','eagle-motion.js','eagle.js','terrain-bounce.js','terrain-shadows.js','flight-light.js','terrain-acoustics.js','field-audio.js','perch-flight.js','perch-habitat.js','plant-models.js','regional-habitat.js','regional-growth.js','regional-geology.js','regional-field-scenery.js','regional-forest.js','canopy-stream.js','understory.js','wildlife-models.js','fauna-shapes.js','land-models.js','land-wildlife.js','fish-schools.js','wildlife.js','game-vision.js','scenic-flights.js','range-relief.js','water-surface.js','wind-field.js','wind-water.js','wind-soarer.js','moving-weather.js','sky-optics.js','valley-mist.js','omnitone.min.js','spatial-audio.js','regional-recordings.js','perch-acoustics.js','soundscapes.js'];
   const trees = ['fir-data.js','forest.js'];
   const scripts = {
+    yellowstone: ['waterfall-system.js','yellowstone-water.js','yellowstone-features.js','yellowstone-audio.js','yellowstone-world.js'],
     alaska: ['lake-reflection-domain.js','terrain-indices.js','alaska-cove.js','alaska-steep-survey.js','alaska-steep-creek.js','survey-parked-cars.js','alaska-sediment.js','nugget-surface.js','waterfall-system.js','alaska-survey.js','alaska-ice-survey.js','alaska-world.js','talus-data.js','habitat.js',...trees],
     canyon: ['canyon-survey.js','canyon.js','habitat.js','talus-data.js','rocks.js'],
     swiss: ['swiss-landing-data.js','swiss-lake-landing.js','swiss-frunden-data.js','swiss-frunden.js','waterfall-system.js','alpine-survey.js','alpine-headwall.js','world.js','talus-data.js','rocks.js','habitat.js',...trees]
@@ -15,7 +16,7 @@
         tag.onload=resolve;
         tag.onerror=()=>reject(new Error('Unable to open '+name));
         const url=window.aerieAssetURL?.(name)||name;
-        tag.src=url===name&&location.protocol!=='file:'?url+'?v=0.32.2':url;
+        tag.src=url===name&&location.protocol!=='file:'?url+'?v=0.33.0':url;
         document.head.appendChild(tag);
       });
       loaded.set(name,request.catch(error=>{loaded.delete(name);throw error;}));
@@ -46,13 +47,13 @@
       swiss:['geodata-oeschinen.js']
     }[region]||[];
     const streams=region==='yosemite'?['river-'+region+'.js']:[];
-    const assets=[...streams,...base,'wildlife-tracks.js','regional-landforms.js','habitat-data/'+region+'.js',...files,...surveyDetail];
+    const assets=[...streams,...base,'wildlife-tracks.js','regional-landforms.js',...(region==='yellowstone'?[]:['habitat-data/'+region+'.js']),...files,...surveyDetail];
     const observationCode=geodata.map(name=>open(name).catch(()=>{}));
     await Promise.all([...observationCode,...assets.map(name=>name==='canopy-stream.js'
       ? Promise.all([open('close-tree-detail.js'),open('close-bark-material.js').catch(()=>{}),open('veteran-trees.js').catch(()=>{})]).then(()=>open(name)) : open(name))]);
     const lakeBays=window.aerieLakeBankSites?.[region]||[];
     const extraSurveys=region==='acadia'?['eggrock','bakerisland']:region==='yosemite'?['yosemitefalls']:region==='crater'?['watchman','cleetwood']:region==='swiss'?[...lakeBays,'frunden']:region==='lofoten'?[...lakeBays,'korten','reine','reinebringen']:lakeBays;
     const secondarySurvey={canyon:'canyonshelves',lofoten:'hamnoy',swiss:'swisswest',labrador:'cabert',yosemite:'yosemitesummits'}[region];
-    await Promise.all([...extraSurveys.map(name=>window.aerieRegionalLandforms.prepare(name)),region==='acadia'?Promise.all([window.prepareAcadiaStationCrowns(),window.prepareBakerSlabs(),window.prepareAcadiaLedgeField()]):window.prepareRangeRelief(region),window.aerieRegionalLandforms.prepare(region),(lakes||['alaska','yosemite','crater'].includes(region))?window.aerieTerrainIndices.prepare(region):null,secondarySurvey?window.aerieRegionalLandforms.prepare(secondarySurvey):null,region==='moosehead'?window.prepareMooseheadUplands():null]);
+    await Promise.all([...extraSurveys.map(name=>window.aerieRegionalLandforms.prepare(name)),region==='acadia'?Promise.all([window.prepareAcadiaStationCrowns(),window.prepareBakerSlabs(),window.prepareAcadiaLedgeField()]):region==='yellowstone'?null:window.prepareRangeRelief(region),window.aerieRegionalLandforms.prepare(region),(lakes||['alaska','yosemite','crater'].includes(region))?window.aerieTerrainIndices.prepare(region):null,secondarySurvey?window.aerieRegionalLandforms.prepare(secondarySurvey):null,region==='moosehead'?window.prepareMooseheadUplands():null]);
   };
 })();

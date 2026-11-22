@@ -46,9 +46,36 @@ window.makeLandModels=function makeLandModels(T,scene){
       const rows=[];for(let i=0;i<=9;i++){const a=i*Math.PI/9;rows.push([x-rx*Math.cos(a),y,z,Math.max(.0002,rz*Math.sin(a)),Math.max(.0002,ry*Math.sin(a))]);}
       tube(rows,c,bc,12);
     }
+    const bison=family==='bison',elk=id==='elk';
     const quad=!(hare||bear||otter);
     let headX,headY,headSize,neckRoot,legX,legZ,legTop;
-    if(quad){
+    if(bison){
+      tube([[-.96,.61,0,.08,.13],[-.83,.63,0,.24,.29],[-.59,.65,0,.29,.33],
+        [-.30,.69,0,.33,.35],[.02,.77,0,.39,.44],[.28,.81,0,.44,.47],
+        [.47,.74,0,.40,.38],[.61,.63,0,.23,.31]],coat,belly,22);
+      const shag=new T.Color('#453528');
+      tube([[.07,.80,0,.25,.27],[.24,.87,0,.39,.43],[.43,.70,0,.37,.33],
+        [.62,.62,0,.29,.30],[.73,.57,0,.21,.24]],shag,belly,23);
+      bind(1,[.53,.67,0]);
+      tube([[.50,.68,0,.22,.22],[.66,.69,0,.26,.25],[.80,.63,0,.24,.24],
+        [.94,.53,0,.198,.18],[1.03,.465,0,.161,.11],[1.09,.46,0,.081,.073]],face,belly,19);
+      oval(1.044,.459,0,.075,.078,.151,nose);
+      tube([[.86,.46,0,.104,.117],[.87,.31,0,.092,.086],[.83,.23,0,.052,.089],[.81,.20,0,.007]],shag,face,11);
+      for(const side of [-1,1]){
+        const z=side;
+        tube([[.68,.70,z*.19,.028,.033],[.65,.71,z*.29,.048,.064],[.61,.69,z*.36,.008]],face,earPink,10);
+        oval(.872,.65,z*.212,.023,.025,.011,nose);
+        oval(.88,.659,z*.223,.005,.005,.003,gleam);
+        const hornScale=horns?1:.68;
+        const hornP=(y,z,r)=>[.74-z*.10,.755+y*hornScale,side*(.196+z*hornScale),r*hornScale];
+        tube([hornP(0,0,.068),hornP(.01,.14,.058),hornP(.10,.23,.041),
+          hornP(.21,.26,.023),hornP(.26,.24,.004)],horn,dark,11);
+      }
+      bind(6,[-.87,.68,0]);
+      tube([[-.87,.69,0,.025],[-.973,.48,0,.032],[-.98,.34,0,.023],
+        [-.966,.25,0,.034],[-.953,.21,0,.005]],shag,belly,10);
+      legX=[.44,-.66];legZ=.226;legTop=.52;
+    }else if(quad){
       const b=moose?1.07:sheep?1.02:ibex?.97:1,a=moose?.98:.94;
       tube([[-.73*b,.72,0,.012,.04],[-.66*b,.76,0,.155,.21],[-.51*b,.76,0,.207,.24],
         [-.34*b,.75,0,.23,.24],[-.09*b,.72,0,.24,.245],[.15*b,.74,0,.236,.27],
@@ -57,7 +84,7 @@ window.makeLandModels=function makeLandModels(T,scene){
       headSize=moose?1.2:sheep?1.04:ibex?.93:1;
       neckRoot=[.32*b,.79,0];bind(1,neckRoot);
       tube([[.24,.735,0,.144,.155],[.38,.814,0,.18,moose?.22:.202],[.50,.917,0,.158,.178],
-        [headX-.18,headY-.015,0,.115,.14],[headX-.055,headY+.019,0,.096,.12]],moose||id==='red-deer'?face:coat,belly,18);
+        [headX-.18,headY-.015,0,.115,.14],[headX-.055,headY+.019,0,.096,.12]],moose||id==='red-deer'||elk?face:coat,belly,18);
       const x=headX,y=headY,k=headSize;
       tube([[x-.16*k,y+.08*k,0,.055*k,.079*k],[x-.095*k,y+.105*k,0,.115*k,.145*k],
         [x+.004*k,y+.083*k,0,.123*k,.153*k],[x+.120*k,y+.033*k,0,.109*k,.116*k],
@@ -98,10 +125,10 @@ window.makeLandModels=function makeLandModels(T,scene){
               path.push(p(xx,yy,.074+(sheep?.15:.088)*Math.sin(u*1.8)+u*.038,(.091*(1-u)**.72+.002)*(1+.08*Math.cos(i*2.1))));}
             tube(path,horn,dark,12);
           }else{
-            const wide=id==='red-deer'?.31:.27;
+            const wide=elk?.38:id==='red-deer'?.31:.27;
             const beam=[p(-.064,.21,.076,.034),p(-.11,.31,.111,.034),p(-.18,.45,.16,.029),p(-.27,.57,wide*.86,.021),p(-.33,.66,wide,.014),p(-.35,.74,wide+.012,.001)];
             tube(beam,horn,light,10);
-            for(let i=0;i<(id==='red-deer'?4:3);i++){const b=beam[i+1];
+            for(let i=0;i<(elk?5:id==='red-deer'?4:3);i++){const b=beam[i+1];
               const dx=id==='white-tailed-deer'?.05:.105;
               tube([b,[b[0]+dx*.51,b[1]+.083,b[2]+s*.018,.015],[b[0]+dx,b[1]+.15-i*.011,b[2]+s*.025,.001]],horn,light,8);}
           }
@@ -140,7 +167,7 @@ window.makeLandModels=function makeLandModels(T,scene){
     for(let end=0;end<2;end++)for(let sideIdx=0;sideIdx<2;sideIdx++){
       const s=sideIdx?1:-1,x=legX[end],z=s*legZ,top=legTop;
       bind(2+end*2+sideIdx,[x,top,z]);
-      const bulk=quad?(moose?1.05:1):bear?1.9:1.15;
+      const bulk=quad?(bison?1.68:moose?1.05:1):bear?1.9:1.15;
       tube([[x,top,z,.091*bulk,.105*bulk],[x+(end?.075:-.015),top*.83,z,.095*bulk,.100*bulk],
         [x+(end?.105:-.018),top*.62,z,.068*bulk,.069*bulk],[x+(end?-.047:.018),top*.39,z,.051*bulk,.051*bulk],
         [x+(end?-.068:.012),top*.25,z,.033*bulk,.038*bulk],[x+(end?-.045:.025),.07,z,.028*bulk,.034*bulk]],

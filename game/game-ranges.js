@@ -3,6 +3,7 @@
 // the group on an open, dry patch and checks the actual flight corridor.
 (() => {
   const regions = {
+    yellowstone: {title:'Bison on the Firehole floodplain', anchor:[-2390,-3240], course:23, rise:0, animals:['american-bison','elk']},
     alaska: {title:'Black bear on the lakeshore', anchor:[-484.9415,-438.0641], course:180, rise:0, animals:['black-bear']},
     canyon: {title:'Desert bighorns on the bench', anchor:[-651,-65], course:189, rise:0, animals:['desert-bighorn','desert-cottontail']},
     swiss: {title:'Alpine ibex on the slopes', anchor:[-936.3861,17.5827], course:207, rise:0, animals:['alpine-ibex']},
@@ -19,6 +20,8 @@
   };
   // Model dimensions are metres at the shoulder (back for small mammals).
   const species = {
+    'american-bison':{name:'American bison',family:'bison',height:1.74,coat:'#6d5540',belly:'#49372c',face:'#392c25'},
+    'elk':{name:'Rocky Mountain elk',family:'deer',height:1.43,coat:'#9a7453',belly:'#c7a77d',face:'#5a4331'},
     'moose': {name:'Moose', family:'moose', height:1.91, coat:'#594436', belly:'#827463', face:'#55463a'},
     'white-tailed-deer': {name:'White-tailed deer', family:'deer', height:.95, coat:'#a27a53', belly:'#d1bda0', face:'#84705b'},
     'mule-deer': {name:'Mule deer', family:'deer', height:1.02, coat:'#a0947c', belly:'#d0c5ac', face:'#736c60'},

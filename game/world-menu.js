@@ -13,7 +13,8 @@
     yosemite: {name:['Yosemite','Valley'],region:'California, USA',description:'Bank between granite walls above the Merced River and its forested valley floor.',launches:{lake:'El Capitan overlook',ridge:'Valley floor'}},
     crater: {name:['Crater','Lake'],region:'Oregon, USA',description:'Fly from the golden caldera rim toward Wizard Island. A red-lit storm front advances across the far shore.',launches:{lake:'Caldera overlook',ridge:'Wizard Island'}},
     lofoten: {name:['Lofoten','Islands'],region:'Reinefjorden, Norway',paletteLaunch:'lake',description:'Follow the copper light down Reinefjorden beneath a low violet cloud bank. The fjord narrows between steep mountain walls.',launches:{lake:'Fjord overlook',ridge:'Reinefjorden channel'}},
-    acadia: {name:['Acadia','National Park'],region:'Night · Maine, USA',paletteLaunch:'lake',description:'Fly south along Otter Cliff with the Milky Way over the Atlantic. Follow the breakers to Thunder Hole, or cross the pale crescent of Sand Beach.',launches:{lake:'Otter Cliff under the Milky Way',ridge:'Thunder Hole surf run',beach:'Sand Beach and Great Head'}}
+    acadia: {name:['Acadia','National Park'],region:'Night · Maine, USA',paletteLaunch:'lake',description:'Fly south along Otter Cliff with the Milky Way over the Atlantic. Follow the breakers to Thunder Hole, or cross the pale crescent of Sand Beach.',launches:{lake:'Otter Cliff under the Milky Way',ridge:'Thunder Hole surf run',beach:'Sand Beach and Great Head'}},
+    yellowstone: {name:['Yellowstone','Firehole River'],region:'Wyoming, USA',description:'Start beside Old Faithful, skim the Firehole through lodgepole forest and geyser basins, then bank over Grand Prismatic Spring.',launches:{faithful:'Old Faithful eruption',river:'Firehole River skim',biscuit:'Biscuit Basin and Sapphire Pool',midway:'Grand Prismatic Spring',fairy:'Fairy Falls',lone:'Lone Star Geyser'}},
   });
   const grandViewDescriptions={
     alaska:'Glide high above the Juneau Icefield and trace Mendenhall Glacier down to the lake and the spruce shore.',
@@ -27,6 +28,7 @@
     yosemite:'Start high above the Merced River and look along Yosemite Valley between its granite walls.',
     crater:'Look down into the caldera above Wizard Island. The dark storm front beyond the far rim contrasts with the sunlit water.',
     lofoten:'Glide high over Reinefjorden as copper twilight settles between the mountain walls and reflects off the water.',
+    yellowstone:'Follow the curves of the Firehole from above the lodgepole canopy. Turn into Midway Geyser Basin for the Grand Prismatic colors.',
     acadia:'Look out from high above Acadia’s rocky coast and island channels with the Milky Way over the Atlantic.'
   };
   for(const [id,w] of Object.entries(worlds)){
@@ -34,7 +36,7 @@
     const game=window.aerieLandWildlife.regions[id];
     if(game)w.launches.game=game.title;
     w.launches.lookout=window.PERCH_ROUTE_NAMES[id];
-    w.launches.wildlife=id==='moosehead'?'Wildlife shallows · Salmon rise':id==='acadia'?'Common eiders in Newport Cove':'Wildlife shallows';
+    w.launches.wildlife=id==='moosehead'?'Wildlife shallows · Salmon rise':id==='acadia'?'Common eiders in Newport Cove':id==='yellowstone'?'Firehole River wildlife':'Wildlife shallows';
   }
   const app = document.getElementById('app');
   const picker = document.getElementById('worldPicker');
@@ -53,6 +55,7 @@
     return world.paletteLaunch||{alaska:'spruce',moosehead:'reeds',winnipesaukee:'game'}[id]||Object.keys(world.launches)[0];
   }
   function previewName(id,start){
+    if(id==='yellowstone')return 'menu-yellowstone.webp';
     if(worlds[id].paletteLaunch)return 'departure-light/'+id+'-'+start+'.webp';
     if(['game','wildlife','wall','spur','reeds','spray','spruce'].includes(start))return id+'-'+start+'-view.webp';
     if(start==='lookout')return 'perch-'+id+'-view.jpg';
@@ -100,6 +103,15 @@
       kineo:'Fly west across open water toward the break in the crest. Bank along the east face to follow its wooded ledges.',
       spray:'Follow the shoreline toward Nugget Falls. Watch the spray lift off the ledges and bend downwind.'
     };
+    if(picker.value==='yellowstone')Object.assign(descriptions,{
+      faithful:'Pass the cone as the eruption builds, then turn west over the Firehole toward Castle and Grand Geyser.',
+      river:'Skim the water between forested banks. The bends lead through the Upper Geyser Basin toward Midway.',
+      midway:'Bank over the spring’s turquoise center and orange terraces, then follow Excelsior’s hot runoff down to the Firehole.',
+      biscuit:'Cross the blue pools and sinter at Biscuit Basin as they appeared in the July 2022 aerial survey.',
+      fairy:'Glide past the volcanic ledge above Fairy Falls, west of Grand Prismatic Spring.',
+      lone:'Follow the upper Firehole through lodgepole pines toward the Lone Star cone.',
+      wildlife:'Follow the river past meadow edges where American dippers and Canada geese forage.'
+    });
     if(picker.value==='acadia')Object.assign(descriptions,{
       ridge:'Follow the breakers into Thunder Hole. Listen for the low boom as a swell fills the narrow granite inlet.',
       beach:'Glide across Sand Beach and bank along Great Head. The sound of the surf changes as the sand gives way to ledges.',
@@ -113,10 +125,10 @@
   function show(start) {
     const w = worlds[picker.value];
     app.dataset.world = picker.value;
-    const mapCredits={acadia:'Acadia terrain, sky and recordings',dixville:'Dixville Notch · scenery credits',labrador:'Lac Berté · scenery credits',moosehead:'Moosehead Lake · terrain and imagery credits',winnipesaukee:'USGS · USDA · OpenStreetMap · Microsoft',surry:'USGS · USDA · City of Keene · OpenStreetMap'};
+    const mapCredits={yellowstone:'USGS · USDA · NPS · OpenStreetMap',acadia:'Acadia terrain, sky and recordings',dixville:'Dixville Notch · scenery credits',labrador:'Lac Berté · scenery credits',moosehead:'Moosehead Lake · terrain and imagery credits',winnipesaukee:'USGS · USDA · OpenStreetMap · Microsoft',surry:'USGS · USDA · City of Keene · OpenStreetMap'};
     mapSource.hidden=!mapCredits[picker.value];
     mapSource.textContent=mapCredits[picker.value]||'';
-    mapSource.href=asset(picker.value==='acadia'?'acadia-credits.txt':picker.value==='dixville'?'dixville-credits.txt':picker.value==='labrador'?'labrador-credits.txt':picker.value==='winnipesaukee'?'atlas-credits.txt':picker.value==='moosehead'?'geology-data/kineo-credits.txt':'credits.txt');
+    mapSource.href=asset(picker.value==='yellowstone'?'yellowstone-credits.txt':picker.value==='acadia'?'acadia-credits.txt':picker.value==='dixville'?'dixville-credits.txt':picker.value==='labrador'?'labrador-credits.txt':picker.value==='winnipesaukee'?'atlas-credits.txt':picker.value==='moosehead'?'geology-data/kineo-credits.txt':'credits.txt');
     document.querySelector('h1').innerHTML = w.name[0]+'<br><em>'+w.name[1]+'</em>';
     document.querySelector('.intro .eyebrow').innerHTML = '<i></i>'+w.region.toUpperCase();
     document.querySelector('.intro p').textContent = w.description;

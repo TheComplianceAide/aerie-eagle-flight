@@ -3,6 +3,7 @@
   // The player travels with the same voice. Wild callers belong to their
   // destination and are emitted from a suitable place in the terrain.
   const scenes = {
+    yellowstone:{beds:{},birds:[],wildlifeBirds:['yellowstone-dipper','yellowstone-goose','yellowstone-raven'],animals:[]},
     alaska:{beds:{lake:'lapping-glacial',ice:'ice',cascade:'falls-spray'},birds:['jay','ak-goose','ak-raven','ak-mallard','ak-dipper'],animals:['juneau-red-squirrel']},
     swiss:{beds:{},birds:['chough','dunnock','ch-accentor','ch-wagtail','ch-raven','ch-mallard'],animals:['alpine-marmot']},
     canyon:{beds:{river:'stream-rock'},birds:['canyon-wren','poorwill','az-raven','az-peregrine','az-rock-wren','az-merganser'],animals:['canyon-treefrog']},
@@ -18,6 +19,9 @@
   };
   // Sound source, useful audible range in metres, and source gain.
   const birds={
+    'yellowstone-dipper':['dipper','bank',0],
+    'yellowstone-goose':['goose','water',0],
+    'yellowstone-raven':['raven','tree',0],
     "ak-goose":["goose","grazing",370],
     "ne-goose":["goose","grazing",370],
     "ak-mallard":["mallard","water",220],

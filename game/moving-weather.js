@@ -5,6 +5,7 @@ window.makeMovingWeather = async function makeMovingWeather(THREE, scene, world)
   // strength, upper-wind multiplier, and elongation across the prevailing wind.
   if(world.region==='acadia')return ()=>{}; // A clear summer night with visible stars.
   const profiles = {
+    yellowstone:   [2230, 4740, .55, .27, 2.35, .92],
     dixville:      [1710, 4070, .63, .36, 2.1, .86],
     labrador:      [1390, 4350, .49, .44, 2.45, .78],
     alaska:        [4800, 4700, .43, .34, 2.6, .87],

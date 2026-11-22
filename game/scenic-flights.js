@@ -2,6 +2,15 @@
 // water and summit locations something recognizable on their far horizon.
 (() => {
   const views={
+    yellowstone:{
+      'Old Faithful':['bank',323,'Geyser Hill'],'Geyser Hill':['bank',319,'Castle Geyser'],
+      'Castle Geyser':['bank',344,'Grand Geyser'],'Grand Geyser':['bank',328,'Giant Geyser'],
+      'Giant Geyser':['bank',335,'Morning Glory Pool'],'Morning Glory Pool':['bank',314,'Biscuit Basin'],
+      'Black Sand Basin':['bank',344],'Biscuit Basin':['bank',25],
+      'Grand Prismatic Spring':['vista',340,'Excelsior Geyser Crater'],
+      'Excelsior Geyser Crater':['vista',321,'Grand Prismatic Spring'],
+      'Fairy Falls':['falls',251],'Fountain Paint Pot':['bank',340],'Lone Star Geyser':['bank',333]
+    },
     alaska:{
       'West alpine crest':['ridge',140,'Mendenhall Glacier'],'Upper crevasse field':['ice',198],
       'Blue Ice Passage':['ice',8],'Nugget Falls beach':['bank',7,'Nugget Falls'],
@@ -60,6 +69,7 @@
   const rad=Math.PI/180,clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
   // Spawn coordinates, local clearance, feature along the flight line, and optional camera tilt limit.
   const grandViews={
+    yellowstone:[-2050,-6480,430,-1090,-7370,21],
     alaska:[400,-3450,900,-400,600],               // Mendenhall Glacier to the lake
     canyon:[660,-360,750,-650,-80,18],            // Horseshoe Bend toward the sunset
     swiss:[-1780,-850,800,30,260],                // Oeschinensee and Blüemlisalp

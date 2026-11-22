@@ -1,0 +1,75 @@
+{
+  "faithful": {
+    "page": "https://www.nps.gov/yell/learn/photosmultimedia/sounds-oldfaithful.htm",
+    "recording": "https://www.nps.gov/nps-audiovideo/legacy/mp3/imr/avElement/yell-00150325YellowstoneOldFaithfulGeyserEruption3Mix3Alt101.mp3"
+  },
+  "hill-runoff": {
+    "page": "https://www.nps.gov/yell/learn/photosmultimedia/sounds-soundscapes.htm",
+    "recording": "https://www.nps.gov/nps-audiovideo/legacy/mp3/imr/avElement/yell-030401GeyserHillStreamOffBoardwalkBackgroundGeyserRumblesAndWindBinaural0101.mp3"
+  },
+  "hill-birds": {
+    "page": "https://www.nps.gov/yell/learn/photosmultimedia/sounds-soundscapes.htm",
+    "recording": "https://www.nps.gov/nps-audiovideo/legacy/mp3/imr/avElement/yell-030402GeyserHillNearSulphideSpringBirdsBinaural0101.mp3"
+  },
+  "pine-wind": {
+    "page": "https://www.nps.gov/yell/learn/photosmultimedia/sounds-soundscapes.htm",
+    "recording": "https://www.nps.gov/nps-audiovideo/legacy/mp3/imr/avElement/yell-040201LowerGeyserBasinWindInTreesBinaural01011.mp3"
+  },
+  "castle": {
+    "page": "https://www.nps.gov/yell/learn/photosmultimedia/sounds-castlegeyser.htm",
+    "recording": "https://www.nps.gov/nps-audiovideo/legacy/mp3/imr/avElement/yell-CastleGeyser.mp3"
+  },
+  "grand": {
+    "page": "https://www.nps.gov/yell/learn/photosmultimedia/sounds-grandgeyser.htm",
+    "recording": "https://www.nps.gov/nps-audiovideo/legacy/mp3/imr/avElement/yell-120101GrandMix0101.mp3"
+  },
+  "beehive": {
+    "page": "https://www.nps.gov/yell/learn/photosmultimedia/sounds-beehivegeyser.htm",
+    "recording": "https://www.nps.gov/nps-audiovideo/legacy/mp3/imr/avElement/yell-100101BeehiveMix01Fix101.mp3"
+  },
+  "blacksand": {
+    "page": "https://www.nps.gov/yell/learn/photosmultimedia/sounds-blacksandpool.htm",
+    "recording": "https://www.nps.gov/nps-audiovideo/legacy/mp3/imr/avElement/yell-020102BlackSandBasinBlackSandPoolImplodingBubblesBinaural0101.mp3"
+  },
+  "cliff": {
+    "page": "https://www.nps.gov/yell/learn/photosmultimedia/sounds-cliffgeyser.htm",
+    "recording": "https://www.nps.gov/nps-audiovideo/legacy/mp3/imr/avElement/yell-020201BlackSandBasinThermalPoolNearCliffsideGeyserOverlookMKH416-3001011.mp3"
+  },
+  "anemone": {
+    "page": "https://www.nps.gov/yell/learn/photosmultimedia/sounds-anemone-geysers.htm",
+    "recording": "https://www.nps.gov/nps-audiovideo/legacy/mp3/imr/avElement/yell-030106GeyserHillAnemoneGeyserDrainingSonyM100101.mp3"
+  },
+  "sawmill": {
+    "page": "https://www.nps.gov/yell/learn/photosmultimedia/sounds-sawmillgeyser.htm",
+    "recording": "https://www.nps.gov/nps-audiovideo/legacy/mp3/imr/avElement/yell-SawmillGeyser2.mp3"
+  },
+  "fountain": {
+    "page": "https://www.nps.gov/yell/learn/photosmultimedia/sounds-fountainpaintpots.htm",
+    "recording": "https://www.nps.gov/nps-audiovideo/legacy/mp3/imr/avElement/yell-FountainPaintPot.mp3"
+  },
+  "dipper": {
+    "page": "https://www.nps.gov/yell/learn/photosmultimedia/sounds-dipper.htm",
+    "recording": "https://www.nps.gov/nps-audiovideo/legacy/mp3/imr/avElement/yell-DipperandGeeseFireholeRiver.mp3"
+  },
+  "raven": {
+    "page": "https://www.nps.gov/yell/learn/photosmultimedia/sounds-raven.htm",
+    "recording": "https://www.nps.gov/nps-audiovideo/legacy/mp3/imr/avElement/yell-RavenBlackSandBasin.mp3"
+  },
+  "bison": {
+    "page": "https://www.nps.gov/yell/learn/photosmultimedia/sounds-bison.htm",
+    "recording": "https://www.nps.gov/nps-audiovideo/legacy/mp3/imr/avElement/yell-YELLMM8K2005914Bison.mp3"
+  },
+  "elk": {
+    "page": "https://www.nps.gov/yell/learn/photosmultimedia/sounds-elk.htm",
+    "recording": "https://www.nps.gov/nps-audiovideo/legacy/mp3/imr/avElement/yell-ElkBugle1.mp3"
+  },
+  "river": {
+    "page": "https://www.nps.gov/yell/learn/photosmultimedia/sounds-dipper.htm",
+    "recording": "https://www.nps.gov/nps-audiovideo/legacy/mp3/imr/avElement/yell-DipperandGeeseFireholeRiver.mp3",
+    "edit": "Flow bed from the Firehole River recording, with low-pass filtering to attenuate bird calls."
+  },
+  "midway": {
+    "page": "https://www.nps.gov/yell/learn/photosmultimedia/vl_grandprismatic.htm",
+    "recording": "https://www.nps.gov/nps-audiovideo/legacy/yell/7E5FFF00-155D-451F-676262A83E6E19C7/yell-MGBasin00547MTS1_480x270.mp4"
+  }
+}
