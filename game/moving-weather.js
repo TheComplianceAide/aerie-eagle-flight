@@ -151,6 +151,9 @@ window.makeMovingWeather = async function makeMovingWeather(THREE, scene, world)
   scene.traverse(object => {
     if(!object.isMesh)return;
     const sky=object.renderOrder===-1000;
+    // Canyon's photographed sky supplies the visible cloud detail and the
+    // river reflection. The flat moving overlay hides that detail in flight.
+    if(sky && world.region==='canyon')return;
     for(const material of Array.isArray(object.material)?object.material:[object.material]){
       if(!material || seen.has(material) || material.isShadowMaterial)continue;
       // Air volumes, decals and additive foam inherit the underlying surface.
