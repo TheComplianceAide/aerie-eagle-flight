@@ -255,6 +255,16 @@
                             texture2D(calderaAlbedo,detailPos.xy*.47).rgb*projection.z;
             float weave=clamp(lum(rockFabric)/.46,.46,1.53);
             float stand=landformHorizon.z;
+            ${window.aerieCloseMaterial?.fieldShader?`
+            // Break up close repeats in the local andesite specimen, before
+            // its surveyed sun, footpath and storm-light terms are applied.
+            vec3 rimDx=dFdx(wp),rimDy=dFdy(wp);
+            float rimGrain=closeFieldWeight(rimDx,rimDy,d)*(1.-stand)*(1.-footpath);
+            if(rimGrain>.005){
+              float grain=fieldCloseRock(calderaAlbedo,wp,rimDx,rimDy,normal,-1.);
+              weave=mix(weave,1.+1.32*grain,rimGrain*.91);
+            }
+            `:''}
             float deepShadow=1.-smoothstep(.13,.41,lum(rimPhoto));
             vec3 localRock=mix(rimPhoto,vec3(.40,.38,.34)*(1.+.55*(weave-1.)),deepShadow*(1.-stand)*.61);
             localRock*=1.+mix(.18,.40,1.-abs(normal.y))*(weave-1.)*(1.-stand)*(1.-smoothstep(65.,310.,d));

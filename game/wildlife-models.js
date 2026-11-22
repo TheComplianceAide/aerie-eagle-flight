@@ -2,6 +2,7 @@
 // before the instance's bank, pitch, heading and world translation are applied.
 window.makeWildlifeModels=function(T,scene,region){
   const textures={};
+  const floatingDucks=window.aerieWaterContacts?.floatingDuckContact(region);
   for(const kind of ['birds','fish']){
     const tex=new T.TextureLoader().load('fauna-'+kind+'.webp');
     tex.anisotropy=8;textures[kind]=tex;
@@ -11,22 +12,35 @@ window.makeWildlifeModels=function(T,scene,region){
   // A pair of spreading capillary ridges follows each paddling bird.
   const wakeGeo=new T.PlaneGeometry(1,1);
   wakeGeo.rotateX(-Math.PI/2);
+  const wakeFlow=new T.InstancedBufferAttribute(new Float32Array(180*2),2).setUsage(T.DynamicDrawUsage);
+  wakeGeo.setAttribute('duckWakeFlow',wakeFlow);
+  const wakePackets=[]; let wakeTime=0;
   const wakes=new T.InstancedMesh(wakeGeo,new T.ShaderMaterial({
     transparent:true,depthWrite:false,side:T.DoubleSide,uniforms:{clock:{value:0}},
-    vertexShader:`varying vec2 local;void main(){local=uv;
+    vertexShader:`attribute vec2 duckWakeFlow;varying vec2 local,pulse;void main(){local=uv;pulse=duckWakeFlow;
       gl_Position=projectionMatrix*modelViewMatrix*instanceMatrix*vec4(position,1.);}`,
-    fragmentShader:`varying vec2 local;uniform float clock;void main(){
+    fragmentShader:`varying vec2 local,pulse;uniform float clock;void main(){
       float d=1.-local.x,side=abs(local.y-.5);
-      float ridge=side-.035-d*(.24+.016*sin(18.*d-clock*3.));
+      if(pulse.x<0.){
+        float oldRidge=side-.035-d*(.24+.016*sin(18.*d-clock*3.));
+        float oldLight=1.-smoothstep(.002,.026,abs(oldRidge));
+        float oldShadow=1.-smoothstep(.002,.020,abs(oldRidge+.031));
+        float oldAlpha=(oldLight*.25+oldShadow*.12)*smoothstep(.0,.17,d)*(1.-smoothstep(.5,1.,d));
+        gl_FragColor=vec4(mix(vec3(.13,.24,.25),vec3(.78,.83,.79),oldLight),oldAlpha);
+        return;
+      }
+      float ridge=side-.035-d*(.19+.015*sin(18.*d-pulse.x*3.));
       float light=1.-smoothstep(.002,.026,abs(ridge));
       float shadow=1.-smoothstep(.002,.020,abs(ridge+.031));
-      float a=(light*.25+shadow*.12)*smoothstep(.0,.17,d)*(1.-smoothstep(.5,1.,d));
-      gl_FragColor=vec4(mix(vec3(.13,.24,.25),vec3(.78,.83,.79),light),a);}`
+      float life=smoothstep(.00,.12,pulse.x)*(1.-smoothstep(.20,1.,pulse.x));
+      float broken=.64+.36*smoothstep(-.46,.79,sin(18.*d+4.*pulse.x+7.*local.y));
+      float a=(light*.20+shadow*.15)*smoothstep(.0,.19,d)*(1.-smoothstep(.50,1.,d))*life*pulse.y*broken;
+      gl_FragColor=vec4(mix(vec3(.13,.24,.25),vec3(.43,.53,.54),light),a);}`
   }),180);
   wakes.name='Paddling wakes';wakes.count=0;wakes.renderOrder=6;wakes.frustumCulled=false;group.add(wakes);
   const vertex=`
     attribute vec3 anatomy;attribute vec4 pose;
-    varying vec2 st;varying float shade,submerged,incidence,scaleFlash;
+    varying vec2 st;varying float shade,submerged,incidence,scaleFlash,duckDepth;
     void main(){
       vec3 p=position;float phase=pose.x,effort=pose.y,mode=pose.z;
       float u=anatomy.x,v=anatomy.y,wing=anatomy.z;
@@ -44,6 +58,10 @@ window.makeWildlifeModels=function(T,scene,region){
       }else{
         float head=1.-smoothstep(.13,.43,u),feet=smoothstep(.68,.96,v);
         p.y+=head*(.011*sin(phase*.49)+.016*max(0.,-mode));
+        // Blend the two textured sides into a narrower bill and head
+        // envelope at the water-level viewing angles used while swimming.
+        if(floatDuck>.5&&mode<-.75&&mode>-1.25)
+          p.z*=1.-head*(.24+.30*(1.-smoothstep(.010,.057,abs(p.z))));
         p.z+=head*.023*sin(phase*.31);
         if(mode>.5){p.x+=head*.17;p.y-=head*.07;p.y+=feet*.23;p.x-=feet*.09;}
         if(mode<-.5){p.y+=feet*.13;p.x-=feet*.028;}
@@ -53,6 +71,7 @@ window.makeWildlifeModels=function(T,scene,region){
       vec4 clip=projectionMatrix*viewMatrix*wp;
       vec3 ray=normalize(cameraPosition-wp.xyz);
       incidence=clamp(ray.y,0.,1.);submerged=0.;scaleFlash=0.;
+      duckDepth=floatDuck>.5&&mode<-.75&&mode>-1.25?wp.y-pose.w:1.;
       if(isFish>.5){
         submerged=max(.01,pose.w-wp.y);
         vec3 bodyNormal=normalize(mat3(modelMatrix*instanceMatrix)*normal);
@@ -71,9 +90,9 @@ window.makeWildlifeModels=function(T,scene,region){
       st=uv;gl_Position=clip;
     }`;
   const fragment=`
-    uniform sampler2D atlas;uniform float isFish;varying vec2 st;varying float shade,submerged,incidence,scaleFlash;
-    void main(){vec4 skin=texture2D(atlas,st);if(skin.a<.36)discard;
-      vec3 color=skin.rgb*shade;float alpha=1.;
+    uniform sampler2D atlas;uniform float isFish;varying vec2 st;varying float shade,submerged,incidence,scaleFlash,duckDepth;
+    void main(){vec4 skin=texture2D(atlas,st);if(skin.a<.36 || (isFish<.5&&duckDepth<-.002))discard;
+      vec3 color=skin.rgb*shade*mix(.78,1.,smoothstep(-.004,.018,duckDepth));float alpha=1.;
       if(isFish>.5){float path=submerged/max(.22,incidence);
         float transmission=exp(-.35*path);
         color=mix(vec3(.13,.30,.29),color+vec3(.29,.32,.33)*scaleFlash,transmission);
@@ -118,8 +137,9 @@ window.makeWildlifeModels=function(T,scene,region){
     const geometry=new T.BufferGeometry();
     for(const [name,values,n] of [['position',pos,3],['uv',uv,2],['anatomy',anatomy,3]])geometry.setAttribute(name,new T.Float32BufferAttribute(values,n));
     geometry.setIndex(indices);geometry.computeVertexNormals();
-    const material=new T.ShaderMaterial({uniforms:{atlas:{value:skin},isFish:{value:fish?1:0}},
-      vertexShader:'uniform float isFish;\n'+vertex,fragmentShader:fragment,side:T.DoubleSide,transparent:fish,depthWrite:!fish});
+    const contact=floatingDucks&&/^(mallard|black-duck|wood-duck|merganser|eider|shelduck)(-hen)?$/.test(key);
+    const material=new T.ShaderMaterial({uniforms:{atlas:{value:skin},isFish:{value:fish?1:0},floatDuck:{value:contact?1:0}},
+      vertexShader:'uniform float isFish,floatDuck;\n'+vertex,fragmentShader:fragment,side:T.DoubleSide,transparent:fish,depthWrite:!fish});
     const capacity=320,mesh=new T.InstancedMesh(geometry,material,capacity);
     mesh.name=key;mesh.frustumCulled=false;mesh.count=0;mesh.renderOrder=fish?5:0;
     mesh.instanceMatrix.setUsage(T.DynamicDrawUsage);
@@ -128,11 +148,20 @@ window.makeWildlifeModels=function(T,scene,region){
     const batch={mesh,pose};batches.set(key,batch);return batch;
   }
   function draw(a){
-    if(a.mode===-1&&a.behavior==='paddling'&&wakes.count<180){
+    if(a.mode===-1&&a.behavior==='paddling'&&!a.floatContact&&wakes.count<180){
       const length=2.9*a.length;
       transform.position.set(a.x-Math.cos(a.heading)*length*.55,a.level+.024,a.z-Math.sin(a.heading)*length*.55);
       transform.rotation.set(0,-a.heading,0);transform.scale.set(length,1,length*.70);transform.updateMatrix();
-      wakes.setMatrixAt(wakes.count++,transform.matrix);
+      wakeFlow.setXY(wakes.count,-1,1);wakes.setMatrixAt(wakes.count++,transform.matrix);
+    }
+    if(a.emitDuckWake&&a.floatContact&&wakePackets.length<180){
+      const c=Math.cos(a.heading),q=Math.sin(a.heading),l=a.length;
+      const x=a.x-c*l*.80,z=a.z-q*l*.80,water=a.duckWakeWet;
+      if([[-.61,-.23],[-.61,.23],[.61,-.23],[.61,.23],[0,0]].every(([d,w])=>
+        Number.isFinite(water(x+l*(c*d-q*w),z+l*(q*d+c*w),wakeTime)))){
+        wakePackets.push({x,z,l,heading:a.heading,water,t:wakeTime,gain:Math.min(.90,a.floatContact.speed/.47)});
+      }
+      a.emitDuckWake=false;
     }
     const {mesh,pose}=batchFor(a.skin),i=mesh.count;
     if(i>=pose.count)return false;
@@ -140,8 +169,16 @@ window.makeWildlifeModels=function(T,scene,region){
     transform.scale.setScalar(a.length);transform.updateMatrix();mesh.setMatrixAt(i,transform.matrix);
     pose.setXYZW(i,a.phase,a.effort,a.mode,a.level||0);mesh.count++;return true;
   }
-  return {begin(t){wakes.count=0;wakes.material.uniforms.clock.value=t;for(const {mesh} of batches.values())mesh.count=0;},draw,
-    end(){wakes.instanceMatrix.needsUpdate=true;for(const {mesh,pose} of batches.values()){mesh.visible=mesh.count>0;mesh.instanceMatrix.needsUpdate=true;pose.needsUpdate=true;}}};
+  return {begin(t){wakeTime=t;wakes.count=0;wakes.material.uniforms.clock.value=t;for(const {mesh} of batches.values())mesh.count=0;},draw,
+    end(){for(let i=wakePackets.length-1;i>=0;i--){
+      const p=wakePackets[i],age=(wakeTime-p.t)/1.25;
+      if(age<0||age>=1){wakePackets.splice(i,1);continue;}
+      const level=p.water(p.x,p.z,wakeTime);if(wakes.count>=180||!Number.isFinite(level))continue;
+      transform.position.set(p.x,level+.012,p.z);
+      transform.rotation.set(0,-p.heading,0);transform.scale.set(p.l*(1.22+.37*age),1,p.l*(.46+.34*age));
+      transform.updateMatrix();wakeFlow.setXY(wakes.count,age,p.gain);
+      wakes.setMatrixAt(wakes.count++,transform.matrix);
+    }wakeFlow.needsUpdate=true;wakes.instanceMatrix.needsUpdate=true;for(const {mesh,pose} of batches.values()){mesh.visible=mesh.count>0;mesh.instanceMatrix.needsUpdate=true;pose.needsUpdate=true;}}};
 };
 
 // A shallow tail stroke releases a wave packet at a fixed point on the water.
@@ -193,6 +230,16 @@ window.makeFishRipples=function(T,scene,world,waterAt){
         gl_FragColor=vec4(water,alpha);
       }`
   });
+  const masks=window.aerieWaterOpacity?.bind(T,['wildlife_fish']);
+  if(masks){
+    Object.assign(material.uniforms,masks.uniforms);
+    material.fragmentShader=masks.shader+'\n'+material.fragmentShader.replace('if(alpha<.009)discard;',`
+      vec2 local=point*.47+.5;
+      local.x-=.12*age;
+      vec2 thinFilm=waCell(local,${masks.choices.wildlife_fish},fract(seed*.53));
+      alpha*=.65+.67*thinFilm.x;
+      if(alpha<.009)discard;`);
+  }
   const mesh=new T.InstancedMesh(geometry,material,capacity);
   mesh.name='Fish surface swirls';mesh.frustumCulled=false;mesh.count=0;mesh.renderOrder=6;
   mesh.instanceMatrix.setUsage(T.DynamicDrawUsage);scene.add(mesh);

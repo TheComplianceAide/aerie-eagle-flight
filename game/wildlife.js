@@ -46,6 +46,47 @@ window.addRegionalWildlife=function(T,scene,w){
     return null;
   }
   const ripples=window.makeFishRipples(T,scene,w,waterAt);
+  const floatingDucks=window.aerieWaterContacts?.floatingDuckContact(region);
+  // Resolve floating contact and velocity after flock spacing.
+  const isDuck=skin=>/^(mallard|black-duck|wood-duck|merganser|eider|shelduck)(-hen)?$/.test(skin);
+  function duckContact(a,t){
+    if(!floatingDucks||!isDuck(a.skin))return;
+    const prev=a.floatContact;
+    if(a.mode!==-1||a.behavior!=='paddling'){a.floatContact=null;return;}
+    const level=waterAt(a.x,a.z,t);
+    if(!Number.isFinite(level)){a.floatContact=null;return;}
+    const valid=prev&&t-prev.t>0&&t-prev.t<.25;
+    const step=valid?t-prev.t:0;
+    let heading=valid?prev.heading:a.heading,speed=0;
+    if(valid){
+      const dx=a.x-prev.x,dz=a.z-prev.z,v=Math.hypot(dx,dz)/step;
+      speed=prev.speed+(Math.min(v,1.5)-prev.speed)*(1-Math.exp(-step*4));
+      if(v>.035&&v<2.2){const wanted=Math.atan2(dz,dx),d=wanted-heading;
+        heading+=Math.atan2(Math.sin(d),Math.cos(d))*(1-Math.exp(-step*3.6));}
+    }
+    const c=Math.cos(heading),q=Math.sin(heading),L=a.length,r=.30*L;
+    const fore=waterAt(a.x+r*c,a.z+r*q,t),aft=waterAt(a.x-r*c,a.z-r*q,t);
+    const across=.18*L;
+    const sideA=waterAt(a.x-across*q,a.z+across*c,t),sideB=waterAt(a.x+across*q,a.z-across*c,t);
+    const pitch=Number.isFinite(fore)&&Number.isFinite(aft)?clamp(Math.atan2(fore-aft,2*r),-.14,.14):0;
+    const bank=Number.isFinite(sideA)&&Number.isFinite(sideB)?clamp(Math.atan2(sideB-sideA,2*across),-.12,.12):0;
+    const smooth=valid?1-Math.exp(-8*step):1;
+    // Correct the pivot of the duck model at the water surface.
+    const trim=L*.102 + L*.025*(1-sCurve((t-(valid?prev.since:t))/.65));
+    a.y=level+trim; a.level=level; a.heading=heading;
+    a.pitch=valid?prev.pitch+(pitch-prev.pitch)*smooth:pitch;
+    a.bank=valid?prev.bank+(bank-prev.bank)*smooth:bank;
+    a.floatContact={x:a.x,z:a.z,t,heading,speed,pitch:a.pitch,bank:a.bank,since:valid?prev.since:t};
+    a.emitDuckWake=!!valid&&speed>.095&&t-(a.lastDuckWake??-10)>.19;
+    if(a.emitDuckWake){
+      a.lastDuckWake=t;
+      if(w.waterContacts){
+        w.waterContacts.emit(a.x+c*L*.18,a.z+q*L*.18,heading,speed,L,t);
+        a.emitDuckWake=false;
+      }
+    }
+    a.duckWakeWet=waterAt;
+  }
   const eggRock=region==='acadia'?window.makeAcadiaHarborSeals?.(T,scene,w,waterAt,ripples.emit):null;
   const fish=window.makeFishSchools(region,waterAt,ripples.emit),sites=new Map(),dormantSites=new Map();
   const social={
@@ -289,7 +330,7 @@ window.addRegionalWildlife=function(T,scene,w){
       if(!mix&&approach&&dt>0&&t>=(a.quietAfter||0)){
         a.disturbedAt=t;a.quietAfter=t+24+seed;
         a.awayAngle=Math.atan2(a.z-player.z,a.x-player.x);
-        ripples.emit(a,t,loon?.68:.38);
+        if(!floatingDucks||loon||!isDuck(a.skin))ripples.emit(a,t,loon?.68:.38);
       }
       const since=t-(a.disturbedAt??-1000);
       const escape=since>=0?sCurve(since/2.4)*(1-sCurve((since-7)/11)):0;
@@ -464,10 +505,13 @@ window.addRegionalWildlife=function(T,scene,w){
           }
         }
       }
-      for(const f of site.flocks)for(const a of f.group)
+      for(const a of swimmers)duckContact(a,t);
+      for(const f of site.flocks)for(const a of f.group){
+        if(a.behavior!=='paddling'&&a.floatContact)duckContact(a,t);
         if(Math.hypot(player.x-a.x,player.y-a.y,player.z-a.z)<Math.max(85,360*a.length)&&a.behavior!=='diving'){
           if(models.draw(a)){rendered.push(a);visibleSubjects.push(a);}
         }
+      }
       for(const school of site.schools){
         if(Math.hypot(player.x-school.home.x,player.y-school.home.y,player.z-school.home.z)>90)continue;
         if(school.seenAt!==undefined&&t-school.seenAt>.6){
@@ -498,6 +542,7 @@ window.addRegionalWildlife=function(T,scene,w){
     }
     ripples.update(player,t);
     models.end();
+    w.waterContacts?.update(t,player);
   }
   w.wildlife={nearest,nearby,land,sighting,inSight:a=>visibleSubjects.includes(a),waterAt,sites,prepare,fish:fish.roster};return update;
 };

@@ -4,6 +4,7 @@ window.addAcadiaCoast=function addAcadiaCoast(T,scene,world){
   if(!water)return;
   water.material.userData.shadowDirectWater=true;
   const level=water.position.y,clock={value:0};
+  const contact=window.aerieWaterContacts?.enabled;
   // Thunder Hole's NAIP-mapped cleft faces southeast. Wave groups share a
   // period with the local breaker line. The strongest few crests vent spray.
   const period=7.6;
@@ -92,6 +93,25 @@ window.addAcadiaCoast=function addAcadiaCoast(T,scene,world){
         #include <colorspace_fragment>
       }`
   });
+  const crestAtlas=window.aerieWaterOpacity?.bind(T,['ocean_crest','ocean_wash','ocean_backwash'],true);
+  if(crestAtlas){
+    Object.assign(surf.uniforms,crestAtlas.uniforms);
+    surf.fragmentShader=crestAtlas.shader+'\n'+surf.fragmentShader.replace('float filmValue=',`
+      vec2 contactKey=floor((p+vec2(6.*islands,3.*tongues))/19.);
+      float contactSeed=waHash(contactKey);
+      float along=dot(p-(contactKey+.5)*19.,vec2(.74,.67))/18.;
+      float offPhase=(.24+.15*contactSeed)*sin(clock*.61+contactSeed*9.);
+      float stage=.5+.5*cos(phase+offPhase);
+      vec4 variants=${crestAtlas.choices.ocean_crest};
+      bool chamber=distance(p,vec2(50.2,-48.7))<93.;
+      if(chamber)variants=stage>.53?${crestAtlas.siteChoices.ocean_crest||crestAtlas.choices.ocean_crest}:
+        ${crestAtlas.siteChoices.ocean_backwash||crestAtlas.choices.ocean_backwash};
+      vec2 atlasFilm=waCell(vec2(.5+along,.32+.045*bed+.22*sin(phase+offPhase)),variants,contactSeed);
+      float maskAtlas=atlasFilm.x*(1.-smoothstep(.55,2.6,footprint))*shoal*wet;
+      membrane=mix(membrane,maskAtlas,.59);
+      bubbles*=.48+.72*maskAtlas;
+      float filmValue=`);
+  }
   surf.userData.acadiaNight=true;
   const loader=new T.TextureLoader();
   const stone=loader.load('shore-stone.webp');
@@ -221,6 +241,7 @@ window.addAcadiaCoast=function addAcadiaCoast(T,scene,world){
           gl_Position=projectionMatrix*viewMatrix*vec4(point,1.);
         }`,
       fragmentShader:`
+        ${contact?window.aerieWaterContacts.profile:''}
         uniform sampler2D ripples,film;
         uniform float clock;
         varying vec2 lane;
@@ -240,6 +261,13 @@ window.addAcadiaCoast=function addAcadiaCoast(T,scene,world){
           float wall=pow(side,2.4);
           float foamCover=clamp((.15+breaker*1.10+eddy*.72+wall*.43)
             *smoothstep(.22,.72,raft+.17*wall)*(.24+.68*bubbles+.23*froth),0.,1.);
+          ${contact?`
+          float returnAge=mod(clock-5.+.72*7.6-.76,7.6);
+          float footprint=max(length(dFdx(xy)),length(dFdy(xy)));
+          vec2 returned=waterContactBand(distanceToHead-3.4*returnAge+.64*wall,.48,
+            returnAge,4.8,footprint);
+          foamCover=clamp(foamCover+returned.y*(.23+.72*raft),0.,1.);
+          `:''}
           vec3 toEye=normalize(cameraPosition-point);
           float grazing=pow(1.-abs(toEye.y),3.);
           vec3 waterLight=mix(vec3(.012,.029,.041),vec3(.056,.095,.12),
@@ -250,6 +278,25 @@ window.addAcadiaCoast=function addAcadiaCoast(T,scene,world){
           #include <colorspace_fragment>
         }`
     });
+    const atlas=window.aerieWaterOpacity?.bind(T,['ocean_rebound','ocean_wash','ocean_backwash'],true);
+    if(atlas){
+      const early=atlas.siteChoices.ocean_rebound||atlas.choices.ocean_rebound;
+      const late=atlas.siteChoices.ocean_backwash||atlas.choices.ocean_backwash;
+      const wash=atlas.siteChoices.ocean_wash||atlas.choices.ocean_wash;
+      Object.assign(material.uniforms,atlas.uniforms);
+      material.fragmentShader=atlas.shader+'\n'+material.fragmentShader.replace('vec3 toEye=normalize(cameraPosition-point);',`
+        float chamberPhase=(clock-5.)/7.6+.72;
+        float setIndex=floor(chamberPhase),age=fract(chamberPhase)*7.6;
+        float pulseSeed=waHash(vec2(setIndex,floor(distanceToHead/13.)));
+        float departure=smoothstep(.8,4.2,age);
+        vec4 maskSet=age<1.42?${early}:(age<3.35?${wash}:${late});
+        vec2 driftFilm=waCell(vec2(.49+.39*lane.y+.085*shear.x,
+          .19+lane.x*.043-departure*(.19+.13*pulseSeed)),maskSet,pulseSeed);
+        float chamberFilm=driftFilm.x*blend*(1.-smoothstep(.64,2.,max(length(dFdx(xy)),length(dFdy(xy)))));
+        float born=smoothstep(.12,.55,age)*(1.-smoothstep(4.,5.7,age));
+        foamCover=clamp(foamCover*(.48+.52*breaker)+chamberFilm*born*(.34+.34*wall),0.,1.);
+        vec3 toEye=normalize(cameraPosition-point);`);
+    }
     material.userData.acadiaNight=true;
     const mesh=new T.Mesh(geo,material);
     mesh.name='Thunder Hole · advancing and reflected chamber surge';mesh.renderOrder=3;
@@ -259,7 +306,7 @@ window.addAcadiaCoast=function addAcadiaCoast(T,scene,world){
   function makeSpray(){
     // A wave surges into the blind channel, compresses air, then breaks from
     // the back of the fissure. Gravity and prevailing wind shape the plume.
-    const count=86,base=new T.PlaneGeometry(1,1),g=new T.InstancedBufferGeometry();
+    const count=contact?104:86,base=new T.PlaneGeometry(1,1),g=new T.InstancedBufferGeometry();
     g.setAttribute('position',base.getAttribute('position'));g.setAttribute('uv',base.getAttribute('uv'));g.setIndex(base.index);
     const seeds=new Float32Array(count*4);let s=183753;
     for(let i=0;i<seeds.length;i++){s=(Math.imul(s,1664525)+1013904223)>>>0;seeds[i]=s/4294967296;}
@@ -280,6 +327,13 @@ window.addAcadiaCoast=function addAcadiaCoast(T,scene,world){
         float above=1.25+speed*t-4.905*t*t;
         float size=mix((.28+1.15*seed.z)*(.48+1.43*age),.048+.063*seed.y,isDrop);
         opacity=smoothstep(0.,.15,t)*(1.-smoothstep(.54,1.,age))*smoothstep(.1,1.,above)*(.36+.22*seed.y);
+        ${contact?`
+        vec2 outward=normalize(vec2(21.,24.));
+        xz+=outward*age*(1.2+3.6*seed.z);
+        above+=isDrop*age*(1.8+.9*envelope);
+        size*=mix(1.31,2.18,isDrop);
+        opacity*=mix(1.28,1.42,isDrop);
+        `:''}
         st=uv;grain=seed.x+age*.37;
         vec4 v=viewMatrix*vec4(xz.x,level+max(0.,above),xz.y,1.);
         v.xy+=position.xy*vec2(.84,1.13+isDrop)*size;
@@ -292,6 +346,29 @@ window.addAcadiaCoast=function addAcadiaCoast(T,scene,world){
         gl_FragColor=vec4(.46,.58,.70,opacity*(1.-smoothstep(.05,1.,d))*mix(r,1.45,isDrop));
         #include <colorspace_fragment>
       }`});
+    const atlas=window.aerieWaterOpacity?.bind(T,['ocean_rebound'],true);
+    if(atlas){
+      m.vertexShader=m.vertexShader
+        .replace('st=uv;grain=seed.x+age*.37;',`
+        // The impact starts with the native swell. Finer mist is carried
+        // out of the cleft, separate from the steep initial droplet arc.
+        float cycleBias=sin(cycle*1.77+.6)*.39;
+        vec2 reboundDir=normalize(vec2(21.,24.));
+        vec2 acrossDir=vec2(-reboundDir.y,reboundDir.x);
+        float trailing=age*age;
+        xz+=reboundDir*(5.0*trailing*(1.-.42*isDrop))
+          +acrossDir*(seed.x-.50+cycleBias)*3.6*trailing;
+        above+=mix(.52,-.45,isDrop)*age+.80*max(0.,cycleBias)*sin(3.14159*age);
+        size*=mix(1.24,.78,isDrop)*(1.+.15*cycleBias*age);
+        st=uv;grain=seed.x+age*.37;`)
+        .replace('vec2(.84,1.13+isDrop)*size','vec2(1.19-.40*isDrop,1.04+.89*isDrop)*size');
+      const cells=atlas.siteChoices.ocean_rebound||atlas.choices.ocean_rebound;
+      Object.assign(m.uniforms,atlas.uniforms);
+      m.fragmentShader=atlas.shader+'\n'+m.fragmentShader.replace('gl_FragColor=vec4(.46,.58,.70,opacity*',`
+        vec2 broken=waCell(vec2(.5+(st.x-.5)*1.17,.48+(st.y-.5)*1.04),${cells},fract(grain*3.19));
+        float sprayGain=isDrop<.5?.33+1.24*broken.x:.84;
+        gl_FragColor=vec4(.46,.58,.70,opacity*sprayGain*`);
+    }
     m.userData.acadiaNight=true;
     const mesh=new T.Mesh(g,m);mesh.name='Thunder Hole wave-driven spray';mesh.frustumCulled=false;mesh.renderOrder=4;scene.add(mesh);return mesh;
   }

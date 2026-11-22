@@ -47,7 +47,7 @@
       swiss:['geodata-oeschinen.js']
     }[region]||[];
     const streams=region==='yosemite'?['river-'+region+'.js']:[];
-    const assets=[...streams,...base,'wildlife-tracks.js','regional-landforms.js',...(region==='yellowstone'?[]:['habitat-data/'+region+'.js']),...files,...surveyDetail];
+    const assets=[...streams,...base,'water-opacity.js','close-rock-material.js','wildlife-tracks.js','regional-landforms.js',...(region==='yellowstone'?[]:['habitat-data/'+region+'.js']),...files,...surveyDetail];
     const observationCode=geodata.map(name=>open(name).catch(()=>{}));
     await Promise.all([...observationCode,...assets.map(name=>name==='canopy-stream.js'
       ? Promise.all([open('close-tree-detail.js'),open('close-bark-material.js').catch(()=>{}),open('veteran-trees.js').catch(()=>{})]).then(()=>open(name)) : open(name))]);

@@ -62,7 +62,8 @@
       }
       return best;
     }
-    const uniforms={time:{value:0},sun:{value:sun},haze:{value:fog},panorama:{value:panorama}};
+    const bankMasks=window.aerieWaterOpacity?.bind(T,['river_bank']);
+    const uniforms={time:{value:0},sun:{value:sun},haze:{value:fog},panorama:{value:panorama},...bankMasks?.uniforms};
     const material=new T.ShaderMaterial({
       uniforms,side:T.DoubleSide,transparent:true,depthWrite:false,
       vertexShader:`
@@ -74,6 +75,7 @@
           gl_Position=projectionMatrix*viewMatrix*vec4(wp,1.);
         }`,
       fragmentShader:`
+        ${bankMasks?.shader||''}
         uniform float time;uniform sampler2D panorama;uniform vec3 sun,haze;varying vec4 vWater;varying vec3 wp;
         float hash(vec2 x){return fract(sin(dot(x,vec2(127.1,311.7)))*43758.5453);}
         float noise(vec2 x){
@@ -108,6 +110,19 @@
             vec2 small=vec2(noise(fast*3.3+13.2),noise(crossFlow*3.8-8.71))-.5;
             curl=.071*breaks+.045*small*peak+.007*vec2(wave1,wave2);
           }
+          ${bankMasks?`
+          float bankFilm=0.;
+          if(stream>.5&&edge>.66&&edge<.995&&peak>.03){
+            // Hydraulic station is the actual Firehole polyline, not an XY
+            // ocean wave. Pools have stream=0 and retain the original optics.
+            float parcel=floor(coord.x/18.);
+            float seed=waHash(vec2(parcel,sign(coord.y)));
+            float age=fract(time/(4.8+1.7*seed)+seed);
+            vec2 film=waCell(vec2(fract(coord.x/18.)-.24*age,(edge-.64)/.36),${bankMasks.choices.river_bank},seed);
+            bankFilm=film.x*smoothstep(.05,.20,age)*(1.-smoothstep(.62,1.,age))*peak;
+            curl+=vec2(.018,-.025)*bankFilm;
+          }
+          `:''}
           vec3 surface=normalize(vec3(curl.x*(.45+.55*stream),1.,curl.y*(.45+.55*stream)));
           vec3 bounce=reflect(-view,surface);
           float fresnel=.024+.976*pow(1.-max(0.,dot(view,surface)),5.);
@@ -138,6 +153,7 @@
           float lace=smoothstep(.63,.86,noise(vec2(q.x*1.6,q.y*2.9)))*smoothstep(.71,.96,edge)*(1.-smoothstep(.985,1.,edge));
           vec3 surfaceRGB=mix(base,sky,fresnel*(.83-.20*stream-.18*shallow))+glare;
           surfaceRGB+=vec3(.45,.48,.46)*lace*(.14+.36*peak)*stream;
+          ${bankMasks?'surfaceRGB+=sky*.095*bankFilm;':''}
           float air=1.-exp(-d*.000069);
           float margin=mix(.931,.67,stream);
           float film=1.-smoothstep(margin,1.,edge);

@@ -7,6 +7,7 @@ window.nuggetSurfaceShader=function nuggetSurfaceShader(localUV){
     uniform bool linearOutput;
     varying vec4 landformHorizon;
     varying vec3 p,n;
+    ${window.aerieCloseMaterial?.fieldShader||''}
     float brightness(vec3 color){return dot(color,vec3(.25,.59,.16));}
     vec3 grains(vec2 uv,float tile){
       vec2 cell=vec2(mod(tile,4.),floor(tile*.25));
@@ -54,6 +55,17 @@ window.nuggetSurfaceShader=function nuggetSurfaceShader(localUV){
         float leaf=brightness(floorSample);
         surface*=1.+visibleCover*(leaf-.43)*.35*(1.-smoothstep(42.,140.,range));
       }
+      ${window.aerieCloseMaterial?.fieldShader?`
+      vec3 groundDx=dFdx(p),groundDy=dFdy(p);
+      float groundDetail=closeFieldWeight(groundDx,groundDy,range)*smoothstep(5.,16.,p.y);
+      if(groundDetail>.005){
+        float leaf=smoothstep(.30,.65,visibleCover);
+        float rockGrain=leaf<1.?fieldCloseRock(groundScan,p,groundDx,groundDy,normal,4.):0.;
+        float leafGrain=leaf>0.?fieldCloseRock(groundScan,p,groundDx,groundDy,normal,2.):0.;
+        float grain=mix(rockGrain,leafGrain,leaf);
+        surface*=1.+groundDetail*.69*grain;
+      }
+      `:''}
       float visibility=smoothstep(-.042,.055,asin(clamp(sun.y,0.,1.))-landformHorizon.y*1.539);
       visibility*=1. /* direct terrain visibility */;
       float sky=landformHorizon.x,incidence=max(0.,dot(faceNormal,sun));
