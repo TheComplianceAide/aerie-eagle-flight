@@ -1,0 +1,47 @@
+name: Deploy Aerie to Azure
+
+on:
+  push:
+    branches: [storefront/aerie-passes]
+  workflow_dispatch:
+    inputs:
+      package_sha256:
+        description: SHA-256 of the prepared public game archive
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aerie-azure-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Download and verify the staged game
+        env:
+          PACKAGE_URL: ${{ secrets.AERIE_TEMP_RELEASE_URL }}
+          PACKAGE_SHA256: ${{ inputs.package_sha256 || 'f33a207ed2721eb1dbf24759b4fefd5f28ea8d0819430709780a6c77d089c1e9' }}
+        run: |
+          set -euo pipefail
+          [[ "$PACKAGE_SHA256" =~ ^[0-9a-f]{64}$ ]]
+          [[ "$PACKAGE_URL" == https://stplayaerieprod01.blob.core.windows.net/aeriepaid/_release/* ]]
+          curl --silent --fail --retry 3 --proto '=https' --output release.tgz "$PACKAGE_URL"
+          printf '%s  release.tgz\n' "$PACKAGE_SHA256" | sha256sum --check
+          mkdir dist
+          tar -xzf release.tgz --directory dist
+          test -f dist/index.html
+          test -f dist/join/index.html
+          test ! -f dist/atlas-moosehead-survey.js
+      - name: Publish the tested build
+        uses: Azure/static-web-apps-deploy@4d27395796ac319302594769cfe812bd207490b1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AERIE_SWA_DEPLOYMENT_TOKEN }}
+          action: upload
+          app_location: dist
+          skip_app_build: true
+          production_branch: storefront/aerie-passes

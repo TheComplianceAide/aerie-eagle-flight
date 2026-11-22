@@ -1,0 +1,19 @@
+.aerie-pass-link {
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  margin-top: .75rem;
+  color: #f4e6cc;
+  font-size: .81rem;
+  text-underline-offset: .22em;
+}
+.aerie-pass-link:hover, .aerie-pass-link:focus-visible {
+  color: #fff9ee;
+}
+#worldList [data-pass="locked"]::after {
+  content: "Pass";
+  margin-inline-start: auto;
+  color: #ead6aa;
+  font-size: .63rem;
+  letter-spacing: .04em;
+}
