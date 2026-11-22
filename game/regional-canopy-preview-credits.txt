@@ -1,0 +1,39 @@
+Moosehead Lake and Mendenhall Glacier geographic canopy layers.
+Retains all existing Aerie terrain, shoreline, glacier, and surveyed trees.
+The original regional scenery sources are credited in credits.txt and
+mendenhall-geology-credits.txt.
+
+The compact instance-coordinate packs use modeled canopy height and
+positive optical vegetation agreement, not measurements of individual tree
+locations, widths or species. Sources are resampled to the game's map frame.
+Coverage gaps leave the original scenery unchanged. Runtime rechecks stock
+terrain, water, creek/ice constraints and spacing; no source rasters are served.
+
+Contains modified Copernicus Sentinel data (2025).
+Moosehead: Sentinel-2C Level-2A S2C_19TDL_20250816_0_L2A.
+https://earth-search.aws.element84.com/v1/collections/sentinel-2-l2a/items/S2C_19TDL_20250816_0_L2A
+Mendenhall: Sentinel-2B Level-2A S2B_8VNK_20250904_0_L2A.
+https://earth-search.aws.element84.com/v1/collections/sentinel-2-l2a/items/S2B_8VNK_20250904_0_L2A
+
+Version 2 High Resolution Canopy Height Maps by WRI and Meta, CC BY 4.0.
+https://creativecommons.org/licenses/by/4.0/
+Exact source tile URLs, bounds, grid registration, source hashes, and
+processing rules are provided in moosehead-canopy-preview.json and
+alaska-canopy-preview.json.
+
+Mendenhall optical layer: same 9 × 8.5 km native EPSG:6337
+window; actual September 4, 2025 Sentinel-2 RGB at 10 m and SCL / SWIR
+native 20 m reprojected to the optical grid. NDWI and NDSI weight SCL
+observations, not new water or snow outlines. Fine stock ortho, reflectance,
+slope/atlas shading, and reconstructed lake/Fresnel remain in the engine.
+The broad optical contribution and water response are color appearance
+guidance, not depth, turbidity, material chemistry, or a live freeze map.
+
+One inland area (game x 420–550 m, z 1635–1750 m) additionally uses USGS
+Southeast Alaska Landslides D22 2023 bare-earth LiDAR tiles 767733 and
+768733 (native 0.5 m, resampled 1 m horizontally to EPSG:6337).
+Source NAVD88 elevations retain original units; the game uses the
+existing 18 m reference offset, an 18 m seam feather, and a residual
+guard. Stock cove, waterfall, channels, shoreline and glacier geometry
+are unaltered. This is a newly incorporated patch, not a new survey date.
+https://www.fisheries.noaa.gov/inport/item/80000

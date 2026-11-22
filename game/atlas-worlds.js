@@ -472,6 +472,7 @@ class Water extends Mesh {
 }
 
 
+  const coastGeodata=scene.userData.geodata?.coast;
   const originalSurvey=window.ATLAS_SURVEYS[region];
   const survey=region==='crater'?{...originalSurvey,shore:window.craterRimShore(originalSurvey.shore)}:originalSurvey;
   if(region==='moosehead')window.refineMooseheadShore(survey);
@@ -571,6 +572,10 @@ class Water extends Mesh {
   }
   const campSurface=region==='labrador'&&survey.cabin?landmarkTerrain?.surfacePatch(survey.cabin.x,survey.cabin.z,72,(x,z)=>regionalElevation(x,z,false)):null;
   function elevation(x,z,includeIslet=true){
+    const value=stockElevation(x,z,includeIslet);
+    return coastGeodata?.terrain?.(x,z,value)??value;
+  }
+  function stockElevation(x,z,includeIslet=true){
     if(campSurface){const y=campSurface(x,z);if(y!==null)return y;}
     if(tableHeight&&x>=-256&&x<=256&&z>=128&&z<=512){
       const edge=Math.min(x+256,256-x,z-128,512-z);
@@ -755,6 +760,12 @@ class Water extends Mesh {
         gl_FragColor=vec4(mix(c,aerialHaze,dep*(.72+.28*skyView)),1.);
         #include <colorspace_fragment>
       }`});
+  if(coastGeodata)coastGeodata.ground(terrain);
+  const spectral=scene.userData.geodata?.spectral;
+  // Table Rock already uses the sixteen available fragment samplers.
+  if(!dixville)spectral?.ground(terrain,'float veg=smoothstep', {
+    color:'photo',point:'xz',protection:'smoothstep(2.,14.,wp.y-shoreLevel)*smoothstep(.36,.83,normal.y)'
+  });
   if(acadia){
     // The Atlantic cuts nearly vertical faces into the granite. Read the one-
     // metre surveyed slopes in the fragment shader instead of interpolating
@@ -1591,7 +1602,13 @@ class Water extends Mesh {
     }
   }else{
     if(tight)ring(core,h,h/320,focusX,focusZ);
-    for(let j=0;j<8;j++)for(let i=0;i<8;i++)patch(focusX-core+i*core/4,focusZ-core+j*core/4,core/4,core/4,tight?91:80,tight?91:80);
+    const fineCoast=coastGeodata?.terrainBounds;
+    for(let j=0;j<8;j++)for(let i=0;i<8;i++){
+      const x=focusX-core+i*core/4,z=focusZ-core+j*core/4,side=core/4;
+      const nx=fineCoast&&x<fineCoast[2]&&x+side>fineCoast[0]&&z<fineCoast[3]&&z+side>fineCoast[1]?
+        (tight?182:160):(tight?91:80);
+      patch(x,z,side,side,nx,nx);
+    }
   }
   if(localDEM){
     const {x,z,half}=localDEM;
@@ -1726,6 +1743,7 @@ class Water extends Mesh {
       shoreExposure:{value:exposure},bedRelief:{value:texture('shore-pebbles-normal.webp',true)},
       bedSand:{value:shoreSand},foamCells:{value:saltFoam}
     });
+    if(coastGeodata)coastGeodata.water(water.material);
     waterfront?.applyWater(water.material);
     if(region==='moosehead')window.applyRockwoodRampWater(water.material);
     if(region==='lofoten'||acadia){
@@ -1837,7 +1855,7 @@ class Water extends Mesh {
     if(Number.isFinite(roofHeight?.(tree.x,tree.z))||Number.isFinite(waterfrontHeight?.(tree.x,tree.z)))return;
     tree.conifer=isFir;
     trees.push(tree);(isFir?firTrees:broadTrees).push(tree);
-    const id=cell(tree.x,tree.z);if(!cells.has(id))cells.set(id,[]);cells.get(id).push(tree);
+    const id=cell(tree.x,tree.z);if(!cells.has(id))cells.set(id,[]);cells.get(id).push(tree);return true;
   }
   lightStations?.plant(plant);
   footbridge?.plant(plant);
@@ -1916,6 +1934,38 @@ class Water extends Mesh {
       }
       plant(tree,isFir);
     }
+  }
+  if(coastGeodata){
+    coastGeodata.stats.stockTrees=trees.length;
+    for(const [x,z,height,width,seed] of coastGeodata.candidates){
+      const y=elevation(x,z);
+      if(!Number.isFinite(y)||wetGround(x,z,y,1.7)||y>settings.top||blockVegetationAt(x,z,y))continue;
+      if(acadia&&(islandAt(x,z)||window.acadiaSandOpening(x,z)||window.thunderHoleBareLedge(x,z)))continue;
+      if(region==='lofoten'&&(harborTerrain?.edge(x,z)>.15||reineWall?.edge(x,z)>.15||reineTerrain?.edge(x,z)>.15||reineVillage?.blocks(x,z)||!birchCover||birchCover(x,z)!==1))continue;
+      if(Math.hypot(elevation(x+3,z)-elevation(x-3,z),elevation(x,z+3)-elevation(x,z-3))/6>.82)continue;
+      let close=false;
+      for(let i=-1;i<=1;i++)for(let j=-1;j<=1;j++)for(const q of cells.get(cell(x+i*50,z+j*50))??[]){
+        if(Math.hypot(q.x-x,q.z-z)<Math.max(5.7,q.width*.68)){close=true;break;}
+      }
+      if(close)continue;
+      if(plant({x,y,z,height,width,seed,geodataCanopy:true,photoTint:coastGeodata.tint(x,z)},acadia&&seed<.48))coastGeodata.stats.accepted++;
+    }
+  }
+  const canopyGeodata=scene.userData.geodata?.canopy;
+  if(canopyGeodata){
+    canopyGeodata.stats.stockTrees=trees.length;
+    canopyGeodata.apply(elevation,(x,z,y)=>{
+      if(!Number.isFinite(y)||wetGround(x,z,y,1.9)||inLake(x,z)||blockVegetationAt(x,z,y)||
+         bankHabitat?.managedGround?.(x,z)||bankHabitat?.ownsTree(x,z)||repairedLanding?.edge(x,z)>.04)return false;
+      if(Math.hypot(elevation(x+3,z)-elevation(x-3,z),elevation(x,z+3)-elevation(x,z-3))/6>.91)return false;
+      for(let i=-1;i<=1;i++)for(let j=-1;j<=1;j++)for(const t of cells.get(cell(x+i*50,z+j*50))??[]){
+        if(Math.hypot(t.x-x,t.z-z)<Math.max(6,t.width*.71))return false;
+      }
+      return true;
+    },tree=>{
+      tree.photoTint=spectral?.sample(tree.x,tree.z)?.tint;
+      return plant(tree,true);
+    });
   }
   const sunMask=terrainLight;
   const updateWeather=region==='labrador'?window.addBerteWeather(THREE,scene,{sun,clock,sky,terrain,settings,survey}):

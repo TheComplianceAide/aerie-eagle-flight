@@ -1,0 +1,134 @@
+{
+  "scheme": "NCP1",
+  "world": "moosehead",
+  "crs": "EPSG:32619",
+  "origin": [
+    442772,
+    5060090
+  ],
+  "bounds": [
+    438570,
+    5055090,
+    447570,
+    5065090
+  ],
+  "localRect": [
+    -4202,
+    -5000,
+    4798,
+    5000
+  ],
+  "rule": {
+    "origin": [
+      442772,
+      5060090
+    ],
+    "crs": 32619,
+    "water": 312.23,
+    "ceil": 810,
+    "step": 9,
+    "cap": 8500,
+    "tile": 70,
+    "ndvi": 0.44
+  },
+  "sentinel": {
+    "item": "S2C_19TDL_20250816_0_L2A",
+    "datetime": "2025-08-16T15:40:47.210000Z",
+    "tileCloud": 0.16625,
+    "attribution": "Contains modified Copernicus Sentinel data (2025)",
+    "metadata": "https://earth-search.aws.element84.com/v1/collections/sentinel-2-l2a/items/S2C_19TDL_20250816_0_L2A",
+    "sclCounts": {
+      "2": 966,
+      "4": 433032,
+      "5": 3642,
+      "6": 460896,
+      "7": 1464
+    },
+    "warning": "SCL native 20m sampled nearest to 10m. Only SCL 4 eligible; exclude clouds, shadow, dark, snow, water and all nodata. Existing world ground/water/glacier and altitude gates still apply."
+  },
+  "layers": {
+    "canopy": {
+      "width": 2250,
+      "height": 2500,
+      "step": 4,
+      "dtype": "u1",
+      "rawSha256": "f518964f08ae88e60cfa2356549219cf963f16523ce665b84892a2bf14046fa7",
+      "min": 0,
+      "max": 35,
+      "units": "modeled metres above ground",
+      "nodata": 255,
+      "nodataPixels": 0,
+      "zero": "ambiguous: no canopy or not observed; never clear stock vegetation from zero",
+      "zeroPixels": 3111366,
+      "src": [
+        "https://dataforgood-fb-data.s3.amazonaws.com/forests/v2/global/dinov3_global_chm_v2_ml3/chm/0302313203.tif"
+      ],
+      "sources": [
+        "https://dataforgood-fb-data.s3.amazonaws.com/forests/v2/global/dinov3_global_chm_v2_ml3/chm/0302313203.tif"
+      ],
+      "quadkeys": [
+        "0302313203"
+      ],
+      "license": "CC BY 4.0",
+      "attribution": "Version 2 High Resolution Canopy Height Maps by WRI and Meta",
+      "native": "Approx. 1m modeled product; bounded official COG reads, nearest-neighbor onto game 4m grid",
+      "positivePixels": 2513634,
+      "maxValid": 35
+    },
+    "red": {
+      "width": 900,
+      "height": 1000,
+      "step": 10,
+      "dtype": "<u2",
+      "rawSha256": "dab2821445cbfa403c71c147e1f57d5bc3df33b325c49d4301f0a4531c2f2858",
+      "min": 4,
+      "max": 4516,
+      "src": "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/19/T/DL/2025/8/S2C_19TDL_20250816_0_L2A/B04.tif",
+      "nodata": 0,
+      "nodataPixels": 0,
+      "sourceGSD": 10,
+      "reflectanceScale": 0.0001,
+      "reflectanceOffset": 0,
+      "comment": "Earth Search boa_offset_applied=true. Harmonized COG values; do not apply a second offset."
+    },
+    "nir": {
+      "width": 900,
+      "height": 1000,
+      "step": 10,
+      "dtype": "<u2",
+      "rawSha256": "23d3b309483035cd4ae9fa5a27735ed4a426878ba78356d7d68de8839653dda7",
+      "min": 1,
+      "max": 7232,
+      "src": "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/19/T/DL/2025/8/S2C_19TDL_20250816_0_L2A/B08.tif",
+      "nodata": 0,
+      "nodataPixels": 0,
+      "sourceGSD": 10,
+      "reflectanceScale": 0.0001,
+      "reflectanceOffset": 0,
+      "comment": "Earth Search boa_offset_applied=true. Harmonized COG values; do not apply a second offset."
+    },
+    "scl": {
+      "width": 900,
+      "height": 1000,
+      "step": 10,
+      "dtype": "u1",
+      "rawSha256": "9edcfc5e7979e5ab6a5313fb6fe1129f0cc0d18b420330c8465ef3fbc48d6cac",
+      "min": 2,
+      "max": 7,
+      "src": "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/19/T/DL/2025/8/S2C_19TDL_20250816_0_L2A/SCL.tif",
+      "nodata": 0,
+      "nodataPixels": 0,
+      "sourceGSD": 20
+    }
+  },
+  "stats": {
+    "totalOpticalCells": 900000,
+    "eligibleOnGrid": 356519,
+    "nativeSpacingRejected": 0,
+    "terrainRejected": 38379,
+    "kept": 8500,
+    "tiles": 2653,
+    "gzipBytes": 61889,
+    "packSha256": "5ce5aad2fab5593c1d3025161d6c6c740d23dab57311ddd31b608ecbcd64d661"
+  }
+}

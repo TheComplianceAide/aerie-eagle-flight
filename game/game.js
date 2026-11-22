@@ -534,9 +534,11 @@
     };
     manager.onError=url=>{failedAsset||=String(url).split("?")[0].split("/").pop()||"image";priorError?.(url);};
     try {
+      scene.userData.geodata=await window.prepareAerieGeodata(THREE,region,renderer.capabilities.maxTextureSize);
       const factory={swiss:window.makeWorld,alaska:window.makeAlaska,canyon:window.makeCanyon}[region];
       world=factory?await factory(THREE,scene):await window.makeAtlasWorld(THREE,scene,region);
       world.region=region;
+      world.geodata=scene.userData.geodata;
       const hydrography=world.hydrography||window.ATLAS_SURVEYS?.[region];
       if(hydrography?.shore){
         world.shorelines=[hydrography.shore,...(hydrography.shoreHoles||[])].map(ring=>ring.map(([x,z])=>({x,z})));

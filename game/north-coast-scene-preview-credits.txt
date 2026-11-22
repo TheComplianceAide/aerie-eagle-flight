@@ -1,0 +1,33 @@
+Acadia and south Lofoten source-bounded geographic layers.
+The optical observations guide broad dry-land color, lake and fjord color
+inside the existing water surfaces, and native-model vegetation candidates.
+The surface boxes and source backing preserve the authored surf, reefs,
+coastal terrain and buildings. Mask classes describe satellite observations
+of the area on the listed date.
+
+Acadia 8 x 8 km: contains modified Copernicus Sentinel data (2025), actual
+August 21 scene S2B_19TEK_20250821_0_L2A. RGB 10 m; spectral/SCL native 20 m.
+https://earth-search.aws.element84.com/v1/collections/sentinel-2-l2a/items/S2B_19TEK_20250821_0_L2A
+West of the coast, restricted dry geometric refinement uses 1 m USGS 3DEP
+2021-22 ME_MidCoast_2021_B21 heights, NAVD88, no added zero shift,
+geodetic holdout and bounded residual guard in the nearby inland 400 m crop.
+https://www.fisheries.noaa.gov/inport/item/74805
+The 2025 Coastal Acadia dry backing aerial image (conversion to 1 m from
+0.15 m provider resolution) uses Maine DEP / James W. Sewall / Bluesky
+Geospatial imagery; file generation and hosted terms linked in metadata.
+https://gis.maine.gov/image/rest/services/Coastal/Maine_Orthoimagery_Coastal_Acadia_2025/ImageServer
+https://www.arcgis.com/sharing/rest/content/items/335fa5b637fa4ff0a8ff112fc5b94b7a?f=json
+
+South Lofoten 6.12 x 6 km: contains modified Copernicus Sentinel data (2026),
+actual August 5 scene S2B_33WVR_20260805_0_L2A. RGB 10 m, SCL / SWIR
+native 20 m. Preserve fine Kartverket and stock authored surfaces, and keep
+native mapped dwarf-birch, slopes and roof/shore protections. No replacement
+orthophoto or elevation verified for this stage.
+https://earth-search.aws.element84.com/v1/collections/sentinel-2-l2a/items/S2B_33WVR_20260805_0_L2A
+
+Both: Version 2 High Resolution Canopy Height Maps by WRI and Meta,
+CC BY 4.0, resampled to 4 m on the regional grid. No claim of observed
+individual tree centers or sizes. All stock tree records are retained.
+https://creativecommons.org/licenses/by/4.0/
+Machine-readable exact sources, footprints, and hashes are in the
+regional fused-preview JSON.

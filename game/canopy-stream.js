@@ -848,7 +848,7 @@
       }
       const gain=t.photoGain||(.90+(seed%997)/997*.19);
       return {id:(kind==='survey'?'s':'')+key(t.x,t.z),leafTone,x:t.x,y:y-Math.min(.16,h*.025),z:t.z,h,seed,model,env,kind,species:s.name||s.family,broad:s.family==='broad',
-        color:s.tint.map(v=>clamp(v*gain,.25,2.4)),radius,shrub};
+        color:s.tint.map((v,i)=>clamp(v*gain*(t.photoTint?.[i]??1),.25,2.4)),radius,shrub};
     }
     const obstacleSize=16;
     const obstacleKey=(i,j)=>(i+4096)*8192+j+4096;

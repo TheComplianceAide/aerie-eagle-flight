@@ -418,6 +418,7 @@ class Water extends Mesh {
     const local=sample(near,961,4800,x,z)+iceRelief(x,z)+crestHeight(x,z);
     return reliefHeight(x,z)+(d>4650?THREE.MathUtils.lerp(local,sample(far,601,18000,x,z),(d-4650)/150):local);
   }
+  const sceneGeodata=scene.userData.geodata?.mendenhall;
   const landmarkTerrain=window.aerieRegionalLandforms?.get('alaska');
   const steepCreek=window.makeSteepCreekSurvey();
   const flow=landmarkTerrain?.watercourse||[[1080,895],[1000,870],[946,821],[890,765],[819,711],[754,732],[696,743],[660,734],[636,696],[602,670],[567,653],[539,643],[522,644],[507,656],[493,669],[474,680]];
@@ -462,7 +463,8 @@ class Water extends Mesh {
   const landmarkGroundMaterials=new Set();
   function elevation(x,z){
     const base=nativeElevation(x,z);
-    return steepCreek.height(x,z,landmarkTerrain?landmarkTerrain.height(x,z,base):base);
+    const stock=steepCreek.height(x,z,landmarkTerrain?landmarkTerrain.height(x,z,base):base);
+    return sceneGeodata?.terrain?.(x,z,stock)??stock;
   }
   function nativeElevation(x,z){
     const y=surveyElevation(x,z),p=channelAt(x,z);
@@ -823,6 +825,7 @@ class Water extends Mesh {
       float haze=1.-exp(-d*(.000025+.000054*nearAir)*(1.+.45*againstSun));
       base=mix(base,mix(vec3(.57,.67,.79),vec3(.90,.77,.68),againstSun),haze);
       gl_FragColor=vec4(base,1.);}`});
+  if(sceneGeodata){delete ground.uniforms.earth;Object.assign(ground.uniforms,sceneGeodata.uniforms);ground.fragmentShader=sceneGeodata.ground(ground.fragmentShader);}
   const terrainLods=[],indexLods=new Map();
   function gridIndex(nx,nz,pitch){
     const key=nx+'/'+nz+'/'+pitch;
@@ -903,7 +906,8 @@ class Water extends Mesh {
         if(creekBank)creekBank.userData.steepSurvey=true;
         for(let row=0;row<4;row++)for(let col=0;col<4;col++){
           const west=x+col*300,north=z+row*300;
-          const divisions=x<0?(col===3&&row===1?150:30):col===0&&row===1?150:col===0&&row===0?60:30;
+          const inlandRefine=sceneGeodata?.terrain&&x===0&&col===1&&row===1;
+          const divisions=inlandRefine?150:x<0?(col===3&&row===1?150:30):col===0&&row===1?150:col===0&&row===0?60:30;
           if(creekBank&&col===3&&(row===1||row===2)){
             for(let a=0;a<2;a++)for(let b=0;b<2;b++){
               const x0=west+150*a,z0=north+150*b;
@@ -932,6 +936,7 @@ class Water extends Mesh {
   const waters=map('waternormals.jpg',true);
   const lake=new Water(new THREE.ShapeGeometry(outline),{textureWidth:960,textureHeight:640,waterNormals:waters,sunDirection:sun,sunColor:0xffe9cd, waterColor:0x396c70,distortionScale:1.82,fog:true});
   lake.name="Lake surface";lake.rotation.x=-Math.PI/2;lake.position.y=.18;lake.material.uniforms.size.value=3.1;scene.add(lake);
+  if(sceneGeodata)sceneGeodata.water(lake.material);
   if(landmarkTerrain?.watercourse)window.nuggetShallows(lake.material,map('alaska-nugget-shoal.webp'));
   const treeSections=[unpack(survey.trees),landmarkTerrain?.woodland||[],steepCreek.trees];
   const trees=[],firTrees=[],alderCrowns=[],cells=new Map(),cell=(x,z)=>Math.floor(x/48)*1024+Math.floor(z/48);
@@ -1378,6 +1383,30 @@ class Water extends Mesh {
     // of the active historical flow. The surveyed rock islands stay in the bed.
     if(!measuredCourse||!waterfalls.inChute(x,z,0))return -Infinity;
     return Math.max(lake.position.y,fallGround(x,z)+.10);
+  }
+  const canopyGeodata=scene.userData.geodata?.canopy;
+  if(canopyGeodata){
+    canopyGeodata.stats.stockTrees=trees.length;
+    const withinLake=(x,z)=>{
+      let state=false;
+      for(let i=0,j=shore.length-1;i<shore.length;j=i++){
+        const a=shore[i],b=shore[j];
+        if((a.z>z)!==(b.z>z)&&x<a.x+(b.x-a.x)*(z-a.z)/(b.z-a.z))state=!state;
+      }
+      return state;
+    };
+    canopyGeodata.apply(elevation,(x,z,y)=>{
+      if(Math.max(Math.abs(x),Math.abs(z))>6890||!Number.isFinite(y)||y<2.1||y>610||withinLake(x,z)||glacierDistance(x,z)>0||
+         steepCreek.contains(x,z)||landmarkTerrain?.canopyObserved?.(x,z)||waterfalls?.inChute?.(x,z,5)||Number.isFinite(channelWater(x,z)))return false;
+      if(Math.hypot(elevation(x+3,z)-elevation(x-3,z),elevation(x,z+3)-elevation(x,z-3))/6>.92)return false;
+      for(let i=-1;i<=1;i++)for(let j=-1;j<=1;j++)for(const t of cells.get(cell(x+i*48,z+j*48))??[]){
+        if(Math.hypot(t.x-x,t.z-z)<Math.max(5.8,t.width*.71))return false;
+      }
+      return true;
+    },t=>{
+      t.conifer=true;t.photoTint=sceneGeodata?.tint(t.x,t.z);firTrees.push(t);trees.push(t);
+      const id=cell(t.x,t.z);if(!cells.has(id))cells.set(id,[]);cells.get(id).push(t);return true;
+    });
   }
   return {landformMesh,steepCreek,blocksInfillTree:steepCreek.contains,blockVegetationAt:steepCreek.managed,openRoadAt:steepCreek.isPaved,region:"alaska",glacierDistance,onGlacierMargin,channelWater,bankDepositMap,localPerchStone,windTerrainHeight,treeGrid:{cells,size:48,cell},waterfalls,forestLightSpan:14400,elevation,clearance,height,trees,firTrees,sunMask,sunDirection:sun,skyTexture:skyMap,cloudDensityMap:'alaska-cirrus-density.webp',waterLevel:0,lakeLevel:0,lakePolygon:shore,altitudeOffset:18,spawn:lakeLaunch,
     launches:{lake:lakeLaunch,ridge,shore:shoreLaunch,spruce:{x:173,y:26,z:1630,yaw:.38,lookDown:12},spray:sprayPass,spur:{x:612,y:68.4704,z:977,yaw:-.08159},alpine:{x:-2900,z:-2010,y:elevation(-2900,-2010)+58,yaw:-.28}},bounds:{minX:-6890,maxX:6890,minZ:-6890,maxZ:6890},

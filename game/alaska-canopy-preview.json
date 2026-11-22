@@ -1,0 +1,139 @@
+{
+  "scheme": "NCP1",
+  "world": "alaska",
+  "crs": "EPSG:6337",
+  "origin": [
+    526511,
+    6477009
+  ],
+  "bounds": [
+    522310,
+    6472510,
+    531310,
+    6481010
+  ],
+  "localRect": [
+    -4201,
+    -4001,
+    4799,
+    4499
+  ],
+  "rule": {
+    "origin": [
+      526511,
+      6477009
+    ],
+    "crs": 6337,
+    "water": 0,
+    "ceil": 610,
+    "step": 9,
+    "cap": 8500,
+    "tile": 70,
+    "ndvi": 0.45
+  },
+  "sentinel": {
+    "item": "S2B_8VNK_20250904_0_L2A",
+    "datetime": "2025-09-04T20:18:46.764000Z",
+    "tileCloud": 4.349282,
+    "attribution": "Contains modified Copernicus Sentinel data (2025)",
+    "metadata": "https://earth-search.aws.element84.com/v1/collections/sentinel-2-l2a/items/S2B_8VNK_20250904_0_L2A",
+    "sclCounts": {
+      "2": 38000,
+      "4": 509627,
+      "5": 77856,
+      "6": 54542,
+      "7": 56,
+      "8": 4,
+      "11": 84915
+    },
+    "warning": "SCL native 20m sampled nearest to 10m. Only SCL 4 eligible; exclude clouds, shadow, dark, snow, water and all nodata. Existing world ground/water/glacier and altitude gates still apply."
+  },
+  "layers": {
+    "canopy": {
+      "width": 2250,
+      "height": 2125,
+      "step": 4,
+      "dtype": "u1",
+      "rawSha256": "000b68f585c96ae3b1ecbec28c9420cccdf70953d27b7881afd309ee3393e957",
+      "min": 0,
+      "max": 255,
+      "units": "modeled metres above ground",
+      "nodata": 255,
+      "nodataPixels": 169,
+      "zero": "ambiguous: no canopy or not observed; never clear stock vegetation from zero",
+      "zeroPixels": 2379875,
+      "src": [
+        "https://dataforgood-fb-data.s3.amazonaws.com/forests/v2/global/dinov3_global_chm_v2_ml3/chm/0210220003.tif",
+        "https://dataforgood-fb-data.s3.amazonaws.com/forests/v2/global/dinov3_global_chm_v2_ml3/chm/0210220021.tif"
+      ],
+      "sources": [
+        "https://dataforgood-fb-data.s3.amazonaws.com/forests/v2/global/dinov3_global_chm_v2_ml3/chm/0210220003.tif",
+        "https://dataforgood-fb-data.s3.amazonaws.com/forests/v2/global/dinov3_global_chm_v2_ml3/chm/0210220021.tif"
+      ],
+      "quadkeys": [
+        "0210220003",
+        "0210220021"
+      ],
+      "license": "CC BY 4.0",
+      "attribution": "Version 2 High Resolution Canopy Height Maps by WRI and Meta",
+      "native": "Approx. 1m modeled product; bounded official COG reads, nearest-neighbor onto game 4m grid",
+      "positivePixels": 2401206,
+      "maxValid": 62
+    },
+    "red": {
+      "width": 900,
+      "height": 850,
+      "step": 10,
+      "dtype": "<u2",
+      "rawSha256": "dd6db6c65611cff1fd9a24c016a1e5e83414cdf915bb9fdb088815bb01a4a2c4",
+      "min": 1,
+      "max": 15368,
+      "src": "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/8/V/NK/2025/9/S2B_8VNK_20250904_0_L2A/B04.tif",
+      "nodata": 0,
+      "nodataPixels": 0,
+      "sourceGSD": 10,
+      "reflectanceScale": 0.0001,
+      "reflectanceOffset": 0,
+      "comment": "Earth Search boa_offset_applied=true. Harmonized COG values; do not apply a second offset."
+    },
+    "nir": {
+      "width": 900,
+      "height": 850,
+      "step": 10,
+      "dtype": "<u2",
+      "rawSha256": "742b1a6de1f883dccd1f76baca70b24e9cc1bb582a9809ca0221766c850bec07",
+      "min": 8,
+      "max": 15608,
+      "src": "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/8/V/NK/2025/9/S2B_8VNK_20250904_0_L2A/B08.tif",
+      "nodata": 0,
+      "nodataPixels": 0,
+      "sourceGSD": 10,
+      "reflectanceScale": 0.0001,
+      "reflectanceOffset": 0,
+      "comment": "Earth Search boa_offset_applied=true. Harmonized COG values; do not apply a second offset."
+    },
+    "scl": {
+      "width": 900,
+      "height": 850,
+      "step": 10,
+      "dtype": "u1",
+      "rawSha256": "243340354487eb388cb9613211eadd549d00486305fd4d068048fc0640c6cfcc",
+      "min": 2,
+      "max": 11,
+      "src": "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/8/V/NK/2025/9/S2B_8VNK_20250904_0_L2A/SCL.tif",
+      "nodata": 0,
+      "nodataPixels": 0,
+      "sourceGSD": 20
+    }
+  },
+  "stats": {
+    "totalOpticalCells": 765000,
+    "eligibleOnGrid": 246978,
+    "nativeSpacingRejected": 49475,
+    "terrainRejected": 52293,
+    "kept": 8500,
+    "tiles": 2019,
+    "gzipBytes": 60129,
+    "packSha256": "22810e9863b26f3b72fffbea701e7137e35b1aab38810605d0e21fb1eb3c5ddc"
+  }
+}

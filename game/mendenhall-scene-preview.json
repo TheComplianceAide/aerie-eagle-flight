@@ -1,0 +1,147 @@
+{
+  "bounds": [
+    -4201,
+    -4001,
+    4799,
+    4499
+  ],
+  "origin": [
+    526511,
+    6477009
+  ],
+  "epsg": 6337,
+  "width": 900,
+  "height": 850,
+  "step": 10,
+  "source": {
+    "item": "S2B_8VNK_20250904_0_L2A",
+    "timestamp": "2025-09-04T20:18:46.764000Z",
+    "attribution": "Contains modified Copernicus Sentinel data (2025)",
+    "dataAccess": "https://earth-search.aws.element84.com/v1/collections/sentinel-2-l2a/items/S2B_8VNK_20250904_0_L2A",
+    "bands": {
+      "red": "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/8/V/NK/2025/9/S2B_8VNK_20250904_0_L2A/B04.tif",
+      "green": "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/8/V/NK/2025/9/S2B_8VNK_20250904_0_L2A/B03.tif",
+      "blue": "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/8/V/NK/2025/9/S2B_8VNK_20250904_0_L2A/B02.tif",
+      "nir": "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/8/V/NK/2025/9/S2B_8VNK_20250904_0_L2A/B08.tif",
+      "swir16": "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/8/V/NK/2025/9/S2B_8VNK_20250904_0_L2A/B11.tif",
+      "scl": "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/8/V/NK/2025/9/S2B_8VNK_20250904_0_L2A/SCL.tif"
+    },
+    "offset": "Harmonized BOA offsets already applied; raw DN times 1e-4"
+  },
+  "inputs": {
+    "rgb": "5fd5256f54da78f50ee98fd66d3c89f6c97509355309400e6dd7850b3a8f1269",
+    "material": "605eb34107c55bdbf3af4d46ad34fad65a91ae8de9b98a276e476a7b44e24960",
+    "ndwi": "caa9a3ffb3b81f9f8297403fd9695aa6b279015d38facb199f365ea8d3351462",
+    "ndsi": "5b411e1ebc5c35f864e9eeb31c8925fb03745537202caf08d6b77deea3ed37c4",
+    "swir20": "0b5d47a755d6791cd5668266272676c69380c9644e55384821bfd3af8404f9ca"
+  },
+  "rawClassPixels": {
+    "1": 509627,
+    "2": 77856,
+    "0": 38060,
+    "4": 84915,
+    "3": 54542
+  },
+  "rgbSha256": "489b41d58bd99c88cb32be8b7266a5fc07eb7dc6f507c4137c73cca338756b76",
+  "materialSha256": "3a1db8d73e59d163f3d7f096fe004232ba24e4ad66991bb6a5c70df893987038",
+  "rules": {
+    "rgb": "Display-referred sRGB from actual B04/B03/B02, 2x exposure (not a sharpened image), 10m, use low frequency only on broad land. Preserve stock high-res, native terrain, fall/creek, snow, glacier/ice and rendered water.",
+    "material": "class 0 preserve stock; 1 vegetated; 2 nonveg; 3 water; 4 snow/ice; source scene SCL plus valid bands, no category calls from index alone. SCL is 20m sampled to 10m.",
+    "ndwi": "(B03-B08)/(B03+B08), raw signed int8 unit 1/120, -128 invalid.",
+    "ndsi": "(B03-B11)/(B03+B11), identical algebra to MNDWI and not sufficient to separate snow/water. Raw signed int8 scale 1/120; -128 invalid. SWIR 20m nearest repeated, not actual 10m spectral detail.",
+    "sourceLimits": "Single date 2025-09-04; not survey or real-time terrain. Preserve authored shore/ice unless concurrent geometric dataset verifies shape. No full newer ortho / replacement DEM integrated."
+  },
+  "terrainPolicy": "Only qualified inland crop; at disagreements and padding use stock.",
+  "terrain": {
+    "bounds": [
+      420,
+      1635,
+      550,
+      1750
+    ],
+    "width": 130,
+    "height": 115,
+    "step": 1,
+    "vertical": "NAVD88 minus established 18 m Aerie reference; no fitted shift.",
+    "source": {
+      "schema": "aerie-alaska-terrain-patch-v1",
+      "world": "alaska",
+      "localRect": [
+        370,
+        1550,
+        770,
+        1950
+      ],
+      "projectedBounds": [
+        526881,
+        6475059,
+        527281,
+        6475459
+      ],
+      "epsg": 6337,
+      "origin": [
+        526511,
+        6477009
+      ],
+      "width": 400,
+      "height": 400,
+      "step": 1,
+      "firstCenter": [
+        370.5,
+        1550.5
+      ],
+      "rowOrder": "north to south; columns west to east",
+      "dtype": "<i2",
+      "scaleM": 0.01,
+      "vertical": "NAVD88 (source vertical EPSG:5703), meters. subtract existing game lake datum 18m to compare; validate stable pins before blend. No vertical shift in GDAL, horizontal-only reprojection.",
+      "sources": [
+        "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/OPR/Projects/AK_SouthEastLandslides_D22/AK_SELandslides_2_D22/TIFF/USGS_OPR_AK_SouthEastLandslides_D22_767733.tif",
+        "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/OPR/Projects/AK_SouthEastLandslides_D22/AK_SELandslides_2_D22/TIFF/USGS_OPR_AK_SouthEastLandslides_D22_768733.tif"
+      ],
+      "sourceEPSG": 6394,
+      "sourcePixelSpacingM": 0.5,
+      "outputResampling": "bounded GDAL window; bilinear to 1m, centimetre quantization",
+      "collection": "USGS Southeast Alaska Landslides D22 Work Unit 2 July\u2013Oct 2023 bare earth",
+      "metadata": "https://www.fisheries.noaa.gov/inport/item/80000",
+      "limits": "Distinct inland footprint, not new epoch, not the current creek/falls/cove patches. Actual stock difference and deposit/checkpoint accuracy require stable dry-world readback. Preserve game water and ice, do not alter collision without generated geometry and trajectory checks.",
+      "minM": 19.58858299255371,
+      "maxM": 201.1704864501953,
+      "validCells": 160000,
+      "sha256": "860fc40a53c50ce54b5216992b29b8012a3d4fc7ed2c608a0a34dcb6a8219a81"
+    },
+    "calibration": {
+      "allStable": {
+        "n": 136,
+        "residualP05P25P50P75P95M": [
+          -2.785,
+          -1.85,
+          -1.415,
+          -0.86,
+          0.884
+        ]
+      },
+      "training": {
+        "n": 66,
+        "residualP05P25P50P75P95M": [
+          -2.629,
+          -1.858,
+          -1.448,
+          -0.878,
+          0.959
+        ]
+      },
+      "holdout": {
+        "n": 70,
+        "residualP05P25P50P75P95M": [
+          -3.75,
+          -1.85,
+          -1.426,
+          -0.819,
+          0.884
+        ]
+      }
+    },
+    "packSha256": "78f13816cc04f2413dcfda20ba2908c192a15da4b92a0c86766fa3a4e2233a71",
+    "rule": "Same measured terrain in ground and clearance. 18m edge feather; residual magnitudes above 1.7m fade out completely by 3.2m. Original water/ice/high-resolution features are outside this validated crop."
+  }
+}

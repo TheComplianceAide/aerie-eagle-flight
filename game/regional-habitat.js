@@ -171,7 +171,10 @@
   window.aerieCanopyProfile=function aerieCanopyProfile(world){
     if(profiles.has(world))return profiles.get(world);
     const region=world.region,[limit,usualHeight,stock]=climates[region]||climates.moosehead;
-    const classify=openLand(region),elevation=world.elevation||world.height,offset=world.altitudeOffset||0;
+    const stockLand=openLand(region),localCover=world.geodata?.landCover;
+    const classify=localCover?(x,z)=>localCover.sample(x,z)||stockLand(x,z):stockLand;
+    const elevation=world.elevation||world.height,offset=world.altitudeOffset||0;
+    const spectral=world.geodata?.spectral;
     const bounds=world.bounds,level=world.waterLevel;
     const bank=region==='yosemite'?mercedBank():()=>0;
     const water=(x,z,y)=>world.habitat?.wet?world.habitat.wet(x,z,y):Number.isFinite(level)&&y<level;
@@ -246,7 +249,9 @@
         const peatMargin=region==='labrador'&&(land===LAND.marsh||land===LAND.grass);
         if(land!==LAND.tree&&land!==LAND.shrub&&!alpineTurf&&!peatMargin&&!(region==='canyon'&&(land===LAND.grass||land===LAND.bare)))continue;
         const s=hash(i,j,23),stand=patchField(x,z,163,97);
-        if(s>stock*(.36+.90*stand))continue;
+        const observation=spectral?.sample(x,z);
+        const evidence=land===LAND.tree&&observation?.height ? 1.10 : 1;
+        if(s>stock*(.36+.90*stand)*evidence)continue;
         // Only generate shrubs within shrub/grass classifications. A tiny
         // residual presence on canyon bare land also needs positive photo evidence.
         const q=zone(x,z);
@@ -270,7 +275,10 @@
         }
         const shrub=type.family==='shrub';
         const dominant=stature>.31;
-        const h=shrub?(.50+1.8*stature):usualHeight*(dominant?.72+.33*stature+.19*stand:.31+.92*stature)*(1-.63*q.alpine);
+        const estimated=shrub?(.50+1.8*stature):usualHeight*(dominant?.72+.33*stature+.19*stand:.31+.92*stature)*(1-.63*q.alpine);
+        const h=!shrub&&observation?.height
+          ? estimated*.58+Math.min(1.17*usualHeight,observation.height)*.42
+          : estimated;
         const width=h*(shrub?1.15+.51*fit:type.family==='needle'?.34+.19*fit:.65+.24*fit);
         const radius=shrub?2.8:Math.max(3.1,width*.33),bi=Math.floor(x/bin),bj=Math.floor(z/bin);
         let near=false;
@@ -281,7 +289,7 @@
           }
         }
         if(near)continue;
-        const tree={x,z,y:q.elevation-offset,height:h,width,seed:fit,conifer:type.family==='needle',aerieSpecies:type};
+        const tree={x,z,y:q.elevation-offset,height:h,width,seed:fit,photoTint:observation?.tint,conifer:type.family==='needle',aerieSpecies:type};
         patches.push(tree);insert(tree);
       }
       return patches;

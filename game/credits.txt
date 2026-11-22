@@ -892,3 +892,17 @@ https://commons.wikimedia.org/wiki/File:Boats_on_the_shoreline_of_Lake_Oeschinen
 https://creativecommons.org/licenses/by-sa/4.0/
 
 Horseshoe Bend riverbed relief, bottom cover and reach-mean current speeds use USGS data. See canyon-riverbed-credits.txt for survey dates, water-stage assumptions, authors and sources.
+
+Source-bounded flight-world geographic layers
+Contains modified Copernicus Sentinel data (2024, 2025 and 2026), accessed via Element 84 Earth Search.
+https://dataspace.copernicus.eu/explore-data/data-collections/sentinel-data/sentinel-2
+https://earth-search.aws.element84.com/v1
+Meta and World Resources Institute (WRI), 2026, Version 2 High Resolution Canopy Height Maps (CHMv2), accessed 22 November 2026. Source imagery for CHM © 2016 Vantor. CC BY 4.0. Recorded canopy heights are machine-learning estimates. Aerie samples this model, chooses eligible stands and generates plausible tree positions and dimensions.
+https://registry.opendata.aws/dataforgood-fb-forestsv2/
+https://creativecommons.org/licenses/by/4.0/
+ESA WorldCover 2021 v200 © ESA WorldCover project 2021, CC BY 4.0. The Horseshoe Bend crop is nearest-neighbor reprojected to the local 10 m game grid and feeds the original desert vegetation renderer.
+https://doi.org/10.5281/zenodo.7254221
+Oeschinen western dry inset, © Federal Office of Topography swisstopo. swissALTI3D 2025 product tile 2620-1150, native 0.5 m LV95/LN02 bare terrain, cropped and averaged onto a 1 m grid.
+https://www.swisstopo.admin.ch/en/height-model-swissalti3d
+https://www.swisstopo.admin.ch/en/terms-of-use-free-geodata-and-geoservices
+For the Acadia, Lofoten and Mendenhall patch sources, see north-coast-scene-preview-credits.txt and regional-canopy-preview-credits.txt. For exact footprints and scene manifests, see docs/geodata-coverage.md in the source repository.

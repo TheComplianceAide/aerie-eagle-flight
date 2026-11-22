@@ -1,0 +1,80 @@
+{
+  "schema": 1,
+  "world": "moosehead",
+  "epsg": 32619,
+  "origin": [
+    442772,
+    5060090
+  ],
+  "bounds": [
+    -9200,
+    -8700,
+    18200,
+    12200
+  ],
+  "width": 1370,
+  "height": 1045,
+  "step": 20,
+  "layers": {
+    "optical": {
+      "item": "S2C_19TDL_20250816_0_L2A",
+      "datetime": "2025-08-16T15:40:47.210000Z",
+      "catalog": "https://earth-search.aws.element84.com/v1/collections/sentinel-2-l2a/items/S2C_19TDL_20250816_0_L2A",
+      "attribution": "Contains modified Copernicus Sentinel data",
+      "license": "https://sentinels.copernicus.eu/web/sentinel/sentinel-data-access/sentinel-products",
+      "nativeMeters": {
+        "RGB": 10,
+        "red": 10,
+        "nir": 10,
+        "swir16": 20,
+        "scl": 20
+      },
+      "pixelCounts": {
+        "0": 10050,
+        "1": 962439,
+        "2": 4377,
+        "3": 454784,
+        "4": 0
+      },
+      "assets": {
+        "red": "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/19/T/DL/2025/8/S2C_19TDL_20250816_0_L2A/B04.tif",
+        "green": "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/19/T/DL/2025/8/S2C_19TDL_20250816_0_L2A/B03.tif",
+        "blue": "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/19/T/DL/2025/8/S2C_19TDL_20250816_0_L2A/B02.tif",
+        "nir": "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/19/T/DL/2025/8/S2C_19TDL_20250816_0_L2A/B08.tif",
+        "swir16": "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/19/T/DL/2025/8/S2C_19TDL_20250816_0_L2A/B11.tif",
+        "scl": "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/19/T/DL/2025/8/S2C_19TDL_20250816_0_L2A/SCL.tif"
+      }
+    },
+    "canopy": {
+      "attribution": "Meta and World Resources Institute (WRI), 2026, Version 2 High Resolution Canopy Height Maps (CHMv2). Source imagery for CHM \u00a9 2016 Vantor.",
+      "license": "https://creativecommons.org/licenses/by/4.0/",
+      "catalog": "https://registry.opendata.aws/dataforgood-fb-forestsv2/",
+      "accessed": "2026-11-22",
+      "sources": [
+        {
+          "raster": "https://dataforgood-fb-data.s3.amazonaws.com/forests/v2/global/dinov3_global_chm_v2_ml3/chm/0302313203.tif",
+          "sceneMetadata": "https://dataforgood-fb-data.s3.amazonaws.com/forests/v2/global/dinov3_global_chm_v2_ml3/metadata/0302313203.geojson"
+        },
+        {
+          "raster": "https://dataforgood-fb-data.s3.amazonaws.com/forests/v2/global/dinov3_global_chm_v2_ml3/chm/0302313212.tif",
+          "sceneMetadata": "https://dataforgood-fb-data.s3.amazonaws.com/forests/v2/global/dinov3_global_chm_v2_ml3/metadata/0302313212.geojson"
+        },
+        {
+          "raster": "https://dataforgood-fb-data.s3.amazonaws.com/forests/v2/global/dinov3_global_chm_v2_ml3/chm/0302313221.tif",
+          "sceneMetadata": "https://dataforgood-fb-data.s3.amazonaws.com/forests/v2/global/dinov3_global_chm_v2_ml3/metadata/0302313221.geojson"
+        },
+        {
+          "raster": "https://dataforgood-fb-data.s3.amazonaws.com/forests/v2/global/dinov3_global_chm_v2_ml3/chm/0302313230.tif",
+          "sceneMetadata": "https://dataforgood-fb-data.s3.amazonaws.com/forests/v2/global/dinov3_global_chm_v2_ml3/metadata/0302313230.geojson"
+        }
+      ],
+      "unavailableTiles": [],
+      "positivePixels": 875706,
+      "nativeMeters": "approximately 1, modeled; imagery dates vary",
+      "nodata": 255
+    }
+  },
+  "format": "row-major southward RGB555, optical mask (0 unknown, 1 vegetation, 2 bare, 3 water, 4 snow), modeled height in metres",
+  "rawSha256": "3b1678f966cfaa4cc397f54c74bf9a97e461bdd451a37db5c2489801b46358b0",
+  "compressedSha256": "6ed0555095c2accb3c9b7e2333ad3c93b3b161691ceae65045c11932a937047b"
+}

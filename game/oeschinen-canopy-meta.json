@@ -1,0 +1,140 @@
+{
+  "scheme": "OEC1",
+  "crs": "EPSG:2056",
+  "lv95Bounds": [
+    2618300,
+    1146300,
+    2625700,
+    1153700
+  ],
+  "localBounds": [
+    -3700,
+    -3700,
+    3700,
+    3700
+  ],
+  "origin": [
+    2622000,
+    1150000
+  ],
+  "optical": {
+    "item": "S2A_32TLS_20250825_0_L2A",
+    "datetime": "2025-08-25T10:28:22.900000Z",
+    "tileCloud": 0.889073,
+    "attribution": "Contains modified Copernicus Sentinel data (2025)",
+    "metadata": "https://earth-search.aws.element84.com/v1/collections/sentinel-2-l2a/items/S2A_32TLS_20250825_0_L2A",
+    "sclCounts": {
+      "2": 150887,
+      "4": 224110,
+      "5": 127672,
+      "6": 11270,
+      "7": 523,
+      "11": 33138
+    },
+    "warning": "SCL native 20m sampled to 10m. Exclude water 6, terrain dark 2, cloud shadow 3, unclassified 7, clouds 8/9/10, snow 11, and nodata 0. SCL 4 is vegetation, not necessarily trees."
+  },
+  "canopy": {
+    "width": 1850,
+    "height": 1850,
+    "step": 4,
+    "dtype": "u1",
+    "rawSha256": "bad75e2ece4d33e325327657d4ac18c059027fd16aa415c3e7e43f7f51532948",
+    "min": 0,
+    "max": 255,
+    "units": "modeled metres above ground",
+    "nodata": 255,
+    "nodataPixels": 66862,
+    "zero": "ambiguous: no canopy or not observed; never clear stock vegetation from zero",
+    "zeroPixels": 2881403,
+    "src": [
+      "https://dataforgood-fb-data.s3.amazonaws.com/forests/v2/global/dinov3_global_chm_v2_ml3/chm/1202212121.tif",
+      "https://dataforgood-fb-data.s3.amazonaws.com/forests/v2/global/dinov3_global_chm_v2_ml3/chm/1202212130.tif"
+    ],
+    "sources": [
+      "https://dataforgood-fb-data.s3.amazonaws.com/forests/v2/global/dinov3_global_chm_v2_ml3/chm/1202212121.tif",
+      "https://dataforgood-fb-data.s3.amazonaws.com/forests/v2/global/dinov3_global_chm_v2_ml3/chm/1202212130.tif"
+    ],
+    "quadkeys": [
+      "1202212121",
+      "1202212130"
+    ],
+    "license": "CC BY 4.0",
+    "attribution": "Version 2 High Resolution Canopy Height Maps by WRI and Meta",
+    "native": "Approx. 1m modeled product; two bounded-source COGs mosaicked nearest-neighbor onto game 4m grid",
+    "positivePixels": 474235,
+    "maxValid": 47
+  },
+  "inputs": {
+    "red": {
+      "width": 740,
+      "height": 740,
+      "step": 10,
+      "dtype": "<u2",
+      "rawSha256": "cf73301e3c47a6815f7ef2ba88710d31fcb66c80647d9cd0857b8bd97be60cf8",
+      "min": 0,
+      "max": 15896,
+      "src": "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/32/T/LS/2025/8/S2A_32TLS_20250825_0_L2A/B04.tif",
+      "nodata": 0,
+      "nodataPixels": 2,
+      "sourceGSD": 10,
+      "reflectanceScale": 0.0001,
+      "reflectanceOffset": 0,
+      "comment": "Earth Search boa_offset_applied=true. Harmonized COG values; do not apply a second offset."
+    },
+    "nir": {
+      "width": 740,
+      "height": 740,
+      "step": 10,
+      "dtype": "<u2",
+      "rawSha256": "3e0e1d0b92b4e1092f3c207f06946610bdfe65efc8c705213a7f9e94f73d4f2a",
+      "min": 0,
+      "max": 15768,
+      "src": "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/32/T/LS/2025/8/S2A_32TLS_20250825_0_L2A/B08.tif",
+      "nodata": 0,
+      "nodataPixels": 2,
+      "sourceGSD": 10,
+      "reflectanceScale": 0.0001,
+      "reflectanceOffset": 0,
+      "comment": "Earth Search boa_offset_applied=true. Harmonized COG values; do not apply a second offset."
+    },
+    "scl": {
+      "width": 740,
+      "height": 740,
+      "step": 10,
+      "dtype": "u1",
+      "rawSha256": "482fc09463ecfd891417fc6d6a99e2f42a602adec9ca1806eb5e404e648746ec",
+      "min": 2,
+      "max": 11,
+      "src": "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/32/T/LS/2025/8/S2A_32TLS_20250825_0_L2A/SCL.tif",
+      "nodata": 0,
+      "nodataPixels": 0,
+      "sourceGSD": 20
+    }
+  },
+  "rules": {
+    "sampleSpacingM": 9,
+    "minNDVI": 0.44,
+    "minModeledHeightM": 5.4,
+    "maxTreeHeightM": 24,
+    "stockProtected": true,
+    "cap": 10000,
+    "perTile": 70,
+    "waterAndSlopeRecheckedAtRuntime": true
+  },
+  "stats": {
+    "cells": 547600,
+    "mask4": 224110,
+    "positiveCanopyPixels": 474235,
+    "coarseEligible": 55112,
+    "densityRejected": 2912,
+    "nativeSpacingRejected": 10806,
+    "belowLakeOrAboveTreeline": 30154,
+    "slopeRejected": 2145,
+    "candidatesBeforeCaps": 9095,
+    "kept": 8293,
+    "tiles": 395,
+    "inflatedBytes": 59643,
+    "gzipBytes": 54565,
+    "packSha256": "6c2cc64bd8c780a468595754f2f2cd0f1b3307263c45b4a5f87c5d11662146e3"
+  }
+}

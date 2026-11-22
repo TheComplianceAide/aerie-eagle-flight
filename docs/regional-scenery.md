@@ -28,3 +28,5 @@ ESA WorldCover 2021 v200 provides the land-cover classes. The game uses a map cl
 | Acadia National Park | Red spruce, balsam fir and paper birch on the wooded Atlantic headlands. Heath covers exposed granite, with ferns and alder in sheltered pockets. |
 
 Close trees share geometry and textures across cells. The game renders distant representations at lower cost and retains the original forest while detailed assets stream. A touch device uses a smaller close radius, lower instance budgets and a smaller shadow target. The regional land-cover payload loads only when its world is selected.
+
+The [flight-world geodata matrix](geodata-coverage.md) lists the later observation footprints, licenses and terrain insets.

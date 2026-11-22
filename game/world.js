@@ -383,12 +383,14 @@ class Water extends Mesh {
   const landmarkTerrain=window.aerieRegionalLandforms?.get('swiss');
   const strandSurvey=window.aerieRegionalLandforms?.get('swisswest');
   const forefield=window.aerieRegionalLandforms?.get('frunden');
+  const lidar=scene.userData.geodata?.lidar;
   const groundMaterials=new Map([landmarkTerrain,strandSurvey,forefield].filter(Boolean).map(area=>[area,new Set()]));
   function elevation(x,z){
     const base=nativeElevation(x,z);
     if(forefield?.edge(x,z))return forefield.height(x,z,base);
     if(strandSurvey?.edge(x,z))return strandSurvey.height(x,z,base);
-    return landmarkTerrain?landmarkTerrain.height(x,z,base):base;
+    if(landmarkTerrain?.edge(x,z))return landmarkTerrain.height(x,z,base);
+    return lidar?.replace(x,z,base)??base;
   }
   const fitLandingBank=window.makeOeschinenLanding.fitBank();
   function nativeElevation(x,z){return fitLandingBank(x,z,coarseElevation(x,z));}
@@ -601,13 +603,17 @@ class Water extends Mesh {
       gl_FragColor=vec4(aerial(rgb,d),1.);
     }`;
   function terrainMaterial(photo) {
-    return new THREE.ShaderMaterial({
+    const material=new THREE.ShaderMaterial({
       uniforms:{wallPhotograph:{value:wallPhotograph},groundScan:{value:fieldGround},karstLight:{value:karstLight},photo:{value:photo},stone:{value:stone},normalMap:{value:stoneNormal},earth:{value:earth},
         sunMask:{value:visibility},strata:{value:strata},strataNormal:{value:strataNormal},surveyNormals:{value:surveyNormals},sun:{value:sun}},
       vertexShader:alpineVertex,fragmentShader:alpineFragment
     });
+    scene.userData.geodata?.spectral?.ground(material,'float lum=dot(rgb', {
+      color:'rgb',point:'wp.xz',protection:'smoothstep(2.,19.,wp.y)*smoothstep(.44,.84,n.y)'
+    });
+    return material;
   }
-  function patch(minX,minZ,side,steps,material,isRegional) {
+  function patch(minX,minZ,side,steps,material,isRegional,hole,photoTile) {
     for(const [survey,materials] of groundMaterials){
       const [l,t,r,b]=survey.rect;
       if(minX<r&&minX+side>l&&minZ<b&&minZ+side>t)materials.add(material);
@@ -616,6 +622,7 @@ class Water extends Mesh {
     const n=steps+1,count=n*n;
     const positions=new Float32Array(count*3), normals=new Float32Array(count*3), uvs=new Float32Array(count*2);
     const indices=count<65536?new Uint16Array(steps*steps*6):new Uint32Array(steps*steps*6);
+    let indexCount=0;
     for(let j=0;j<n;j++)for(let i=0;i<n;i++){
       const k=j*n+i,x=minX+side*i/steps,z=minZ+side*j/steps;
       const y=elevation(x,z), delta=isRegional?31.25:Math.min(8,side/steps);
@@ -626,8 +633,10 @@ class Water extends Mesh {
       uvs[2*k]=isRegional?(x+16000)/32000:i/steps;
       uvs[2*k+1]=isRegional?(16000-z)/32000:1-j/steps;
       if(side===500){uvs[2*k]=x/2000;uvs[2*k+1]=1-z/2000;}
-      if(i<steps&&j<steps){
-        const q=(j*steps+i)*6;
+      if(photoTile){uvs[2*k]=(x-photoTile[0])/2000;uvs[2*k+1]=1-(z-photoTile[1])/2000;}
+      const cut=hole&&x>=hole[0]&&x<hole[2]&&z>=hole[1]&&z<hole[3];
+      if(i<steps&&j<steps&&!cut){
+        const q=indexCount;indexCount+=6;
         indices[q]=k;indices[q+1]=k+n;indices[q+2]=k+1;
         indices[q+3]=k+n;indices[q+4]=k+n+1;indices[q+5]=k+1;
       }
@@ -636,7 +645,7 @@ class Water extends Mesh {
     g.setAttribute('position',new THREE.BufferAttribute(positions,3));
     g.setAttribute('normal',new THREE.BufferAttribute(normals,3));
     g.setAttribute('uv',new THREE.BufferAttribute(uvs,2));
-    g.setIndex(new THREE.BufferAttribute(indices,1));g.computeBoundingSphere();
+    g.setIndex(new THREE.BufferAttribute(indices.subarray(0,indexCount),1));g.computeBoundingSphere();
     const mesh=new THREE.Mesh(g,material);
     mesh.userData.terrainCaster=true;
     scene.add(mesh);
@@ -656,7 +665,14 @@ class Water extends Mesh {
         const detailed=(u===1||u===2)&&v<2;
         patch(u*500,v*500,500,detailed?250:64,mat,false);
       }
-    }else patch(x,z,2000,inner?250:125,mat,false);
+    }else{
+      const localLidar=lidar&&i===1&&j===1?lidar.bounds:null;
+      patch(x,z,2000,inner?250:125,mat,false,localLidar);
+      if(localLidar){
+        const [west,north,east]=localLidar;
+        patch(west,north,east-west,east-west,mat,false,null,[x,z]);
+      }
+    }
   }
   const outline = new THREE.Shape(shore.slice(0,-1).map(p=>new THREE.Vector2(p.x,-p.z)));
   const lake = new Water(new THREE.ShapeGeometry(outline),{
@@ -718,6 +734,23 @@ class Water extends Mesh {
     const key=Math.floor(x/32)*1024+Math.floor(z/32);
     if(!treeCells.has(key))treeCells.set(key,[]);
     treeCells.get(key).push(tree);
+  }
+  const fusion=scene.userData.geodata?.oeschinen;
+  if(fusion){
+    fusion.info.measuredPreserved=trees.length;
+    fusion.infill((x,z,y)=>{
+      if(!Number.isFinite(y)||y<1.7||insideLake(x,z)||lakeLanding.managed(x,z))return false;
+      if(Math.hypot(elevation(x+3,z)-elevation(x-3,z),elevation(x,z+3)-elevation(x,z-3))/6>1.05)return false;
+      const col=Math.floor(x/32),row=Math.floor(z/32);
+      for(let i=col-1;i<=col+1;i++)for(let j=row-1;j<=row+1;j++)for(const tree of treeCells.get(i*1024+j)||[]){
+        if(Math.hypot(x-tree.x,z-tree.z)<Math.max(5.6,tree.width*.71))return false;
+      }
+      return true;
+    },tree=>{
+      tree.photoTint=scene.userData.geodata?.spectral?.sample(tree.x,tree.z)?.tint;
+      trees.push(tree);const key=Math.floor(tree.x/32)*1024+Math.floor(tree.z/32);
+      if(!treeCells.has(key))treeCells.set(key,[]);treeCells.get(key).push(tree);return true;
+    },elevation);
   }
   const hut=window.makeFrundenHut?.(THREE,scene,texture,skyMap,sun,clock,elevation);
   function clearance(x,z) {

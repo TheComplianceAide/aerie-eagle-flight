@@ -130,7 +130,8 @@
         // Use the close engine's root height, horizontal footprint and yaw.
         const raw=(Math.imul(Math.round(t.x*4),73856093)^Math.imul(Math.round(t.z*4),19349663))>>>0;
         const width=Math.max(.36,t.width*s.aspect),gain=.90+(raw%997)/997*.19;
-        a.set([t.x,t.y-Math.min(.16,h*.025),t.z,h,width/.68,(raw%104729)/104729*Math.PI*2,captureRow(t),s.tint[0]*gain,s.tint[1]*gain,s.tint[2]*gain],10*n++);
+        const tint=s.tint.map((value,i)=>value*gain*(t.photoTint?.[i]??1));
+        a.set([t.x,t.y-Math.min(.16,h*.025),t.z,h,width/.68,(raw%104729)/104729*Math.PI*2,captureRow(t),tint[0],tint[1],tint[2]],10*n++);
       }
       sampled++;return n?a.subarray(0,n*10):null;
     }

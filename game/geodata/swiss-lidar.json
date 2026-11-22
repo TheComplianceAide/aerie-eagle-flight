@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "world": "swiss",
+  "epsg": 2056,
+  "origin": [
+    2622000,
+    1150000
+  ],
+  "bounds": [
+    -1760,
+    -560,
+    -1440,
+    -240
+  ],
+  "width": 320,
+  "height": 320,
+  "step": 1,
+  "scaleM": 0.01,
+  "offsetM": 100,
+  "vertical": "LN02 minus 1574.9 m. No fitted vertical shift.",
+  "source": "https://data.geo.admin.ch/ch.swisstopo.swissalti3d/swissalti3d_2025_2620-1150/swissalti3d_2025_2620-1150_0.5_2056_5728.tif",
+  "nativeMeters": 0.5,
+  "assetTileVintage": 2025,
+  "attribution": "\u00a9 Federal Office of Topography swisstopo",
+  "license": "https://www.swisstopo.admin.ch/en/terms-of-use-free-geodata-and-geoservices",
+  "processing": "Range-read the official 0.5 m DTM, average to 1 m and quantize to centimetres.",
+  "training": {
+    "count": 80,
+    "p05P25P50P75P95M": [
+      -0.947,
+      -0.598,
+      -0.367,
+      -0.077,
+      0.585
+    ]
+  },
+  "holdout": {
+    "count": 81,
+    "p05P25P50P75P95M": [
+      -1.02,
+      -0.575,
+      -0.346,
+      -0.05,
+      0.432
+    ]
+  },
+  "compressedSha256": "bb09701d0a02bd747d3625346cb458173320d9da1338aa167e9cf9c733fdb1ce"
+}

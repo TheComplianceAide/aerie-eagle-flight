@@ -1,0 +1,207 @@
+{
+  "world": "acadia",
+  "epsg": 32619,
+  "bounds": [
+    -4001,
+    -4002,
+    3999,
+    3998
+  ],
+  "origin": [
+    564651,
+    4907768
+  ],
+  "width": 800,
+  "height": 800,
+  "step": 10,
+  "source": {
+    "item": "S2B_19TEK_20250821_0_L2A",
+    "timestamp": "2025-08-21T15:40:40.652000Z",
+    "attribution": "Contains modified Copernicus Sentinel data (2025)",
+    "dataAccess": "https://earth-search.aws.element84.com/v1/collections/sentinel-2-l2a/items/S2B_19TEK_20250821_0_L2A",
+    "bands": {
+      "red": "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/19/T/EK/2025/8/S2B_19TEK_20250821_0_L2A/B04.tif",
+      "green": "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/19/T/EK/2025/8/S2B_19TEK_20250821_0_L2A/B03.tif",
+      "blue": "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/19/T/EK/2025/8/S2B_19TEK_20250821_0_L2A/B02.tif",
+      "nir": "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/19/T/EK/2025/8/S2B_19TEK_20250821_0_L2A/B08.tif",
+      "swir16": "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/19/T/EK/2025/8/S2B_19TEK_20250821_0_L2A/B11.tif",
+      "scl": "https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/19/T/EK/2025/8/S2B_19TEK_20250821_0_L2A/SCL.tif"
+    },
+    "offset": "Harmonized BOA offsets already applied; raw DN times 1e-4"
+  },
+  "opticalRules": {
+    "rgb": "Display-referred sRGB from actual B04/B03/B02, 2x exposure (not a sharpened image), 10m, use low frequency only on broad land. Preserve stock high-res, native terrain, fall/creek, snow, glacier/ice and rendered water.",
+    "material": "class 0 preserve stock; 1 vegetated; 2 nonveg; 3 water; 4 snow/ice; source scene SCL plus valid bands, no category calls from index alone. SCL is 20m sampled to 10m.",
+    "ndwi": "(B03-B08)/(B03+B08), raw signed int8 unit 1/120, -128 invalid.",
+    "ndsi": "(B03-B11)/(B03+B11), identical algebra to MNDWI and not sufficient to separate snow/water. Raw signed int8 scale 1/120; -128 invalid. SWIR 20m nearest repeated, not actual 10m spectral detail.",
+    "sourceLimits": "Single date 2025-08-21; not survey or real-time terrain. Preserve authored shore/ice unless concurrent geometric dataset verifies shape. No full newer ortho / replacement DEM integrated."
+  },
+  "opticalHashes": {
+    "rgb": "e087d2252e1e3ba18ec8a1fea34a0cda3f5b92dd825f05c568e8ecb7aa94fd2e",
+    "material": "e9d381417073ab0bf51d769655e7eb757db48782b773f2dc2e3fb6fac7864495",
+    "ndwi": "c4df68558c5403fbd79fbff91beb1e813377db9f26fe35c8937b09304ddb6002",
+    "ndsi": "07d7e9bf54c8a67b36b22d6c6c254f27227e5f18255028473c955dc5b3b69154",
+    "swir20": "0e59d297dc03349eabcb03ed35bb90b7aaa3a94fd805187cab65694f9ffda4d2"
+  },
+  "masks": {
+    "1": 275245,
+    "2": 8966,
+    "3": 350775,
+    "0": 4570,
+    "4": 444
+  },
+  "canopy": {
+    "count": 6200,
+    "tiles": 1801,
+    "source": {
+      "width": 2000,
+      "height": 2000,
+      "step": 4,
+      "dtype": "u1",
+      "rawSha256": "21ba26bf428f7ac1b32297814412ac86e476e4c699a03f312161f2eff46d8ce7",
+      "min": 0,
+      "max": 29,
+      "units": "modeled metres above ground",
+      "nodata": 255,
+      "nodataPixels": 0,
+      "zero": "ambiguous: no canopy or not observed; never clear stock vegetation from zero",
+      "zeroPixels": 2457189,
+      "src": [
+        "https://dataforgood-fb-data.s3.amazonaws.com/forests/v2/global/dinov3_global_chm_v2_ml3/chm/0302331123.tif",
+        "https://dataforgood-fb-data.s3.amazonaws.com/forests/v2/global/dinov3_global_chm_v2_ml3/chm/0302331130.tif",
+        "https://dataforgood-fb-data.s3.amazonaws.com/forests/v2/global/dinov3_global_chm_v2_ml3/chm/0302331121.tif",
+        "https://dataforgood-fb-data.s3.amazonaws.com/forests/v2/global/dinov3_global_chm_v2_ml3/chm/0302331132.tif"
+      ],
+      "sources": [
+        "https://dataforgood-fb-data.s3.amazonaws.com/forests/v2/global/dinov3_global_chm_v2_ml3/chm/0302331123.tif",
+        "https://dataforgood-fb-data.s3.amazonaws.com/forests/v2/global/dinov3_global_chm_v2_ml3/chm/0302331130.tif",
+        "https://dataforgood-fb-data.s3.amazonaws.com/forests/v2/global/dinov3_global_chm_v2_ml3/chm/0302331121.tif",
+        "https://dataforgood-fb-data.s3.amazonaws.com/forests/v2/global/dinov3_global_chm_v2_ml3/chm/0302331132.tif"
+      ],
+      "quadkeys": [
+        "0302331123",
+        "0302331130",
+        "0302331121",
+        "0302331132"
+      ],
+      "license": "CC BY 4.0",
+      "attribution": "Version 2 High Resolution Canopy Height Maps by WRI and Meta",
+      "native": "Approx. 1m modeled product; bounded official COG reads, nearest-neighbor onto game 4m grid",
+      "positivePixels": 1542811,
+      "maxValid": 29
+    },
+    "rule": "Optical positive NDVI and SCL 4, height-model agreement; stock plants and terrain protected."
+  },
+  "ortho": {
+    "schema": "aerie-coastal-ortho-v1",
+    "world": "acadia",
+    "localRect": [
+      -151,
+      -1552,
+      1099,
+      2068
+    ],
+    "epsg": 32619,
+    "width": 1250,
+    "height": 3620,
+    "step": 1,
+    "projectedBounds": [
+      564500,
+      4905700,
+      565750,
+      4909320
+    ],
+    "northUp": true,
+    "nativeResolutionM": 0.15,
+    "firstCenter": [
+      -150.5,
+      -1551.5
+    ],
+    "imageCodec": "JPEG Q93, RGB, encoded base64",
+    "imageSha256": "9aece0069a290b678a856ae6f8bb969f7233ebd9352ca7fa7bbdfdcb1d673171",
+    "validMaskCodec": "row major little bit order packed bitset, zlib base64",
+    "validPixels": 4525000,
+    "source": "https://gis.maine.gov/image/rest/services/Coastal/Maine_Orthoimagery_Coastal_Acadia_2025/ImageServer",
+    "license": "No restrictions, Maine GeoLibrary ArcGIS item licenseInfo",
+    "rights": "https://www.arcgis.com/sharing/rest/content/items/335fa5b637fa4ff0a8ff112fc5b94b7a?f=json",
+    "attribution": "Maine Department of Environmental Protection; James W. Sewall; Bluesky Geospatial",
+    "timing": "2025 Coastal Acadia aerial imagery collection label; exact pixel acquisition date not verified; service includes an anomalous 2026 date",
+    "usage": "Low-tide aerial survey. Clip to native game dry land and feather patch; retain actual dynamic water, authored nearshore materials and survey geometry. Do not bake captured foam, water, or alter DEM line."
+  },
+  "terrain": {
+    "bounds": [
+      -700,
+      500,
+      -300,
+      900
+    ],
+    "width": 400,
+    "height": 400,
+    "step": 1,
+    "scale": 0.01,
+    "offset": 0,
+    "verticalVerified": true,
+    "minDryM": 6,
+    "fullResidualM": 0.22,
+    "maxResidualM": 0.62,
+    "source": {
+      "schema": "aerie-acadia-terrain-patch-v1",
+      "world": "acadia",
+      "localRect": [
+        -700,
+        500,
+        -300,
+        900
+      ],
+      "projectedBounds": [
+        563951,
+        4906868,
+        564351,
+        4907268
+      ],
+      "epsg": 32619,
+      "origin": [
+        564651,
+        4907768
+      ],
+      "width": 400,
+      "height": 400,
+      "step": 1,
+      "firstCenter": [
+        -699.5,
+        500.5
+      ],
+      "rowOrder": "north to south; columns west to east",
+      "dtype": "<i2",
+      "scaleM": 0.01,
+      "vertical": "NAVD88 (Geoid18) meters per project metadata; no vertical shift in GDAL, horizontal-only reprojection. Use stable dry anchors to calibrate relationship to stock model.",
+      "sources": [
+        "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1m/Projects/ME_MidCoast_2021_B21/TIFF/USGS_1M_19_x56y491_ME_MidCoast_2021_B21.tif"
+      ],
+      "sourceEPSG": 26919,
+      "sourcePixelSpacingM": 1,
+      "outputResampling": "bounded GDAL read, bilinear reprojected to registered 1m, centimetre quantization",
+      "collection": "USGS ME_MidCoast_2021_B21 2021\u20132022 lidar hydroflattened bare-earth DEM; exact cell flight not resolved",
+      "metadata": "https://www.fisheries.noaa.gov/inport/item/74805",
+      "limits": "Likely overlaps stock 3DEP input; not a new epoch claim. Some triangulated or low/negative cells are hydrographic; exclude wet/low and avoid coastline, structures/authoritative stock patches. Accept only if recalibration and dry geometry tests support finer terrain without altering flight clearance. May be omitted.",
+      "minM": -2.5999999046325684,
+      "maxM": 26.936845779418945,
+      "validCells": 160000,
+      "dryCautionCountOver5": 105476,
+      "sha256": "f37a16ed3bc3708a0f14e6e76953fda8161822231170b87d228f741ffc2cf7d8"
+    },
+    "holdout": {
+      "holdout": 1726,
+      "holdoutDelta": [
+        -0.3774999999999995,
+        -0.15749999999999886,
+        -0.07000000000000028,
+        -0.00999999999999801,
+        0.05000000000000071,
+        0.129999999999999,
+        0.240000000000002
+      ]
+    },
+    "rule": "Tiny dry local refinement; shared geometric and clearance height; no shift of any water, shoreline, wet or existing coastal survey terrain."
+  }
+}
