@@ -58,6 +58,30 @@
     face:[110,22,10,'Cliff approach'],falls:[104,19,9,'Waterfall approach'],bank:[95,13,6,'Shoreline pass']
   };
   const rad=Math.PI/180,clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+  // Spawn coordinates, local clearance, then a feature along the opening flight line.
+  const grandViews={
+    alaska:[400,-3450,900,-400,600],               // Mendenhall Glacier to the lake
+    canyon:[530,500,620,-650,-80],                // Horseshoe Bend
+    swiss:[-1780,-850,800,30,260],                // Oeschinensee and Blüemlisalp
+    winnipesaukee:[-3280,-2550,1000,1196,1598],   // The Broads toward Rattlesnake Island
+    surry:[-2150,-5120,900,-505,-113],            // Reservoir and Ashuelot River valley
+    dixville:[-800,-1400,680,26,338],             // Lake Gloriette and Table Rock
+    labrador:[520,-3500,850,-15,1785],            // Lac Berté north to South Camp
+    moosehead:[-1400,2300,900,105,-861],          // Rockwood toward Mount Kineo
+    yosemite:[-3800,1320,1050,-400,580],          // El Capitan Meadow and the valley floor
+    crater:[-3000,2510,950,-950,-500],            // Across Wizard Island and the caldera
+    lofoten:[3050,4140,1050,780,1709],            // Reinefjorden from seaward
+    acadia:[420,-730,700,110,1510]                // Ocean Path to Otter Point
+  };
+  function grandView(w){
+    const [x,z,above,targetX,targetZ]=grandViews[w.region];
+    const floor=w.flightClearance||w.clearance||w.height;
+    const y=floor(x,z)+above;
+    const sightHeight=Math.max(w.waterLevel??-Infinity,(w.elevation||w.height)(targetX,targetZ));
+    const range=Math.hypot(targetX-x,targetZ-z);
+    return {x,y,z,yaw:Math.atan2(x-targetX,z-targetZ),
+      lookDown:clamp(Math.atan2(y-sightHeight,range)/rad,10,31)};
+  }
   function viewFor(w,p){return views[w.region]?.[p.name]||['bank',0];}
   function subject(w,p,spec){
     return spec[2]&&w.landmarks.find(mark=>mark.name===spec[2])||p;
@@ -222,7 +246,7 @@
     return best;
   }
   window.aerieScenicFlight={
-    approach,
+    approach,grandView,
     description(w,p){
       if(p.approach)return '';
       const spec=viewFor(w,p);

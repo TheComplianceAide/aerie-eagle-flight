@@ -40,7 +40,7 @@
   let cameraPerched=null,cameraBlend=1,previousOffset,previousRotation,transitionOffset,transitionRotation;
   let updateTalus, updateForest, updateHabitat, updateUnderstory, updateMist;
   let frameSeconds=0, frameCount=0, fastWindows=0;
-  let glance=0, arrivalGlance=0, arrivalLookDown=0, glanceTime=0;
+  let glance=0, arrivalGlance=0, arrivalLookDown=0, glanceTime=0, panoramaHold=0;
   let cameraYaw, cameraPath, cameraBank, cameraFov, loadPromise, launchPending=false;
   let last = performance.now(), started = false, paused = false, touchFlap = false, pointerBrake = false;
   let graphicsLost=false;
@@ -577,6 +577,7 @@
       el("viewport").replaceChildren(renderer.domElement);resize();
       world.regionalFieldScenery=fieldScenery=window.makeRegionalFieldScenery(THREE,scene,world);
       world.canopyStream=canopy=window.makeCanopyStream(THREE,renderer,scene,world);
+      world.launches.grand=window.aerieScenicFlight.grandView(world);
       loadPromise=Promise.all([assets,world.ready,eagle.ready,geology.ready,fieldScenery.ready]);
       await loadPromise;
       window.addReadableWindWater(THREE,scene,world);
@@ -614,14 +615,15 @@
   }
   window.addEventListener("resize",resize);
   function startFlight(){
-    const launch=world.launches?.[el("launchPoint")?.value] || world.spawn;
+    const departure=launchPicker.value;
+    const launch=world.launches?.[departure] || world.spawn;
     landmarkLook=subject=previousSubject=null;nextSighting=1.4;
     dynamics=makeFlight(launch,world);
     const s=dynamics.state;
     windSoarer.reset(s,world.windField.ensureLaunchCore(launch),launch.glance);
     perching.reset(s,el("launchPoint").value==="lookout");
     nextPerchHUD=0;perchNotice="";perchNoticeUntil=0;
-    resetCamera(s,launch.glance,launch.lookDown);
+    resetCamera(s,launch.glance,launch.lookDown,departure==='grand'?8:0);
     canopy?.prepareDeparture?.();
     gameVision.startFlight(["game","wildlife"].includes(launchPicker.value));
     fieldAudio?.resetEncounters();
@@ -879,8 +881,9 @@
     const direction=["N","NE","E","SE","S","SW","W","NW"][(Math.round(heading/(Math.PI/4))+8)%8];
     el("discovery").textContent=closest.name+" · "+direction+" · "+units.distance(range);
   }
-  function resetCamera(s,arrivalDegrees=0,lookDown=0){
+  function resetCamera(s,arrivalDegrees=0,lookDown=0,hold=0){
     arrivalLookDown=clamp(lookDown,0,50)*Math.PI/180;
+    panoramaHold=hold;
     cameraPerched=null;cameraBlend=1;
     glance=arrivalGlance=arrivalDegrees*Math.PI/180;
     glanceTime=0;
@@ -896,7 +899,7 @@
     const stroke=s.effort*Math.sin(s.phase-.45);
     // Lean over the mount when looking sideways so the near wing stays below the shopfronts.
     const lean=Math.min(1,Math.abs(glance));
-    const down=arrivalLookDown*clamp((6-glanceTime)/3,0,1);
+    const down=arrivalLookDown*clamp((6+panoramaHold-glanceTime)/3,0,1);
     // During the final high-angle flare the scapula rises between the lens
     // and the neck. Let the mount sit higher and forward over that shoulder.
     const flare=s.perchFlare||0;
@@ -931,7 +934,7 @@
     // Orbit the boom around the bird for a landmark reveal. Keeping boom and
     // lens on the same bearing leaves the bird in frame during the glance.
     glanceTime+=dt;
-    const reveal=clamp((3.6-glanceTime)/1.8,0,1);
+    const reveal=clamp((3.6+panoramaHold-glanceTime)/1.8,0,1);
     const headingX=Math.sin(cameraYaw+arrivalGlance*reveal),headingZ=Math.cos(cameraYaw+arrivalGlance*reveal);
     // Match the bird's projected width across portrait and landscape views.
     // A high boom shows the mantle and wing coverts, while its independent
