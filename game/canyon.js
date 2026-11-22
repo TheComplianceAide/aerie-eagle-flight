@@ -104,8 +104,16 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
   const vertex=`varying vec3 wp,n;varying vec2 tc;
     void main(){wp=position;n=normal;tc=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`;
   shared.scrubFloor={value:texture('field-ground-scans.webp')};
+  const atlas=window.aerieWaterOpacity?.bind(THREE,['river_bank'],true);
+  if(atlas){atlas.bankTexture.anisotropy=shared.bankMap.value.anisotropy;shared.bankMap.value=atlas.bankTexture;}
+  const waterContact=window.aerieWaterContacts?.enabled;
+  const closeRock=window.aerieCloseMaterial;
+  const scannedRock=closeRock?.canyonReady();
   const fragment=`
-    uniform sampler2D scrubFloor,wallRelief;
+    ${atlas?.shader||''}
+    ${waterContact?window.aerieWaterContacts.profile:''}
+    ${scannedRock?closeRock.arrayShader:'uniform sampler2D wallRelief;'}
+    uniform sampler2D scrubFloor;
     ${window.aerieFieldShader('canyon')}
     vec3 sandstoneMidGround(sampler2D gallery,vec3 at,vec3 normal,vec3 color,vec3 sun,
                         float range,float substrate){
@@ -142,7 +150,7 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
       return color*mix(1.,substrateGain,amount);
     }
     uniform sampler2D terrainField,bankRadiance,crossbeds;
-    uniform sampler2D photo,strata,grain,flow,ripple,panorama,sand,pebbles,pebbleNormal,bankMap;
+    uniform sampler2D photo,strata,grain,flow,ripple,panorama,sand,pebbles,pebbleNormal${atlas?'':',bankMap'};
     uniform vec3 sun;uniform float clock;varying vec2 tc;varying vec3 wp,n;
     `+skyColor+localBeds+`
     float lum(vec3 c){return dot(c,vec3(.299,.587,.114));}
@@ -221,6 +229,7 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
     }
     void main(){
       vec3 normal=normalize(n),eye=normalize(cameraPosition-wp);
+      ${scannedRock?'vec3 rockDx=dFdx(wp),rockDy=dFdy(wp);':''}
       vec3 aerial=texture2D(photo,tc).rgb;
       // Recover mineral albedo inside shadows in the midday source photograph.
       // Cast the current shadow from the sunset horizon map below.
@@ -306,7 +315,11 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
           // Sharpen the choice of wall plane to preserve laminae on diagonal faces.
           float axis=smoothstep(.24,.76,sideMix);
           vec4 rock=mix(texture2D(strata,uvX),texture2D(strata,uvZ),axis);
+          ${scannedRock?`
+          vec3 nx=texture(wallRelief,vec3(uvX,0.)).rgb,nz=texture(wallRelief,vec3(uvZ,0.)).rgb;
+          `:`
           vec3 nx=texture2D(wallRelief,uvX).rgb,nz=texture2D(wallRelief,uvZ).rgb;
+          `}
           vec2 increment=mix(nx.rg,nz.rg,axis)*2.-1.;
           vec3 tangent=normalize(mix(tx,tz,axis)+vec3(.00001));
           vec3 tangentUp=normalize(vec3(0.,1.,0.)-normal*normal.y);
@@ -344,6 +357,16 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
         vec2 gritUv=1.-abs(mod(plate,2.)-1.);
         vec2 large=1.-abs(mod(mat2(.80,-.60,.60,.80)*plate*.29+.54,2.)-1.);
         vec3 chips=texture2D(crossbeds,vec2(.5025+.496*gritUv.x,.012+.303*gritUv.y)).rgb;
+        ${scannedRock?`
+        if(dist<24.&&wet<.01){
+          // Keep the red and grey photographed plates, but let the new scan
+          // supply the fine structure in place of the original repeated crop.
+          vec2 chipUV=vec2(.5025,.012)+vec2(.496,.303)*clamp(gritUv,.035,.965);
+          float closeWeight=closeRockVisibility(rockDx,rockDy,dist);
+          vec3 plateColor=textureGrad(crossbeds,chipUV,vec2(.023,0.),vec2(0.,.018)).rgb;
+          chips=mix(chips,plateColor,.83*closeWeight);
+        }
+        `:''}
         vec3 broad=texture2D(crossbeds,vec2(.5025+.496*large.x,.012+.303*large.y)).rgb;
         vec3 lip=chips*vec3(1.13,.977,.878)*(.81+.39*lum(broad));
         float scrub=smoothstep(.006,.075,aerial.g-aerial.r);
@@ -351,6 +374,22 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
       }
       dry=sandstoneMidGround(scrubFloor,wp,normal,dry,sun,dist,
         (1.-wet)*smoothstep(2.,24.,signedBank));
+      ${scannedRock?`
+      if(dist<24.&&wet<.01){
+        float surfaceWeight=max(face,.81*max(rimRock,mappedBed));
+        surfaceWeight=max(surfaceWeight,.64*smoothstep(3.5,28.,signedBank));
+        surfaceWeight*=(1.-smoothstep(.015,.09,aerial.g-aerial.r))*smoothstep(1.5,5.,signedBank);
+        if(surfaceWeight>.006){
+          RockDetail detail=closeRockDetail(wp,rockDx,rockDy,normal,dist,1.);
+          float weight=surfaceWeight*detail.visibility;
+          dry*=1.+.92*detail.pigment*weight;
+          vec3 finalNormal=closeRockNormal(normal,detail,weight);
+          float response=sqrt(max(0.,dot(finalNormal,sun)))-sqrt(incidence);
+          float sheen=closeRockSheen(finalNormal,sun,eye,detail.rough)*weight;
+          sunward+=vec3(.57,.35,.17)*sunVisibility*(.73*response+sheen);
+        }
+      }
+      `:''}
       dry*=indirect+sunward;
       float groundPass=closeGround*(1.-face)*(1.-wet)*smoothstep(3.,26.,signedBank);
       vec3 pebbly=soilCapture(scrubFloor,wp.xz*.32,10.).rgb;
@@ -409,12 +448,50 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
         float eddy=sin(dot(here,across)*1.24+dot(here,dir)*.25-clock*1.2);
         vec2 riffle=(dir*seam*(.019+.068*riffles)+across*eddy*(.019+.058*sheltered))*smallWave;
         wn=normalize(wn+vec3(riffle.x,0.,riffle.y));
+        ${waterContact?`
+        // The surveyed sandstone reach is sheltered. Small wakes peel off
+        // the bank along the mapped local current and die out in the pool.
+        float shelfContact=1.-smoothstep(120.,238.,length(here-vec2(-493.,-173.)));
+        float workingBank=(1.-smoothstep(7.,21.,bankMeters))*shelfContact;
+        float along=dot(here,dir);
+        float source=channelNoise((here-velocity*1.4)*.048);
+        float releaseAge=mod(clock+along*.15+1.3*source,
+          ${atlas?'3.85+1.27*source+.35*smoothstep(2.,14.,bankMeters)':'4.15'});
+        vec2 peel=waterContactBand(bankMeters-.35-releaseAge*1.19,.38,releaseAge,3.9,
+          max(length(dFdx(here)),length(dFdy(here))));
+        float seamGate=smoothstep(.18,.61,source);
+        float av=dot(here,across);
+        float seamDist=(bankMeters-4.2-.9*sin(along*.06-clock*.47))*.37;
+        float slip=exp(-seamDist*seamDist);
+        float shear=slip*smoothstep(.14,.81,.5+.5*sin(along*.55-clock*1.27+4.*source));
+        vec2 bankSlope=across*(sin(av*.48+along*.34-clock*.88)*(.035+.065*shear)+peel.x*.29)
+          +dir*peel.x*.096;
+        wn=normalize(wn+vec3(bankSlope.x,0.,bankSlope.y)*workingBank*seamGate);
+        `:''}
+        ${atlas?`
+        float watDistance=length(here-vec2(-493.,-173.));
+        float waReach=(1.-smoothstep(115.,230.,watDistance))*(1.-smoothstep(5.,18.,bankMeters));
+        float alongLane=dot(here,dir),lane=floor((alongLane+2.1*sin(alongLane*.072))/17.);
+        float waSeed=waHash(vec2(lane,floor(here.x/22.)));
+        float tracking=fract((clock+waSeed*5.)/(5.2+waSeed*3.8));
+        float parcelAlong=alongLane/17.-lane;
+        vec2 moving=waCell(vec2(parcelAlong-.27*tracking,
+          .20+.046*bankMeters),${atlas.siteChoices.river_bank||atlas.choices.river_bank},waSeed);
+        float softWater=1.-smoothstep(.38,1.55,max(length(dFdx(here)),length(dFdy(here))));
+        float separated=moving.x*waReach*softWater*
+          smoothstep(.03,.20,tracking)*(1.-smoothstep(.63,.99,tracking));
+        wn=normalize(wn+vec3(across.x,0.,across.y)*separated*.29);
+        `:''}
         vec3 refl=reflect(-eye,wn);refl.y=max(.015,refl.y);
         float fres=.026+.974*pow(1.-max(0.,dot(wn,eye)),4.3);
         vec3 reflected=canyonReflection(wp+vec3(0.,1.85,0.),refl);
         vec3 riverBody=mix(vec3(.105,.213,.185),vec3(.21,.31,.232),sunVisibility);
         riverBody*=.7+.58*lum(aerial);
         vec3 river=mix(riverBody,reflected,fres);
+        ${waterContact?`
+        vec3 shearGlint=max(reflected,riverBody*.99);
+        river=mix(river,river*.71+.63*shearGlint,workingBank*seamGate*(peel.y*.73+shear*.23));
+        `:''}
         // A current refracts the stationary bed. The camera sees farther into
         // clear shallows looking down than it does across the grazing surface.
         float shallows=(1.-smoothstep(2.,24.,-signedBank))*closeGround*(1.-surveyWeight);
@@ -497,10 +574,17 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
           vec3 deepWater=mix(vec3(.058,.171,.165),vec3(.106,.271,.204),openSun);
           vec3 submerged=mix(deepWater,bedColor,transmission);
           vec3 surveyedRiver=mix(submerged,reflected,fres);
+          ${waterContact?`surveyedRiver=mix(surveyedRiver,
+            surveyedRiver*.72+.62*shearGlint,workingBank*seamGate*(peel.y*.66+shear*.22));`:''}
           river=mix(river,surveyedRiver,surveyWeight);
         }
         float glint=pow(max(dot(wn,normalize(sun+eye)),0.),155.);
         river+=vec3(.67,.48,.25)*glint*sunVisibility;
+        ${waterContact?`
+        float splitFilm=workingBank*seamGate*(shear*.64+peel.y*.49);
+        vec3 skyEdge=max(reflected,vec3(.12,.24,.26));
+        river+=skyEdge*splitFilm*.16;
+        `:''}
         float lace=mix(channelNoise(p0*.90),channelNoise(p1*.90),weight);
         float broken=1.-smoothstep(.022,.123,abs(lace-.54));
         float foam=broken*(sheltered*.63+riffles*.11)*smoothstep(.44,.69,channelNoise(here*.23))*smallWave;
@@ -509,13 +593,17 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
         float marginBreak=(1.-smoothstep(.5,4.2,bankMeters))*(1.-smoothstep(.45,1.8,surveyDepth));
         foam*=mix(1.,.038+.70*marginBreak,surveyWeight);
         river=mix(river,vec3(.73,.74,.65),foam);
+        ${atlas?`
+        river+=max(reflected,vec3(.12,.25,.24))*separated*.26;
+        `:''}
         color=mix(color,river,wet);
       }
       vec3 haze=mix(vec3(.67,.625,.64),vec3(.85,.70,.60),pow(max(dot(-eye,sun),0.),3.));
       float dusty=.000030+.000041*exp(-max(0.,wp.y+cameraPosition.y-50.)/380.);
       color=mix(color,haze,1.-exp(-dist*dusty));gl_FragColor=vec4(color,1.);
     }`;
-  const scarp=texture('canyon-scarp.webp',true),wallRelief=texture('canyon-scarp-relief.webp',true);
+  const scarp=texture('canyon-scarp.webp',true);
+  const wallRelief=scannedRock?closeRock.canyonTexture(THREE):texture('canyon-scarp-relief.webp',true);
   function material(file){
     return new THREE.ShaderMaterial({extensions:{derivatives:true},uniforms:{...shared,strata:{value:scarp},wallRelief:{value:wallRelief},photo:{value:texture(file)}},vertexShader:vertex,fragmentShader:fragment});
   }

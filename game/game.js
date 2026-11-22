@@ -521,6 +521,9 @@
     const region=el("worldPicker")?.value||"swiss";
     await loadFlightRange(region);
     renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:"high-performance"});
+    const advancedMaterials=renderer.capabilities.isWebGL2;
+    await Promise.all([window.aerieWaterOpacity.prepare(region,advancedMaterials),
+      window.aerieCloseMaterial.prepare(region,advancedMaterials)]);
     recoverGraphics(renderer.domElement);
     renderer.setPixelRatio(Math.min(devicePixelRatio,pixelRatioLimit));renderer.outputColorSpace=THREE.SRGBColorSpace;
     renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.03;

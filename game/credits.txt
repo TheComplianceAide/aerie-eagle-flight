@@ -906,3 +906,5 @@ Oeschinen western dry inset, © Federal Office of Topography swisstopo. swissALT
 https://www.swisstopo.admin.ch/en/height-model-swissalti3d
 https://www.swisstopo.admin.ch/en/terms-of-use-free-geodata-and-geoservices
 For the Acadia, Lofoten and Mendenhall patch sources, see north-coast-scene-preview-credits.txt and regional-canopy-preview-credits.txt. For exact footprints and scene manifests, see docs/geodata-coverage.md in the source repository.
+
+See water-material-credits.txt for close rock scans and photographed local water opacity studies.

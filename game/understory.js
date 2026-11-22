@@ -32,9 +32,11 @@
     surry:         [0,2,3,5,8],     moosehead:   [0,1,7,4,8]
   };
   window.aerieFieldShader=function(region){
-    const [opening,litter,bank,stone,aerial]=soils[region];
-    const humidity={yellowstone:.43,acadia:.83,alaska:.91,swiss:.74,canyon:.05,yosemite:.27,crater:.24,lofoten:.80,milford:.98,dixville:.49,labrador:.86,winnipesaukee:.49,surry:.53,moosehead:.87}[region];
+    const [opening,litter,bank,stone,aerial]=soils[region]||soils.dixville;
+    const humidity={yellowstone:.43,acadia:.83,alaska:.91,swiss:.74,canyon:.05,yosemite:.27,crater:.24,lofoten:.80,milford:.98,dixville:.49,labrador:.86,winnipesaukee:.49,surry:.53,moosehead:.87}[region]??.50;
+    const closeField=region!=='canyon'&&window.aerieCloseMaterial?.fieldShader;
     return `
+    ${closeField||''}
     float fieldGrain(vec2 grid){
       vec2 cell=floor(grid),f=fract(grid);f=f*f*(3.-2.*f);
       vec4 s=vec4(dot(cell,vec2(.1031,.11369)))+vec4(0.,.1031,.11369,.21679);
@@ -65,6 +67,7 @@
     }
     vec3 regionalSoil(sampler2D gallery,vec3 at,vec3 normal,vec3 ortho,vec3 sun,
                       float range,float canopy,float wet,float eligibility){
+      vec3 dx=dFdx(at),dy=dFdy(at);
       float coverage=clamp(eligibility,0.,1.)*(1.-smoothstep(800.,2500.,range));
       if(coverage<.008)return ortho;
       vec2 xz=at.xz;
@@ -99,6 +102,24 @@
       vec4 cover=mix(sward,litter,smoothstep(.24,.77,woody+.25*(patchiness-.5)+.27*(litter.a-sward.a)));
       cover=mix(cover,bank,smoothstep(.24,.73,runoff+.34*(patchiness-.5)+.34*(bank.a-cover.a)));
       cover=mix(cover,exposed,smoothstep(.18,.83,exposure+.37*(exposed.a-cover.a)+.18*(patchiness-.5)));
+      ${closeField?`
+      float close=closeFieldWeight(dx,dy,range)*(1.-smoothstep(.08,.87,max(wet,runoff)));
+      if(close>.005){
+        // Choose the same regional ecology used by the court, then change its
+        // projection. Vegetation and the registered aerial remain authoritative.
+        float rock=smoothstep(.27,.77,exposure+.22*(patchiness-.5));
+        vec2 uv=turn*xz*.59,rx=turn*dx.xz*.59,ry=turn*dy.xz*.59;
+        vec4 newCover=vec4(0.);
+        if(rock<.99){
+          float forest=smoothstep(.22,.77,woody);
+          vec4 opening=forest<.99?fieldCloseCapture(gallery,uv,rx,ry,${opening}.):vec4(0.);
+          vec4 forestFloor=forest>.01?fieldCloseCapture(gallery,uv+vec2(.18,1.7),rx,ry,${litter}.):vec4(0.);
+          newCover=mix(opening,forestFloor,forest);
+        }
+        vec4 looseRock=rock>.01?fieldCloseCapture(gallery,uv+vec2(.61,2.3),rx,ry,${stone}.):newCover;
+        cover=mix(cover,mix(newCover,looseRock,rock),.72*close);
+      }
+      `:''}
       float groundY=dot(ortho,vec3(.27,.57,.16));
       // A nadir photograph sees crown tops. Below the canopy, resolve the
       // actual litter color, while openings inherit some local seasonal hue.
@@ -110,7 +131,6 @@
       natural=mix(natural,natural*clamp((result+.09)/(groundY+.09),vec3(.65),vec3(1.53)),.40);
       // Reconstruct surface slope from the scan's measured height. Derive in
       // world space to keep the light direction fixed while the camera banks.
-      vec3 dx=dFdx(at),dy=dFdy(at);
       vec3 u=cross(dy,normal),v=cross(normal,dx);
       float area=dot(dx,u);
       vec3 gradient=(dFdx(cover.a)*u+dFdy(cover.a)*v)*sign(area)/max(abs(area),.00001);

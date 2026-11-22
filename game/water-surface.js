@@ -45,7 +45,188 @@
       `);
   }
 
-  function lakes(scene,region){
+  const contactEnabled=true;
+  // One signed rolling crest/trough profile used by all the local contacts.
+  // Inputs are metres from the front, age in seconds, and bounded lifetime.
+  const contactProfile=`
+    vec2 waterContactBand(float offset,float width,float age,float lifetime,float pixel){
+      float spread=width+.13*age;
+      float q=offset/max(.025,spread);
+      float life=smoothstep(0.,.10,age)*(1.-smoothstep(lifetime*.42,lifetime,age));
+      float resolved=1.-smoothstep(spread*.8,spread*3.2,pixel);
+      float envelope=exp(-q*q*.68)*life*resolved;
+      return vec2((1.-1.7*q*q)*envelope,exp(-max(0.,q+.34)*max(0.,q+.34)*2.)*envelope);
+    }`;
+  const floatingDuckContact=region=>region==='winnipesaukee'||region==='moosehead';
+  window.aerieWaterContacts={enabled:contactEnabled,profile:contactProfile,floatingDuckContact};
+
+  function duckContacts(T,world,material){
+    const capacity=16,lifetime=1.65,events=[];
+    const data=Array.from({length:capacity},()=>new T.Vector4());
+    const drift=Array.from({length:capacity},()=>new T.Vector4());
+    const bounds=new T.Vector4(),count={value:0};
+    Object.assign(material.uniforms,{duckContactBounds:{value:bounds},duckContactCount:count,
+      duckContactData:{value:data},duckContactDrift:{value:drift}});
+    world.waterContacts={
+      emit(x,z,heading,speed,length,t){
+        if(events.length>=48)events.shift();
+        events.push({x,z,c:Math.cos(heading),s:Math.sin(heading),speed,length,t});
+      },
+      update(t,player){
+        while(events.length&&(t<events[0].t||t-events[0].t>=lifetime))events.shift();
+        let minX=Infinity,minZ=Infinity,maxX=-Infinity,maxZ=-Infinity,i=0;
+        for(let j=events.length-1;j>=0&&i<capacity;j--){
+          const e=events[j],age=t-e.t;
+          if(Math.abs(e.x-player.x)>78||Math.abs(e.z-player.z)>78)continue;
+          data[i].set(e.x,e.z,age,Math.min(1.15,.25+e.speed*1.4));
+          drift[i].set(e.c,e.s,e.length,e.speed);
+          minX=Math.min(minX,e.x-3);minZ=Math.min(minZ,e.z-3);
+          maxX=Math.max(maxX,e.x+3);maxZ=Math.max(maxZ,e.z+3);
+          i++;
+        }
+        count.value=i;bounds.set(minX,minZ,maxX,maxZ);
+      }
+    };
+    const atlas=window.aerieWaterOpacity?.bind(T,['wildlife_paddle']);
+    if(atlas)Object.assign(material.uniforms,atlas.uniforms);
+    return `${atlas?.shader||''}
+      uniform vec4 duckContactBounds,duckContactData[16],duckContactDrift[16];
+      uniform int duckContactCount;
+      vec3 duckWaterContact(vec2 p,float footprint,out vec2 waDuck){
+        waDuck=vec2(0.);
+        vec3 result=vec3(0.);
+        if(duckContactCount==0||footprint>.42||any(lessThan(p,duckContactBounds.xy))
+          ||any(greaterThan(p,duckContactBounds.zw)))return result;
+        for(int i=0;i<16;i++){
+          if(i>=duckContactCount)break;
+          vec4 event=duckContactData[i],shape=duckContactDrift[i];
+          vec2 delta=p-event.xy;
+          if(dot(delta,delta)>7.)continue;
+          vec2 forward=shape.xy,side=vec2(-forward.y,forward.x);
+          float x=dot(delta,forward)-.09*event.z,xside=dot(delta,side);
+          float extent=shape.z*.75+event.z*.41;
+          float bowRadius=shape.z*.36+event.z*.56;
+          // A moving bow starts compact and its shoulders peel outward.
+          float r=length(vec2(x*.84,xside*1.36));
+          vec2 direction=normalize(forward*(x*.71)+side*(xside*1.85)+vec2(.00001));
+          float open=smoothstep(-.24,.31,x/max(.06,r));
+          float curls=(.60+.40*sin(xside*12.+x*7.-event.z*1.7))
+            *(1.-smoothstep(extent*.65,extent,abs(xside)));
+          vec2 ripple=waterContactBand(r-bowRadius,.047,event.z,${lifetime},footprint)*open;
+          float wake=abs(xside)-(.14+.26*max(0.,-x)+event.z*.43);
+          vec2 paddle=waterContactBand(wake,.043,event.z,${lifetime},footprint)
+            *curls*smoothstep(.10,.46,-x)*(1.-smoothstep(.72,1.64,-x));
+          ${atlas?`
+          float seed=waHash(floor(event.xy*1.7));
+          float elongation=1.54+.487*event.z;
+          vec2 breakup=waCell(vec2(.5+x/elongation,.50+xside/(1.16+event.z*.69)),
+            ${atlas.choices.wildlife_paddle},seed);
+          float wakeTexture=breakup.x*(ripple.y+paddle.y)*min(1.,event.w);
+          if(wakeTexture>waDuck.x)waDuck=vec2(wakeTexture,breakup.y);
+          ripple*=.74+.61*breakup.x;
+          paddle*=.67+.82*breakup.x;
+          `:''}
+          result.xy+=event.w*(direction*ripple.x+side*sign(xside)*paddle.x)*.34;
+          result.z+=event.w*(ripple.y*.65+paddle.y);
+        }
+        return vec3(clamp(result.xy,vec2(-.32),vec2(.32)),clamp(result.z,0.,1.));
+      }`;
+  }
+
+  function lakeContact(T,world,material,shader){
+    if(!contactEnabled||!material.uniforms.shoreField)return shader;
+    const region=world.region;
+    let source,formula;
+    if(floatingDuckContact(region)){
+      source=duckContacts(T,world,material);
+      formula='vec2 waDuck;vec3 localContact=duckWaterContact(p,footprint,waDuck);';
+    }else if(region==='crater'){
+      source=`
+        vec3 lavaShoreContact(vec2 p,vec2 away,float bank,float t,float footprint){
+          if(bank>11.||footprint>1.6||dot(away,away)<.20)return vec3(0.);
+          vec2 crossBank=vec2(-away.y,away.x);
+          float along=dot(p,crossBank);
+          float corner=.32*sin(dot(p,vec2(.18,.23)))+.25*cos(dot(p,vec2(-.31,.27)));
+          float age=mod(t+corner+1.35*sin(along*.035),3.65);
+          float front=.20+age*.87;
+          vec2 leading=waterContactBand(bank-front,.28,age,3.25,footprint);
+          vec2 follower=waterContactBand(bank-front+.67,.16,max(0.,age-.28),2.8,footprint);
+          float breakup=.46+.54*smoothstep(-.7,.7,sin(along*.95+corner*3.));
+          return vec3(away*(leading.x-.52*follower.x)*breakup*.38,
+            (leading.y+.38*follower.y)*breakup*.67);
+        }`;
+      formula='vec3 localContact=lavaShoreContact(p,away,bank,time,footprint);';
+    }else if(region==='acadia'){
+      source=`
+        vec3 graniteRebound(vec2 p,float t,float footprint){
+          vec2 delta=p-vec2(50.2,-48.7),down=normalize(vec2(21.,24.));
+          vec2 side=vec2(-down.y,down.x);
+          float station=dot(delta,down),across=dot(delta,side);
+          if(station<0.||station>39.||abs(across)>12.)return vec3(0.);
+          float age=mod(t-5.+.72*7.6-.76,7.6);
+          float edge=(1.-smoothstep(2.5+station*.17,4.+station*.24,abs(across)));
+          vec2 push=waterContactBand(station-3.4*age+.11*across*across,.59,age,5.0,footprint);
+          return vec3(down*push.x*edge*.27,push.y*edge*.72);
+        }`;
+      formula='vec3 localContact=graniteRebound(p,time,footprint);';
+    }else return shader;
+    return contactProfile+source+'\n'+shader
+      .replace('vec3 n=normalize(vec3(slope.x,1.,slope.y));',
+        formula+'\n        slope+=localContact.xy;\n        vec3 n=normalize(vec3(slope.x,1.,slope.y));')
+      .replace('gl_FragColor=vec4(radiance,alpha);',`
+        // Small sky-lit shoulders remain readable in dark reflections.
+        if(localContact.z>.001){
+          vec3 glimmer=max(.31*skyVeil,reflectLight)*(.65+.35*daylight);
+          radiance=mix(radiance,radiance*.70+glimmer*.77,localContact.z*${floatingDuckContact(region)?'.68':region==='crater'?'.66':'.39'});
+        }
+        gl_FragColor=vec4(radiance,alpha);`);
+  }
+
+  function atlasShoreOpacity(T,world,material,shader){
+    if(!material.uniforms.shoreField)return shader;
+    const coast=world.region==='acadia'||world.region==='lofoten';
+    const atlas=window.aerieWaterOpacity?.bind(T,coast?['ocean_wash','ocean_backwash']:['lake_gentle','lake_windy'],world.region==='crater');
+    if(!atlas)return shader;
+    const calm=atlas.choices.lake_gentle||atlas.choices.ocean_wash;
+    const strong=atlas.choices.lake_windy||atlas.choices.ocean_backwash||calm;
+    Object.assign(material.uniforms,atlas.uniforms);
+    return atlas.shader+`
+      vec2 waShorePatch(vec2 p,vec2 away,float bank,float t,float footprint,float energy){
+        float extent=${coast?'26.':'12.'};
+        if(bank>extent||dot(away,away)<.36||footprint>1.65)return vec2(0.);
+        vec2 along=vec2(-away.y,away.x);
+        vec2 domain=(p+vec2(sin(p.y*.042),sin(p.x*.037))*1.8)/${coast?'29.':'15.'};
+        vec2 cell=floor(domain);
+        float eventSeed=waHash(cell);
+        vec2 centre=cell+.5+vec2(eventSeed-.5,waHash(cell+17.)-.5)*.26;
+        float reach=dot(domain-centre,along);
+        float period=mix(3.2,6.9,waHash(cell+2.));
+        float age=mod(t+period*eventSeed+.39*sin(t*.42+eventSeed*9.),period)/period;
+        float departure=smoothstep(.13,.47,age);
+        reach+=.14*departure*(eventSeed-.5)+.036*sin(t*.76+eventSeed*8.);
+        float contact=(bank-(.5+extent*.45*departure))/(extent*mix(.38,.83,age))+.48;
+        float life=smoothstep(.025,.19,age)*(1.-smoothstep(.62,.99,age));
+        float bankWet=smoothstep(.04,.4,bank)*(1.-smoothstep(extent*.53,extent,bank));
+        vec4 selection=energy>.63?${strong}:${calm};
+        ${atlas.siteChoices.lake_gentle?`if(length(p-vec2(2846.,-3381.))<220.)selection=${atlas.siteChoices.lake_gentle};`:''}
+        vec2 shaped=waCell(vec2(.5+reach/(.59+.40*eventSeed),contact),selection,eventSeed);
+        float regionEdge=smoothstep(.03,.19,min(min(fract(domain.x),1.-fract(domain.x)),min(fract(domain.y),1.-fract(domain.y))));
+        shaped.x*=life*bankWet*regionEdge*(1.-smoothstep(.48,1.65,footprint));
+        return shaped;
+      }`+'\n'+shader.replace('vec3 n=normalize(vec3(slope.x,1.,slope.y));',`
+        vec2 waBank=waShorePatch(p,away,bank,time,footprint,wind*fetch);
+        slope+=away*waBank.x*${coast?'.17':'.13'};
+        vec3 n=normalize(vec3(slope.x,1.,slope.y));`)
+      .replace('gl_FragColor=vec4(radiance,alpha);',`
+        if(waBank.x>.002){
+          vec3 tint=max(reflectLight,skyVeil*.61);
+          radiance=mix(radiance,radiance*.72+tint*.60,waBank.x*${coast?'.71':'.69'});
+        }
+        gl_FragColor=vec4(radiance,alpha);`);
+  }
+
+  function lakes(T,scene,world){
+    const region=world.region;
     scene.traverse(mesh=>{
       if(!mesh.isWater)return;
       const mat=mesh.material,atlas=!!mat.uniforms.shoreField;
@@ -124,6 +305,8 @@
             energy*=mix(.065,1.,harborSwell);
             vec3 wave=waterWaves(p,time,footprint,energy);`);
       }
+      shader=lakeContact(T,world,mat,shader);
+      shader=atlasShoreOpacity(T,world,mat,shader);
       mat.fragmentShader=atlas&&light?lowSunReflection(mat,shader,light):shader;mat.needsUpdate=true;
     });
   }
@@ -364,6 +547,25 @@
           gl_FragColor=vec4(mix(c,vec3(.65,.70,.65),foam*.75),1.);
           #include <colorspace_fragment>
         }`});
+    const waStream=window.aerieWaterOpacity?.bind(T,['river_bank']);
+    if(waStream){
+      Object.assign(m.uniforms,waStream.uniforms);
+      m.fragmentShader=waStream.shader+'\n'+m.fragmentShader
+        .replace('vec3 n=normalize(vec3(-slope.x,1.,-slope.y)),v=',`
+          float key=floor((flow.y+sin(flow.y*.12)*1.4)/12.);
+          float seed=waHash(vec2(key,sign(flow.x)));
+          float life=fract((t+key*.78)/(4.2+seed*4.));
+          float along=(flow.y-key*12.)/12.;
+          vec2 waStreamFoam=waCell(vec2(along-.19*life,
+            .21+fromBank*.64),${waStream.choices.river_bank},seed);
+          waStreamFoam.x*=smoothstep(.14,.42,fromBank)*(1.-smoothstep(1.1,2.4,fromBank))*
+            (1.-smoothstep(.49,1.4,px))*(.42+.58*lee);
+          slope+=lateral*sign(flow.x)*waStreamFoam.x*.17;
+          vec3 n=normalize(vec3(-slope.x,1.,-slope.y)),v=`)
+        .replace('gl_FragColor=vec4(mix(c,vec3(.65,.70,.65),foam*.75),1.);',`
+          c+=max(skyLight,vec3(.12,.21,.24))*waStreamFoam.x*.29;
+          gl_FragColor=vec4(mix(c,vec3(.65,.70,.65),foam*.75),1.);`);
+    }
     const mesh=new T.Mesh(g,m);mesh.name='Mapped stream channels';scene.add(mesh);
     w.reflectLocalWater=(surface,plane)=>window.attachLocalWaterReflection(T,surface,plane);
     w.reflectLocalWater(mesh,(eye,centre,normal)=>{
@@ -382,7 +584,7 @@
     const update=w.update.bind(w);w.update=(dt,t,p)=>{clock.value=t;update(dt,t,p);};
   }
   window.addFlightWater=(T,scene,w)=>{
-    lakes(scene,w.region);
+    lakes(T,scene,w);
     if(w.region==='yosemite')streams(T,scene,w);
   };
 })();

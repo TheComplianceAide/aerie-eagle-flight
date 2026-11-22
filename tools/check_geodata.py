@@ -98,10 +98,23 @@ def main():
     assert len(gzip.decompress(binary("geodata/swiss-lidar"))) == grid(swiss, 2)
     payload += sum(p.stat().st_size for p in (GAME / "geodata").glob("swiss-lidar.*"))
 
+    # Yellowstone has its own larger local survey bundle rather than a preview pad.
+    park = metadata('yellowstone-data/terrain')
+    assert len(park['river']) > 2000 and {'prismatic','excelsior','morning','sapphire'} <= park['poolOutlines'].keys()
+    for x, z, step in park['tiles']:
+        stem = GAME / 'yellowstone-data' / f'{x}_{z}'
+        assert step in {8, 10, 20} and stem.with_suffix('.bin').stat().st_size == 2 * (2000 // step + 1) ** 2
+        assert stem.with_suffix('.webp').is_file()
+    for name, _, _ in park['details']:
+        stem = GAME / 'yellowstone-data' / name
+        assert stem.with_suffix('.bin').stat().st_size == 2 * 501 ** 2
+        assert stem.with_suffix('.webp').is_file()
+    worlds.add('yellowstone')
+
     catalog = (GAME / "world-menu.js").read_text()
     assert worlds == set(re.findall(r"^    (\w+):\s*\{\s*name:", catalog, re.M))
     assert payload <= PACK_BUDGET
-    print(f"Validated {len(worlds)} selectable worlds and {payload:,} bytes of observation data")
+    print(f"Validated {len(worlds)} selectable worlds and {payload:,} bytes of compact observation data plus Yellowstone's terrain survey")
 
 
 if __name__ == "__main__":
