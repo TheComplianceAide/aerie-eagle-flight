@@ -9,7 +9,8 @@ html=(dist/'index.html').read_text()
 css=(dist/'style.css').read_text()
 assert not re.search(r'url\([^)]*\.(?:webp|jpg|png)\)',css), 'Menu photos must use the same asset resolver as the scene.'
 html=html.replace('<link rel="stylesheet" href="style.css">','<style>'+css+'</style>')
-attached=set(re.findall(r'<script src="([^"]+)"></script>',html))
+script_src=r'<script src="([^"?]+)(?:\?[^"]*)?"></script>'
+attached=set(re.findall(script_src,html))
 # The title and favicon load before the asset resolver in a standalone file.
 title_images = {'field-engraving.webp': 'image/webp', 'aerie-icon-64.png': 'image/png'}
 for name, mime in title_images.items():
@@ -22,7 +23,7 @@ def embed(m):
     if name=='three.min.js':source+='\n/* '+(dist/'three-LICENSE.txt').read_text()+' */'
     return '<script>'+safe(source)+'</script>'
 before,after=html.split('<script src="three.min.js"></script>',1)
-after=re.sub(r'<script src="([^"]+)"></script>',embed,'<script src="three.min.js"></script>'+after)
+after=re.sub(script_src,embed,'<script src="three.min.js"></script>'+after)
 resolver="""<script>
 (()=>{const cache=new Map();
 window.aerieAssetURL=file=>{

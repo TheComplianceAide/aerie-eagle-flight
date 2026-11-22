@@ -141,6 +141,10 @@ Choose **Wildlife shallows** for a low departure past each region’s fish and s
 
 See the [scenery and field-recording credits](game/credits.txt) for the source imagery, terrain, bird recordings, and their individual licenses. [Three.js](game/three-LICENSE.txt) and the bundled [pako decompressor](tools/pako/LICENSE) include their license notices.
 
+## Terrain in 0.31.0
+
+Horseshoe Bend's exposed sandstone shows more of the existing outcrop and surface scans at mid-distance. In the atlas worlds, the terrain under trees receives crown shadows that extend away from the sun instead of along a fixed map direction. The regional soundscapes and perch audio from 0.30.0 carry forward.
+
 ## Sound in 0.30.0
 
 Perch sounds follow the eagle's footing. Talon contact uses recordings of bark, stone, grit, sand, rough ice or wet ground as appropriate. Branch creaks follow limb flex under load, and gusts move audible leaves or needles in the selected tree. The [perch sound credits](game/perch-audio-credits.txt) identify the material recordings.

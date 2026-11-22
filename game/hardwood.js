@@ -2,10 +2,12 @@
 // eagle flies. The elongation follows the direction and elevation of the sun.
 window.shadeAtlasForest=function shadeAtlasForest(T,material,trees,sun,half){
   const n=2048,scale=n/(2*half),data=new Uint8Array(n*n);
-  const horizontal=Math.hypot(sun.x,sun.z),dx=-sun.x/horizontal,dz=-sun.z/horizontal;
+  const horizontal=Math.hypot(sun.x,sun.z);
+  const dx=horizontal>0?-sun.x/horizontal:1,dz=horizontal>0?-sun.z/horizontal:0;
   for(const tree of trees){
     const length=Math.min(3,horizontal/Math.max(.1,sun.y))*tree.height;
-    const cx=n*.5+(tree.x+length*.48)*scale,cy=n*.5+(tree.z+length*.48)*scale;
+    const offset=length*.48;
+    const cx=n*.5+(tree.x+offset*dx)*scale,cy=n*.5+(tree.z+offset*dz)*scale;
     const a=Math.max(1.3,(length*.46+tree.width*.25)*scale),b=Math.max(.85,tree.width*.48*scale);
     const ex=Math.ceil(Math.hypot(a*dx,b*dz)),ey=Math.ceil(Math.hypot(a*dz,b*dx));
     for(let y=Math.max(0,Math.floor(cy-ey));y<=Math.min(n-1,cy+ey);y++){
