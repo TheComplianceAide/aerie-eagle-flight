@@ -468,7 +468,12 @@
     const progress=inFlight ? units.miles(distance)+" flown · "+found.size+" / "+world.landmarks.length+" landmarks discovered" : "";
     el("summary").textContent=type==="places"?"Choose a landmark to fly nearby. "+progress:progress;
     el("back").textContent=type==="launchError"?"Try again":inFlight?(dynamics?.state.contact?"Fly again":"Resume flight"):"Back";
-    el("end").hidden=!inFlight;el("back").focus();
+    el("end").hidden=!inFlight;
+    if(type==="places"){
+      const list=el("placeList");
+      list.scrollTop=0;
+      (list.firstElementChild||el("back")).focus({preventScroll:true});
+    }else el("back").focus();
   }
   function closeDialog(){
     modal.hidden=true;paused=false;syncAudio();last=performance.now();previousFocus?.focus();
@@ -750,18 +755,64 @@
     if(["Enter","Space"].includes(event.code)){event.stopPropagation();releaseBrake();}
   });
   brakeButton.addEventListener("blur",releaseBrake);
+  const landmarkLaunchViews={
+    alaska:{"Mendenhall Glacier":"alaska-lake-view.jpg","West Glacier Ridge":"alaska-ridge-view.jpg","West alpine crest":"alaska-alpine-view.jpg","Nugget Falls beach":"alaska-shore-view.jpg","Nugget Falls":"alaska-spray-view.webp"},
+    canyon:{"Horseshoe Bend":"canyon-lake-view.jpg","Horseshoe Bend Overlook":"canyon-lake-view.jpg","Colorado River":"canyon-ridge-view.jpg","Sandstone shelves":"canyon-wall-view.webp"},
+    swiss:{"Oeschinensee":"valley.jpg","Western gravel beach":"swiss-shore-view.jpg","Fründen Falls":"falls-view.jpg"},
+    winnipesaukee:{"Rattlesnake Island":"winnipesaukee-lake-view.jpg","Weirs Beach":"winnipesaukee-weirs-view.jpg","Alton Bay":"winnipesaukee-alton-view.jpg"},
+    moosehead:{"Mount Kineo":"moosehead-lake-view.jpg","Rockwood":"moosehead-ridge-view.jpg"},
+    surry:{"Surry Mountain Dam":"surry-lake-view.jpg","Keene Main Street":"surry-ridge-view.jpg","Ashuelot River":"surry-valley-view.jpg"},
+    dixville:{"Table Rock":"dixville-dawn-view.jpg","Lake Gloriette":"dixville-lake-view.jpg","The Balsams Grand Resort Hotel":"dixville-hotel-view.jpg","Route 26":"dixville-highway-view.jpg"},
+    labrador:{"South Camp cabin":"labrador-cabin-view.jpg","South narrows":"labrador-ridge-view.webp","Rain shower over the lake":"labrador-rainbow-view.jpg"},
+    yosemite:{"El Capitan":"yosemite-lake-view.jpg","El Capitan Meadow":"yosemite-ridge-view.jpg"},
+    crater:{"Wizard Island":"crater-storm-ridge.webp"},
+    lofoten:{"Reinefjorden":"departure-light/lofoten-ridge.webp"},
+    acadia:{"Otter Cliff":"departure-light/acadia-lake.webp","Thunder Hole":"departure-light/acadia-ridge.webp","Sand Beach":"departure-light/acadia-beach.webp","Great Head":"departure-light/acadia-beach.webp"}
+  };
+  const landmarkPreviewRoot="landmark-previews/";
+  let landmarkPreviewIndex;
   function fillPlaces(){
-    const list=el("placeList");
+    const list=el("placeList"),region=world.region;
+    const areaView=["acadia","lofoten"].includes(region)?`departure-light/${region}-thumb.webp`:`menu-${region}.webp`;
+    const asset=name=>window.aerieAssetURL?.(name)||name;
+    landmarkPreviewIndex??=fetch(asset(landmarkPreviewRoot+"index.json"))
+      .then(response=>response.ok?response.json():{})
+      .catch(()=>({}));
     list.replaceChildren();
-    const ordered=world.landmarks.map(place=>({place,range:Math.hypot(place.x-player.x,place.z-player.z)})).sort((a,b)=>a.range-b.range);
-    for(const {place,range} of ordered){
-      const button=document.createElement("button"), label=document.createElement("span");
+    for(const place of world.landmarks){
+      const button=document.createElement("button"),label=document.createElement("span");
+      button.type="button";
+      label.className="placeName";
       label.textContent=place.name;
       const detail=document.createElement("small");
+      const range=Math.hypot(place.x-player.x,place.z-player.z);
       detail.textContent=(found.has(place.name)?"Seen · ":"")+units.distance(range);
       const view=window.aerieScenicFlight.description(world,place);
       if(view)button.title=view;
-      button.append(label,detail);button.onclick=()=>flyToLandmark(place);
+
+      const preview=document.createElement("span"),image=document.createElement("img");
+      preview.className="placePreview";
+      preview.setAttribute("aria-hidden","true");
+      image.alt="";
+      image.loading="lazy";
+      image.decoding="async";
+      preview.append(image);
+      const launchView=landmarkLaunchViews[region]?.[place.name];
+      const useFallback=()=>{
+        image.onerror=null;
+        image.src=asset(launchView||areaView);
+        preview.classList.toggle("areaPreview",!launchView);
+      };
+      const slug=place.name.normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+        .toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+      landmarkPreviewIndex.then(index=>{
+        if(!list.contains(preview))return;
+        if(!index?.[region]?.includes(slug)){useFallback();return;}
+        image.onerror=useFallback;
+        image.src=asset(`${landmarkPreviewRoot}${region}/${slug}.webp`);
+      });
+      button.append(preview,label,detail);
+      button.onclick=()=>flyToLandmark(place);
       list.appendChild(button);
     }
   }

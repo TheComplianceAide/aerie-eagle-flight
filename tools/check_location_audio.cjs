@@ -7,12 +7,13 @@ const {node, page, makeContext} = require('./check_directional_sound.cjs');
 const game = path.join(__dirname, '../game');
 const drain = async () => { for (let i = 0; i < 3; i++) await new Promise(r => setImmediate(r)); };
 
-async function flight(region, blocked = []) {
+async function flight(region, blocked = [], changes = {}) {
   const context = makeContext(), held = new Map(), requested = new Set();
   const windField = {direction: {x: 1, z: 0}, weatherAt: () => ({rain: region === 'labrador' ? .6 : 0, gust: 0, exposure: 1})};
   const world = {region, height: x => x < 0 ? -2 : 3, waterLevel: 0, windField,
     habitat: {wet: x => x < 0, nearestTree: (x, z) => x > 0 && x < 90 ? {x, z, y: 3, height: 13} : null},
-    landmarks: [{name: 'Reine fishing quay', x: 0, z: 0}], waterfalls: {impacts: [{name: 'Nugget Falls', x: 3, z: 0, y: 0}]}};
+    landmarks: [{name: 'Reine fishing quay', x: 0, z: 0}], waterfalls: {impacts: [{name: 'Nugget Falls', x: 3, z: 0, y: 0}]},
+    ...changes};
   const renderer = () => ({initialize: async () => {}, input: node(), output: node()});
   const box = {console, performance, matchMedia: () => ({matches: true}), localStorage: {getItem: () => null, setItem() {}},
     location: {protocol: 'http:', hash: ''}, document: page(), navigator: {onLine: false}, AbortController, URL,
@@ -28,14 +29,14 @@ async function flight(region, blocked = []) {
     vm.runInContext(fs.readFileSync(path.join(game, file), 'utf8'), box, {filename: file});
   const scape = box.makeSoundscape(context, world, region, node()); await drain(); scape.setEnabled(true);
   const camera = {position: new box.THREE.Vector3(), quaternion: new box.THREE.Quaternion()};
-  function observe(x, z = 0, delta = .8, stage = 'free') {
+  function observe(x, z = 0, delta = .8, stage = 'free', y = 10, fixedTime) {
     context.currentTime += delta;
-    camera.position.set(x, 10, z);
-    scape.update({x, y: 10, z, airspeed: stage === 'perched' ? 0 : 13, indicatedAirspeed: 13, elapsed: context.currentTime}, camera, delta,
+    camera.position.set(x, y, z);
+    scape.update({x, y, z, airspeed: stage === 'perched' ? 0 : 13, indicatedAirspeed: 13, elapsed: fixedTime ?? context.currentTime}, camera, delta,
       {perchStage: stage, canopy: x > 0 && x < 90 ? .75 : 0});
   }
   const sources = label => Array.from(scape.engine.sources).filter(s => s.label === label && s.gain > 0);
-  return {scape, world, context, requested, observe, sources, held};
+  return {scape, world, context, requested, observe, sources, held, box};
 }
 
 (async () => {
@@ -108,5 +109,116 @@ async function flight(region, blocked = []) {
 
   const lake = await flight('moosehead');
   assert.ok(!Array.from(lake.requested).some(n => n.startsWith('voice-')), 'regional wildlife is not a startup download');
-  console.log('Passed rain arrival and wet canopy, waterfall crossfades, shore swell, wildlife priority, quiet perching, mute cleanup, and lazy loading checks.');
+
+  const db = (a, b) => 20 * Math.log10(a / b);
+  const close = (actual, expected) => assert.ok(Math.abs(actual - expected) < .04, `expected ${expected} dB, got ${actual.toFixed(3)} dB`);
+  alaska.world.height = () => 152;
+  alaska.observe(490, 0, .8, 'perched', 162, 12);
+  const trail = alaska.sources('falls')[0].gain;
+  alaska.world.height = () => 762;
+  alaska.observe(490, 0, .8, 'perched', 772, 12);
+  close(db(alaska.sources('falls')[0].gain, trail), -10);
+
+  const canyon = await flight('canyon');
+  canyon.observe(-20, 0, .8, 'perched', 130, 12);
+  const high = canyon.sources('river')[0].gain;
+  canyon.observe(-20, 0, .8, 'perched', 10, 12);
+  close(db(canyon.sources('river')[0].gain, high), 5.2);
+
+  const notch = await flight('dixville');
+  const wind = speed => ({direction: {x: 1, z: 0}, weatherAt: () => ({windX: speed, windZ: 0, gust: .3, exposure: 1})});
+  notch.world.windField = wind(4);
+  notch.observe(20);
+  const low = notch.scape.ambientWindTrim;
+  notch.world.windField = wind(10);
+  notch.observe(20);
+  close(db(notch.scape.ambientWindTrim, low), 6);
+
+  for (const [region, expected] of [['labrador', -3.3], ['moosehead', -1.4]]) {
+    const coast = await flight(region);
+    coast.scape.adopt('lake', {name: 'reference lake', duration: 5});
+    coast.world.sunDirection = {y: .5};
+    coast.observe(-20, 0, .8, 'perched', 10, 12);
+    const daylight = coast.sources('shore')[0].gain;
+    coast.world.sunDirection.y = -.25;
+    coast.observe(-20, 0, .8, 'perched', 10, 12);
+    close(db(coast.sources('shore')[0].gain, daylight), expected);
+  }
+
+  const quietWaterfront = await flight('winnipesaukee', [], {landmarks: [
+    {name: 'Weirs Beach Boardwalk', x: 22, z: 1000}, {name: 'Alton Bay Water Bandstand', x: 20, z: 0},
+  ]});
+  quietWaterfront.observe(20, 0);
+  assert.equal(quietWaterfront.requested.has('scape-road-pass.m4a'), false, 'quiet Alton does not download Weirs traffic');
+  quietWaterfront.observe(20, 1000); await drain();
+  quietWaterfront.observe(20, 1000);
+  assert.equal(quietWaterfront.sources('scape-road-pass').length, 1);
+  quietWaterfront.observe(20, 0);
+  assert.equal(quietWaterfront.sources('scape-road-pass').length, 0, 'traffic leaves the mix outside the developed waterfront');
+
+  const keene = await flight('surry', [], {landmarks: [{name: 'Central Square', x: 65, z: 1000}]});
+  keene.observe(40, 915); await drain();
+  keene.observe(40, 915);
+  assert.equal(keene.sources('scape-road-pass').length, 1);
+  keene.observe(40, 915, .8, 'free', 500);
+  assert.equal(keene.sources('scape-road-pass').length, 0, 'street activity falls out of reach on a high glide');
+
+  const alpine = await flight('swiss');
+  const fall = alpine.world.waterfalls.impacts[0];
+  fall.width = 5;
+  alpine.observe(3, 0, .8, 'perched', 10, 12);
+  const thin = alpine.sources('falls')[0].gain / (.55 + 40 / 160 + 5 / 80);
+  fall.width = 34;
+  alpine.observe(3, 0, .8, 'perched', 10, 12);
+  const broad = alpine.sources('falls')[0].gain / (.55 + 40 / 160 + 34 / 80);
+  close(db(broad, thin), 3.04);
+
+  const surf = await flight('lofoten');
+  const setSeaGust = gust => { surf.world.windField.weatherAt = () => ({gust, exposure: 1, windX: 4.5, windZ: 0}); };
+  setSeaGust(0);
+  surf.observe(-20, 960, .8, 'perched', 10, 12);
+  const openSeaCalm = surf.sources('shore')[0].gain;
+  setSeaGust(1);
+  surf.observe(-20, 960, .8, 'perched', 10, 12.12);
+  const openSeaRough = surf.sources('shore')[0].gain;
+  setSeaGust(0);
+  surf.observe(-20, 0, .8, 'perched', 10, 12);
+  const harborCalm = surf.sources('shore')[0].gain;
+  setSeaGust(1);
+  surf.observe(-20, 0, .8, 'perched', 10, 12.12);
+  close(db(openSeaRough, openSeaCalm) - db(surf.sources('shore')[0].gain, harborCalm), 6);
+
+  const rock = (x, z) => x < 48 || Math.abs(z) > 80 ? 0 : Math.min(160, (x - 48) * 40);
+  const cliffs = await flight('canyon', [], {height: rock});
+  cliffs.observe(0, 0, .8, 'perched', 10);
+  assert.ok(cliffs.scape.engine.walls.length, 'a low listener sees the cliff beyond flat ground');
+  const facing = cliffs.scape.engine.walls[0], ear = {x: 0, y: 10, z: 0};
+  const makePath = (source, listener = ear) => cliffs.box.aerieCliffReturn(cliffs.world, source, listener, facing);
+  const returnPath = makePath(ear);
+  assert.ok(returnPath && Math.abs(Math.hypot(returnPath.x, returnPath.y - ear.y, returnPath.z) / 343 - .28) < .015,
+    'the low call returns directionally from the real cliff after its round-trip delay');
+  assert.equal(makePath({x: 63, y: 10, z: 0}), null, 'a source behind the face has no specular path');
+  assert.equal(makePath({x: 0, y: 170, z: 0}, {x: 0, y: 170, z: 0}), null, 'no return above the cliff lip');
+  assert.equal(makePath({x: 0, y: 10, z: 190}), null, 'no return past the end of the face');
+  cliffs.world.height = (x, z) => x > 18 && x < 28 ? 36 : rock(x, z);
+  assert.equal(makePath(ear), null, 'an intervening ridge blocks the two real reflection legs');
+  cliffs.world.height = rock;
+  cliffs.world.groundCover = () => 1;
+  const wooded = makePath(ear);
+  assert.ok(wooded.strength < returnPath.strength && wooded.cutoff < returnPath.cutoff, 'vegetation weakens and darkens the cliff return');
+  const wall = cliffs.scape.engine.loop(cliffs.scape.buffers.get('scape-canyon-colorado-river'), ear,
+    {label: 'reflection witness', echo: true});
+  cliffs.observe(0, 0, .8, 'perched', 10);
+  assert.ok(wall.images.some(s => s.gain > 0 && s.reflectionCutoff < 10000), 'the acoustic graph uses the screened return');
+  const clamp = value => Math.max(0, Math.min(1, value));
+  const foothill = x => Math.max(0, x) * .065 + 160 * clamp((x - 125) / 5);
+  cliffs.world.height = foothill;
+  assert.ok(cliffs.box.aerieEchoSurfaces(cliffs.world, ear, true).some(face => face.x > 125),
+    'an earlier gentle rise cannot hide a real cliff farther along the ray');
+  const narrow = x => 160 * Math.min(clamp((x - 48) / 4), clamp((61 - x) / 4));
+  cliffs.world.height = narrow;
+  const narrowFace = cliffs.box.aerieEchoSurfaces(cliffs.world, ear, true)[0];
+  assert.ok(narrowFace && cliffs.box.aerieCliffReturn(cliffs.world, ear, ear, narrowFace),
+    'a thin ridge still shows its exposed near face');
+  console.log('Passed location audio, land and water field trims, local traffic loading, and finite cliff paths.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

@@ -34,7 +34,7 @@ for (const [region, profile] of Object.entries(scenes)) {
     if (mammalCalls.has(id)) add(field('land-' + id), 'wildlife');
   }
   for (const entry of [spec.falls, spec.surge, ...(spec.fallTakes || []), ...(spec.water || []), ...(spec.beds || []), ...(spec.loops || [])]) {
-    if (entry?.clip) add(entry.clip + '.m4a', 'habitat');
+    if (entry?.clip) add(entry.clip + '.m4a', entry.kind === 'traffic' ? 'traffic' : 'habitat');
     for (const alternate of entry?.alternates || []) add(alternate + '.m4a', 'habitat');
   }
   for (const entry of [...(spec.choruses || []), ...(spec.events || [])]) {

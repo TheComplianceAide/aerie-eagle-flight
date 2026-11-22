@@ -260,56 +260,29 @@ window.makeSpatialAudio = function makeSpatialAudio(context, world, options = {}
 
   // ---- real-time cliff echoes -------------------------------------------------
   // Probe the terrain around the listener for steep faces that rise above it.
-  let walls = [], wallAt = {x: Infinity, z: Infinity}, wallTime = -1;
+  let walls = [], wallAt = {x: Infinity, y: Infinity, z: Infinity}, wallTime = -1;
   function probeWalls(now) {
-    if (now - wallTime < .5 && Math.hypot(ear.x - wallAt.x, ear.z - wallAt.z) < 30) return;
-    wallTime = now; wallAt = {x: ear.x, z: ear.z};
-    const h = (x, z) => (world.elevation || world.height)(x, z), found = [];
-    for (let i = 0; i < 28; i++) {
-      const a = i / 28 * Math.PI * 2, dx = Math.cos(a), dz = Math.sin(a);
-      let prev = 0;
-      for (const r of [15, 25, 40, 60, 85, 120, 165, 225, 300, 400, 520, 680, 880, 1150, 1500]) {
-        const x = ear.x + dx * r, z = ear.z + dz * r, y = h(x, z);
-        if (y > ear.y - 60) {
-          // Refine to the face and read its slope and outward normal.
-          let lo = prev, hi = r;
-          for (let n = 0; n < 6; n++) { const m = (lo + hi) / 2; if (h(ear.x + dx * m, ear.z + dz * m) > ear.y - 60) hi = m; else lo = m; }
-          const px = ear.x + dx * hi, pz = ear.z + dz * hi, py = Math.min(ear.y, h(px, pz));
-          const gx = (h(px + 4, pz) - h(px - 4, pz)) / 8, gz = (h(px, pz + 4) - h(px, pz - 4)) / 8, slope = Math.hypot(gx, gz);
-          if (slope > .7) {
-            const nx = -gx / slope, nz = -gz / slope; // horizontal normal pointing out of the face
-            if (nx * -dx + nz * -dz > .35) {
-              const cover = world.groundCover?.(px, pz) || 0;
-              const reflect = clamp((slope - .5) / 1.5, .25, 1) * (1 - .55 * clamp(cover, 0, 1));
-              found.push({x: px, y: py, z: pz, nx, nz, r: hi, reflect});
-            }
-          }
-          break;
-        }
-        prev = r;
-      }
-    }
-    // Keep strong, distinct faces: reflectivity over distance, at least 40 degrees apart.
-    found.sort((a, b) => b.reflect / (1 + b.r / 400) - a.reflect / (1 + a.r / 400));
-    walls = [];
-    for (const w of found) if (walls.length < 4 && walls.every(o => o.nx * w.nx + o.nz * w.nz < .77)) walls.push(w);
-  }
-  function mirror(s, w) {
-    const k = (s.x - w.x) * w.nx + (s.z - w.z) * w.nz;
-    return {x: s.x - 2 * k * w.nx, y: s.y, z: s.z - 2 * k * w.nz, valid: k > 5};
+    if (now - wallTime < .5 && Math.hypot(ear.x - wallAt.x, ear.y - wallAt.y, ear.z - wallAt.z) < 24) return;
+    wallTime = now; wallAt = {x: ear.x, y: ear.y, z: ear.z};
+    walls = window.aerieEchoSurfaces?.(world, ear, true) || [];
   }
   function attachEchoes(parent, node, opt) {
     for (let i = 0; i < 2; i++) {
       const image = createSource(node, {x: parent.x, y: parent.y, z: parent.z, gain: 0, ref: parent.ref, reach: parent.reach * 1.8,
         wet: 0, occlude: false, doppler: true, image: true, mask: parent.mask, masking: parent.masking});
-      image.slot = i;
-      image.onUpdate = () => {
-        const w = walls[image.slot];
-        const m = w && parent.alive ? mirror(parent, w) : null;
-        if (!m || !m.valid) { image.gain = 0; return; }
-        image.x = m.x; image.y = m.y; image.z = m.z;
-        // Specular return off the face; rough rock and canopy keep less.
-        image.gain = parent.gain * w.reflect * .8;
+      const result = {};
+      let lastWall, nextCheck = 0, bounce = null;
+      image.onUpdate = (_, now) => {
+        const wall = walls[i];
+        if (!wall || !parent.alive) { image.gain = 0; lastWall = null; return; }
+        if (wall !== lastWall || now >= nextCheck) {
+          bounce = window.aerieCliffReturn?.(world, parent, ear, wall, result, surveyPath || undefined);
+          lastWall = wall; nextCheck = now + .22;
+        }
+        if (!bounce) { image.gain = 0; return; }
+        image.x = bounce.x; image.y = bounce.y; image.z = bounce.z;
+        image.reflectionCutoff = bounce.cutoff;
+        image.gain = parent.gain * bounce.strength;
       };
       parent.images.push(image);
     }
@@ -357,7 +330,7 @@ window.makeSpatialAudio = function makeSpatialAudio(context, world, options = {}
     // it all but vanishes. The masker follows airspeed, gusts and shelter.
     const level = s.mask ? window.aerieWindMasking(arrived, masker * s.masking) : arrived;
     s.arrived = arrived; s.heard = level; s.shield = shield;
-    const cutoff = Math.min(airCutoff(d), 20000 * Math.exp(-3.1 * shield));
+    const cutoff = Math.min(airCutoff(d), 20000 * Math.exp(-3.1 * shield), s.reflectionCutoff ?? 20000);
     if (immediate) {
       s.level.gain.value = level; s.air.frequency.value = cutoff; s.shade.frequency.value = 20000;
     } else {
