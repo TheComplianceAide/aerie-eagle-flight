@@ -11,6 +11,7 @@
   // Air the sound travels through (ISO 9613-1 inputs) and the simulated
   // reverberation class for each world (see ir-*.m4a, pyroomacoustics).
   const climate = {
+    yellowstone: {tempC: 18, humidity: 43},
     alaska: {tempC: 12, humidity: 85, ir: 'alaska'},     canyon: {tempC: 31, humidity: 14, ir: 'canyon'},
     swiss: {tempC: 14, humidity: 62, ir: 'swiss'},       winnipesaukee: {tempC: 23, humidity: 72, ir: 'lake', inversion: .15},
     surry: {tempC: 28, humidity: 74, ir: 'lake'},        dixville: {tempC: 3, humidity: 88, ir: 'dixville', inversion: .45},
@@ -866,6 +867,7 @@
       foregroundUntil = Math.max(foregroundUntil, (source?.endsAt ?? now) + tail);
     }
 
+    const yellowstoneAudio = region==='yellowstone' ? window.makeYellowstoneAudio?.(engine,world,load,buffers) : null;
     const perchAudio = window.makePerchAcoustics?.(context, engine, world, region, load, buffers);
     const rainTex = {};
     function rainTexture(surface, density) {
@@ -888,7 +890,7 @@
       if (state.rain) state.rain.emitters.forEach(s => s.stop(.4));
       state.rainFront?.stop(.4);
       state.rainFront = null; nextRainScan = 0; state.dripDue = 0;
-      state.falls.clear(); state.water = []; state.beds = []; state.loops = []; state.choruses = []; state.movers.clear(); state.rain = null; regionalCall = null; foreground = null; foregroundUntil = 0; perched = false; perchSince = -Infinity; perchAudio?.reset();
+      state.falls.clear(); state.water = []; state.beds = []; state.loops = []; state.choruses = []; state.movers.clear(); state.rain = null; regionalCall = null; foreground = null; foregroundUntil = 0; perched = false; perchSince = -Infinity; perchAudio?.reset();yellowstoneAudio?.reset();
     }
     function setEnabled(value) {
       if (enabled === value) return; enabled = value;
@@ -1221,6 +1223,7 @@
         perchStage: stage, perch: extras.perch, settledFor: perched ? now - perchSince : 0,
         naturalTrim: naturalBedTrim(region, world, terrainY), windTrim: ctx?.windTrim ?? 1};
       perchAudio?.update(s, ctx);
+      yellowstoneAudio?.update(s, ear, now);
       const keene = landmark(world, /Central Square/);
       if (keene) ctx.town = 1 - smooth(300, 1400, Math.hypot(ear.x - keene.x, ear.z - keene.z));
       // Air is squeezed out of Thunder Hole only as the visual pulse rises.

@@ -5,7 +5,7 @@ window.addRegionalWildlife=function(T,scene,w){
   const ground=w.elevation||w.height,h=w.habitat,models=window.makeWildlifeModels(T,scene,region);
   const land=window.makeLandWildlife(T,scene,w);
   const feedingFish={dixville:'brook-trout',moosehead:'atlantic-salmon',labrador:'brook-trout'}[region];
-  const stations={alaska:[-424,-476],swiss:[-613,437],canyon:[-322,-32],yosemite:[-728,1256],
+  const stations={yellowstone:[-748,-443],alaska:[-424,-476],swiss:[-613,437],canyon:[-322,-32],yosemite:[-728,1256],
     crater:[-3209,1679],lofoten:[923,2104],acadia:[636,-789],
     winnipesaukee:[1210,1854],moosehead:[648,-662],surry:[-1142,-3101]};
   const tau=2*Math.PI,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -17,6 +17,7 @@ window.addRegionalWildlife=function(T,scene,w){
   let lakeOffset=0;
   scene.traverse(o=>{if(o.isWater&&Number.isFinite(w.waterLevel))lakeOffset=o.position.y-w.waterLevel;});
   function waterAt(x,z,t){
+    if(w.yellowstone?.river.poolAt(x,z))return -Infinity;
     const channel=w.channelWater?.(x,z);
     if(Number.isFinite(channel))return channel;
     const y=ground(x,z);
@@ -105,7 +106,7 @@ window.addRegionalWildlife=function(T,scene,w){
     if(resumeSite(key))return sites.get(key);
     const random=randomAt(x,z),water=findWater(x,z,curated?140:86);
     const site={key,x,z,water,curated,flocks:[],schools:[]};
-    for(const id of [...profile.birds,...profile.animals]){
+    for(const id of [...(profile.wildlifeBirds||profile.birds),...profile.animals]){
       if(!curated&&random()<.52)continue;
       placeGroup(site,id,random);
       if(birds[id]?.[0]==='goose'&&(curated||random()<.37))placeGroup(site,id,random,true);

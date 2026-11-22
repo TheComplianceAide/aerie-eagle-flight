@@ -541,7 +541,7 @@
     manager.onError=url=>{failedAsset||=String(url).split("?")[0].split("/").pop()||"image";priorError?.(url);};
     try {
       scene.userData.geodata=await window.prepareAerieGeodata(THREE,region,renderer.capabilities.maxTextureSize);
-      const factory={swiss:window.makeWorld,alaska:window.makeAlaska,canyon:window.makeCanyon}[region];
+      const factory={swiss:window.makeWorld,alaska:window.makeAlaska,canyon:window.makeCanyon,yellowstone:window.makeYellowstone}[region];
       world=factory?await factory(THREE,scene):await window.makeAtlasWorld(THREE,scene,region);
       world.region=region;
       world.geodata=scene.userData.geodata;
@@ -549,7 +549,7 @@
       if(hydrography?.shore){
         world.shorelines=[hydrography.shore,...(hydrography.shoreHoles||[])].map(ring=>ring.map(([x,z])=>({x,z})));
       }
-      geology=window.makeRegionalGeology(THREE,scene,world);
+      geology=region==='yellowstone'?null:window.makeRegionalGeology(THREE,scene,world);
       const perchHabitat=window.makePerchHabitat(THREE,scene,world,region);
       world.habitat=perchHabitat;
       perchRoute=window.makePerchRoute(THREE,world,region);
@@ -558,7 +558,7 @@
       world.windField=window.makeWindField(world,region);
       perching=window.makePerchFlight(THREE,world,perchHabitat,perchRoute);
       perchMarker=new THREE.Vector3();
-      if(factory)updateHabitat=addHabitat(THREE,scene,world,region);
+      if(factory&&region!=='yellowstone')updateHabitat=addHabitat(THREE,scene,world,region);
       window.addFlightWater(THREE,scene,world);
       if(region==='acadia'){
         window.addAcadiaCoast(THREE,scene,world);
@@ -575,10 +575,10 @@
       const plumageWeather={};
       eagle.motion?.setRainSource?.((x,z,t)=>world.windField.weatherAt?.(x,eagle.object.position.y,z,t,plumageWeather)?.rain??window.aerieRainAt?.(world,region,x,z,t)??0);
       el("viewport").replaceChildren(renderer.domElement);resize();
-      world.regionalFieldScenery=fieldScenery=window.makeRegionalFieldScenery(THREE,scene,world);
+      world.regionalFieldScenery=fieldScenery=region==='yellowstone'?null:window.makeRegionalFieldScenery(THREE,scene,world);
       world.canopyStream=canopy=window.makeCanopyStream(THREE,renderer,scene,world);
       world.launches.grand=window.aerieScenicFlight.grandView(world);
-      loadPromise=Promise.all([assets,world.ready,eagle.ready,geology.ready,fieldScenery.ready]);
+      loadPromise=Promise.all([assets,world.ready,eagle.ready,geology?.ready,fieldScenery?.ready]);
       await loadPromise;
       window.addReadableWindWater(THREE,scene,world);
       windSoarer=window.makeWindSoarer(THREE,scene,world,world.windField);

@@ -2,6 +2,13 @@
   // Horizontal coordinates are metres in each world's survey. The third flight-path
   // coordinate is the desired height above terrain, water, foliage or a structure.
   const routes = {
+    yellowstone: {
+      name:'Firehole lodgepole perch', sight:'Grand Prismatic Spring',
+      sightPoint:[-1148,-7222,'Grand Prismatic Spring'],
+      label:'Cross the cooler western creek bank to a lodgepole at the forest edge.',
+      path:[[-1450,-6860,24],[-1522,-6995,20],[-1589,-7120,16]],
+      perch:['branch',-1629,-7195,'Midway lodgepole pine'],
+    },
     swiss: {
       name: 'Oeschinen beach and meadow', sight: 'Western gravel beach',
       label: 'Cross the gravel strand to a spruce at the edge of the meadow.',

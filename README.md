@@ -1,6 +1,6 @@
 # Aerie
 
-Fly a bald eagle through twelve real-world landscapes, looking out over its right shoulder. Follow a waterfall down to a glacial lake, catch rising air off a sunlit ridge, or settle on a branch and listen to the forest. Steer with your mouse or one finger.
+Fly a bald eagle through thirteen real-world landscapes, looking out over its right shoulder. Follow a waterfall down to a glacial lake, catch rising air off a sunlit ridge, or settle on a branch and listen to the forest. Steer with your mouse or one finger.
 
 **[Play Aerie in your browser](https://aerie-valley-flight.randyb308826.chatgpt.site/)** · [Download for offline play](https://github.com/TheComplianceAide/aerie-eagle-flight/releases/latest/download/Aerie.html)
 
@@ -16,6 +16,8 @@ The source is public for noncommercial play, study, modification and sharing. Co
 | --- | --- |
 | [![In-game shoulder view banking past Nugget Falls and its forested rock ledges](docs/media/nugget-falls.gif)](https://aerie-valley-flight.randyb308826.chatgpt.site/#world=alaska&launch=spray) | [![In-game shoulder view banking over Lac Berté beneath a rainbow](docs/media/lac-berte-rainbow.gif)](https://aerie-valley-flight.randyb308826.chatgpt.site/#world=lac-berte&launch=rainbow) |
 | Fly close enough to see the wind carry spray off the ledges. [Fly the falls](https://aerie-valley-flight.randyb308826.chatgpt.site/#world=alaska&launch=spray) | Bank over the narrows as a sun shower breaks over the lake. [Fly the rainbow](https://aerie-valley-flight.randyb308826.chatgpt.site/#world=lac-berte&launch=rainbow) |
+
+[Fly Yellowstone’s Firehole River](https://aerie-valley-flight.randyb308826.chatgpt.site/#world=yellowstone&launch=faithful) · [Yellowstone surveys and recordings](docs/yellowstone-firehole.md)
 
 [![Aerie’s world-selection menu with Moosehead Lake selected and Mount Kineo cliffs as the launch point](docs/media/world-menu.webp)](https://aerie-valley-flight.randyb308826.chatgpt.site/#world=moosehead&launch=lake)
 

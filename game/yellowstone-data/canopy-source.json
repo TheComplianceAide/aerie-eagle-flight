@@ -1,0 +1,7 @@
+{
+  "archive": "https://usgs-lidar-public.s3.amazonaws.com/WY_YellowstoneNP_3_2020/ept.json",
+  "crownCount": 289847,
+  "pointsRead": 607265487,
+  "cellM": 2,
+  "detectedPeaks": 1077729
+}

@@ -10,6 +10,7 @@
     bilberry:{gain:[.96,1.04,.80]}
   };
   const palettes={
+    yellowstone:['tussock','bilberry','alder'],
     milford:['tree-fern','tussock','bilberry'],canyon:['ephedra','tussock'],lofoten:['heath','tussock','alder'],
     swiss:['tussock','bilberry'],crater:['bilberry','tussock'],alaska:['alder','fern','tussock'],
     labrador:['tea','heath','tussock'],yosemite:['bilberry','fern','tussock'],
