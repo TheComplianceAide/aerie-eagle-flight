@@ -648,7 +648,11 @@
         {clip: 'scape-cabert-sill', ref: 13, reach: 190, gain: .67, where: fixed(-3661.7, 375.1, 1364.2)},
         {clip: 'scape-cabert-brook', ref: 13, reach: 180, gain: .65, where: fixed(-3523.1, 367.3, 1450.2)},
         {clip: 'scape-labrador-cabin-rain', ref: 9, reach: 145, gain: .58, where: at(/South Camp cabin/, 3.4),
-          level: (c, p) => c.world.windField?.weatherAt?.(p.x, p.y, p.z, c.t)?.rain ?? c.rain}
+          level: (c, p) => {
+            const roof = c.world.windField?.weatherAt?.(p.x, p.y, p.z, c.t);
+            const rain = roof?.rain ?? c.rain, wetness = roof?.wetness ?? c.wetness;
+            return Math.max(rain, .34 * wetness);
+          }}
       ],
       events: [
         {clip: 'scape-labrador-mosquitoes', every: [16, 36], ref: 1.2, reach: 20, gain: .35, when: lowAndLeafy, where: nearEar()},
