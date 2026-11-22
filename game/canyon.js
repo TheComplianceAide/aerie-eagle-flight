@@ -107,6 +107,40 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
   const fragment=`
     uniform sampler2D scrubFloor,wallRelief;
     ${window.aerieFieldShader('canyon')}
+    vec3 sandstoneMidGround(sampler2D gallery,vec3 at,vec3 normal,vec3 color,vec3 sun,
+                        float range,float substrate){
+      // Mix broad material faces from the existing regional atlas, while
+      // retaining the registered color and extent of each actual landform.
+      float band=smoothstep(115.,285.,range)*(1.-smoothstep(1850.,3800.,range));
+      float amount=band*clamp(substrate,0.,1.);
+      if(amount<.004)return color;
+      vec2 xz=at.xz;
+      float steep=smoothstep(.10,.73,1.-normal.y);
+      float stand=fieldGrain(xz*.018+vec2(3.1,-8.2));
+      mat2 orient=mat2(.788,.616,-.616,.788);
+      float bend=fieldGrain(xz*.008-vec2(9.7,2.1))-.5;
+      vec2 slopeUv=vec2(dot(xz,vec2(.77,.63)),at.y*.84+dot(xz,vec2(-.26,.32)))*.026;
+      slopeUv+=vec2(.23*(stand-.5),bend*.48);
+      vec2 apronUv=orient*xz*.021+vec2(.38+.33*bend,.19+.22*(stand-.5));
+      vec4 apron=soilCapture(gallery,apronUv,9.);
+      vec4 outcrop=soilCapture(gallery,slopeUv+vec2(.11,.43),13.);
+      float plane=mix(apron.a,outcrop.a,steep);
+      float veins=mix(dot(apron.rgb,vec3(.27,.57,.16)),dot(outcrop.rgb,vec3(.27,.57,.16)),steep);
+      float mineralVariation=clamp((plane-.50)*1.10+(veins-.34)*.87,-.68,.68);
+      // Sun direction supplies the material's slope response, without
+      // altering cast shadows, the scene light, or atmospheric terms.
+      float facing=dot(normal,sun);
+      float exposed=mix(.69,1.24,steep);
+      vec3 dx=dFdx(at),dy=dFdy(at);
+      vec3 u=cross(dy,normal),v=cross(normal,dx);
+      float area=dot(dx,u);
+      vec3 gradient=(dFdx(plane)*u+dFdy(plane)*v)*sign(area)/max(abs(area),.00001);
+      vec3 faceNormal=normalize(normal-gradient*mix(.75,2.4,steep));
+      float margin=clamp(dot(faceNormal,sun)-facing,-.35,.35);
+      float structure=mineralVariation*(.61+.26*facing)+.34*margin+.16*(stand-.48)*(1.-steep);
+      float substrateGain=clamp(1.+structure*exposed*1.18,.59,1.45);
+      return color*mix(1.,substrateGain,amount);
+    }
     uniform sampler2D terrainField,bankRadiance,crossbeds;
     uniform sampler2D photo,strata,grain,flow,ripple,panorama,sand,pebbles,pebbleNormal,bankMap;
     uniform vec3 sun;uniform float clock;varying vec2 tc;varying vec3 wp,n;
@@ -315,6 +349,8 @@ window.makeCanyon = function makeCanyon(THREE, scene) {
         float scrub=smoothstep(.006,.075,aerial.g-aerial.r);
         dry=mix(dry,lip,rimRock*(1.-scrub)*(.73-.36*smoothstep(240.,620.,dist)));
       }
+      dry=sandstoneMidGround(scrubFloor,wp,normal,dry,sun,dist,
+        (1.-wet)*smoothstep(2.,24.,signedBank));
       dry*=indirect+sunward;
       float groundPass=closeGround*(1.-face)*(1.-wet)*smoothstep(3.,26.,signedBank);
       vec3 pebbly=soilCapture(scrubFloor,wp.xz*.32,10.).rgb;
