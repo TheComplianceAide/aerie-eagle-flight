@@ -17,7 +17,29 @@ window.addDixvilleLandmarks = function(T, scene, sites, elevation, ground=elevat
   finish(siding,'boards',2.34);finish(granite,'fieldstone',2.04);
   finish(roof,'redslate',2.88);finish(slate,'slate',3.02);
   roof.color.setHex(0xbe6851);slate.color.setHex(0xbbbdbb);granite.color.setHex(0xd4d1ca);
-  const pavement=material(0xd1c9bd,image('keene-asphalt.webp')), gravel=material(0x958a76),yellow=material(0xe1b653),edge=material(0xe0dace),steel=material(0xa3a5a0),wood=material(0x73685a);
+  const pavement=material(0xbfc1be,image('keene-asphalt.webp')), gravel=material(0x948f84),steel=material(0xa3a5a0),wood=material(0x73685a);
+  const roadBand=[];
+  pavement.roughness=.97;
+  // Paint is part of the asphalt, not another slightly raised surface. An
+  // area-filtered stripe remains thin at bad viewing angles without z-fighting.
+  pavement.onBeforeCompile=program=>{
+    program.uniforms.dixvilleYellow={value:new T.Color(0xcaa352)};
+    program.uniforms.dixvilleWhite={value:new T.Color(0xc9c6ba)};
+    program.vertexShader='attribute vec2 roadBand;varying vec2 vRoadBand;\n'+program.vertexShader.replace(
+      '#include <begin_vertex>','#include <begin_vertex>\nvRoadBand=roadBand;');
+    program.fragmentShader=`uniform vec3 dixvilleYellow,dixvilleWhite;
+varying vec2 vRoadBand;
+float roadStripe(float x,float a,float b,float px){
+  return max(0.,min(b,x+px)-max(a,x-px))/(2.*px);
+}
+`+program.fragmentShader.replace('#include <map_fragment>',`#include <map_fragment>
+  float x=vRoadBand.x,edgePos=abs(x)-vRoadBand.y;
+  float paintPx=max(.001,.5*fwidth(x)),edgePx=max(.001,.5*fwidth(edgePos));
+  float centre=roadStripe(x,-.157,-.052,paintPx)+roadStripe(x,.052,.157,paintPx);
+  float edgePaint=roadStripe(edgePos,-.064,.064,edgePx);
+  diffuseColor.rgb=mix(diffuseColor.rgb,dixvilleYellow,.86*centre);
+  diffuseColor.rgb=mix(diffuseColor.rgb,dixvilleWhite,.80*edgePaint);`);
+  };
   const stoneMap=new T.TextureLoader().load('dixville-schist.webp');stoneMap.colorSpace=T.SRGBColorSpace;stoneMap.wrapS=stoneMap.wrapT=T.RepeatWrapping;
   // Keep the exposed fracture faces readable in the notch's deep dawn shadow.
   const rock=new T.MeshBasicMaterial({map:stoneMap,color:0xe4e1df,side:T.DoubleSide,vertexColors:true});
@@ -273,25 +295,38 @@ window.addDixvilleLandmarks = function(T, scene, sites, elevation, ground=elevat
     for(let i=0;i<pts.length;i++){
       const [x,z]=pts[i],[x0,z0]=pts[Math.max(0,i-1)],[x1,z1]=pts[Math.min(pts.length-1,i+1)],l=Math.hypot(x1-x0,z1-z0)||1,nx=-(z1-z0)/l,nz=(x1-x0)/l;
       const record=main&&lanesAt(x,z),edgeAt=record?.edgeWidth||3.30;
-      const shoulder=record?Math.max(width,edgeAt+.27):width;
-      const layers=main?[[-shoulder-.83,shoulder+.83,gravel],[-shoulder,shoulder,pavement],[-.16,-.056,yellow],[.056,.16,yellow],[-edgeAt-.07,-edgeAt+.07,edge],[edgeAt-.07,edgeAt+.07,edge]]:[[-width,width,gravel]];
-      // Put stripes and asphalt on precisely the same cross slope to avoid disappearing paint.
+      const shoulder=main?Math.max(width,edgeAt+.27):width;
+      // Adjacent shoulder, left lane, right lane and shoulder share vertices.
+      // No full-width gravel sheet under the asphalt and no raised paint.
+      const layers=main?[[-shoulder-.83,-shoulder,gravel],[-shoulder,0,pavement],[0,shoulder,pavement],[shoulder,shoulder+.83,gravel]]:[[-width,width,gravel]];
+      // Preserve the surveyed alignment, grade and cross slope.
       const yL=elevation(x-nx*(width+1),z-nz*(width+1)),yR=elevation(x+nx*(width+1),z+nz*(width+1));
       const centre=Math.max(elevation(x,z),(yL+yR)/2);
       const pt=(a,dy)=>[x+nx*a,centre+(yR-yL)*a/(2*(width+1))+.38+dy,z+nz*a];
       if(main&&x>=330&&x<=819&&z>290&&z<430){
-        roadHere.push({x,z,y:centre+.38,tilt:(yR-yL)*nz/(2*(width+1)),outer:shoulder+.60});
+        roadHere.push({x,z,y:centre+.405,tilt:(yR-yL)*nz/(2*(width+1)),outer:shoulder+.83});
       }
-      const row=layers.map(([a,b],j)=>[pt(a,.025*Math.min(j,2)),pt(b,.025*Math.min(j,2))]);
+      const row=layers.map(([a,b],j)=>{
+        const outer=(j===0&&main?'left':j===3&&main?'right':'');
+        const sample=(u,out)=>{
+          const v=pt(u,main?.025:0);
+          // Ease the narrow gravel shoulder down to the terrain, never the lane.
+          if(out)v[1]=Math.min(v[1],elevation(v[0],v[2])+.06);
+          return {v,band:[u,edgeAt]};
+        };
+        return [sample(a,outer==='left'),sample(b,outer==='right')];
+      });
       const photoDrive=!main&&x>-68&&x<112&&z>-304&&z<-179&&ownsParkland(x,z);
-      if(prior&&!photoDrive)layers.forEach(([a,b,m],j)=>{
-        if(record&&m===pavement){
-          // Split the paved ribbon at its crown; on twisting cross slopes a
-          // full-width diagonal can crest above its own double yellow paint.
-          const split=pair=>pair[0].map((v,k)=>(v+pair[1][k])*.5),p=split(prior[j]),q=split(row[j]);
-          face(m,prior[j][0],p,q,row[j][0],(b-a)/8,1);
-          face(m,p,prior[j][1],row[j][1],q,(b-a)/8,1);
-        }else face(m,prior[j][0],prior[j][1],row[j][1],row[j][0],(b-a)/4,1);
+      if(prior&&!photoDrive)layers.forEach(([, ,m],j)=>{
+        const [a,b]=prior[j],[d,c]=row[j];
+        if(m!==pavement){face(m,a.v,b.v,c.v,d.v);return;}
+        // Stable world-metre UVs, rather than repeating a whole texture every
+        // sampled metre around the bend. Carry lane coordinates with each vertex.
+        const uv=point=>[(.92*point.v[0]+.38*point.v[2])*.42,(-.38*point.v[0]+.92*point.v[2])*.42];
+        for(const t of [[a,b,c],[a,c,d]]){
+          tri(m,...t.map(q=>q.v),t.flatMap(uv));
+          roadBand.push(...t.flatMap(q=>q.band));
+        }
       });
       const lakeRail=x>=-300&&x<=135&&z<165;
       if(main && lakeRail && prior){
@@ -361,6 +396,7 @@ window.addDixvilleLandmarks = function(T, scene, sites, elevation, ground=elevat
   const group=new T.Group();group.name='Dixville Notch landmarks';
   for(const [m,{p,uv}] of batches)if(p.length){
     const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(p,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));g.computeVertexNormals();
+    if(m===pavement)g.setAttribute('roadBand',new T.Float32BufferAttribute(roadBand,2));
     if(m===rock){
       const normal=g.attributes.normal,c=new Float32Array(normal.count*3);
       for(let i=0;i<normal.count;i++){

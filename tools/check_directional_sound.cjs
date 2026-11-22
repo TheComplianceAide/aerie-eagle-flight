@@ -143,7 +143,9 @@ async function fly(seed, airspeed = 16) {
   return {rows, scape, box, context, tick, calls, microseconds: spent / frames / 1000, frames};
 }
 
-(async () => {
+module.exports = {node, page, makeContext};
+
+if (require.main === module) (async () => {
   const first = await fly(20261120), second = await fly(77);
   const {windMasker, hushRadius, leeShelter, postFor, POST_CELL} = first.box.aerieSoundLogic, masking = first.box.aerieWindMasking;
 

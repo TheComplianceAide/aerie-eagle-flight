@@ -10,7 +10,8 @@ function makeFlight(touch) {
     setItem: (key, value) => values.set(key, value)
   };
   const context = {window: {}, localStorage, matchMedia: () => ({matches: touch})};
-  vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../game/game-vision.js'), 'utf8'), context);
+  for (const file of ['game-units.js', 'game-vision.js'])
+    vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../game', file), 'utf8'), context);
   const button = {setAttribute(name, value) { this[name] = value; }};
   const layer = {querySelector: () => ({querySelector: () => ({})}), querySelectorAll: () => []};
   const vision = context.window.makeGameVision({Vector3: class {}}, {}, button, layer);

@@ -47,6 +47,7 @@
   let audio, wind, wingRush, windLevel, volume, fieldAudio, previousFocus, windKneed=false;
   let soundOn=true;
   try { soundOn=localStorage.getItem("aerie:sound")!=="off"; } catch {}
+  const units=window.aerieUnits;
   const clamp = (x,a,b) => Math.max(a,Math.min(b,x));
   const easing = (rate,dt) => 1 - Math.exp(-rate*dt);
   // Point-mass flight in the moving air mass. Speed is m/s, lengths are meters,
@@ -464,7 +465,7 @@
     if(type==="places")fillPlaces();
     el("dialogTitle").textContent=type==="places"?"Explore landmarks":type==="contact"?"Terrain contact":controls?"Flight controls":"Flight paused";
     el("instructions").hidden=!controls;
-    const progress=inFlight ? (distance/1000).toFixed(1)+" km flown · "+found.size+" / "+world.landmarks.length+" landmarks discovered" : "";
+    const progress=inFlight ? units.miles(distance)+" flown · "+found.size+" / "+world.landmarks.length+" landmarks discovered" : "";
     el("summary").textContent=type==="places"?"Choose a landmark to fly nearby. "+progress:progress;
     el("back").textContent=type==="launchError"?"Try again":inFlight?(dynamics?.state.contact?"Fly again":"Resume flight"):"Back";
     el("end").hidden=!inFlight;el("back").focus();
@@ -559,7 +560,7 @@
         window.addAcadiaSandBeach(THREE,scene,world);
       }
       updateUnderstory=window.addUnderstory(THREE,scene,world);
-      gameVision=window.makeGameVision(THREE,world,el("visionToggle"),el("gameVision"));
+      gameVision=window.makeGameVision(THREE,world,el("visionToggle"),el("gameVision"),units.feet);
       if(region==="swiss"||region==="canyon"||region==="yosemite"||region==="dixville") updateTalus=window.addTalus?.(THREE,scene,world);
       if(region==="swiss" || region==="alaska" || world.useFirForest) updateForest=window.addForest?.(THREE,scene,world);
       updateMist=window.addValleyMist?.(THREE,scene,world);
@@ -667,7 +668,7 @@
       pin.hidden=perchMarker.z<=-1||perchMarker.z>=1||Math.abs(perchMarker.x)>.94||Math.abs(perchMarker.y)>.86;
       if(!pin.hidden){
         pin.style.left=((perchMarker.x+1)*50)+"%";pin.style.top=((1-perchMarker.y)*50)+"%";
-        pin.lastElementChild.textContent=(t.type==="branch"?"Branch":"Ledge")+" · "+Math.round(rang)+" m";
+        pin.lastElementChild.textContent=(t.type==="branch"?"Branch":"Ledge")+" · "+units.feet(rang);
       }
     }else pin.hidden=true;
     if(elapsed<nextPerchHUD&&app.dataset.perchStatus===stage)return;
@@ -680,7 +681,7 @@
     if(stage==="perched")status.textContent=t.label+(s.perchLaunchPending?" · Turning to launch":" · Drag to look around");
     else if(stage==="push")status.textContent="Pushing off";
     else if(t){
-      const text=stage==="flare"?"Landing flare":t.label+" · "+Math.round(rang)+" m";
+      const text=stage==="flare"?"Landing flare":t.label+" · "+units.feet(rang);
       status.textContent=s.perchLaunchPending?"Landing, then taking off":stage==="approach"?"Approaching "+text:text;
     }else status.textContent=elapsed<perchNoticeUntil?perchNotice:"";
   }
@@ -708,16 +709,24 @@
   document.addEventListener("visibilitychange",()=>{if(document.hidden&&started&&!paused)showDialog("pause");});
   window.addEventListener("blur",resetInput);
   const viewport=el("viewport");
+  function pickPerch(x,y){
+    const rect=viewport.getBoundingClientRect();
+    const ndc=new THREE.Vector2((x-rect.left)/rect.width*2-1,1-(y-rect.top)/rect.height*2);
+    perching.pick(dynamics.state,camera,ndc,{width:rect.width,height:rect.height});
+    nextPerchHUD=0;
+  }
+  function callEagle(){
+    if(!soundOn||!started||paused||graphicsLost)return;
+    if(!audio||audio.state!=="running")startAudio();
+    syncAudio();
+    fieldAudio?.callEagle?.();
+  }
   const pointer=window.makeFlightPointer({
     surface:viewport, cue:el("steerCue"),
-    currentStage:()=>started&&!paused ? perching?.stage : null,
+    currentStage:()=>started&&!paused&&!graphicsLost ? perching?.stage : null,
     pan:(dx,dy)=>perching.pan(dx,dy),
-    pick:(x,y)=>{
-      const rect=viewport.getBoundingClientRect();
-      const ndc=new THREE.Vector2((x-rect.left)/rect.width*2-1,1-(y-rect.top)/rect.height*2);
-      perching.pick(dynamics.state,camera,ndc,{width:rect.width,height:rect.height});
-      nextPerchHUD=0;
-    }
+    pick:pickPerch, call:callEagle,
+    land:(x,y)=>{pickPerch(x,y);perchAction();}
   });
   el("flap").onpointerdown=e=>{el("flap").setPointerCapture(e.pointerId);
     if(perching?.stage==="perched"){perchAction();return;}touchFlap=true;};
@@ -749,7 +758,7 @@
       const button=document.createElement("button"), label=document.createElement("span");
       label.textContent=place.name;
       const detail=document.createElement("small");
-      detail.textContent=(found.has(place.name)?"Seen · ":"")+(range<1000?Math.round(range)+" m":(range/1000).toFixed(1)+" km");
+      detail.textContent=(found.has(place.name)?"Seen · ":"")+units.distance(range);
       const view=window.aerieScenicFlight.description(world,place);
       if(view)button.title=view;
       button.append(label,detail);button.onclick=()=>flyToLandmark(place);
@@ -817,7 +826,7 @@
     if(!closest){el("discovery").textContent="All landmarks discovered";return;}
     const heading=Math.atan2(closest.x-player.x,player.z-closest.z);
     const direction=["N","NE","E","SE","S","SW","W","NW"][(Math.round(heading/(Math.PI/4))+8)%8];
-    el("discovery").textContent=closest.name+" · "+direction+" · "+(range<1000?Math.round(range)+" m":(range/1000).toFixed(1)+" km");
+    el("discovery").textContent=closest.name+" · "+direction+" · "+units.distance(range);
   }
   function resetCamera(s,arrivalDegrees=0,lookDown=0){
     arrivalLookDown=clamp(lookDown,0,50)*Math.PI/180;
@@ -989,10 +998,10 @@
     if(s.contact){showDialog("contact");return;}
     if(elapsed>=nextReadout){
       nextReadout=elapsed+.17;
-      el("alt").textContent=Math.round(s.y+(world.altitudeOffset || 0)).toLocaleString();
-      el("speed").textContent=Math.round((perching.stage==="free"?s.indicatedAirspeed:s.airspeed)*3.6);
+      el("alt").textContent=units.altitude(s.y+(world.altitudeOffset || 0));
+      el("speed").textContent=units.speed(perching.stage==="free"?s.indicatedAirspeed:s.airspeed);
       if(el("flightMode"))el("flightMode").textContent=s.mode;
-      if(el("vario"))el("vario").textContent=(s.verticalSpeed>=0?"+":"")+s.verticalSpeed.toFixed(1);
+      if(el("vario"))el("vario").textContent=units.vertical(s.verticalSpeed);
       const deg=((Math.round(-s.yaw*180/Math.PI)%360)+360)%360;
       el("bearing").textContent=["N","NE","E","SE","S","SW","W","NW"][Math.round(deg/45)%8]+"  ·  "+String(deg).padStart(3,"0")+"°";
       nearestLandmark();

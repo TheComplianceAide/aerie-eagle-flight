@@ -1,5 +1,5 @@
 // Labels follow the same animated animals the eagle sees in the world.
-window.makeGameVision = function(T,world,button,layer) {
+window.makeGameVision = function(T,world,button,layer,formatDistance=window.aerieUnits.feet) {
   const panel=layer.querySelector('.gameReadout'),summary=panel.querySelector('ul');
   const pins=[...layer.querySelectorAll('.gamePin')];
   const points=new T.Vector3();
@@ -8,7 +8,7 @@ window.makeGameVision = function(T,world,button,layer) {
   const touch=matchMedia('(pointer: coarse)'),labelSizes=new Map();
   let touchControls=null,protectedBoxes=[],viewWidth=0,viewHeight=0;
   function measureControls(){
-    if(!touchControls)touchControls=layer.closest('main').querySelectorAll('#flap,.perchControls button,#visionToggle,.gameReadout');
+    if(!touchControls)touchControls=layer.closest('main').querySelectorAll('#flap,.perchControls button,#visionToggle,#earsToggle,.gameReadout');
     protectedBoxes=[];
     const origin=layer.getBoundingClientRect();
     for(const control of touchControls){
@@ -67,7 +67,7 @@ window.makeGameVision = function(T,world,button,layer) {
       const angle=Math.atan2(a.x-player.x,player.z-a.z);
       const direction=compass[(Math.round(angle*4/Math.PI)+8)%8];
       const dist=Math.round(a.distance/(a.distance>45?5:1))*(a.distance>45?5:1);
-      return [a.name,dist+' m · '+direction];
+      return [a.name,formatDistance(dist)+' · '+direction];
     });
     const key=JSON.stringify(rows);
     if(key!==lastRows){
@@ -76,7 +76,7 @@ window.makeGameVision = function(T,world,button,layer) {
         const row=document.createElement('li'),label=document.createElement('span'),metadata=document.createElement('small');
         label.textContent=name;metadata.textContent=detail;row.append(label,metadata);summary.append(row);
       }
-      if(!rows.length){const row=document.createElement('li');row.textContent='No wildlife within 400 m';summary.append(row);}
+      if(!rows.length){const row=document.createElement('li');row.textContent='No wildlife within '+formatDistance(400);summary.append(row);}
     }
     if(resized)labelSizes.clear();
     if(touch.matches&&(scanDue||resized))measureControls();

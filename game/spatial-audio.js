@@ -224,7 +224,7 @@ window.makeSpatialAudio = function makeSpatialAudio(context, world, options = {}
       spread: opt.spread || 'point', occlude: opt.occlude ?? true, wet: opt.wet ?? .35, doppler: opt.doppler ?? true,
       maxDelay: opt.doppler === false ? 0 : Math.min(179, (opt.reach ?? 2000) * (opt.echo ? 1.8 : 1) / SPEED + 1), lastShield: 0, nextShield: 0, alive: true, onUpdate: opt.onUpdate,
       // Ear-centred beds are the wind and rain themselves; everything else can be masked by wind noise.
-      mask: opt.mask ?? opt.spread !== 'none',
+      mask: opt.mask ?? opt.spread !== 'none', masking: Number.isFinite(opt.masking) ? clamp(opt.masking, 0, 2) : 1,
       // What the source is and which individual it is, for traces and checks.
       label: opt.label || '', id: opt.id || '', follows: !!opt.follows
     };
@@ -301,7 +301,7 @@ window.makeSpatialAudio = function makeSpatialAudio(context, world, options = {}
   function attachEchoes(parent, node, opt) {
     for (let i = 0; i < 2; i++) {
       const image = createSource(node, {x: parent.x, y: parent.y, z: parent.z, gain: 0, ref: parent.ref, reach: parent.reach * 1.8,
-        wet: 0, occlude: false, doppler: true, image: true});
+        wet: 0, occlude: false, doppler: true, image: true, mask: parent.mask, masking: parent.masking});
       image.slot = i;
       image.onUpdate = () => {
         const w = walls[image.slot];
@@ -355,7 +355,7 @@ window.makeSpatialAudio = function makeSpatialAudio(context, world, options = {}
     // Wind at the ears masks what arrives quieter than it: a sound well above
     // the wind noise is untouched, one at its level is halved, one far below
     // it all but vanishes. The masker follows airspeed, gusts and shelter.
-    const level = s.mask ? window.aerieWindMasking(arrived, masker) : arrived;
+    const level = s.mask ? window.aerieWindMasking(arrived, masker * s.masking) : arrived;
     s.arrived = arrived; s.heard = level; s.shield = shield;
     const cutoff = Math.min(airCutoff(d), 20000 * Math.exp(-3.1 * shield));
     if (immediate) {
@@ -453,29 +453,55 @@ window.makeSpatialAudio = function makeSpatialAudio(context, world, options = {}
     };
     return s;
   }
+  function startLoop(buffer, opt, output) {
+    // Long recordings are shuffled. Short textures and rhythmic footsteps loop directly.
+    if (opt.shuffle ?? buffer.duration >= 6) {
+      const node = output || context.createGain();
+      return {node, player: window.aerieShuffledLoop(context, buffer, node, opt)};
+    }
+    const player = context.createBufferSource();
+    player.buffer = buffer; player.loop = true; player.playbackRate.value = opt.rate || 1;
+    if (output) player.connect(output);
+    player.start(context.currentTime, opt.offset ?? Math.random() * buffer.duration);
+    return {node: player, player};
+  }
   // Continuous recording at a (possibly moving) position.
   function loop(buffer, position, opt = {}) {
     if (!buffer) return null;
-    // A recording long enough to have a pattern is shuffled so that it never
-    // repeats (see aerieShuffledLoop); a short texture, or footsteps whose
-    // rhythm matters, loops as it is.
-    const shuffle = opt.shuffle ?? buffer.duration >= 6;
-    let src, node;
-    if (shuffle) { node = context.createGain(); src = window.aerieShuffledLoop(context, buffer, node, {rate: opt.rate, offset: opt.offset, family: opt.family, member: opt.member}); }
-    else {
-      src = node = context.createBufferSource(); src.buffer = buffer; src.loop = true;
-      src.playbackRate.value = opt.rate || 1;
+    const input = opt.switchable ? context.createGain() : null;
+    let channel = input ? context.createGain() : null;
+    if (channel) channel.connect(input);
+    let {node, player} = startLoop(buffer, opt, channel);
+    const s = createSource(input || node, Object.assign({}, opt, position));
+    s.source = player;
+    if (input) {
+      s.buffer = buffer;
+      let nextChange = 0;
+      s.replaceBuffer = next => {
+        const now = context.currentTime;
+        if (!next || next === s.buffer || !s.alive || now < nextChange) return;
+        const fade = .65, oldChannel = channel, oldPlayer = player;
+        channel = context.createGain(); channel.gain.value = 0; channel.connect(input);
+        ({player} = startLoop(next, opt, channel));
+        channel.gain.setValueAtTime(0, now);
+        channel.gain.linearRampToValueAtTime(1, now + fade);
+        oldChannel.gain.setValueAtTime(1, now);
+        oldChannel.gain.linearRampToValueAtTime(0, now + fade);
+        oldPlayer.onended = () => { oldPlayer.disconnect?.(); oldChannel.disconnect(); };
+        oldPlayer.stop(now + fade);
+        nextChange = now + fade;
+        s.source = player; s.buffer = next;
+      };
     }
-    const s = createSource(node, Object.assign({}, opt, position));
-    if (!shuffle) src.start(context.currentTime, opt.offset ?? Math.random() * buffer.duration);
-    s.source = src;
     s.stop = (fade = .6) => {
       const now = context.currentTime;
       s.level.gain.cancelScheduledValues(now); s.level.gain.setTargetAtTime(0, now, fade / 3);
       s.send.gain.setTargetAtTime(0, now, fade / 3);
       s.gain = 0;
-      src.onended = () => s.release();
-      try { src.stop(now + fade + .1); } catch (e) {}
+      // A source fading out can no longer take a replacement recording.
+      s.replaceBuffer = undefined;
+      player.onended = () => { if (channel) { player.disconnect?.(); channel.disconnect(); } s.release(); };
+      try { player.stop(now + fade + .1); } catch (e) {}
     };
     return s;
   }

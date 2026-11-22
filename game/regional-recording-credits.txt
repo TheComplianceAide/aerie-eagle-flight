@@ -1,0 +1,1789 @@
+Aerie 0.29.0 regional recording credits
+
+Each wildlife entry is an independent field recording. Sources retain the individual terms shown. The edits isolate a calling bout, filter handling noise, convert to mono, adjust level, and apply short fades for 3D playback. Where a source uses ShareAlike, the edited audio retains that licence.
+
+Recording locations describe original media and are separate from the simulated sound source within the world. Notes identify closest available habitats or regions where a landmark recording was unavailable.
+
+alaska
+------
+voice-alaska-2161092.m4a — Steller's Jay (Cyanocitta stelleri). bluefeathers; Juneau, AK, USA ; 2026-07-04. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/400798900
+Original media: https://static.inaturalist.org/sounds/2161092.wav?1789587301
+
+voice-alaska-2139316.m4a — American Crow (Corvus brachyrhynchos). bluefeathers; Duck Creek, Juneau, AK, USA ; 2026-08-22. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 17.91 s.
+Source and recording rights: https://www.inaturalist.org/observations/395609062
+Original media: https://static.inaturalist.org/sounds/2139316.wav?1788037209
+
+voice-alaska-2077008.m4a — Song Sparrow (Melospiza melodia). bluefeathers; Riverside Rotary Park, Juneau, AK, USA ; 2026-07-11. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 1.81 s.
+Source and recording rights: https://www.inaturalist.org/observations/382548157
+Original media: https://static.inaturalist.org/sounds/2077008.wav?1784374485
+
+voice-alaska-2085517.m4a — Song Sparrow (Melospiza melodia). bluefeathers; Riverside Rotary Park, Juneau, AK, USA ; 2026-07-18. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/384515095
+Original media: https://static.inaturalist.org/sounds/2085517.wav?1784890970
+
+voice-alaska-2158036.m4a — Mallard (Anas platyrhynchos). bluefeathers; Riverside Rotary Park, Juneau, AK, USA ; 2026-09-13. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 7.01 s.
+Source and recording rights: https://www.inaturalist.org/observations/400041341
+Original media: https://static.inaturalist.org/sounds/2158036.wav?1789340971
+
+voice-alaska-2081419.m4a — Killdeer (Charadrius vociferus). bluefeathers; Dimond Park, Juneau, AK, USA ; 2026-07-18. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 10.11 s.
+Source and recording rights: https://www.inaturalist.org/observations/383565994
+Original media: https://static.inaturalist.org/sounds/2081419.wav?1784626831
+
+voice-alaska-2140575.m4a — Common Raven (Corvus corax). bluefeathers; Duck Creek, Juneau, AK, USA ; 2026-07-02. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.11 s.
+Source and recording rights: https://www.inaturalist.org/observations/395859958
+Original media: https://static.inaturalist.org/sounds/2140575.wav?1788110282
+
+voice-alaska-2086200.m4a — Western Flycatcher (Empidonax difficilis). bluefeathers; Brotherhood Bridge Trail, Juneau, AK, USA ; 2026-07-11. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 1.51 s.
+Source and recording rights: https://www.inaturalist.org/observations/384672133
+Original media: https://static.inaturalist.org/sounds/2086200.wav?1784925719
+
+voice-alaska-2092648.m4a — Common Yellowthroat (Geothlypis trichas). bluefeathers; Riverside Rotary Park, Juneau, AK, USA ; 2026-06-21. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 3.81 s.
+Source and recording rights: https://www.inaturalist.org/observations/386064383
+Original media: https://static.inaturalist.org/sounds/2092648.wav?1785270003
+
+voice-alaska-2076989.m4a — Lincoln's Sparrow (Melospiza lincolnii). bluefeathers; Mendenhall River Trail, Juneau, AK, USA ; 2026-06-29. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 13.81 s.
+Source and recording rights: https://www.inaturalist.org/observations/382544979
+Original media: https://static.inaturalist.org/sounds/2076989.wav?1784373397
+
+voice-alaska-2150426.m4a — Common Raven (Corvus corax). bluefeathers; Duck Creek, Juneau, AK, USA ; 2026-09-07. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 1.21 s.
+Source and recording rights: https://www.inaturalist.org/observations/398212072
+Original media: https://static.inaturalist.org/sounds/2150426.wav?1788809925
+
+voice-alaska-2085905.m4a — Pacific Wren (Nannus pacificus). bluefeathers; Brotherhood Bridge Trail, Juneau, AK, USA ; 2026-07-19. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 2.31 s.
+Source and recording rights: https://www.inaturalist.org/observations/384604705
+Original media: https://static.inaturalist.org/sounds/2085905.wav?1784912421
+
+voice-alaska-273796.m4a — Orange-crowned Warbler (Leiothlypis celata). Jennifer Rycenga; Juneau, AK, USA; 2021-07-12. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 1.71 s.
+Source and recording rights: https://www.inaturalist.org/observations/86824833
+Original media: https://static.inaturalist.org/sounds/273796.wav?1626160622
+
+voice-alaska-2228564.m4a — White-winged Crossbill (Loxia leucoptera). bluefeathers; Juneau, AK, USA; 2026-11-13. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/414593974
+Original media: https://static.inaturalist.org/sounds/2228564.wav?1794614129
+
+voice-alaska-2179756.m4a — Black-billed Magpie (Pica hudsonia). bluefeathers; Duck Creek, Juneau, AK, USA ; 2026-09-30. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.81 s.
+Source and recording rights: https://www.inaturalist.org/observations/404797797
+Original media: https://static.inaturalist.org/sounds/2179756.wav?1790795564
+
+voice-alaska-2085957.m4a — Pacific Wren (Nannus pacificus). bluefeathers; Brotherhood Bridge Trail, Juneau, AK, USA ; 2026-07-03. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 3.51 s.
+Source and recording rights: https://www.inaturalist.org/observations/384612028
+Original media: https://static.inaturalist.org/sounds/2085957.wav?1784913769
+
+voice-alaska-2084777.m4a — Red Crossbill (Loxia curvirostra). bluefeathers; Brotherhood Bridge Trail, Juneau, AK, USA ; 2026-07-21. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/384354129
+Original media: https://static.inaturalist.org/sounds/2084777.wav?1784838434
+
+voice-alaska-2142766.m4a — Hermit Thrush (Catharus guttatus). bluefeathers; Brotherhood Bridge Trail, Juneau, AK, USA ; 2026-07-13. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 13.51 s.
+Source and recording rights: https://www.inaturalist.org/observations/396380856
+Original media: https://static.inaturalist.org/sounds/2142766.wav?1788273051
+
+voice-alaska-2209863.m4a — Chestnut-backed Chickadee (Poecile rufescens). bluefeathers; Juneau, AK, USA; 2026-10-25. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/411010163
+Original media: https://static.inaturalist.org/sounds/2209863.wav?1793037720
+
+voice-alaska-2121841.m4a — American Red Squirrel (Tamiasciurus hudsonicus). bluefeathers; Duck Creek, Juneau, AK, USA ; 2026-08-16. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/391831206
+Original media: https://static.inaturalist.org/sounds/2121841.wav?1786904732
+
+voice-alaska-2092468.m4a — Pine Siskin (Spinus pinus). bluefeathers; Brotherhood Bridge Trail, Juneau, AK, USA ; 2026-07-13. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 15.61 s.
+Source and recording rights: https://www.inaturalist.org/observations/386013691
+Original media: https://static.inaturalist.org/sounds/2092468.wav?1785259475
+
+voice-alaska-2137964.m4a — Pine Siskin (Spinus pinus). bluefeathers; Riverside Rotary Park, Juneau, AK, USA ; 2026-08-26. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/395316402
+Original media: https://static.inaturalist.org/sounds/2137964.wav?1787952278
+
+voice-alaska-2142757.m4a — Chestnut-backed Chickadee (Poecile rufescens). bluefeathers; Brotherhood Bridge Trail, Juneau, AK, USA ; 2026-07-09. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 11.21 s.
+Source and recording rights: https://www.inaturalist.org/observations/396377521
+Original media: https://static.inaturalist.org/sounds/2142757.wav?1788271995
+
+voice-alaska-2097264.m4a — Orange-crowned Warbler (Leiothlypis celata). bluefeathers; Brotherhood Bridge Meadow, Juneau, AK, USA ; 2026-06-26. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 15.41 s.
+Source and recording rights: https://www.inaturalist.org/observations/387011296
+Original media: https://static.inaturalist.org/sounds/2097264.wav?1785536279
+
+voice-alaska-2137969.m4a — Red Crossbill (Loxia curvirostra). bluefeathers; Riverside Rotary Park, Juneau, AK, USA ; 2026-08-26. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/395319414
+Original media: https://static.inaturalist.org/sounds/2137969.wav?1787953037
+
+voice-alaska-2198990.m4a — American Crow (Corvus brachyrhynchos). bluefeathers; Juneau, AK, USA; 2026-10-16. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/408781159
+Original media: https://static.inaturalist.org/sounds/2198990.wav?1792184150
+
+voice-alaska-2153056.m4a — Steller's Jay (Cyanocitta stelleri). bluefeathers; Duck Creek, Juneau, AK, USA ; 2026-09-09. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/398813017
+Original media: https://static.inaturalist.org/sounds/2153056.wav?1788986573
+
+voice-alaska-2102663.m4a — Dark-eyed Junco (Junco hyemalis). bluefeathers; Juneau, AK, USA ; 2026-08-03. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/388000586
+Original media: https://static.inaturalist.org/sounds/2102663.wav?1785794294
+
+voice-alaska-272148.m4a — Barn Swallow (Hirundo rustica). Jennifer Rycenga; Glacier Hwy, Juneau, AK, US; 2021-07-10. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 12.91 s.
+Source and recording rights: https://www.inaturalist.org/observations/86465946
+Original media: https://static.inaturalist.org/sounds/272148.m4a?1625950588
+
+voice-alaska-272350.m4a — Hermit Thrush (Catharus guttatus). Jennifer Rycenga; Douglas Island, Juneau, AK, US; 2021-07-10. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 16.51 s.
+Source and recording rights: https://www.inaturalist.org/observations/86513304
+Original media: https://static.inaturalist.org/sounds/272350.m4a?1625976935
+
+voice-alaska-2178759.m4a — Black-billed Magpie (Pica hudsonia). bluefeathers; Duck Creek, Juneau, AK, USA ; 2026-09-29. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/404605366
+Original media: https://static.inaturalist.org/sounds/2178759.wav?1790727808
+
+voice-alaska-2139301.m4a — Red-breasted Nuthatch (Sitta canadensis). bluefeathers; Duck Creek, Juneau, AK, USA ; 2026-07-31. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/395605160
+Original media: https://static.inaturalist.org/sounds/2139301.wav?1788036306
+
+voice-alaska-2108706.m4a — Bonaparte's Gull (Chroicocephalus philadelphia). bluefeathers; Salmon Creek Delta, Juneau, AK, USA ; 2026-08-06. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/389037398
+Original media: https://static.inaturalist.org/sounds/2108706.wav?1786110272
+
+swiss
+-----
+voice-swiss-2139924.m4a — Willow Tit (Poecile montanus). Zac Peterson; Frutigen, CH-BE, CH; 2026-08-29. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 3.31 s.
+Source and recording rights: https://www.inaturalist.org/observations/395722108
+Original media: https://static.inaturalist.org/sounds/2139924.wav?1788069759
+
+voice-swiss-2139923.m4a — Eurasian Crag-Martin (Ptyonoprogne rupestris). Zac Peterson; Frutigen, CH-BE, CH; 2026-08-29. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 3.91 s.
+Source and recording rights: https://www.inaturalist.org/observations/395722093
+Original media: https://static.inaturalist.org/sounds/2139923.wav?1788069751
+
+voice-swiss-2021006.m4a — Western Bonelli's Warbler (Phylloscopus bonelli). chris_sherlock; 3718 Kandersteg, Switzerland; 2026-06-14. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.01 s.
+Source and recording rights: https://www.inaturalist.org/observations/371523104
+Original media: https://static.inaturalist.org/sounds/2021006.m4a?1781426137
+
+voice-swiss-1117055.m4a — Common Redstart (Phoenicurus phoenicurus). Justine; 3955 Albinen, Suisse; 2024-06-28. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 6.71 s.
+Source and recording rights: https://www.inaturalist.org/observations/226528432
+Original media: https://static.inaturalist.org/sounds/1117055.wav?1719865343
+
+voice-swiss-2140206.m4a — Northern Nutcracker (Nucifraga caryocatactes). Zac Peterson; Interlaken, CH-BE, CH; 2026-08-30. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 1.61 s.
+Source and recording rights: https://www.inaturalist.org/observations/395766488
+Original media: https://static.inaturalist.org/sounds/2140206.wav?1788089176
+
+voice-swiss-2140060.m4a — Eurasian Blackbird (Turdus merula). Zac Peterson; Interlaken, CH-BE, CH; 2026-08-30. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.31 s.
+Source and recording rights: https://www.inaturalist.org/observations/395743780
+Original media: https://static.inaturalist.org/sounds/2140060.wav?1788080282
+
+voice-swiss-1117108.m4a — Willow Tit (Poecile montanus). Justine; Leuk, Suisse; 2024-06-28. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/226537479
+Original media: https://static.inaturalist.org/sounds/1117108.wav?1719867680
+
+voice-swiss-1117052.m4a — Western Bonelli's Warbler (Phylloscopus bonelli). Justine; Leuk, Suisse; 2024-06-28. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 0.11 s.
+Source and recording rights: https://www.inaturalist.org/observations/226528430
+Original media: https://static.inaturalist.org/sounds/1117052.wav?1719865325
+
+voice-swiss-1530482.m4a — Eurasian Blackcap (Sylvia atricapilla). Tser; Turtmann, Turtmann-Unterems, Switzerland; 2025-06-09. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/290739605
+Original media: https://static.inaturalist.org/sounds/1530482.wav?1750272541
+
+voice-swiss-2134165.m4a — Northern Nutcracker (Nucifraga caryocatactes). Valentin Moser; 7R3V+PW, 3923 Törbel, Switzerland; 2026-08-25. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 1.71 s.
+Source and recording rights: https://www.inaturalist.org/observations/394489380
+Original media: https://static.inaturalist.org/sounds/2134165.m4a?1787687176
+
+voice-swiss-1117057.m4a — European Greenfinch (Chloris chloris). Justine; 3961 Saint-Luc, Suisse; 2024-06-29. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 21.71 s.
+Source and recording rights: https://www.inaturalist.org/observations/226528441
+Original media: https://static.inaturalist.org/sounds/1117057.wav?1719865348
+
+voice-swiss-357856.m4a — Crested Tit (Lophophanes cristatus). Codrin Bucur; Goms, Switzerland; 2022-02-14. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 1.31 s.
+Source and recording rights: https://www.inaturalist.org/observations/106847246
+Original media: https://static.inaturalist.org/sounds/357856.wav?1645003271
+
+voice-swiss-2104324.m4a — Coal Tit (Periparus ater). Smriti S.; Route de Panlevâ, Vissoie, VS, CH; 2026-07-30. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/388260775
+Original media: https://static.inaturalist.org/sounds/2104324.m4a?1785871170
+
+voice-swiss-2104326.m4a — Eurasian Nuthatch (Sitta europaea). Smriti S.; Route de Panlevâ, Vissoie, VS, CH; 2026-07-30. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 8.91 s.
+Source and recording rights: https://www.inaturalist.org/observations/388261037
+Original media: https://static.inaturalist.org/sounds/2104326.m4a?1785871171
+
+voice-swiss-162004.m4a — Eurasian Siskin (Spinus spinus). Tommy Andriollo; 1968 Mase, Suisse; 2021-01-31. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.81 s.
+Source and recording rights: https://www.inaturalist.org/observations/69003911
+Original media: https://static.inaturalist.org/sounds/162004.wav?1612360255
+
+voice-swiss-1612926.m4a — Great Spotted Woodpecker (Dendrocopos major). Gergely Nigg; 6174 Sörenberg, Switzerland; 2025-08-23. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/308391674
+Original media: https://static.inaturalist.org/sounds/1612926.wav?1755944581
+
+voice-swiss-2183931.m4a — European Robin (Erithacus rubecula). Stefan Lanz; Gasel, Bahnhof, 3144 Köniz, Schweiz; 2026-10-04. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.11 s.
+Source and recording rights: https://www.inaturalist.org/observations/405706604
+Original media: https://static.inaturalist.org/sounds/2183931.m4a?1791097944
+
+voice-swiss-390969.m4a — European Field Cricket (Gryllus campestris). Matteo Marcandella; 1660 Château-d’Œx, Suisse; 2022-04-10. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 4.91 s.
+Source and recording rights: https://www.inaturalist.org/observations/111177558
+Original media: https://static.inaturalist.org/sounds/390969.wav?1649750437
+
+voice-swiss-116453.m4a — Dunnock (Prunella modularis). Tommy Andriollo; 1884 Arveyes, Suisse; 2020-07-04. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.61 s.
+Source and recording rights: https://www.inaturalist.org/observations/51996238
+Original media: https://static.inaturalist.org/sounds/116453.wav?1593938553
+
+voice-swiss-1241213.m4a — Goldcrest (Regulus regulus). Jono; Bern, CH-BE, CH; 2024-10-30. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 9.81 s.
+Source and recording rights: https://www.inaturalist.org/observations/249758982
+Original media: https://static.inaturalist.org/sounds/1241213.wav?1730309249
+
+voice-swiss-814341.m4a — Yellow-billed Chough (Pyrrhocorax graculus). Archie; 6491 Realp, Switzerland; 2023-09-17. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.91 s.
+Source and recording rights: https://www.inaturalist.org/observations/183708728
+Original media: https://static.inaturalist.org/sounds/814341.m4a?1694974676
+
+voice-swiss-813541.m4a — Eurasian Kestrel (Falco tinnunculus). Archie; Realp 6491, 6491 Realp, Switzerland; 2023-09-16. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 1.31 s.
+Source and recording rights: https://www.inaturalist.org/observations/183523413
+Original media: https://static.inaturalist.org/sounds/813541.m4a?1694882219
+
+voice-swiss-357891.m4a — Alpine Willow Tit (Poecile montanus montanus). Codrin Bucur; Goms, Switzerland; 2022-02-14. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 5.71 s.
+Source and recording rights: https://www.inaturalist.org/observations/106850199
+Original media: https://static.inaturalist.org/sounds/357891.wav?1645008606
+
+voice-swiss-1181285.m4a — Eurasian Bullfinch (Pyrrhula pyrrhula). Antoine MARNAT; Route des Liddes, Zinal, VS, CH; 2024-08-21. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/237074441
+Original media: https://static.inaturalist.org/sounds/1181285.m4a?1724234979
+
+voice-swiss-2123390.m4a — Tree Pipit (Anthus trivialis). laura_bonanomi; 11020 Torgnon AO, Italia; 2026-07-07. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 21.81 s.
+Source and recording rights: https://www.inaturalist.org/observations/392185198
+Original media: https://static.inaturalist.org/sounds/2123390.mp3?1786997529
+
+voice-swiss-291803.m4a — Eurasian Treecreeper (Certhia familiaris). Tommy Andriollo; Turren, 6078 Lungern, Suisse; 2021-08-14. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.21 s.
+Source and recording rights: https://www.inaturalist.org/observations/91225260
+Original media: https://static.inaturalist.org/sounds/291803.wav?1629011451
+
+voice-swiss-1141254.m4a — Eurasian Wren (Nannus troglodytes). Gergely Nigg; Oberhasli, CH-BE, CH; 2024-07-23. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.91 s.
+Source and recording rights: https://www.inaturalist.org/observations/231177626
+Original media: https://static.inaturalist.org/sounds/1141254.wav?1721733947
+
+voice-swiss-1241208.m4a — Crested Tit (Lophophanes cristatus). Jono; Bern, CH-BE, CH; 2024-10-30. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 6.01 s.
+Source and recording rights: https://www.inaturalist.org/observations/249758976
+Original media: https://static.inaturalist.org/sounds/1241208.wav?1730309073
+
+voice-swiss-805417.m4a — Great Spotted Woodpecker (Dendrocopos major). Pierre-Marie Allard; La Sarine, CH-FR, CH; 2023-09-03. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 0.31 s.
+Source and recording rights: https://www.inaturalist.org/observations/181519617
+Original media: https://static.inaturalist.org/sounds/805417.wav?1693725858
+
+voice-swiss-471293.m4a — European Robin (Erithacus rubecula). Corinne Benavides; Kirchenweg, Kirchberg (BE), Bern, CH; 2022-06-14. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/121754632
+Original media: https://static.inaturalist.org/sounds/471293.m4a?1655225344
+
+voice-swiss-79522.m4a — Common Firecrest (Regulus ignicapilla). Tommy Andriollo; Champion, Suisse; 2020-04-29. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 16.11 s.
+Source and recording rights: https://www.inaturalist.org/observations/44259357
+Original media: https://static.inaturalist.org/sounds/79522.mp3?1588174305
+
+voice-swiss-2159125.m4a — Black Woodpecker (Dryocopus martius). carabus123; Hagneckdelta und St. Petersinsel, Erlach, BE, CH; 2026-09-14. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 23.21 s.
+Source and recording rights: https://www.inaturalist.org/observations/400322920
+Original media: https://static.inaturalist.org/sounds/2159125.wav?1789426578
+
+voice-swiss-2219432.m4a — Red Crossbill (Loxia curvirostra). Yves Bas; Salvan, Suisse; 2026-07-21. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 3.91 s.
+Source and recording rights: https://www.inaturalist.org/observations/412810667
+Original media: https://static.inaturalist.org/sounds/2219432.wav?1793805852
+
+canyon
+------
+voice-canyon-630516.m4a — Bewick's Wren (Thryomanes bewickii). gsexauer; Glen Canyon National Recreation Area, Coconino County, US-AZ, US; 2023-04-02. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 0.41 s.
+Source and recording rights: https://www.inaturalist.org/observations/153261939
+Original media: https://static.inaturalist.org/sounds/630516.wav?1680481262
+
+voice-canyon-1283400.m4a — Great-tailed Grackle (Quiscalus mexicanus). Mallory F; Glen Canyon National Recreation Area, Marble Canyon, AZ, US; 2025-01-10. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 9.31 s.
+Source and recording rights: https://www.inaturalist.org/observations/258064965
+Original media: https://static.inaturalist.org/sounds/1283400.m4a?1736542522
+
+voice-canyon-600736.m4a — Juniper Titmouse (Baeolophus ridgwayi). Rachel Stringham; Tonalea, AZ 86044, USA; 2023-02-19. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 1.61 s.
+Source and recording rights: https://www.inaturalist.org/observations/149170496
+Original media: https://static.inaturalist.org/sounds/600736.wav?1676857087
+
+voice-canyon-1379360.m4a — Lucy's Warbler (Leiothlypis luciae). steve b; Coconino County, AZ, USA; 2025-04-10. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 20.01 s.
+Source and recording rights: https://www.inaturalist.org/observations/271047471
+Original media: https://static.inaturalist.org/sounds/1379360.wav?1744910773
+
+voice-canyon-247110.m4a — White-tailed Antelope Squirrel (Ammospermophilus leucurus). brettaugust; Indian Route 16, Page, AZ, US; 2021-06-06. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/81975487
+Original media: https://static.inaturalist.org/sounds/247110.wav?1623035604
+
+voice-canyon-1183143.m4a — Northern Yellow Warbler (Setophaga aestiva). gsexauer; Tuba City, AZ 86045, USA; 2024-08-23. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/237479688
+Original media: https://static.inaturalist.org/sounds/1183143.wav?1724429085
+
+voice-canyon-1305902.m4a — Townsend's Solitaire (Myadestes townsendi). gsexauer; Grand Canyon Village, AZ 86023, USA; 2025-02-09. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 28.71 s.
+Source and recording rights: https://www.inaturalist.org/observations/261143699
+Original media: https://static.inaturalist.org/sounds/1305902.wav?1739418756
+
+voice-canyon-765460.m4a — Northern House Wren (Troglodytes aedon). gsexauer; North Rim, AZ 86052, USA; 2023-07-09. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 1.01 s.
+Source and recording rights: https://www.inaturalist.org/observations/171947680
+Original media: https://static.inaturalist.org/sounds/765460.wav?1689006628
+
+voice-canyon-1048344.m4a — Black-throated Gray Warbler (Setophaga nigrescens). Jared Shorma; Kane County, US-UT, US; 2024-05-18. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 3.31 s.
+Source and recording rights: https://www.inaturalist.org/observations/216956340
+Original media: https://static.inaturalist.org/sounds/1048344.m4a?1716168150
+
+voice-canyon-40716.m4a — Yellow-breasted Chat (Icteria virens). Lillie; Garfield County, UT, USA; 2019-06-05. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.21 s.
+Source and recording rights: https://www.inaturalist.org/observations/26512763
+Original media: https://static.inaturalist.org/sounds/40716.wav?1559851958
+
+voice-canyon-1443954.m4a — Rock Squirrel (Otospermophilus variegatus). Jared Shorma; Garfield County, US-UT, US; 2025-05-02. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 15.91 s.
+Source and recording rights: https://www.inaturalist.org/observations/278914028
+Original media: https://static.inaturalist.org/sounds/1443954.m4a?1746511048
+
+voice-canyon-1012403.m4a — House Finch (Haemorhous mexicanus). Aaron Roe; Canyon Point, UT 84741, USA; 2024-05-02. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/212889625
+Original media: https://static.inaturalist.org/sounds/1012403.wav?1714659749
+
+voice-canyon-1976034.m4a — Pinyon Jay (Gymnorhinus cyanocephalus). L Reid; Grand Canyon Village, AZ 86023, USA; 2026-05-19. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.11 s.
+Source and recording rights: https://www.inaturalist.org/observations/364752077
+Original media: https://static.inaturalist.org/sounds/1976034.wav?1779645294
+
+voice-canyon-701393.m4a — Western Bluebird (Sialia mexicana). Aaron Roe; Kane County, US-UT, US; 2023-05-17. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/162195517
+Original media: https://static.inaturalist.org/sounds/701393.wav?1684356561
+
+voice-canyon-786989.m4a — Cassin's Kingbird (Tyrannus vociferans). Bill Michalek; Kaibab National Forest, Tusayan, AZ, US; 2023-08-06. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 0.31 s.
+Source and recording rights: https://www.inaturalist.org/observations/176960970
+Original media: https://static.inaturalist.org/sounds/786989.m4a?1691339470
+
+voice-canyon-975765.m4a — Black-throated Gray Warbler (Setophaga nigrescens). Cody Stricker; Navajo Point, Marble Canyon, AZ, US; 2024-04-20. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 12.51 s.
+Source and recording rights: https://www.inaturalist.org/observations/208326089
+Original media: https://static.inaturalist.org/sounds/975765.m4a?1713639009
+
+voice-canyon-519061.m4a — Juniper Titmouse (Baeolophus ridgwayi). Rosie Steinberg; Grand Canyon Village, AZ 86023, USA; 2022-08-12. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 4.11 s.
+Source and recording rights: https://www.inaturalist.org/observations/130503979
+Original media: https://static.inaturalist.org/sounds/519061.m4a?1660316692
+
+voice-canyon-746064.m4a — Putnam's Cicada (Platypedia putnami). Matthew Gerke; Bryce, UT 84764, USA; 2023-06-20. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/168587431
+Original media: https://static.inaturalist.org/sounds/746064.m4a?1687310481
+
+voice-canyon-785137.m4a — Brewer's Sparrow (Spizella breweri). Bill Michalek; Hatch, UT, US; 2023-08-03. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 11.01 s.
+Source and recording rights: https://www.inaturalist.org/observations/176550543
+Original media: https://static.inaturalist.org/sounds/785137.m4a?1691121948
+
+voice-canyon-747784.m4a — Rock Squirrel (Otospermophilus variegatus). Matthew Gerke; Zion National Park, Zion, Washington County, US-UT, US; 2023-06-22. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.61 s.
+Source and recording rights: https://www.inaturalist.org/observations/168875323
+Original media: https://static.inaturalist.org/sounds/747784.m4a?1687461537
+
+voice-canyon-17860.m4a — Common Raven (Corvus corax). Evan M. Raskin; Trail View Point, Grand Canyon National Park; 2018-02-01. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/9906230
+Original media: https://static.inaturalist.org/sounds/17860.mp3?1518969008
+
+voice-canyon-1076395.m4a — Spotted Towhee (Pipilo maculatus). Michael A. Thaibinh; Hurricane, UT 84737, USA; 2024-06-03. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 2.01 s.
+Source and recording rights: https://www.inaturalist.org/observations/220342649
+Original media: https://static.inaturalist.org/sounds/1076395.wav?1717451261
+
+voice-canyon-1470726.m4a — Black-throated Sparrow (Amphispiza bilineata). Indio Brown; San Juan County, US-UT, US; 2025-05-17. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.81 s.
+Source and recording rights: https://www.inaturalist.org/observations/282153047
+Original media: https://static.inaturalist.org/sounds/1470726.m4a?1747593937
+
+voice-canyon-460309.m4a — Blue-gray Gnatcatcher (Polioptila caerulea). Stephanie Taylor; Washington County, US-UT, US; 2022-06-03. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 3.11 s.
+Source and recording rights: https://www.inaturalist.org/observations/120066001
+Original media: https://static.inaturalist.org/sounds/460309.m4a?1654290124
+
+voice-canyon-460310.m4a — Gray Vireo (Vireo vicinior). Stephanie Taylor; Washington County, US-UT, US; 2022-06-03. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/120066026
+Original media: https://static.inaturalist.org/sounds/460310.m4a?1654290128
+
+voice-canyon-928753.m4a — Woodhouse's Scrub-Jay (Aphelocoma woodhouseii). willingarden; Zion National Park, Zion, Washington County, US-UT, US; 2024-03-14. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 2.11 s.
+Source and recording rights: https://www.inaturalist.org/observations/202450034
+Original media: https://static.inaturalist.org/sounds/928753.wav?1710450354
+
+voice-canyon-1354824.m4a — Great-tailed Grackle (Quiscalus mexicanus). Seth; Washington County, US-UT, US; 2025-03-30. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 37.41 s.
+Source and recording rights: https://www.inaturalist.org/observations/267726238
+Original media: https://static.inaturalist.org/sounds/1354824.wav?1743350663
+
+voice-canyon-1639653.m4a — Townsend's Solitaire (Myadestes townsendi). Robbie Hannawacker; Right Hand Canyon Rd, Cedar City, UT, US; 2025-09-17. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 10.51 s.
+Source and recording rights: https://www.inaturalist.org/observations/314609857
+Original media: https://static.inaturalist.org/sounds/1639653.m4a?1758128228
+
+voice-canyon-785135.m4a — White-throated Swift (Aeronautes saxatalis). Bill Michalek; Zion National Park, Zion, Washington County, US-UT, US; 2023-08-02. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/176524053
+Original media: https://static.inaturalist.org/sounds/785135.m4a?1691121943
+
+voice-canyon-39979.m4a — Bewick's Wren (Thryomanes bewickii). Stephanie Taylor; Washington County, US-UT, US; 2019-05-26. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 2.41 s.
+Source and recording rights: https://www.inaturalist.org/observations/25832924
+Original media: https://static.inaturalist.org/sounds/39979.m4a?1648756035
+
+yosemite
+--------
+voice-yosemite-217308.m4a — Western Tanager (Piranga ludoviciana). Jeff Lahr; Yosemite Village, Yosemite Valley, CA 95389, USA; 2021-05-10. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.91 s.
+Source and recording rights: https://www.inaturalist.org/observations/78224696
+Original media: https://static.inaturalist.org/sounds/217308.wav?1620656678
+
+voice-yosemite-1535833.m4a — Cassin's Vireo (Vireo cassinii). John Matthew Erickson; Lower Yosemite Fall Trail, Coulterville, CA, US; 2025-06-17. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 3.21 s.
+Source and recording rights: https://www.inaturalist.org/observations/291620429
+Original media: https://static.inaturalist.org/sounds/1535833.m4a?1750546415
+
+voice-yosemite-1318474.m4a — Pacific chorus frog (Pseudacris regilla). Rebecca Johnson; Yosemite National Park, Coulterville, CA, US; 2025-02-23. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 14.91 s.
+Source and recording rights: https://www.inaturalist.org/observations/263316961
+Original media: https://static.inaturalist.org/sounds/1318474.m4a?1740695296
+
+voice-yosemite-1464086.m4a — Common Raven (Corvus corax). louisiv826; Mariposa County, CA, USA; 2025-05-10. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.11 s.
+Source and recording rights: https://www.inaturalist.org/observations/281420916
+Original media: https://static.inaturalist.org/sounds/1464086.m4a?1747333737
+
+voice-yosemite-1535834.m4a — Sooty Grouse (Dendragapus fuliginosus). John Matthew Erickson; Yosemite National Park, Mariposa County, US-CA, US; 2025-06-18. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 12.11 s.
+Source and recording rights: https://www.inaturalist.org/observations/291620445
+Original media: https://static.inaturalist.org/sounds/1535834.m4a?1750546420
+
+voice-yosemite-1505053.m4a — Fox Sparrow (Passerella iliaca). Michael A. Thaibinh; Mariposa County, CA, USA; 2025-06-02. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/286803969
+Original media: https://static.inaturalist.org/sounds/1505053.wav?1749048563
+
+voice-yosemite-1148145.m4a — Olive-sided Flycatcher (Contopus cooperi). Ryan Donnelly; Yosemite National Park, Coulterville, CA, US; 2024-07-30. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/232805415
+Original media: https://static.inaturalist.org/sounds/1148145.m4a?1722385590
+
+voice-yosemite-122522.m4a — Fox Sparrow (Passerella iliaca). Jeff Lahr; Mariposa Grove; 2020-07-19. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.41 s.
+Source and recording rights: https://www.inaturalist.org/observations/53628394
+Original media: https://static.inaturalist.org/sounds/122522.wav?1595181689
+
+voice-yosemite-122245.m4a — Spotted Towhee (Pipilo maculatus). Jeff Lahr; Mariposa Grove; 2020-07-18. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 2.11 s.
+Source and recording rights: https://www.inaturalist.org/observations/53523966
+Original media: https://static.inaturalist.org/sounds/122245.wav?1595106849
+
+voice-yosemite-122661.m4a — Mountain Quail (Oreortyx pictus). Jeff Lahr; Mariposa Grove; 2020-07-19. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 1.91 s.
+Source and recording rights: https://www.inaturalist.org/observations/53690769
+Original media: https://static.inaturalist.org/sounds/122661.wav?1595215927
+
+voice-yosemite-903808.m4a — Pacific chorus frog (Pseudacris regilla). Ryan Donnelly; Yosemite National Park, Yosemite National Park, CA, US; 2024-02-20. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 2.41 s.
+Source and recording rights: https://www.inaturalist.org/observations/199958985
+Original media: https://static.inaturalist.org/sounds/903808.m4a?1708485293
+
+voice-yosemite-164583.m4a — Common Raven (Corvus corax). Monica Ventrice; Fish Camp, CA 93623, USA; 2021-02-16. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 3.31 s.
+Source and recording rights: https://www.inaturalist.org/observations/69680115
+Original media: https://static.inaturalist.org/sounds/164583.m4a?1613500329
+
+voice-yosemite-810521.m4a — Red-breasted Nuthatch (Sitta canadensis). Elizabeth; Tuolumne County, CA, USA; 2023-09-10. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 0.11 s.
+Source and recording rights: https://www.inaturalist.org/observations/182826627
+Original media: https://static.inaturalist.org/sounds/810521.mp3?1694450633
+
+voice-yosemite-1535831.m4a — MacGillivray's Warbler (Geothlypis tolmiei). John Matthew Erickson; Yosemite National Park, Mariposa County, US-CA, US; 2025-06-19. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 5.11 s.
+Source and recording rights: https://www.inaturalist.org/observations/291620397
+Original media: https://static.inaturalist.org/sounds/1535831.m4a?1750546406
+
+voice-yosemite-27307.m4a — Ruby-crowned Kinglet (Corthylio calendula). Jennifer Rycenga; Evergreen Lodge; 2018-11-10. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 12.31 s.
+Source and recording rights: https://www.inaturalist.org/observations/18322060
+Original media: https://static.inaturalist.org/sounds/27307.m4a?1648746251
+
+voice-yosemite-267202.m4a — Belding's Ground Squirrel (Urocitellus beldingi). Scott Loarie; Yosemite National Park, Tuolumne County, US-CA, US; 2021-06-30. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 2.41 s.
+Source and recording rights: https://www.inaturalist.org/observations/85480987
+Original media: https://static.inaturalist.org/sounds/267202.m4a?1625327515
+
+voice-yosemite-274317.m4a — Clark's Nutcracker (Nucifraga columbiana). Ken-ichi Ueda; Sierra National Forest, Madera County, US-CA, US; 2021-07-12. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 4.71 s.
+Source and recording rights: https://www.inaturalist.org/observations/86947096
+Original media: https://static.inaturalist.org/sounds/274317.m4a?1626236988
+
+voice-yosemite-899098.m4a — Red-shouldered Hawk (Buteo lineatus). Ryan Donnelly; Yosemite National Park, Yosemite National Park, CA, US; 2024-02-16. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 1.71 s.
+Source and recording rights: https://www.inaturalist.org/observations/199528825
+Original media: https://static.inaturalist.org/sounds/899098.m4a?1708145651
+
+voice-yosemite-27322.m4a — Pileated Woodpecker (Dryocopus pileatus). Jennifer Rycenga; Tuolumne County, CA, USA; 2018-11-11. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/18346722
+Original media: https://static.inaturalist.org/sounds/27322.m4a?1648746295
+
+voice-yosemite-484.m4a — American Pika (Ochotona princeps). Ken-ichi Ueda; Madera County, Inyo National Forest, US-CA, US; 2013-09-07. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 10.71 s.
+Source and recording rights: https://www.inaturalist.org/observations/392151
+Original media: https://static.inaturalist.org/sounds/484.wav?1502824341
+
+voice-yosemite-2064944.m4a — Somber Cicada (Okanagana tristis). Ryan Donnelly; Sierra National Forest, Madera County, US-CA, US; 2026-07-07. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.21 s.
+Source and recording rights: https://www.inaturalist.org/observations/379903216
+Original media: https://static.inaturalist.org/sounds/2064944.m4a?1783657683
+
+voice-yosemite-243460.m4a — Wilson's Snipe (Gallinago delicata). Millie Basden; Lee Vining, CA 93541, USA; 2021-06-03. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.61 s.
+Source and recording rights: https://www.inaturalist.org/observations/81450886
+Original media: https://static.inaturalist.org/sounds/243460.wav?1622739326
+
+voice-yosemite-27317.m4a — Red-breasted Nuthatch (Sitta canadensis). Jennifer Rycenga; Forest Road 1S32; 2018-11-11. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/18332080
+Original media: https://static.inaturalist.org/sounds/27317.m4a?1648746278
+
+voice-yosemite-559487.m4a — Rock Wren (Salpinctes obsoletus). Max Miley; Mono County, US-CA, US; 2022-09-22. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 7.11 s.
+Source and recording rights: https://www.inaturalist.org/observations/141171622
+Original media: https://static.inaturalist.org/sounds/559487.m4a?1667667184
+
+voice-yosemite-1960077.m4a — Pacific Wren (Nannus pacificus). LM Cunningham; Mono Lake Tufa State Natural Reserve, Lee Vining, CA, US; 2026-05-18. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 16.81 s.
+Source and recording rights: https://www.inaturalist.org/observations/362737777
+Original media: https://static.inaturalist.org/sounds/1960077.m4a?1779111426
+
+voice-yosemite-2043593.m4a — Western Wood-Pewee (Contopus sordidulus). Dan Horowitz; Dennison, Mammoth Lakes, CA 93546, USA; 2026-06-19. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 1.01 s.
+Source and recording rights: https://www.inaturalist.org/observations/375494042
+Original media: https://static.inaturalist.org/sounds/2043593.wav?1782475563
+
+voice-yosemite-371504.m4a — Clark's Nutcracker (Nucifraga columbiana). Tim Messick; Mono County, CA, USA; 2018-10-13. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 1.01 s.
+Source and recording rights: https://www.inaturalist.org/observations/108682298
+Original media: https://static.inaturalist.org/sounds/371504.mp3?1647379661
+
+voice-yosemite-1043787.m4a — Violet-green Swallow (Tachycineta thalassina). Tim Messick; Mono County, CA, USA; 2024-05-08. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.11 s.
+Source and recording rights: https://www.inaturalist.org/observations/216424331
+Original media: https://static.inaturalist.org/sounds/1043787.mp3?1715993215
+
+voice-yosemite-1098413.m4a — Pinyon Jay (Gymnorhinus cyanocephalus). Tim Messick; Mono County, CA, USA; 2024-06-07. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.41 s.
+Source and recording rights: https://www.inaturalist.org/observations/223415804
+Original media: https://static.inaturalist.org/sounds/1098413.mp3?1718654177
+
+voice-yosemite-855894.m4a — American Robin (Turdus migratorius). Tim Messick; Mono County, CA, USA; 2023-07-11. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 6.41 s.
+Source and recording rights: https://www.inaturalist.org/observations/193054549
+Original media: https://static.inaturalist.org/sounds/855894.mp3?1701715217
+
+voice-yosemite-1598172.m4a — Mountain Quail (Oreortyx pictus). Ken-ichi Ueda; Stanislaus National Forest, Tuolumne County, US-CA, US; 2025-08-07. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 1.51 s.
+Source and recording rights: https://www.inaturalist.org/observations/304878584
+Original media: https://static.inaturalist.org/sounds/1598172.m4a?1754710173
+
+voice-yosemite-1642616.m4a — Acorn Woodpecker (Melanerpes formicivorus). louisiv826; Phoenix Lake, CA 95370, USA; 2025-09-20. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 6.71 s.
+Source and recording rights: https://www.inaturalist.org/observations/315269457
+Original media: https://static.inaturalist.org/sounds/1642616.wav?1758384208
+
+voice-yosemite-1150475.m4a — American Pika (Ochotona princeps). Anna Caro; Mono County, US-CA, US; 2024-08-01. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 23.71 s.
+Source and recording rights: https://www.inaturalist.org/observations/233300308
+Original media: https://static.inaturalist.org/sounds/1150475.m4a?1722613263
+
+voice-yosemite-1445878.m4a — Killdeer (Charadrius vociferus). louisiv826; Phoenix Lake, CA 95370, USA; 2025-05-06. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 1.21 s.
+Source and recording rights: https://www.inaturalist.org/observations/279152993
+Original media: https://static.inaturalist.org/sounds/1445878.mp3?1746593805
+
+voice-yosemite-1018402.m4a — Black-headed Grosbeak (Pheucticus melanocephalus). louisiv826; Tuolumne County, US-CA, US; 2024-05-04. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.21 s.
+Source and recording rights: https://www.inaturalist.org/observations/213584145
+Original media: https://static.inaturalist.org/sounds/1018402.m4a?1714875094
+
+crater
+------
+voice-crater-277500.m4a — Clark's Nutcracker (Nucifraga columbiana). Noland Martin; CRATER LAKE, OR 97604, USA; 2021-07-18. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.71 s.
+Source and recording rights: https://www.inaturalist.org/observations/87652223
+Original media: https://static.inaturalist.org/sounds/277500.wav?1626657095
+
+voice-crater-780308.m4a — Clark's Nutcracker (Nucifraga columbiana). Bill Michalek; Crater Lake National Park, Klamath County, US-OR, US; 2023-07-28. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/175467828
+Original media: https://static.inaturalist.org/sounds/780308.m4a?1690595166
+
+voice-crater-1274237.m4a — Red Crossbill (Loxia curvirostra). Adam Jackson; Klamath County, OR, USA; 2024-07-27. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 12.31 s.
+Source and recording rights: https://www.inaturalist.org/observations/256462966
+Original media: https://static.inaturalist.org/sounds/1274237.wav?1735358416
+
+voice-crater-1572425.m4a — Varied Thrush (Ixoreus naevius). Taalke Janssen; Lane County, US-OR, US; 2025-07-17. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.01 s.
+Source and recording rights: https://www.inaturalist.org/observations/298804849
+Original media: https://static.inaturalist.org/sounds/1572425.m4a?1752796903
+
+voice-crater-503863.m4a — Chestnut-backed Chickadee (Poecile rufescens). Jeff Ward; Willamette National Forest, Blue River, OR, US; 2022-07-20. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.21 s.
+Source and recording rights: https://www.inaturalist.org/observations/127181559
+Original media: https://static.inaturalist.org/sounds/503863.m4a?1658374934
+
+voice-crater-529016.m4a — Steller's Jay (Cyanocitta stelleri). Matt Wallace; Douglas County, US-OR, US; 2022-08-28. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 20.11 s.
+Source and recording rights: https://www.inaturalist.org/observations/133041586
+Original media: https://static.inaturalist.org/sounds/529016.m4a?1661919178
+
+voice-crater-1064939.m4a — Hermit Thrush (Catharus guttatus). Hilary Rose Dawson; Klamath County, US-OR, US; 2024-05-27. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 5.01 s.
+Source and recording rights: https://www.inaturalist.org/observations/218817865
+Original media: https://static.inaturalist.org/sounds/1064939.m4a?1716867350
+
+voice-crater-506683.m4a — Lincoln's Sparrow (Melospiza lincolnii). Jeff Ward; Lane County, US-OR, US; 2022-07-24. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 5.91 s.
+Source and recording rights: https://www.inaturalist.org/observations/127771426
+Original media: https://static.inaturalist.org/sounds/506683.m4a?1658708875
+
+voice-crater-238582.m4a — Townsend's Solitaire (Myadestes townsendi). Andy Kleinhesselink; Jackson County, OR, USA; 2021-05-28. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 29.11 s.
+Source and recording rights: https://www.inaturalist.org/observations/80776244
+Original media: https://static.inaturalist.org/sounds/238582.wav?1622316339
+
+voice-crater-238572.m4a — Hermit Warbler (Setophaga occidentalis). Andy Kleinhesselink; Ashland, OR 97520, USA; 2021-05-28. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 0.01 s.
+Source and recording rights: https://www.inaturalist.org/observations/80773273
+Original media: https://static.inaturalist.org/sounds/238572.wav?1622315511
+
+voice-crater-474074.m4a — MacGillivray's Warbler (Geothlypis tolmiei). Jeff Ward; Lane County, US-OR, US; 2022-06-16. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 24.2 s.
+Source and recording rights: https://www.inaturalist.org/observations/122087016
+Original media: https://static.inaturalist.org/sounds/474074.wav?1655426411
+
+voice-crater-241037.m4a — Golden-crowned Kinglet (Regulus satrapa). Andy Kleinhesselink; Jackson County, OR, USA; 2021-05-30. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 16.51 s.
+Source and recording rights: https://www.inaturalist.org/observations/81106586
+Original media: https://static.inaturalist.org/sounds/241037.wav?1622501893
+
+voice-crater-240978.m4a — Dusky Flycatcher (Empidonax oberholseri). Andy Kleinhesselink; Ashland, OR 97520, USA; 2021-05-30. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 15.41 s.
+Source and recording rights: https://www.inaturalist.org/observations/81092057
+Original media: https://static.inaturalist.org/sounds/240978.wav?1622498876
+
+voice-crater-589585.m4a — Pacific chorus frog (Pseudacris regilla). Eric Knight; Ashland, OR 97520, USA; 2023-01-27. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 1.71 s.
+Source and recording rights: https://www.inaturalist.org/observations/147491033
+Original media: https://static.inaturalist.org/sounds/589585.mp3?1674863397
+
+voice-crater-250316.m4a — Townsend's Chipmunk (Neotamias townsendii). Jeff Ward; Tire Mountain Trail, Lane County, OR, USA; 2021-06-10. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.81 s.
+Source and recording rights: https://www.inaturalist.org/observations/82508240
+Original media: https://static.inaturalist.org/sounds/250316.wav?1623384060
+
+voice-crater-383970.m4a — Hutton's Vireo (Vireo huttoni). Hilary Rose Dawson; Lane County, US-OR, US; 2022-04-02. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 2.71 s.
+Source and recording rights: https://www.inaturalist.org/observations/110250778
+Original media: https://static.inaturalist.org/sounds/383970.m4a?1648956355
+
+voice-crater-348657.m4a — Red-winged Blackbird (Agelaius phoeniceus). Anna Caro; Dorris, CA 96023, USA; 2022-01-22. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/105388072
+Original media: https://static.inaturalist.org/sounds/348657.wav?1642887471
+
+voice-crater-304887.m4a — Northern Flicker (Colaptes auratus). Hilary Rose Dawson; Deschutes County, US-OR, US; 2021-09-12. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 2.91 s.
+Source and recording rights: https://www.inaturalist.org/observations/94670754
+Original media: https://static.inaturalist.org/sounds/304887.m4a?1631502056
+
+voice-crater-1086918.m4a — Pacific chorus frog (Pseudacris regilla). Hilary Rose Dawson; Lane County, US-OR, US; 2024-06-09. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 2.71 s.
+Source and recording rights: https://www.inaturalist.org/observations/221756380
+Original media: https://static.inaturalist.org/sounds/1086918.m4a?1717998595
+
+voice-crater-231307.m4a — Common Raven (Corvus corax). Sean Haight; Linn County, US-OR, US; 2021-05-23. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/80047573
+Original media: https://static.inaturalist.org/sounds/231307.wav?1621818792
+
+voice-crater-300955.m4a — Steller's Jay (Cyanocitta stelleri). Some Donkus; Old Farm District, Bend, OR 97702, USA; 2021-09-03. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 2.21 s.
+Source and recording rights: https://www.inaturalist.org/observations/93524564
+Original media: https://static.inaturalist.org/sounds/300955.wav?1630708567
+
+voice-crater-282163.m4a — Red-tailed Hawk (Buteo jamaicensis). Noland Martin; Eugene, OR 97405, USA; 2021-07-25. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.71 s.
+Source and recording rights: https://www.inaturalist.org/observations/88608135
+Original media: https://static.inaturalist.org/sounds/282163.wav?1627248845
+
+voice-crater-296312.m4a — Clark's Nutcracker (Nucifraga columbiana). Hilary Rose Dawson; Douglas County, US-OR, US; 2021-08-24. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 10.41 s.
+Source and recording rights: https://www.inaturalist.org/observations/92421763
+Original media: https://static.inaturalist.org/sounds/296312.m4a?1629854015
+
+voice-crater-241006.m4a — Nashville Warbler (Leiothlypis ruficapilla). Andy Kleinhesselink; Ashland, OR 97520, USA; 2021-05-30. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 13.71 s.
+Source and recording rights: https://www.inaturalist.org/observations/81092065
+Original media: https://static.inaturalist.org/sounds/241006.wav?1622499323
+
+voice-crater-241027.m4a — Western Tanager (Piranga ludoviciana). Andy Kleinhesselink; Ashland, OR 97520, USA; 2021-05-30. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 25.51 s.
+Source and recording rights: https://www.inaturalist.org/observations/81092084
+Original media: https://static.inaturalist.org/sounds/241027.wav?1622500764
+
+voice-crater-499459.m4a — Rocky Mountain Cicada (Okanagana occidentalis). Jeff Ward; Umpqua National Forest, Dorena, OR, US; 2022-07-14. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/126300172
+Original media: https://static.inaturalist.org/sounds/499459.m4a?1657857570
+
+voice-crater-149930.m4a — Canada Jay (Perisoreus canadensis). Jeff Ward; Lane County, OR, USA; 2020-11-02. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.01 s.
+Source and recording rights: https://www.inaturalist.org/observations/65315856
+Original media: https://static.inaturalist.org/sounds/149930.mp3?1605934453
+
+voice-crater-304886.m4a — Canada Jay (Perisoreus canadensis). Hilary Rose Dawson; Deschutes County, US-OR, US; 2021-09-12. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/94670752
+Original media: https://static.inaturalist.org/sounds/304886.m4a?1631502052
+
+voice-crater-250314.m4a — Dark-eyed Junco (Junco hyemalis). Jeff Ward; Tire Mountain Trail, Lane County, OR, USA; 2021-06-10. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 1.71 s.
+Source and recording rights: https://www.inaturalist.org/observations/82508105
+Original media: https://static.inaturalist.org/sounds/250314.wav?1623383896
+
+voice-crater-253694.m4a — Wrentit (Chamaea fasciata). Jeff Ward; Lane County, US-OR, US; 2021-06-14. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.31 s.
+Source and recording rights: https://www.inaturalist.org/observations/83050067
+Original media: https://static.inaturalist.org/sounds/253694.wav?1623703439
+
+voice-crater-192530.m4a — Evening Grosbeak (Hesperiphona vespertina). Jeff Ward; Dexter, OR 97431, USA; 2021-04-21. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 1.21 s.
+Source and recording rights: https://www.inaturalist.org/observations/74803825
+Original media: https://static.inaturalist.org/sounds/192530.wav?1619062858
+
+voice-crater-419100.m4a — Brown Creeper (Certhia americana). Jeff Ward; Lane County, US-OR, US; 2022-05-01. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 1.31 s.
+Source and recording rights: https://www.inaturalist.org/observations/114546874
+Original media: https://static.inaturalist.org/sounds/419100.wav?1651463149
+
+voice-crater-240937.m4a — MacGillivray's Warbler (Geothlypis tolmiei). Andy Kleinhesselink; Ashland, OR 97520, USA; 2021-05-30. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 0.21 s.
+Source and recording rights: https://www.inaturalist.org/observations/81092031
+Original media: https://static.inaturalist.org/sounds/240937.wav?1622496677
+
+voice-crater-241032.m4a — Hermit Thrush (Catharus guttatus). Andy Kleinhesselink; Ashland, OR 97520, USA; 2021-05-30. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/81104237
+Original media: https://static.inaturalist.org/sounds/241032.wav?1622501142
+
+voice-crater-240959.m4a — Hermit Warbler (Setophaga occidentalis). Andy Kleinhesselink; Ashland, OR 97520, USA; 2021-05-30. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 6.91 s.
+Source and recording rights: https://www.inaturalist.org/observations/81092036
+Original media: https://static.inaturalist.org/sounds/240959.wav?1622498205
+
+voice-crater-259934.m4a — Hammond's Flycatcher (Empidonax hammondii). Jeff Ward; Lane County, US-OR, US; 2021-06-22. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 1.01 s.
+Source and recording rights: https://www.inaturalist.org/observations/84133973
+Original media: https://static.inaturalist.org/sounds/259934.wav?1624414318
+
+voice-crater-347277.m4a — Red-tailed Hawk (Buteo jamaicensis). Jeff Ward; Lane County, US-OR, US; 2022-01-17. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 1.01 s.
+Source and recording rights: https://www.inaturalist.org/observations/105135344
+Original media: https://static.inaturalist.org/sounds/347277.wav?1642474064
+
+voice-crater-273589.m4a — Western Wood-Pewee (Contopus sordidulus). Jeff Ward; Dexter, OR 97431, USA; 2021-07-12. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 1.11 s.
+Source and recording rights: https://www.inaturalist.org/observations/86780696
+Original media: https://static.inaturalist.org/sounds/273589.wav?1626127632
+
+lofoten
+-------
+voice-lofoten-775816.m4a — Common Gull (Larus canus). steve b; Moskenes Municipality, Norway; 2023-07-22. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/174336700
+Original media: https://static.inaturalist.org/sounds/775816.wav?1690055292
+
+voice-lofoten-513452.m4a — Meadow Pipit (Anthus pratensis). Mathieu Sauzay; 8382 Napp, Norvège; 2022-08-03. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 2.91 s.
+Source and recording rights: https://www.inaturalist.org/observations/129268740
+Original media: https://static.inaturalist.org/sounds/513452.wav?1659530839
+
+voice-lofoten-2040648.m4a — Brambling (Fringilla montifringilla). nebrooks; Narvik Municipality, Norway; 2026-06-10. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 26.01 s.
+Source and recording rights: https://www.inaturalist.org/observations/374913781
+Original media: https://static.inaturalist.org/sounds/2040648.wav?1782310242
+
+voice-lofoten-2036981.m4a — Great Black-backed Gull (Larus marinus). zappapy; Brensholmen Storslett, Brensholmen, Norvège; 2026-06-22. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 0.71 s.
+Source and recording rights: https://www.inaturalist.org/observations/374329895
+Original media: https://static.inaturalist.org/sounds/2036981.m4a?1782144640
+
+voice-lofoten-803767.m4a — Eurasian Curlew (Numenius arquata). Grégoire Chauvot; Kvaløyvågen, Tromsø, Troms og Finnmark; 2023-05-12. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 0.31 s.
+Source and recording rights: https://xeno-canto.org/803767
+Original media: https://xeno-canto.org/sounds/uploaded/UVZCOYYCLV/XC803767-Courlis-cendre%CC%81_230512_03_18h26.wav
+
+voice-lofoten-803773.m4a — Common Gull (Larus canus). Grégoire Chauvot; Kvaløyvågen, Tromsø, Troms og Finnmark; 2023-05-12. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 1.31 s.
+Source and recording rights: https://xeno-canto.org/803773
+Original media: https://xeno-canto.org/sounds/uploaded/UVZCOYYCLV/XC803773-Goeland-cendre%CC%81_230512_03_19h.wav
+
+voice-lofoten-803774.m4a — Great Black-backed Gull (Larus marinus). Grégoire Chauvot; Kvaløyvågen, Tromsø, Troms og Finnmark; 2023-05-12. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://xeno-canto.org/803774
+Original media: https://xeno-canto.org/sounds/uploaded/UVZCOYYCLV/XC803774-Goeland-Marin_230512_01_15h.wav
+
+voice-lofoten-803776.m4a — Eurasian Curlew (Numenius arquata). Grégoire Chauvot; Kvaløyvågen, Tromsø, Troms og Finnmark; 2023-05-13. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 1.51 s.
+Source and recording rights: https://xeno-canto.org/803776
+Original media: https://xeno-canto.org/sounds/uploaded/UVZCOYYCLV/XC803776-Courlis-cendre%CC%81_230513_02_05h25.wav
+
+voice-lofoten-2042507.m4a — Fieldfare (Turdus pilaris). zappapy; Tromsø, NO-TR, NO; 2026-06-25. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 2.61 s.
+Source and recording rights: https://www.inaturalist.org/observations/375266751
+Original media: https://static.inaturalist.org/sounds/2042507.wav?1782405559
+
+voice-lofoten-803775.m4a — Willow Ptarmigan (Lagopus lagopus). Grégoire Chauvot, Mélia Roger; Kvaløyvågen, Tromsø, Troms og Finnmark; 2023-05-12. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 0.11 s.
+Source and recording rights: https://xeno-canto.org/803775
+Original media: https://xeno-canto.org/sounds/uploaded/UVZCOYYCLV/XC803775-Lagopede-des-saules_230512_05_23h20.wav
+
+voice-lofoten-2042525.m4a — Arctic Tern (Sterna paradisaea). zappapy; Tromsø, NO-TR, NO; 2026-06-25. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 11.21 s.
+Source and recording rights: https://www.inaturalist.org/observations/375273336
+Original media: https://static.inaturalist.org/sounds/2042525.wav?1782406983
+
+voice-lofoten-2040432.m4a — Willow Warbler (Phylloscopus trochilus). zappapy; 9101 Kvaløysletta, Norvège; 2026-06-24. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 0.61 s.
+Source and recording rights: https://www.inaturalist.org/observations/374866157
+Original media: https://static.inaturalist.org/sounds/2040432.wav?1782296283
+
+voice-lofoten-425880.m4a — White-throated Dipper (Cinclus cinclus). Terje Kolaas; Høylandet, Nord-Trøndelag; 2018-03-26. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 16.91 s.
+Source and recording rights: https://xeno-canto.org/425880
+Original media: https://xeno-canto.org/sounds/uploaded/CIMGCGUWCS/XC425880-fossekall-0326_183316.mp3
+
+voice-lofoten-812847.m4a — Great Spotted Woodpecker (Dendrocopos major). Norrland; 938 96, Schweden; 2023-09-15. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/183360938
+Original media: https://static.inaturalist.org/sounds/812847.wav?1694789318
+
+voice-lofoten-821274.m4a — Common Raven (Corvus corax). Norrland; 938 94, Schweden; 2023-09-17. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/185394732
+Original media: https://static.inaturalist.org/sounds/821274.wav?1695979974
+
+voice-lofoten-920359.m4a — European Greenfinch (Chloris chloris). bitsandbugs; Folkeparken, Tromsø, Norway; 2024-03-07. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/201557738
+Original media: https://static.inaturalist.org/sounds/920359.m4a?1709801012
+
+voice-lofoten-132878.m4a — European Golden Plover (Pluvialis apricaria). Bushman; Dovre, Oppland; 2012-07-04. CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/). Edited excerpt begins at 24.41 s.
+Source and recording rights: https://xeno-canto.org/132878
+Original media: https://xeno-canto.org/sounds/uploaded/RTZZVZRUSN/XC132878-04-jul-2012-EuropeanGoldenPlover.mp3
+
+voice-lofoten-1157240.m4a — Red-throated Loon (Gavia stellata). Teet Sirotkin; Stormyra, Kongsfjord, Finnmark; 2026-07-07. CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/). Edited excerpt begins at 5.91 s.
+Source and recording rights: https://xeno-canto.org/1157240
+Original media: https://xeno-canto.org/sounds/uploaded/GELAPBFFDU/XC1157240-260707-2259-Sm%C3%A5lom-Kongsfjord.wav
+
+voice-lofoten-1157231.m4a — Parasitic Jaeger (Stercorarius parasiticus). Teet Sirotkin; Stormyra, Kongsfjord, Finnmark; 2026-07-08. CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/). Edited excerpt begins at 4.61 s.
+Source and recording rights: https://xeno-canto.org/1157231
+Original media: https://xeno-canto.org/sounds/uploaded/GELAPBFFDU/XC1157231-260708-06XX-Fj%C3%A4llabb-Kongsfjord.mp3
+
+voice-lofoten-1157160.m4a — Whimbrel (Numenius phaeopus). Teet Sirotkin; Stormyra, Kongsfjord, Finnmark; 2026-07-08. CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/). Edited excerpt begins at 4.41 s.
+Source and recording rights: https://xeno-canto.org/1157160
+Original media: https://xeno-canto.org/sounds/uploaded/GELAPBFFDU/XC1157160-260708-03XX-Sm%C3%A5spov-Stormyra-Kongsfjord.wav
+
+voice-lofoten-1157242.m4a — Long-tailed Jaeger (Stercorarius longicaudus). Teet Sirotkin; N Ekkerøy, Vadsø, Finnmark; 2026-07-05. CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/). Edited excerpt begins at 2.21 s.
+Source and recording rights: https://xeno-canto.org/1157242
+Original media: https://xeno-canto.org/sounds/uploaded/GELAPBFFDU/XC1157242-260705-0337-Fj%C3%A4llabb.wav
+
+voice-lofoten-903620.m4a — Redwing (Turdus iliacus). Ida Brennodden; Elgå, Engerdal, Innlandet; 2024-05-16. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 0.51 s.
+Source and recording rights: https://xeno-canto.org/903620
+Original media: https://xeno-canto.org/sounds/uploaded/SKYUNVBTHM/XC903620-R%C3%B8dvingetrost-elg%C3%A5-2.mp3
+
+voice-lofoten-2136266.m4a — Whooper Swan (Cygnus cygnus). Mitch Van Dyke; Kiruna, SE-NB, SE; 2026-08-26. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 1.31 s.
+Source and recording rights: https://www.inaturalist.org/observations/394941385
+Original media: https://static.inaturalist.org/sounds/2136266.wav?1787838353
+
+voice-lofoten-2034707.m4a — Redwing (Turdus iliacus). Edoardo Nardelli; Pakasaivontie, Kihlanki, Lapland, FI; 2026-06-21. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.61 s.
+Source and recording rights: https://www.inaturalist.org/observations/373923043
+Original media: https://static.inaturalist.org/sounds/2034707.m4a?1782049170
+
+voice-lofoten-1092073.m4a — Willow Ptarmigan (Lagopus lagopus). Jimmy Utterström; Gillervattnet, Boliden; 2026-03-30. CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/). Edited excerpt begins at 1.11 s.
+Source and recording rights: https://xeno-canto.org/1092073
+Original media: https://xeno-canto.org/sounds/uploaded/HEQJKMDSFO/XC1092073-Dalripa-%E2%80%94-2026-03-30T02_54_02.000Z-edit.wav
+
+voice-lofoten-821276.m4a — Common Raven (Corvus corax). Norrland; 930 81 Glommersträsk, Schweden; 2023-09-21. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/185394785
+Original media: https://static.inaturalist.org/sounds/821276.wav?1695980042
+
+voice-lofoten-1157224.m4a — Common Reed Bunting (Emberiza schoeniclus). Teet Sirotkin; N Ekkerøy, Vadsø, Finnmark; 2026-07-03. CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/). Edited excerpt begins at 3.71 s.
+Source and recording rights: https://xeno-canto.org/1157224
+Original media: https://xeno-canto.org/sounds/uploaded/GELAPBFFDU/XC1157224-260703-01XX-S%C3%A4vsparv-Ekker%C3%B6ya.mp3
+
+voice-lofoten-1157223.m4a — Common Redpoll (Acanthis flammea). Teet Sirotkin; N Ekkerøy, Vadsø, Finnmark; 2026-07-03. CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/). Edited excerpt begins at 8.71 s.
+Source and recording rights: https://xeno-canto.org/1157223
+Original media: https://xeno-canto.org/sounds/uploaded/GELAPBFFDU/XC1157223-260703-01XX-Gr%C3%A5siska-Ekker%C3%B6ya.mp3
+
+voice-lofoten-834617.m4a — Fieldfare (Turdus pilaris). Grégoire Chauvot; Tromsø, Tromsø, Troms og Finnmark; 2023-05-15. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 9.41 s.
+Source and recording rights: https://xeno-canto.org/834617
+Original media: https://xeno-canto.org/sounds/uploaded/UVZCOYYCLV/XC834617-Grive-litorne-230515-7h.wav
+
+voice-lofoten-803899.m4a — Brambling (Fringilla montifringilla). Grégoire Chauvot; Hamre, Karlsøy, Troms og Finnmark; 2023-05-15. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://xeno-canto.org/803899
+Original media: https://xeno-canto.org/sounds/uploaded/UVZCOYYCLV/XC803899-Pinson-du-nord_230515_05_12h.wav
+
+voice-lofoten-2040413.m4a — Brambling (Fringilla montifringilla). zappapy; Tromsø, NO-TR, NO; 2026-06-24. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 1.41 s.
+Source and recording rights: https://www.inaturalist.org/observations/374861730
+Original media: https://static.inaturalist.org/sounds/2040413.wav?1782294580
+
+acadia
+------
+voice-acadia-508444.m4a — Barred Owl (Strix varia). David Rankin; Mount Desert Island, Mount Desert, ME, US; 2022-07-25. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 19.2 s.
+Source and recording rights: https://www.inaturalist.org/observations/127975859
+Original media: https://static.inaturalist.org/sounds/508444.m4a?1658944303
+
+voice-acadia-1131416.m4a — Common Nighthawk (Chordeiles minor). Charlie O'Brien; Hancock County, US-ME, US; 2024-07-12. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 8.51 s.
+Source and recording rights: https://www.inaturalist.org/observations/229155527
+Original media: https://static.inaturalist.org/sounds/1131416.wav?1720917670
+
+voice-acadia-901304.m4a — Barred Owl (Strix varia). Charlie O'Brien; Hancock County, US-ME, US; 2024-02-18. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 18.81 s.
+Source and recording rights: https://www.inaturalist.org/observations/199753561
+Original media: https://static.inaturalist.org/sounds/901304.wav?1708312363
+
+voice-acadia-2081153.m4a — Common Loon (Gavia immer). Backwoods Botany; Oak Hill Rd, Mount Desert, ME, US; 2026-07-20. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 4.91 s.
+Source and recording rights: https://www.inaturalist.org/observations/383513539
+Original media: https://static.inaturalist.org/sounds/2081153.m4a?1784605100
+
+voice-acadia-2062977.m4a — Common Nighthawk (Chordeiles minor). David Weisenbeck; Acadia National Park, Hancock County, US-ME, US; 2026-07-06. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 2.01 s.
+Source and recording rights: https://www.inaturalist.org/observations/379197512
+Original media: https://static.inaturalist.org/sounds/2062977.wav?1783541711
+
+voice-acadia-46540.m4a — Common Loon (Gavia immer). Andy; Ellsworth, ME 04605, USA; 2019-09-01. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/32084555
+Original media: https://static.inaturalist.org/sounds/46540.wav?1567559754
+
+voice-acadia-1116093.m4a — Gray Treefrog (Dryophytes versicolor). Blake Ross; Charlotte, CA-NB, CA; 2024-06-30. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/226342409
+Original media: https://static.inaturalist.org/sounds/1116093.wav?1719798111
+
+voice-acadia-1341066.m4a — Coyote (Canis latrans). jeffcherry; Newcastle, ME, USA; 2025-03-18. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 1.61 s.
+Source and recording rights: https://www.inaturalist.org/observations/266028625
+Original media: https://static.inaturalist.org/sounds/1341066.wav?1742426069
+
+voice-acadia-722251.m4a — Gray Treefrog (Dryophytes versicolor). Trish Berube; Auburn, ME 04210, USA; 2023-06-01. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 46.71 s.
+Source and recording rights: https://www.inaturalist.org/observations/165084365
+Original media: https://static.inaturalist.org/sounds/722251.wav?1685677009
+
+voice-acadia-722257.m4a — North American Green Frog (Lithobates clamitans). Trish Berube; Auburn, ME 04210, USA; 2023-06-01. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 8.41 s.
+Source and recording rights: https://www.inaturalist.org/observations/165086111
+Original media: https://static.inaturalist.org/sounds/722257.wav?1685678038
+
+voice-acadia-1040711.m4a — Eastern Whip-poor-will (Antrostomus vociferus). Andrew Lewis; York, CA-NB, CA; 2024-05-15. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 7.61 s.
+Source and recording rights: https://www.inaturalist.org/observations/216036518
+Original media: https://static.inaturalist.org/sounds/1040711.wav?1715826812
+
+voice-acadia-1526167.m4a — Eastern Whip-poor-will (Antrostomus vociferus). Andrew Lewis; York, CA-NB, CA; 2025-06-15. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 4.61 s.
+Source and recording rights: https://www.inaturalist.org/observations/290016235
+Original media: https://static.inaturalist.org/sounds/1526167.wav?1750036080
+
+voice-acadia-446698.m4a — Northern Saw-whet Owl (Aegolius acadicus). Jamie VanBuskirk; Kejimkujik National Park and National Historic Site of Canada, Annapolis, NS, CA; 2022-05-22. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 4.71 s.
+Source and recording rights: https://www.inaturalist.org/observations/118130866
+Original media: https://static.inaturalist.org/sounds/446698.m4a?1653199392
+
+voice-acadia-1195025.m4a — American Herring Gull (Larus smithsonianus). Bob Schwartz; West Bath, ME 04530, USA; 2024-09-06. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.31 s.
+Source and recording rights: https://www.inaturalist.org/observations/240223884
+Original media: https://static.inaturalist.org/sounds/1195025.wav?1725663965
+
+voice-acadia-1353655.m4a — Northern Saw-whet Owl (Aegolius acadicus). Blake Ross; Titusville, NB E5N 0N6, Canada; 2025-03-28. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 7.91 s.
+Source and recording rights: https://www.inaturalist.org/observations/267587110
+Original media: https://static.inaturalist.org/sounds/1353655.wav?1743283003
+
+voice-acadia-678157.m4a — American Bittern (Botaurus lentiginosus). Damien Mullin; Fredericton, NB E3A 3V5, Canada; 2023-05-02. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.01 s.
+Source and recording rights: https://www.inaturalist.org/observations/159300851
+Original media: https://static.inaturalist.org/sounds/678157.wav?1683070436
+
+voice-acadia-678158.m4a — American Bittern (Botaurus lentiginosus). Damien Mullin; Fredericton, NB E3A 3V5, Canada; 2023-05-02. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.21 s.
+Source and recording rights: https://www.inaturalist.org/observations/159301038
+Original media: https://static.inaturalist.org/sounds/678158.wav?1683070503
+
+voice-acadia-290594.m4a — Barred Owl (Strix varia). Chris Hoess; Maine, US; 2021-08-11. CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/90849682
+Original media: https://static.inaturalist.org/sounds/290594.m4a?1628737435
+
+voice-acadia-1055449.m4a — Eastern Whip-poor-will (Antrostomus vociferus). Andrew Lewis; York, CA-NB, CA; 2024-05-21. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/217816979
+Original media: https://static.inaturalist.org/sounds/1055449.wav?1716517269
+
+voice-acadia-1961843.m4a — Common Loon (Gavia immer). Jamie VanBuskirk; Kejimkujik, CA-NS-AP, CA-NS, CA; 2026-05-19. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.31 s.
+Source and recording rights: https://www.inaturalist.org/observations/362951296
+Original media: https://static.inaturalist.org/sounds/1961843.m4a?1779161702
+
+voice-acadia-2037829.m4a — Gray Treefrog (Dryophytes versicolor). mike_cove; Thompson Rd, Bridgton, ME, US; 2026-06-22. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 0.11 s.
+Source and recording rights: https://www.inaturalist.org/observations/374474376
+Original media: https://static.inaturalist.org/sounds/2037829.m4a?1782177643
+
+voice-acadia-448411.m4a — Northern Saw-whet Owl (Aegolius acadicus). Jamie VanBuskirk; Kejimkujik National Park and National Historic Site of Canada, Annapolis, NS, CA; 2022-05-22. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 7.71 s.
+Source and recording rights: https://www.inaturalist.org/observations/118361910
+Original media: https://static.inaturalist.org/sounds/448411.m4a?1653312412
+
+voice-acadia-1183070.m4a — Barred Owl (Strix varia). Blake Ross; Kings, CA-NB, CA; 2024-08-23. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 2.01 s.
+Source and recording rights: https://www.inaturalist.org/observations/237462308
+Original media: https://static.inaturalist.org/sounds/1183070.wav?1724423130
+
+voice-acadia-1139981.m4a — Barred Owl (Strix varia). Jennifer Rycenga; Maine, US; 2024-07-21. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/230913673
+Original media: https://static.inaturalist.org/sounds/1139981.wav?1721618167
+
+voice-acadia-247082.m4a — Eastern Whip-poor-will (Antrostomus vociferus). Eric Knight; Greene, ME, USA; 2021-06-06. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.11 s.
+Source and recording rights: https://www.inaturalist.org/observations/81971688
+Original media: https://static.inaturalist.org/sounds/247082.mp3?1623033312
+
+voice-acadia-1094147.m4a — Gray Treefrog (Dryophytes versicolor). Trish Berube; Frechette St, Lewiston, ME, US; 2024-06-14. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 0.21 s.
+Source and recording rights: https://www.inaturalist.org/observations/222756822
+Original media: https://static.inaturalist.org/sounds/1094147.m4a?1718411419
+
+dixville
+--------
+voice-dixville-1501731.m4a — Black-throated Blue Warbler (Setophaga caerulescens). John V. Calhoun FRES; Oxford County, ME, USA; 2025-05-27. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.21 s.
+Source and recording rights: https://www.inaturalist.org/observations/286357685
+Original media: https://static.inaturalist.org/sounds/1501731.m4a?1748893541
+
+voice-dixville-1662397.m4a — Canada Goose (Branta canadensis). Kent P. McFarland; Essex County, US-VT, US; 2025-10-09. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 1.51 s.
+Source and recording rights: https://www.inaturalist.org/observations/319737545
+Original media: https://static.inaturalist.org/sounds/1662397.m4a?1760008879
+
+voice-dixville-336794.m4a — White-breasted Nuthatch (Sitta carolinensis). Richard Littauer; Ferdinand, VT, USA; 2021-02-27. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/102898594
+Original media: https://static.inaturalist.org/sounds/336794.wav?1639266818
+
+voice-dixville-554823.m4a — Black-capped Chickadee (Poecile atricapillus). Richard Littauer; Island Pond, VT, US; 2022-10-26. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 19.31 s.
+Source and recording rights: https://www.inaturalist.org/observations/140066435
+Original media: https://static.inaturalist.org/sounds/554823.m4a?1666799098
+
+voice-dixville-697644.m4a — Nashville Warbler (Leiothlypis ruficapilla). Dawn Nelson; Oxford County, ME, USA; 2023-05-12. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 5.51 s.
+Source and recording rights: https://www.inaturalist.org/observations/161703323
+Original media: https://static.inaturalist.org/sounds/697644.m4a?1684104827
+
+voice-dixville-697655.m4a — Magnolia Warbler (Setophaga magnolia). Dawn Nelson; Oxford County, ME, USA; 2023-05-12. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 1.01 s.
+Source and recording rights: https://www.inaturalist.org/observations/161704685
+Original media: https://static.inaturalist.org/sounds/697655.m4a?1684105349
+
+voice-dixville-140741.m4a — Olive-sided Flycatcher (Contopus cooperi). er-birds; Ferdinand, VT, USA; 2020-06-12. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 1.81 s.
+Source and recording rights: https://www.inaturalist.org/observations/61771338
+Original media: https://static.inaturalist.org/sounds/140741.wav?1601901214
+
+voice-dixville-697620.m4a — Northern Parula (Setophaga americana). Dawn Nelson; Oxford County, ME, USA; 2023-05-12. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 4.11 s.
+Source and recording rights: https://www.inaturalist.org/observations/161699078
+Original media: https://static.inaturalist.org/sounds/697620.m4a?1684103373
+
+voice-dixville-5.m4a — Swainson's Thrush (Catharus ustulatus). naturalist charlie; recording region; 2013-06-21. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/307612
+Original media: https://static.inaturalist.org/sounds/5.m4a?1502823366
+
+voice-dixville-336795.m4a — American Tree Sparrow (Spizelloides arborea). Richard Littauer; Ferdinand, VT, USA; 2021-02-27. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.41 s.
+Source and recording rights: https://www.inaturalist.org/observations/102898595
+Original media: https://static.inaturalist.org/sounds/336795.wav?1639266819
+
+voice-dixville-807359.m4a — Black-capped Chickadee (Poecile atricapillus). Nick Kleinschmidt; Chartierville, Le Haut-Saint-François Regional County Municipality, QC J0B, Canada; 2023-09-05. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/181987437
+Original media: https://static.inaturalist.org/sounds/807359.m4a?1693960602
+
+voice-dixville-192718.m4a — Wilson's Snipe (Gallinago delicata). Richard Littauer; Ferdinand, VT, USA; 2021-04-18. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 6.81 s.
+Source and recording rights: https://www.inaturalist.org/observations/74836553
+Original media: https://static.inaturalist.org/sounds/192718.wav?1619102465
+
+voice-dixville-1560271.m4a — White-throated Sparrow (Zonotrichia albicollis). Peter Boyer; Appalachian National Scenic Trail, Newry, ME, US; 2025-07-05. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.71 s.
+Source and recording rights: https://www.inaturalist.org/observations/296258254
+Original media: https://static.inaturalist.org/sounds/1560271.m4a?1751985548
+
+voice-dixville-697632.m4a — Northern Waterthrush (Parkesia noveboracensis). Dawn Nelson; Oxford County, ME, USA; 2023-05-12. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 14.21 s.
+Source and recording rights: https://www.inaturalist.org/observations/161701125
+Original media: https://static.inaturalist.org/sounds/697632.m4a?1684104018
+
+voice-dixville-801674.m4a — Common Loon (Gavia immer). Jon Paul Rodríguez; Rangeley, ME, USA; 2023-08-28. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.61 s.
+Source and recording rights: https://www.inaturalist.org/observations/180597634
+Original media: https://static.inaturalist.org/sounds/801674.m4a?1693220078
+
+voice-dixville-833030.m4a — Eastern Chipmunk (Tamias striatus). Kent P. McFarland; Pinkham Rd, East Burke, VT, US; 2023-10-18. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 13.61 s.
+Source and recording rights: https://www.inaturalist.org/observations/188067988
+Original media: https://static.inaturalist.org/sounds/833030.m4a?1697663485
+
+voice-dixville-833038.m4a — Common Raven (Corvus corax). Kent P. McFarland; Pinkham Rd, East Burke, VT, US; 2023-10-18. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 16.21 s.
+Source and recording rights: https://www.inaturalist.org/observations/188071276
+Original media: https://static.inaturalist.org/sounds/833038.m4a?1697664944
+
+voice-dixville-559736.m4a — Golden-crowned Kinglet (Regulus satrapa). Zac Peterson; Thompson and Meserve's Purchase, NH, USA; 2022-11-05. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/141229406
+Original media: https://static.inaturalist.org/sounds/559736.wav?1667706597
+
+voice-dixville-1682779.m4a — Boreal Chickadee (Poecile hudsonicus). Peter Boyer; Coos County, US-NH, US; 2025-10-30. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 2.61 s.
+Source and recording rights: https://www.inaturalist.org/observations/324164900
+Original media: https://static.inaturalist.org/sounds/1682779.m4a?1761923475
+
+voice-dixville-88287.m4a — Eastern Gray Squirrel (Sciurus carolinensis). Annie Evankow; Gorham, NH 03581, USA; 2020-05-14. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/45875829
+Original media: https://static.inaturalist.org/sounds/88287.wav?1589469482
+
+voice-dixville-807358.m4a — Eastern Chipmunk (Tamias striatus). Nick Kleinschmidt; Hampden, Le Haut-Saint-François Regional County Municipality, QC J0B, Canada; 2023-09-05. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.61 s.
+Source and recording rights: https://www.inaturalist.org/observations/181987432
+Original media: https://static.inaturalist.org/sounds/807358.m4a?1693960598
+
+voice-dixville-138711.m4a — Mallard (Anas platyrhynchos). feralbeetle; Hangar, Sherbrooke, QC J1M 0C8, Canada; 2020-09-26. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/60888571
+Original media: https://static.inaturalist.org/sounds/138711.wav?1601158630
+
+voice-dixville-322065.m4a — American Red Squirrel (Tamiasciurus hudsonicus). feralbeetle; Munster Residence, Sherbrooke, QC J1M 0C8, Canada; 2021-10-27. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 17.21 s.
+Source and recording rights: https://www.inaturalist.org/observations/99563699
+Original media: https://static.inaturalist.org/sounds/322065.wav?1635360069
+
+voice-dixville-1977945.m4a — Northern Cardinal (Cardinalis cardinalis). Nick Kleinschmidt; Stanstead-Est, QC J0B, Canada; 2025-11-10. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 8.01 s.
+Source and recording rights: https://www.inaturalist.org/observations/365040142
+Original media: https://static.inaturalist.org/sounds/1977945.wav?1779715781
+
+voice-dixville-331349.m4a — American Red Squirrel (Tamiasciurus hudsonicus). feralbeetle; Munster Residence, Sherbrooke, QC J1M 0C8, Canada; 2021-11-21. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 1.01 s.
+Source and recording rights: https://www.inaturalist.org/observations/101637284
+Original media: https://static.inaturalist.org/sounds/331349.wav?1637518180
+
+voice-dixville-807003.m4a — American Crow (Corvus brachyrhynchos). Nick Kleinschmidt; La Région-Sherbrookoise, CA-QC, CA; 2023-09-05. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.41 s.
+Source and recording rights: https://www.inaturalist.org/observations/181896071
+Original media: https://static.inaturalist.org/sounds/807003.m4a?1693916149
+
+voice-dixville-2167975.m4a — Common Raven (Corvus corax). BlueKirby; White Mountain National Forest, Twin Mountain, NH, US; 2026-09-14. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/400190880
+Original media: https://static.inaturalist.org/sounds/2167975.wav?1790066726
+
+voice-dixville-1861349.m4a — Lincoln's Sparrow (Melospiza lincolnii). Derek Duplessis; Rue St-François N, Sherbrooke, QC, CA; 2025-08-31. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 4.61 s.
+Source and recording rights: https://www.inaturalist.org/observations/310449180
+Original media: https://static.inaturalist.org/sounds/1861349.wav?1776281496
+
+voice-dixville-1219762.m4a — Swamp Sparrow (Melospiza georgiana). naturalist charlie; Orleans County, US-VT, US; 2024-10-01. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/245139309
+Original media: https://static.inaturalist.org/sounds/1219762.m4a?1727818392
+
+voice-dixville-2167973.m4a — Boreal Chickadee (Poecile hudsonicus). BlueKirby; Coos County, US-NH, US; 2026-09-14. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.41 s.
+Source and recording rights: https://www.inaturalist.org/observations/400377607
+Original media: https://static.inaturalist.org/sounds/2167973.wav?1790066517
+
+voice-dixville-1593760.m4a — Winter Wren (Nannus hiemalis). Peter Boyer; Grafton County, US-NH, US; 2025-08-03. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 1.81 s.
+Source and recording rights: https://www.inaturalist.org/observations/303850901
+Original media: https://static.inaturalist.org/sounds/1593760.m4a?1754351026
+
+voice-dixville-2107726.m4a — Broad-winged Hawk (Buteo platypterus). Mark Connolly; Grafton County, US-NH, US; 2026-08-06. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 0.11 s.
+Source and recording rights: https://www.inaturalist.org/observations/388833938
+Original media: https://static.inaturalist.org/sounds/2107726.wav?1786045027
+
+voice-dixville-2107326.m4a — Winter Wren (Nannus hiemalis). Mark Connolly; Bethlehem, NH, USA; 2026-08-06. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/388743432
+Original media: https://static.inaturalist.org/sounds/2107326.wav?1786023470
+
+voice-dixville-1604042.m4a — Virginia Rail (Rallus limicola). Derek Duplessis; Fleurimont, Sherbrooke, QC, Canada; 2025-08-14. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/306236118
+Original media: https://static.inaturalist.org/sounds/1604042.wav?1755176219
+
+voice-dixville-1675483.m4a — Red-breasted Nuthatch (Sitta canadensis). Derek Duplessis; Mont-Bellevue, Sherbrooke, QC, Canada; 2025-10-23. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 3.81 s.
+Source and recording rights: https://www.inaturalist.org/observations/322570607
+Original media: https://static.inaturalist.org/sounds/1675483.wav?1761224271
+
+voice-dixville-2107327.m4a — Black-throated Green Warbler (Setophaga virens). Mark Connolly; Bretton Woods, NH 03575, USA; 2026-08-06. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 1.41 s.
+Source and recording rights: https://www.inaturalist.org/observations/388743445
+Original media: https://static.inaturalist.org/sounds/2107327.wav?1786023476
+
+voice-dixville-1201160.m4a — Blue-headed Vireo (Vireo solitarius). Charlie O'Brien; Stoneham, ME, USA; 2024-09-12. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 4.41 s.
+Source and recording rights: https://www.inaturalist.org/observations/241767054
+Original media: https://static.inaturalist.org/sounds/1201160.wav?1726359706
+
+voice-dixville-1658253.m4a — Ruby-crowned Kinglet (Corthylio calendula). Natalie Chapdelaine; Ch J-A-Bombardier, Racine, QC, CA; 2025-10-05. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 4.11 s.
+Source and recording rights: https://www.inaturalist.org/observations/318863555
+Original media: https://static.inaturalist.org/sounds/1658253.m4a?1759667886
+
+voice-dixville-2099100.m4a — Dark-eyed Junco (Junco hyemalis). Marc-Olivier Beausoleil; Orford, QC, CA; 2026-08-01. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 4.61 s.
+Source and recording rights: https://www.inaturalist.org/observations/387271410
+Original media: https://static.inaturalist.org/sounds/2099100.m4a?1785609415
+
+voice-dixville-1091897.m4a — Osprey (Pandion haliaetus). Richard Littauer; Nulhegan Pond, Brighton, VT 05846, USA; 2024-06-11. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/222461501
+Original media: https://static.inaturalist.org/sounds/1091897.wav?1718293256
+
+labrador
+--------
+voice-labrador-wabad-feu-20190608-045703.m4a — American Robin (Turdus migratorius). Junior Tremblay research group, WABAD (Pérez-Granados et al.); Labrieville, Côte-Nord, Québec, Canada; 2019-06-08. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Source tape Recordings/FEU_20190608_045703.wav (50.255–54.223 s); annotation begins at 50.455 s.
+Source and recording rights: https://zenodo.org/records/20513304
+Original media: https://zenodo.org/api/records/20513304/files/FEU.zip/content
+
+voice-labrador-wabad-feu-20190609-064300.m4a — Bay-breasted Warbler (Setophaga castanea). Junior Tremblay research group, WABAD (Pérez-Granados et al.); Labrieville, Côte-Nord, Québec, Canada; 2019-06-09. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Source tape Recordings/FEU_20190609_064300.wav (43.621–45.18 s); annotation begins at 43.821 s.
+Source and recording rights: https://zenodo.org/records/20513304
+Original media: https://zenodo.org/api/records/20513304/files/FEU.zip/content
+
+voice-labrador-wabad-feu-20190608-064500.m4a — Ruby-crowned Kinglet (Corthylio calendula). Junior Tremblay research group, WABAD (Pérez-Granados et al.); Labrieville, Côte-Nord, Québec, Canada; 2019-06-08. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Source tape Recordings/FEU_20190608_064500.wav (38.043–42.507 s); annotation begins at 38.243 s.
+Source and recording rights: https://zenodo.org/records/20513304
+Original media: https://zenodo.org/api/records/20513304/files/FEU.zip/content
+
+voice-labrador-wabad-feu-20190619-061800.m4a — Downy Woodpecker (Dryobates pubescens). Junior Tremblay research group, WABAD (Pérez-Granados et al.); Labrieville, Côte-Nord, Québec, Canada; 2019-06-19. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Source tape Recordings/FEU_20190619_061800.wav (39.774–42.088 s); annotation begins at 39.974 s.
+Source and recording rights: https://zenodo.org/records/20513304
+Original media: https://zenodo.org/api/records/20513304/files/FEU.zip/content
+
+voice-labrador-wabad-feu-20190608-045700.m4a — Hermit Thrush (Catharus guttatus). Junior Tremblay research group, WABAD (Pérez-Granados et al.); Labrieville, Côte-Nord, Québec, Canada; 2019-06-08. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Source tape Recordings/FEU_20190608_045700.wav (25.307–29.719 s); annotation begins at 25.507 s.
+Source and recording rights: https://zenodo.org/records/20513304
+Original media: https://zenodo.org/api/records/20513304/files/FEU.zip/content
+
+voice-labrador-wabad-feu-20190619-045100.m4a — White-throated Sparrow (Zonotrichia albicollis). Junior Tremblay research group, WABAD (Pérez-Granados et al.); Labrieville, Côte-Nord, Québec, Canada; 2019-06-19. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Source tape Recordings/FEU_20190619_045100.wav (18.455–23.34 s); annotation begins at 18.655 s.
+Source and recording rights: https://zenodo.org/records/20513304
+Original media: https://zenodo.org/api/records/20513304/files/FEU.zip/content
+
+voice-labrador-wabad-feu-20190619-043700.m4a — Dark-eyed Junco (Junco hyemalis). Junior Tremblay research group, WABAD (Pérez-Granados et al.); Labrieville, Côte-Nord, Québec, Canada; 2019-06-19. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Source tape Recordings/FEU_20190619_043700.wav (24.835–29.079 s); annotation begins at 25.035 s.
+Source and recording rights: https://zenodo.org/records/20513304
+Original media: https://zenodo.org/api/records/20513304/files/FEU.zip/content
+
+voice-labrador-wabad-feu-20190608-050002.m4a — Yellow-rumped Warbler (Setophaga coronata). Junior Tremblay research group, WABAD (Pérez-Granados et al.); Labrieville, Côte-Nord, Québec, Canada; 2019-06-08. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Source tape Recordings/FEU_20190608_050002.wav (56.469–59.994 s); annotation begins at 56.669 s.
+Source and recording rights: https://zenodo.org/records/20513304
+Original media: https://zenodo.org/api/records/20513304/files/FEU.zip/content
+
+voice-labrador-wabad-feu-20190608-045702.m4a — Rusty Blackbird (Euphagus carolinus). Junior Tremblay research group, WABAD (Pérez-Granados et al.); Labrieville, Côte-Nord, Québec, Canada; 2019-06-08. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Source tape Recordings/FEU_20190608_045702.wav (53.374–56.016 s); annotation begins at 53.574 s.
+Source and recording rights: https://zenodo.org/records/20513304
+Original media: https://zenodo.org/api/records/20513304/files/FEU.zip/content
+
+voice-labrador-wabad-feu-20190619-204000.m4a — Swainson's Thrush (Catharus ustulatus). Junior Tremblay research group, WABAD (Pérez-Granados et al.); Labrieville, Côte-Nord, Québec, Canada; 2019-06-19. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Source tape Recordings/FEU_20190619_204000.wav (56.946–60.0 s); annotation begins at 57.146 s.
+Source and recording rights: https://zenodo.org/records/20513304
+Original media: https://zenodo.org/api/records/20513304/files/FEU.zip/content
+
+voice-labrador-wabad-feu-20190608-044400.m4a — Downy Woodpecker (Dryobates pubescens). Junior Tremblay research group, WABAD (Pérez-Granados et al.); Labrieville, Côte-Nord, Québec, Canada; 2019-06-08. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Source tape Recordings/FEU_20190608_044400.wav (46.582–49.456 s); annotation begins at 46.782 s.
+Source and recording rights: https://zenodo.org/records/20513304
+Original media: https://zenodo.org/api/records/20513304/files/FEU.zip/content
+
+voice-labrador-wabad-feu-20190608-064400.m4a — Northern Waterthrush (Parkesia noveboracensis). Junior Tremblay research group, WABAD (Pérez-Granados et al.); Labrieville, Côte-Nord, Québec, Canada; 2019-06-08. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Source tape Recordings/FEU_20190608_064400.wav (56.441–58.99 s); annotation begins at 56.641 s.
+Source and recording rights: https://zenodo.org/records/20513304
+Original media: https://zenodo.org/api/records/20513304/files/FEU.zip/content
+
+voice-labrador-wabad-feu-20190608-070100.m4a — Black-backed Woodpecker (Picoides arcticus). Junior Tremblay research group, WABAD (Pérez-Granados et al.); Labrieville, Côte-Nord, Québec, Canada; 2019-06-08. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Source tape Recordings/FEU_20190608_070100.wav (21.165–24.094 s); annotation begins at 21.365 s.
+Source and recording rights: https://zenodo.org/records/20513304
+Original media: https://zenodo.org/api/records/20513304/files/FEU.zip/content
+
+voice-labrador-wabad-feu-20190609-060500.m4a — Northern Waterthrush (Parkesia noveboracensis). Junior Tremblay research group, WABAD (Pérez-Granados et al.); Labrieville, Côte-Nord, Québec, Canada; 2019-06-09. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Source tape Recordings/FEU_20190609_060500.wav (28.273–30.745 s); annotation begins at 28.473 s.
+Source and recording rights: https://zenodo.org/records/20513304
+Original media: https://zenodo.org/api/records/20513304/files/FEU.zip/content
+
+voice-labrador-wabad-feu-20190613-065100.m4a — Yellow-rumped Warbler (Setophaga coronata). Junior Tremblay research group, WABAD (Pérez-Granados et al.); Labrieville, Côte-Nord, Québec, Canada; 2019-06-13. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Source tape Recordings/FEU_20190613_065100.wav (57.49–59.535 s); annotation begins at 57.69 s.
+Source and recording rights: https://zenodo.org/records/20513304
+Original media: https://zenodo.org/api/records/20513304/files/FEU.zip/content
+
+voice-labrador-wabad-feu-20190618-064500.m4a — Dark-eyed Junco (Junco hyemalis). Junior Tremblay research group, WABAD (Pérez-Granados et al.); Labrieville, Côte-Nord, Québec, Canada; 2019-06-18. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Source tape Recordings/FEU_20190618_064500.wav (5.086–8.823 s); annotation begins at 5.286 s.
+Source and recording rights: https://zenodo.org/records/20513304
+Original media: https://zenodo.org/api/records/20513304/files/FEU.zip/content
+
+voice-labrador-wabad-feu-20190619-062400.m4a — Boreal Chickadee (Poecile hudsonicus). Junior Tremblay research group, WABAD (Pérez-Granados et al.); Labrieville, Côte-Nord, Québec, Canada; 2019-06-19. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Source tape Recordings/FEU_20190619_062400.wav (44.984–46.361 s); annotation begins at 45.184 s.
+Source and recording rights: https://zenodo.org/records/20513304
+Original media: https://zenodo.org/api/records/20513304/files/FEU.zip/content
+
+voice-labrador-wabad-feu-20190608-061000.m4a — White-throated Sparrow (Zonotrichia albicollis). Junior Tremblay research group, WABAD (Pérez-Granados et al.); Labrieville, Côte-Nord, Québec, Canada; 2019-06-08. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Source tape Recordings/FEU_20190608_061000.wav (15.574–19.964 s); annotation begins at 15.774 s.
+Source and recording rights: https://zenodo.org/records/20513304
+Original media: https://zenodo.org/api/records/20513304/files/FEU.zip/content
+
+voice-labrador-wabad-feu-20190608-043900.m4a — Yellow-bellied Sapsucker (Sphyrapicus varius). Junior Tremblay research group, WABAD (Pérez-Granados et al.); Labrieville, Côte-Nord, Québec, Canada; 2019-06-08. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Source tape Recordings/FEU_20190608_043900.wav (38.656–41.519 s); annotation begins at 38.856 s.
+Source and recording rights: https://zenodo.org/records/20513304
+Original media: https://zenodo.org/api/records/20513304/files/FEU.zip/content
+
+voice-labrador-wabad-feu-20190609-065800.m4a — Magnolia Warbler (Setophaga magnolia). Junior Tremblay research group, WABAD (Pérez-Granados et al.); Labrieville, Côte-Nord, Québec, Canada; 2019-06-09. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Source tape Recordings/FEU_20190609_065800.wav (50.063–51.578 s); annotation begins at 50.263 s.
+Source and recording rights: https://zenodo.org/records/20513304
+Original media: https://zenodo.org/api/records/20513304/files/FEU.zip/content
+
+voice-labrador-wabad-feu-20190619-045202.m4a — Lincoln's Sparrow (Melospiza lincolnii). Junior Tremblay research group, WABAD (Pérez-Granados et al.); Labrieville, Côte-Nord, Québec, Canada; 2019-06-19. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Source tape Recordings/FEU_20190619_045202.wav (46.73–48.124 s); annotation begins at 46.93 s.
+Source and recording rights: https://zenodo.org/records/20513304
+Original media: https://zenodo.org/api/records/20513304/files/FEU.zip/content
+
+voice-labrador-wabad-feu-20190608-065600.m4a — Blackpoll Warbler (Setophaga striata). Junior Tremblay research group, WABAD (Pérez-Granados et al.); Labrieville, Côte-Nord, Québec, Canada; 2019-06-08. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Source tape Recordings/FEU_20190608_065600.wav (38.787–40.386 s); annotation begins at 38.987 s.
+Source and recording rights: https://zenodo.org/records/20513304
+Original media: https://zenodo.org/api/records/20513304/files/FEU.zip/content
+
+voice-labrador-wabad-feu-20190608-050000.m4a — Lincoln's Sparrow (Melospiza lincolnii). Junior Tremblay research group, WABAD (Pérez-Granados et al.); Labrieville, Côte-Nord, Québec, Canada; 2019-06-08. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Source tape Recordings/FEU_20190608_050000.wav (50.966–52.627 s); annotation begins at 51.166 s.
+Source and recording rights: https://zenodo.org/records/20513304
+Original media: https://zenodo.org/api/records/20513304/files/FEU.zip/content
+
+voice-labrador-wabad-feu-20190613-042300.m4a — Canada Goose (Branta canadensis). Junior Tremblay research group, WABAD (Pérez-Granados et al.); Labrieville, Côte-Nord, Québec, Canada; 2019-06-13. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Source tape Recordings/FEU_20190613_042300.wav (37.799–41.543 s); annotation begins at 37.999 s.
+Source and recording rights: https://zenodo.org/records/20513304
+Original media: https://zenodo.org/api/records/20513304/files/FEU.zip/content
+
+voice-labrador-wabad-feu-20190619-062402.m4a — Solitary Sandpiper (Tringa solitaria). Junior Tremblay research group, WABAD (Pérez-Granados et al.); Labrieville, Côte-Nord, Québec, Canada; 2019-06-19. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Source tape Recordings/FEU_20190619_062402.wav (12.587–13.92 s); annotation begins at 12.787 s.
+Source and recording rights: https://zenodo.org/records/20513304
+Original media: https://zenodo.org/api/records/20513304/files/FEU.zip/content
+
+voice-labrador-wabad-feu-20190609-061200.m4a — Wilson's Snipe (Gallinago delicata). Junior Tremblay research group, WABAD (Pérez-Granados et al.); Labrieville, Côte-Nord, Québec, Canada; 2019-06-09. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Source tape Recordings/FEU_20190609_061200.wav (6.616–7.9 s); annotation begins at 6.816 s.
+Source and recording rights: https://zenodo.org/records/20513304
+Original media: https://zenodo.org/api/records/20513304/files/FEU.zip/content
+
+voice-labrador-wabad-feu-20190619-204300.m4a — Common Loon (Gavia immer). Junior Tremblay research group, WABAD (Pérez-Granados et al.); Labrieville, Côte-Nord, Québec, Canada; 2019-06-19. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Source tape Recordings/FEU_20190619_204300.wav (20.619–22.295 s); annotation begins at 20.819 s.
+Source and recording rights: https://zenodo.org/records/20513304
+Original media: https://zenodo.org/api/records/20513304/files/FEU.zip/content
+
+voice-labrador-wabad-feu-20190619-205402.m4a — Ruby-crowned Kinglet (Corthylio calendula). Junior Tremblay research group, WABAD (Pérez-Granados et al.); Labrieville, Côte-Nord, Québec, Canada; 2019-06-19. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Source tape Recordings/FEU_20190619_205402.wav (51.108–53.28 s); annotation begins at 51.308 s.
+Source and recording rights: https://zenodo.org/records/20513304
+Original media: https://zenodo.org/api/records/20513304/files/FEU.zip/content
+
+voice-labrador-wabad-feu-20190619-060300.m4a — Olive-sided Flycatcher (Contopus cooperi). Junior Tremblay research group, WABAD (Pérez-Granados et al.); Labrieville, Côte-Nord, Québec, Canada; 2019-06-19. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Source tape Recordings/FEU_20190619_060300.wav (14.344–15.346 s); annotation begins at 14.544 s.
+Source and recording rights: https://zenodo.org/records/20513304
+Original media: https://zenodo.org/api/records/20513304/files/FEU.zip/content
+
+voice-labrador-wabad-feu-20190609-045200.m4a — Northern Flicker (Colaptes auratus). Junior Tremblay research group, WABAD (Pérez-Granados et al.); Labrieville, Côte-Nord, Québec, Canada; 2019-06-09. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Source tape Recordings/FEU_20190609_045200.wav (45.116–48.843 s); annotation begins at 45.316 s.
+Source and recording rights: https://zenodo.org/records/20513304
+Original media: https://zenodo.org/api/records/20513304/files/FEU.zip/content
+
+voice-labrador-wabad-feu-20190608-044800.m4a — Solitary Sandpiper (Tringa solitaria). Junior Tremblay research group, WABAD (Pérez-Granados et al.); Labrieville, Côte-Nord, Québec, Canada; 2019-06-08. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Source tape Recordings/FEU_20190608_044800.wav (30.366–34.446 s); annotation begins at 30.566 s.
+Source and recording rights: https://zenodo.org/records/20513304
+Original media: https://zenodo.org/api/records/20513304/files/FEU.zip/content
+
+voice-labrador-2134186.m4a — Boreal Chickadee (Poecile hudsonicus). Derek Duplessis; International Appalachian Tr, Mont-Albert, QC, CA; 2026-08-25. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 14.91 s.
+Source and recording rights: https://www.inaturalist.org/observations/394494959
+Original media: https://static.inaturalist.org/sounds/2134186.wav?1787688501
+
+voice-labrador-2085059.m4a — Swainson's Thrush (Catharus ustulatus). Pénélope; Carleton, QC G0C 2Z0, Canada; 2026-07-23. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/384414611
+Original media: https://static.inaturalist.org/sounds/2085059.m4a?1784853305
+
+voice-labrador-1547069.m4a — Bicknell's Thrush (Catharus bicknelli). Étienne Léveillé-Bourret; Lac-Pikauba, QC G0A, Canada; 2025-06-29. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/293753010
+Original media: https://static.inaturalist.org/sounds/1547069.m4a?1751209326
+
+voice-labrador-270818.m4a — Red-eyed Vireo (Vireo olivaceus). Asia Ruby Fuoco; Eldon Parish, NB, Canada; 2021-06-19. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 1.11 s.
+Source and recording rights: https://www.inaturalist.org/observations/86204336
+Original media: https://static.inaturalist.org/sounds/270818.wav?1625776683
+
+voice-labrador-104250.m4a — Red-eyed Vireo (Vireo olivaceus). Alexis Godin; Tide Head, NB, Canada; 2020-06-07. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.01 s.
+Source and recording rights: https://www.inaturalist.org/observations/48907311
+Original media: https://static.inaturalist.org/sounds/104250.m4a?1591624190
+
+voice-labrador-1552049.m4a — Bicknell's Thrush (Catharus bicknelli). simonpesant; Lac-Pikauba, QC G0A, Canada; 2025-06-29. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.41 s.
+Source and recording rights: https://www.inaturalist.org/observations/294697601
+Original media: https://static.inaturalist.org/sounds/1552049.wav?1751493238
+
+voice-labrador-1919170.m4a — Spring Peeper (Pseudacris crucifer). Alexis Godin; Bertrand, NB, Canada; 2026-05-01. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 9.21 s.
+Source and recording rights: https://www.inaturalist.org/observations/357378379
+Original media: https://static.inaturalist.org/sounds/1919170.m4a?1777686712
+
+voice-labrador-111817.m4a — American Crow (Corvus brachyrhynchos). Alexis Godin; Campbellton, NB, Canada; 2020-06-24. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/50916502
+Original media: https://static.inaturalist.org/sounds/111817.m4a?1593114679
+
+voice-labrador-1147350.m4a — Osprey (Pandion haliaetus). dhgadd; Île Miscou, Shippagan, NB, CA; 2024-07-26. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 1.61 s.
+Source and recording rights: https://www.inaturalist.org/observations/231803745
+Original media: https://static.inaturalist.org/sounds/1147350.m4a?1722297194
+
+voice-labrador-977272.m4a — Wood Frog (Lithobates sylvaticus). Alexis Godin; Sand Hill, Bathurst, NB, CA; 2024-04-21. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 4.01 s.
+Source and recording rights: https://www.inaturalist.org/observations/208522060
+Original media: https://static.inaturalist.org/sounds/977272.m4a?1713719776
+
+voice-labrador-2019776.m4a — Song Sparrow (Melospiza melodia). dhgadd; Manny Dr, Miramichi, NB, CA; 2026-06-13. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 1.21 s.
+Source and recording rights: https://www.inaturalist.org/observations/371305635
+Original media: https://static.inaturalist.org/sounds/2019776.m4a?1781373692
+
+voice-labrador-269444.m4a — Black-throated Blue Warbler (Setophaga caerulescens). Asia Ruby Fuoco; Addington Parish, NB, Canada; 2021-06-19. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.91 s.
+Source and recording rights: https://www.inaturalist.org/observations/85905854
+Original media: https://static.inaturalist.org/sounds/269444.wav?1625577232
+
+winnipesaukee
+-------------
+voice-winnipesaukee-1148054.m4a — Red-eyed Vireo (Vireo olivaceus). user12; Mirror Lake, NH 03853, USA; 2024-07-26. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.21 s.
+Source and recording rights: https://www.inaturalist.org/observations/232786201
+Original media: https://static.inaturalist.org/sounds/1148054.m4a?1722378293
+
+voice-winnipesaukee-310251.m4a — Eastern Chipmunk (Tamias striatus). Dana L. Brown; Belknap County, US-NH, US; 2021-09-27. CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/). Edited excerpt begins at 2.71 s.
+Source and recording rights: https://www.inaturalist.org/observations/96405647
+Original media: https://static.inaturalist.org/sounds/310251.m4a?1632775987
+
+voice-winnipesaukee-1183768.m4a — Common Loon (Gavia immer). Matt Felperin; Carroll County, US-NH, US; 2024-08-24. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 25.41 s.
+Source and recording rights: https://www.inaturalist.org/observations/237610930
+Original media: https://static.inaturalist.org/sounds/1183768.m4a?1724496587
+
+voice-winnipesaukee-284959.m4a — Dark-eyed Junco (Junco hyemalis). Alan Perkins; Belknap County, US-NH, US; 2021-07-31. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 0.21 s.
+Source and recording rights: https://www.inaturalist.org/observations/89345776
+Original media: https://static.inaturalist.org/sounds/284959.m4a?1627751255
+
+voice-winnipesaukee-468077.m4a — Spring Peeper (Pseudacris crucifer). aspring; Laconia, NH, USA; 2022-05-20. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 26.71 s.
+Source and recording rights: https://www.inaturalist.org/observations/121261109
+Original media: https://static.inaturalist.org/sounds/468077.m4a?1654966249
+
+voice-winnipesaukee-1863336.m4a — Spring Peeper (Pseudacris crucifer). aspring; White Oaks Rd, Laconia, NH, US; 2026-04-15. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 8.41 s.
+Source and recording rights: https://www.inaturalist.org/observations/350343003
+Original media: https://static.inaturalist.org/sounds/1863336.m4a?1776368494
+
+voice-winnipesaukee-468084.m4a — Gray Treefrog (Dryophytes versicolor). aspring; Laconia, NH, USA; 2022-06-07. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 26.21 s.
+Source and recording rights: https://www.inaturalist.org/observations/121261872
+Original media: https://static.inaturalist.org/sounds/468084.m4a?1654966493
+
+voice-winnipesaukee-1484579.m4a — Black-throated Green Warbler (Setophaga virens). Lythronax246; Brook Trail, Alton Bay, NH, US; 2025-05-25. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/283951097
+Original media: https://static.inaturalist.org/sounds/1484579.m4a?1748201812
+
+voice-winnipesaukee-1132125.m4a — Red-eyed Vireo (Vireo olivaceus). Ken-ichi Ueda; Red Hill Rd, Moultonborough, NH, US; 2024-07-14. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 1.11 s.
+Source and recording rights: https://www.inaturalist.org/observations/229301171
+Original media: https://static.inaturalist.org/sounds/1132125.m4a?1720976579
+
+voice-winnipesaukee-1139464.m4a — Broad-winged Hawk (Buteo platypterus). Jennifer Rycenga; Alton Bay, NH, US; 2024-07-21. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 6.41 s.
+Source and recording rights: https://www.inaturalist.org/observations/230794964
+Original media: https://static.inaturalist.org/sounds/1139464.m4a?1721582687
+
+voice-winnipesaukee-1139453.m4a — Blue Jay (Cyanocitta cristata). Jennifer Rycenga; Belknap County, US-NH, US; 2024-07-21. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 8.41 s.
+Source and recording rights: https://www.inaturalist.org/observations/230793632
+Original media: https://static.inaturalist.org/sounds/1139453.m4a?1721582343
+
+voice-winnipesaukee-1061695.m4a — Chestnut-sided Warbler (Setophaga pensylvanica). Lythronax246; Laconia, NH, US; 2024-05-26. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 3.91 s.
+Source and recording rights: https://www.inaturalist.org/observations/218435356
+Original media: https://static.inaturalist.org/sounds/1061695.m4a?1716746529
+
+voice-winnipesaukee-1061689.m4a — American Robin (Turdus migratorius). Lythronax246; Laconia, NH, US; 2024-05-26. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 17.61 s.
+Source and recording rights: https://www.inaturalist.org/observations/218434365
+Original media: https://static.inaturalist.org/sounds/1061689.m4a?1716746427
+
+voice-winnipesaukee-1061697.m4a — Great Crested Flycatcher (Myiarchus crinitus). Lythronax246; Belmont, NH, US; 2024-05-26. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 8.11 s.
+Source and recording rights: https://www.inaturalist.org/observations/218435691
+Original media: https://static.inaturalist.org/sounds/1061697.m4a?1716746611
+
+voice-winnipesaukee-1136533.m4a — Gray Catbird (Dumetella carolinensis). Clifton Ladd, C.W.B.; Sandwich, NH, USA; 2024-07-12. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 11.21 s.
+Source and recording rights: https://www.inaturalist.org/observations/230230208
+Original media: https://static.inaturalist.org/sounds/1136533.wav?1721361616
+
+voice-winnipesaukee-2131499.m4a — Common Raven (Corvus corax). Matt Felperin; Grafton County, US-NH, US; 2026-08-23. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.91 s.
+Source and recording rights: https://www.inaturalist.org/observations/393895657
+Original media: https://static.inaturalist.org/sounds/2131499.m4a?1787513085
+
+voice-winnipesaukee-1561021.m4a — White-throated Sparrow (Zonotrichia albicollis). naturalist charlie; Pine Barrens Loop Trail, Silver Lake, NH, US; 2025-07-08. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.31 s.
+Source and recording rights: https://www.inaturalist.org/observations/296395106
+Original media: https://static.inaturalist.org/sounds/1561021.m4a?1752023245
+
+voice-winnipesaukee-2131494.m4a — Black-capped Chickadee (Poecile atricapillus). Matt Felperin; Grafton County, US-NH, US; 2026-08-23. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.31 s.
+Source and recording rights: https://www.inaturalist.org/observations/393895588
+Original media: https://static.inaturalist.org/sounds/2131494.m4a?1787513065
+
+voice-winnipesaukee-2131501.m4a — Red-breasted Nuthatch (Sitta canadensis). Matt Felperin; Grafton County, US-NH, US; 2026-08-23. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.01 s.
+Source and recording rights: https://www.inaturalist.org/observations/393895681
+Original media: https://static.inaturalist.org/sounds/2131501.m4a?1787513091
+
+voice-winnipesaukee-1561023.m4a — American Goldfinch (Spinus tristis). naturalist charlie; Pine Barrens Accessible Trail, Silver Lake, NH, US; 2025-07-08. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.21 s.
+Source and recording rights: https://www.inaturalist.org/observations/296395327
+Original media: https://static.inaturalist.org/sounds/1561023.m4a?1752023326
+
+voice-winnipesaukee-1561017.m4a — Pine Warbler (Setophaga pinus). naturalist charlie; Pine Barrens Loop Trail, Silver Lake, NH, US; 2025-07-08. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 9.41 s.
+Source and recording rights: https://www.inaturalist.org/observations/296394619
+Original media: https://static.inaturalist.org/sounds/1561017.m4a?1752023059
+
+voice-winnipesaukee-22973.m4a — Yellow-bellied Flycatcher (Empidonax flaviventris). Jason Hill; Waterville Valley, NH, USA; 2018-06-08. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 5.61 s.
+Source and recording rights: https://www.inaturalist.org/observations/13373736
+Original media: https://static.inaturalist.org/sounds/22973.mp3?1528834288
+
+voice-winnipesaukee-1561030.m4a — Veery (Catharus fuscescens). naturalist charlie; Pine Barrens Loop Trail, Silver Lake, NH, US; 2025-07-08. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 1.81 s.
+Source and recording rights: https://www.inaturalist.org/observations/296396416
+Original media: https://static.inaturalist.org/sounds/1561030.m4a?1752023614
+
+voice-winnipesaukee-229172.m4a — Blue-headed Vireo (Vireo solitarius). Zac Peterson; Albany, NH, USA; 2021-05-20. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.31 s.
+Source and recording rights: https://www.inaturalist.org/observations/79735527
+Original media: https://static.inaturalist.org/sounds/229172.wav?1621659607
+
+voice-winnipesaukee-1556604.m4a — Wood Thrush (Hylocichla mustelina). Ed McNierney; Pike Hill Rd, Hebron, NH, US; 2025-07-05. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 2.21 s.
+Source and recording rights: https://www.inaturalist.org/observations/295548959
+Original media: https://static.inaturalist.org/sounds/1556604.m4a?1751761637
+
+voice-winnipesaukee-482923.m4a — Yellow-bellied Sapsucker (Sphyrapicus varius). Ed McNierney; Pike Hill Rd, Hebron, NH, US; 2022-06-26. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/123549589
+Original media: https://static.inaturalist.org/sounds/482923.m4a?1656261065
+
+voice-winnipesaukee-2138784.m4a — Hermit Thrush (Catharus guttatus). Jonathan Layman; Berea Rd, Hebron, NH, US; 2026-08-29. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 20.31 s.
+Source and recording rights: https://www.inaturalist.org/observations/395459717
+Original media: https://static.inaturalist.org/sounds/2138784.m4a?1788006590
+
+voice-winnipesaukee-2136908.m4a — Fall Field Cricket (Gryllus pennsylvanicus). Jonathan Layman; Berea Rd, Hebron, NH, US; 2026-08-27. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 26.31 s.
+Source and recording rights: https://www.inaturalist.org/observations/395107860
+Original media: https://static.inaturalist.org/sounds/2136908.m4a?1787882219
+
+voice-winnipesaukee-104589.m4a — Blackburnian Warbler (Setophaga fusca). Jonathan Layman; Livermore, NH, USA; 2020-06-08. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 12.61 s.
+Source and recording rights: https://www.inaturalist.org/observations/48959200
+Original media: https://static.inaturalist.org/sounds/104589.m4a?1591652045
+
+voice-winnipesaukee-104590.m4a — Swainson's Thrush (Catharus ustulatus). Jonathan Layman; Livermore, NH, USA; 2020-06-08. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/48959155
+Original media: https://static.inaturalist.org/sounds/104590.m4a?1591652047
+
+voice-winnipesaukee-1979364.m4a — Gray Treefrog (Dryophytes versicolor). Alan Perkins; Deerfield, NH 03037, USA; 2026-05-19. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 4.41 s.
+Source and recording rights: https://www.inaturalist.org/observations/365245986
+Original media: https://static.inaturalist.org/sounds/1979364.m4a?1779753201
+
+voice-winnipesaukee-481735.m4a — North American Green Frog (Lithobates clamitans). Alan Perkins; Grafton County, US-NH, US; 2022-06-24. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 5.31 s.
+Source and recording rights: https://www.inaturalist.org/observations/123345596
+Original media: https://static.inaturalist.org/sounds/481735.m4a?1656156210
+
+voice-winnipesaukee-15145.m4a — Red Crossbill (Loxia curvirostra). Nick Block; Passaconaway Campground, Albany, NH, USA; 2017-08-21. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 1.01 s.
+Source and recording rights: https://www.inaturalist.org/observations/7622671
+Original media: https://static.inaturalist.org/sounds/15145.mp3?1503522829
+
+voice-winnipesaukee-1024107.m4a — American Toad (Anaxyrus americanus). Alan Perkins; Madbury, NH 03823, USA; 2024-05-07. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 0.01 s.
+Source and recording rights: https://www.inaturalist.org/observations/214212885
+Original media: https://static.inaturalist.org/sounds/1024107.m4a?1715099194
+
+voice-winnipesaukee-2015569.m4a — Northern Flicker (Colaptes auratus). JP Acres; Deerfield, NH 03037, USA; 2026-06-11. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/370579599
+Original media: https://static.inaturalist.org/sounds/2015569.wav?1781171081
+
+surry
+-----
+voice-surry-107830.m4a — North American Green Frog (Lithobates clamitans). slob973; Keene, NH, USA; 2020-06-14. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 13.11 s.
+Source and recording rights: https://www.inaturalist.org/observations/49725039
+Original media: https://static.inaturalist.org/sounds/107830.m4a?1592234486
+
+voice-surry-1132877.m4a — Winter Wren (Nannus hiemalis). Michael Nerrie; Distant Hill Nature Play Area; 2024-07-14. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.01 s.
+Source and recording rights: https://www.inaturalist.org/observations/229472374
+Original media: https://static.inaturalist.org/sounds/1132877.wav?1721043294
+
+voice-surry-1494751.m4a — Blue-headed Vireo (Vireo solitarius). Michael Nerrie; Alstead, NH 03602, USA; 2025-05-30. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 13.11 s.
+Source and recording rights: https://www.inaturalist.org/observations/285463521
+Original media: https://static.inaturalist.org/sounds/1494751.wav?1748644552
+
+voice-surry-760472.m4a — Indigo Bunting (Passerina cyanea). Michael Nerrie; Distant Hill Nature Trail Pollinator Meadow; 2023-06-28. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 7.21 s.
+Source and recording rights: https://www.inaturalist.org/observations/171230102
+Original media: https://static.inaturalist.org/sounds/760472.m4a?1688574820
+
+voice-surry-123969.m4a — Yellow-billed Cuckoo (Coccyzus americanus). Steven Lamonde; Cheshire County, US-NH, US; 2020-07-23. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 14.91 s.
+Source and recording rights: https://www.inaturalist.org/observations/54114973
+Original media: https://static.inaturalist.org/sounds/123969.wav?1595552794
+
+voice-surry-1575290.m4a — Common Raven (Corvus corax). Michael Nerrie; March Hill Rd, Walpole, NH, US; 2025-07-20. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 15.81 s.
+Source and recording rights: https://www.inaturalist.org/observations/299473433
+Original media: https://static.inaturalist.org/sounds/1575290.m4a?1753009966
+
+voice-surry-1140746.m4a — Red-eyed Vireo (Vireo olivaceus). Jennifer Rycenga; Cheshire County, US-NH, US; 2024-07-22. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 6.31 s.
+Source and recording rights: https://www.inaturalist.org/observations/231081128
+Original media: https://static.inaturalist.org/sounds/1140746.m4a?1721684732
+
+voice-surry-123914.m4a — Common Yellowthroat (Geothlypis trichas). Steven Lamonde; Cheshire County, US-NH, US; 2020-07-23. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.61 s.
+Source and recording rights: https://www.inaturalist.org/observations/54099467
+Original media: https://static.inaturalist.org/sounds/123914.wav?1595540957
+
+voice-surry-89849.m4a — American Toad (Anaxyrus americanus). Steven Lamonde; Stoddard, NH 03464, USA; 2020-05-16. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 3.61 s.
+Source and recording rights: https://www.inaturalist.org/observations/46179386
+Original media: https://static.inaturalist.org/sounds/89849.wav?1589682860
+
+voice-surry-1080412.m4a — North American Green Frog (Lithobates clamitans). Jill DeVito, PhD; Bellows Falls, VT, US; 2024-06-05. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 0.11 s.
+Source and recording rights: https://www.inaturalist.org/observations/220875659
+Original media: https://static.inaturalist.org/sounds/1080412.m4a?1717679176
+
+voice-surry-470265.m4a — Red-winged Blackbird (Agelaius phoeniceus). Jill DeVito, PhD; US-5, Bellows Falls, VT, US; 2022-06-13. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 1.31 s.
+Source and recording rights: https://www.inaturalist.org/observations/121597074
+Original media: https://static.inaturalist.org/sounds/470265.m4a?1655134562
+
+voice-surry-457204.m4a — American Robin (Turdus migratorius). Jill DeVito, PhD; Westminster, VT, US; 2022-05-31. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 0.21 s.
+Source and recording rights: https://www.inaturalist.org/observations/119570317
+Original media: https://static.inaturalist.org/sounds/457204.m4a?1653996650
+
+voice-surry-498884.m4a — Common Grackle (Quiscalus quiscula). Jill DeVito, PhD; Westminster, VT, US; 2022-07-14. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 0.41 s.
+Source and recording rights: https://www.inaturalist.org/observations/126196641
+Original media: https://static.inaturalist.org/sounds/498884.m4a?1657803706
+
+voice-surry-1635326.m4a — Eastern Chipmunk (Tamias striatus). inthecave; Ft Bridgman Rd, Vernon, VT, US; 2025-09-13. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 4.91 s.
+Source and recording rights: https://www.inaturalist.org/observations/313651288
+Original media: https://static.inaturalist.org/sounds/1635326.m4a?1757792497
+
+voice-surry-2172089.m4a — Eastern Gray Squirrel (Sciurus carolinensis). Jacob Mullin; Island Pond Rd, Groton, MA, US; 2026-09-25. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 48.91 s.
+Source and recording rights: https://www.inaturalist.org/observations/403288906
+Original media: https://static.inaturalist.org/sounds/2172089.m4a?1790349128
+
+voice-surry-2060374.m4a — Yellow-bellied Sapsucker (Sphyrapicus varius). Michael Nerrie; March Hill Rd, Walpole, NH, US; 2026-07-06. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 4.81 s.
+Source and recording rights: https://www.inaturalist.org/observations/378940757
+Original media: https://static.inaturalist.org/sounds/2060374.m4a?1783386861
+
+voice-surry-709368.m4a — Wood Thrush (Hylocichla mustelina). Michael Nerrie; Walpole, NH, USA; 2023-05-22. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 16.81 s.
+Source and recording rights: https://www.inaturalist.org/observations/163293183
+Original media: https://static.inaturalist.org/sounds/709368.wav?1684843588
+
+voice-surry-1080548.m4a — Blackburnian Warbler (Setophaga fusca). Jill DeVito, PhD; 89 Hall Bridge Rd, Bellows Falls, VT 05101, USA; 2024-06-06. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 5.51 s.
+Source and recording rights: https://www.inaturalist.org/observations/220906169
+Original media: https://static.inaturalist.org/sounds/1080548.wav?1717688264
+
+voice-surry-750266.m4a — Cooper's Hawk (Astur cooperii). Jill DeVito, PhD; 89 Hall Bridge Rd, Town of Rockingham, VT 05101, USA; 2023-06-22. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 13.51 s.
+Source and recording rights: https://www.inaturalist.org/observations/169254425
+Original media: https://static.inaturalist.org/sounds/750266.wav?1687639895
+
+voice-surry-1975924.m4a — Ovenbird (Seiurus aurocapilla). Michael Nerrie; Cheshire County, US-NH, US; 2026-05-20. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/364738914
+Original media: https://static.inaturalist.org/sounds/1975924.m4a?1779643105
+
+voice-surry-788569.m4a — Veery (Catharus fuscescens). Michael Nerrie; Distant Hill Gardens, Walpole, NH, USA; 2023-08-08. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 19.51 s.
+Source and recording rights: https://www.inaturalist.org/observations/177410966
+Original media: https://static.inaturalist.org/sounds/788569.wav?1691530207
+
+voice-surry-210553.m4a — Black-throated Green Warbler (Setophaga virens). Michael Nerrie; Walpole, NH, USA; 2021-05-04. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 12.11 s.
+Source and recording rights: https://www.inaturalist.org/observations/77284367
+Original media: https://static.inaturalist.org/sounds/210553.wav?1620141986
+
+voice-surry-1568558.m4a — Hermit Thrush (Catharus guttatus). Michael Nerrie; Main Trail Loop, Walpole, NH, US; 2025-07-14. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 8.91 s.
+Source and recording rights: https://www.inaturalist.org/observations/297943871
+Original media: https://static.inaturalist.org/sounds/1568558.m4a?1752514689
+
+voice-surry-717398.m4a — Black-billed Cuckoo (Coccyzus erythropthalmus). Jill DeVito, PhD; Bellows Falls, VT, US; 2023-05-29. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 1.61 s.
+Source and recording rights: https://www.inaturalist.org/observations/164401891
+Original media: https://static.inaturalist.org/sounds/717398.m4a?1685361000
+
+voice-surry-709383.m4a — Great Crested Flycatcher (Myiarchus crinitus). Jill DeVito, PhD; Hall Bridge Rd, Westminster, VT, US; 2023-05-23. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 7.61 s.
+Source and recording rights: https://www.inaturalist.org/observations/163294162
+Original media: https://static.inaturalist.org/sounds/709383.m4a?1684844330
+
+voice-surry-459122.m4a — Red-shouldered Hawk (Buteo lineatus). Jill DeVito, PhD; Westminster, VT, US; 2022-06-02. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 3.01 s.
+Source and recording rights: https://www.inaturalist.org/observations/119877855
+Original media: https://static.inaturalist.org/sounds/459122.m4a?1654182489
+
+voice-surry-684432.m4a — Yellow-rumped Warbler (Setophaga coronata). Jill DeVito, PhD; Hall Bridge Rd, Westminster, VT, US; 2023-05-06. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 3.71 s.
+Source and recording rights: https://www.inaturalist.org/observations/160152266
+Original media: https://static.inaturalist.org/sounds/684432.m4a?1683404350
+
+voice-surry-477778.m4a — Mourning Dove (Zenaida macroura). Jill DeVito, PhD; Westminster, VT, US; 2022-06-20. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 12.21 s.
+Source and recording rights: https://www.inaturalist.org/observations/122718318
+Original media: https://static.inaturalist.org/sounds/477778.m4a?1655762278
+
+voice-surry-1080409.m4a — Spring Peeper (Pseudacris crucifer). Jill DeVito, PhD; Bellows Falls, VT, US; 2024-06-05. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 0.01 s.
+Source and recording rights: https://www.inaturalist.org/observations/220796534
+Original media: https://static.inaturalist.org/sounds/1080409.m4a?1717679164
+
+voice-surry-1095635.m4a — Blue-gray Gnatcatcher (Polioptila caerulea). Jill DeVito, PhD; 89 Hall Bridge Rd, Bellows Falls, VT 05101, USA; 2024-06-15. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 0.01 s.
+Source and recording rights: https://www.inaturalist.org/observations/222979626
+Original media: https://static.inaturalist.org/sounds/1095635.m4a?1718495535
+
+voice-surry-457686.m4a — Cedar Waxwing (Bombycilla cedrorum). Jill DeVito, PhD; Westminster, VT, US; 2022-05-31. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 5.71 s.
+Source and recording rights: https://www.inaturalist.org/observations/119660641
+Original media: https://static.inaturalist.org/sounds/457686.m4a?1654039476
+
+voice-surry-1068926.m4a — Baltimore Oriole (Icterus galbula). Jill DeVito, PhD; 89 Hall Bridge Rd, Bellows Falls, VT 05101, USA; 2024-05-30. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 1.01 s.
+Source and recording rights: https://www.inaturalist.org/observations/219323737
+Original media: https://static.inaturalist.org/sounds/1068926.wav?1717078577
+
+voice-surry-694994.m4a — American Crow (Corvus brachyrhynchos). Jill DeVito, PhD; Darby Hill Rd, Westminster, VT, US; 2023-05-13. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 6.31 s.
+Source and recording rights: https://www.inaturalist.org/observations/161377340
+Original media: https://static.inaturalist.org/sounds/694994.m4a?1683975684
+
+voice-surry-470431.m4a — Black-capped Chickadee (Poecile atricapillus). Jill DeVito, PhD; Westminster, VT, US; 2022-06-13. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/121625369
+Original media: https://static.inaturalist.org/sounds/470431.m4a?1655146229
+
+voice-surry-471705.m4a — Tufted Titmouse (Baeolophus bicolor). Jill DeVito, PhD; Westminster, VT, US; 2022-06-14. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 0.01 s.
+Source and recording rights: https://www.inaturalist.org/observations/121799857
+Original media: https://static.inaturalist.org/sounds/471705.m4a?1655246151
+
+voice-surry-534248.m4a — Canada Goose (Branta canadensis). Jill DeVito, PhD; Westminster, VT, US; 2022-09-11. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 11.11 s.
+Source and recording rights: https://www.inaturalist.org/observations/134629855
+Original media: https://static.inaturalist.org/sounds/534248.m4a?1662925876
+
+voice-surry-1461525.m4a — Tennessee Warbler (Leiothlypis peregrina). Jill DeVito, PhD; Bellows Falls, VT, US; 2025-05-14. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 1.91 s.
+Source and recording rights: https://www.inaturalist.org/observations/280995649
+Original media: https://static.inaturalist.org/sounds/1461525.m4a?1747225756
+
+voice-surry-1087210.m4a — Chestnut-sided Warbler (Setophaga pensylvanica). Jill DeVito, PhD; Bellows Falls, VT, US; 2024-06-10. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 3.01 s.
+Source and recording rights: https://www.inaturalist.org/observations/221801051
+Original media: https://static.inaturalist.org/sounds/1087210.m4a?1718024136
+
+voice-surry-1630883.m4a — Hairy Woodpecker (Leuconotopicus villosus). Jill DeVito, PhD; Babbitt Rd, Bellows Falls, VT, US; 2025-09-09. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 1.81 s.
+Source and recording rights: https://www.inaturalist.org/observations/312773087
+Original media: https://static.inaturalist.org/sounds/1630883.m4a?1757453492
+
+moosehead
+---------
+voice-moosehead-520757.m4a — Northern Flicker (Colaptes auratus). wewantashrubbery; State Park Rd, Lily Bay, ME, US; 2022-08-14. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 0.11 s.
+Source and recording rights: https://www.inaturalist.org/observations/130882955
+Original media: https://static.inaturalist.org/sounds/520757.m4a?1660529682
+
+voice-moosehead-1114541.m4a — Blue-headed Vireo (Vireo solitarius). wewantashrubbery; State Park Rd, Greenville Junction, ME, US; 2024-06-21. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 0.91 s.
+Source and recording rights: https://www.inaturalist.org/observations/226071291
+Original media: https://static.inaturalist.org/sounds/1114541.m4a?1719708259
+
+voice-moosehead-299862.m4a — Common Raven (Corvus corax). wewantashrubbery; Lily Bay, ME, US; 2021-08-30. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/93207979
+Original media: https://static.inaturalist.org/sounds/299862.m4a?1630453396
+
+voice-moosehead-520755.m4a — Common Raven (Corvus corax). wewantashrubbery; State Park Rd, Lily Bay, ME, US; 2022-08-13. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/130882516
+Original media: https://static.inaturalist.org/sounds/520755.m4a?1660529358
+
+voice-moosehead-32501.m4a — Swainson's Thrush (Catharus ustulatus). Annie Evankow; Maine, US; 2018-07-11. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 2.31 s.
+Source and recording rights: https://www.inaturalist.org/observations/21328343
+Original media: https://static.inaturalist.org/sounds/32501.mpga?1552850060
+
+voice-moosehead-panwar-kaww-2254.m4a — Ovenbird (Seiurus aurocapilla). Pooja Panwar et al.; Katahdin Woods and Waters National Monument, Maine; 2022-06-22. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Source tape DatasetSIMR_Recordings/2254.45.01x.KAWW5104_20220622_050000.flac (577.456–581.472 s); annotation begins at 577.656 s.
+Source and recording rights: https://zenodo.org/records/20038954
+Original media: https://zenodo.org/api/records/20038954/files/DatasetSIMR_Recordings.zip/content
+
+voice-moosehead-panwar-kaww-2267.m4a — Blue-headed Vireo (Vireo solitarius). Pooja Panwar et al.; Katahdin Woods and Waters National Monument, Maine; 2022-06-25. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Source tape DatasetSIMR_Recordings/2267.31.01x.KAWW5016_20220625_060000.flac (463.487–470.071 s); annotation begins at 463.687 s.
+Source and recording rights: https://zenodo.org/records/20038954
+Original media: https://zenodo.org/api/records/20038954/files/DatasetSIMR_Recordings.zip/content
+
+voice-moosehead-1514336.m4a — Winter Wren (Nannus hiemalis). John V. Calhoun FRES; Somerset County, ME, USA; 2025-06-08. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 2.51 s.
+Source and recording rights: https://www.inaturalist.org/observations/288213304
+Original media: https://static.inaturalist.org/sounds/1514336.m4a?1749481445
+
+voice-moosehead-panwar-kaww-2304.m4a — Black-throated Green Warbler (Setophaga virens). Pooja Panwar et al.; Katahdin Woods and Waters National Monument, Maine; 2022-07-21. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Source tape DatasetSIMR_Recordings/2304.20.01x.KAWW5103_20220721_060000.flac (573.45–576.476 s); annotation begins at 573.65 s.
+Source and recording rights: https://zenodo.org/records/20038954
+Original media: https://zenodo.org/api/records/20038954/files/DatasetSIMR_Recordings.zip/content
+
+voice-moosehead-panwar-kaww-2323.m4a — Red Squirrel (Tamiasciurus hudsonicus). Pooja Panwar et al.; Katahdin Woods and Waters National Monument, Maine; 2022-07-24. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Source tape DatasetSIMR_Recordings/2323.03.01x.KAWW5016_20220724_090001.flac (116.959–122.214 s); annotation begins at 117.159 s.
+Source and recording rights: https://zenodo.org/records/20038954
+Original media: https://zenodo.org/api/records/20038954/files/DatasetSIMR_Recordings.zip/content
+
+voice-moosehead-1243220.m4a — White-winged Crossbill (Loxia leucoptera). Charlie O'Brien; Piscataquis County, US-ME, US; 2024-10-18. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 19.61 s.
+Source and recording rights: https://www.inaturalist.org/observations/250220110
+Original media: https://static.inaturalist.org/sounds/1243220.wav?1730591374
+
+voice-moosehead-2058935.m4a — Wood Thrush (Hylocichla mustelina). Steve Young; Guilford, ME, USA; 2026-07-05. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 28.91 s.
+Source and recording rights: https://www.inaturalist.org/observations/378606551
+Original media: https://static.inaturalist.org/sounds/2058935.m4a?1783299118
+
+voice-moosehead-1059547.m4a — Ruby-crowned Kinglet (Corthylio calendula). John V. Calhoun FRES; Piscataquis County, ME, USA; 2024-05-25. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.11 s.
+Source and recording rights: https://www.inaturalist.org/observations/218271716
+Original media: https://static.inaturalist.org/sounds/1059547.m4a?1716689867
+
+voice-moosehead-1243219.m4a — Golden-crowned Kinglet (Regulus satrapa). Charlie O'Brien; Piscataquis County, US-ME, US; 2024-10-17. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 20.51 s.
+Source and recording rights: https://www.inaturalist.org/observations/250220111
+Original media: https://static.inaturalist.org/sounds/1243219.wav?1730591372
+
+voice-moosehead-1201159.m4a — White-winged Crossbill (Loxia leucoptera). Charlie O'Brien; Maine, US; 2024-08-29. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 1.91 s.
+Source and recording rights: https://www.inaturalist.org/observations/241767051
+Original media: https://static.inaturalist.org/sounds/1201159.wav?1726359705
+
+voice-moosehead-240703.m4a — Hairy Woodpecker (Leuconotopicus villosus). hisnameis mitchell; West Ln, Barnard Twp, ME, US; 2021-05-31. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.91 s.
+Source and recording rights: https://www.inaturalist.org/observations/81064438
+Original media: https://static.inaturalist.org/sounds/240703.m4a?1622484759
+
+voice-moosehead-1059545.m4a — Black-and-white Warbler (Mniotilta varia). John V. Calhoun FRES; Piscataquis County, ME, USA; 2024-05-25. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 2.91 s.
+Source and recording rights: https://www.inaturalist.org/observations/218271399
+Original media: https://static.inaturalist.org/sounds/1059545.m4a?1716689761
+
+voice-moosehead-1053792.m4a — Hermit Thrush (Catharus guttatus). John V. Calhoun FRES; Eustis, ME, USA; 2024-05-22. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 5.71 s.
+Source and recording rights: https://www.inaturalist.org/observations/217611187
+Original media: https://static.inaturalist.org/sounds/1053792.m4a?1716427851
+
+voice-moosehead-253355.m4a — Mink Frog (Lithobates septentrionalis). Gregory LeClair; Wellington, ME, USA; 2021-06-13. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/82991135
+Original media: https://static.inaturalist.org/sounds/253355.wav?1623674962
+
+voice-moosehead-447611.m4a — Eastern Chipmunk (Tamias striatus). hisnameis mitchell; Elm St, Milo, ME, US; 2022-05-22. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/118252666
+Original media: https://static.inaturalist.org/sounds/447611.m4a?1653249410
+
+voice-moosehead-2069413.m4a — Red-eyed Vireo (Vireo olivaceus). Dan Horowitz; Wyman, ME 04947, USA; 2026-07-12. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 2.61 s.
+Source and recording rights: https://www.inaturalist.org/observations/380802526
+Original media: https://static.inaturalist.org/sounds/2069413.wav?1783887463
+
+voice-moosehead-272147.m4a — Song Sparrow (Melospiza melodia). hisnameis mitchell; Boardeddy Rd, Dover Foxcroft, ME, US; 2021-07-10. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.41 s.
+Source and recording rights: https://www.inaturalist.org/observations/86465036
+Original media: https://static.inaturalist.org/sounds/272147.m4a?1625950575
+
+voice-moosehead-747844.m4a — Eastern Chipmunk (Tamias striatus). hisnameis mitchell; Elm St, Milo, ME, US; 2023-06-22. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 1.01 s.
+Source and recording rights: https://www.inaturalist.org/observations/168887635
+Original media: https://static.inaturalist.org/sounds/747844.m4a?1687466286
+
+voice-moosehead-1139614.m4a — Swainson's Thrush (Catharus ustulatus). Charlie O'Brien; Franklin County, US-ME, US; 2024-07-17. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/230831521
+Original media: https://static.inaturalist.org/sounds/1139614.wav?1721591681
+
+voice-moosehead-354708.m4a — Bicknell's Thrush (Catharus bicknelli). Tristan Jobin; Quebec, Canada; 2020-06-19. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 2.31 s.
+Source and recording rights: https://www.inaturalist.org/observations/106321146
+Original media: https://static.inaturalist.org/sounds/354708.wav?1644250308
+
+voice-moosehead-1667491.m4a — Sandhill Crane (Antigone canadensis). Richard Lyon; Penobscot Dr, Newport, ME, US; 2025-10-14. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.81 s.
+Source and recording rights: https://www.inaturalist.org/observations/320829995
+Original media: https://static.inaturalist.org/sounds/1667491.wav?1760441264
+
+voice-moosehead-1442746.m4a — Spring Peeper (Pseudacris crucifer). Gregory LeClair; Somerset County, US-ME, US; 2025-05-05. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.31 s.
+Source and recording rights: https://www.inaturalist.org/observations/278747748
+Original media: https://static.inaturalist.org/sounds/1442746.m4a?1746457036
+
+voice-moosehead-1530547.m4a — North American Green Frog (Lithobates clamitans). Alan Perkins; Coos County, US-NH, US; 2025-06-18. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/290745061
+Original media: https://static.inaturalist.org/sounds/1530547.m4a?1750274723
+
+voice-moosehead-1902077.m4a — Wood Frog (Lithobates sylvaticus). Dawn Nelson; Oxford County, ME, USA; 2026-04-26. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 16.91 s.
+Source and recording rights: https://www.inaturalist.org/observations/355260211
+Original media: https://static.inaturalist.org/sounds/1902077.mp3?1777292192
+
+voice-moosehead-2015156.m4a — North American Green Frog (Lithobates clamitans). Dawn Nelson; Greenwood, ME, USA; 2026-06-10. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 11.61 s.
+Source and recording rights: https://www.inaturalist.org/observations/370515412
+Original media: https://static.inaturalist.org/sounds/2015156.mp3?1781143442
+
+voice-moosehead-740871.m4a — American Bullfrog (Lithobates catesbeianus). Dawn Nelson; Greenwood, ME, USA; 2023-06-15. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 2.71 s.
+Source and recording rights: https://www.inaturalist.org/observations/167754268
+Original media: https://static.inaturalist.org/sounds/740871.mp3?1686945031
+
+voice-moosehead-258796.m4a — Mink Frog (Lithobates septentrionalis). Dawn Nelson; Oxford County, ME, USA; 2021-06-20. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 32.11 s.
+Source and recording rights: https://www.inaturalist.org/observations/83931964
+Original media: https://static.inaturalist.org/sounds/258796.m4a?1624283937
+
+voice-moosehead-1918028.m4a — American Toad (Anaxyrus americanus). Trish Berube; Damariscotta Lake, Newcastle, ME, US; 2026-05-01. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 3.51 s.
+Source and recording rights: https://www.inaturalist.org/observations/357256788
+Original media: https://static.inaturalist.org/sounds/1918028.m4a?1777660023
+
+voice-moosehead-66580.m4a — Wood Frog (Lithobates sylvaticus). jeffcherry; Whitefield, ME 04353, USA; 2020-04-04. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 0.01 s.
+Source and recording rights: https://www.inaturalist.org/observations/41393041
+Original media: https://static.inaturalist.org/sounds/66580.wav?1586033990
+
+voice-moosehead-246782.m4a — American Bullfrog (Lithobates catesbeianus). jeffcherry; Whitefield, ME 04353, USA; 2021-06-06. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 6.21 s.
+Source and recording rights: https://www.inaturalist.org/observations/81923505
+Original media: https://static.inaturalist.org/sounds/246782.wav?1623010846
+
+voice-moosehead-788665.m4a — Gray Treefrog (Dryophytes versicolor). Trish Berube; 688 Main St, Lewiston, ME 04240; 2023-08-08. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 8.41 s.
+Source and recording rights: https://www.inaturalist.org/observations/177432070
+Original media: https://static.inaturalist.org/sounds/788665.wav?1691540841
+
+voice-moosehead-1222986.m4a — Jumping Bush Cricket (Hapithus saltator). Trish Berube; Androscoggin River, Auburn, ME, US; 2024-10-05. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 7.51 s.
+Source and recording rights: https://www.inaturalist.org/observations/245835642
+Original media: https://static.inaturalist.org/sounds/1222986.m4a?1728167082
+
+voice-moosehead-280417.m4a — Gray Treefrog (Dryophytes versicolor). Andrew Durso; Lincolnville, ME 04849, USA; 2021-07-18. CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Edited excerpt begins at 0.01 s.
+Source and recording rights: https://www.inaturalist.org/observations/88155835
+Original media: https://static.inaturalist.org/sounds/280417.wav?1626977794
+
+voice-moosehead-520762.m4a — Blue-headed Vireo (Vireo solitarius). wewantashrubbery; State Park Rd, Lily Bay, ME, US; 2022-08-14. CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Edited excerpt begins at 0.0 s.
+Source and recording rights: https://www.inaturalist.org/observations/130883873
+Original media: https://static.inaturalist.org/sounds/520762.m4a?1660530408
+
+Water, wind, and terrain recordings
+----------------------------------
+landscape-acadia-storm-surf.m4a — storm-surf. National Park Service / Kate Petrie; Schoodic Point, Acadia National Park, Maine. Public domain; https://www.nps.gov/acad/learn/photosmultimedia/clips.htm explicitly covers these quick clips..
+Trimmed from 34 s, filtered, level matched and faded for the 3D mix. Reserve for storm/swell at exposed ledges and Schoodic. Analyze peaks and trim gusts before mixing.
+Source: https://www.nps.gov/media/video/view.htm?id=602D6723-FCC0-BB24-6B3A0620E1EA03E0
+Original media: https://www.nps.gov/nps-audiovideo/legacy/acad/602D6723-FCC0-BB24-6B3A0620E1EA03E0/acad-SeaFoamontheCoastKPetrie_426x240.mp4
+
+landscape-alaska-alder-drip.m4a — canopy-rain. Hank Lentfer / National Park Service; Bartlett Cove spruce/hemlock rainforest, Southeast Alaska. Public domain (National Park Service audio credited H. Lentfer / NPS).
+Trimmed from 1 s, filtered, level matched and faded for the 3D mix. Recordings of drops striking alders, with local Pacific Wren and Varied Thrush. Apply in nearby temperate rainforest under actual rain only.
+Source: https://www.nps.gov/glba/learn/nature/bartlett-cove-soundscape-gallery.htm
+Original media: https://www.nps.gov/nps-audiovideo/legacy/mp3/akr/avElement/glba-raindropsinalders.mp3
+
+landscape-alaska-bergy-seltzer.m4a — melting-ice. Hank Lentfer / National Park Service; Glacier Bay floating ice, Southeast Alaska. Public domain (National Park Service audio credited H. Lentfer / NPS).
+Trimmed from 1 s, filtered, level matched and faded for the 3D mix. Ice bubble release below the terminus; use limited earshot and matching glacial ice position.
+Source: https://www.nps.gov/glba/learn/nature/glaciers-soundscape-gallery.htm
+Original media: https://www.nps.gov/nps-audiovideo/legacy/mp3/akr/avElement/glba-seltzer.mp3
+
+landscape-alaska-glacier-shore-drips.m4a — shore-ice. Hank Lentfer / National Park Service; Glacier Bay glacier shoreline, Southeast Alaska. Public domain (National Park Service audio credited H. Lentfer / NPS).
+Trimmed from 2 s, filtered, level matched and faded for the 3D mix. Drip and wavelet layer only near stranded ice or cold glacier shore.
+Source: https://www.nps.gov/media/video/view.htm?id=F6A0012B-E8D9-4E0A-87F3-E8F2E739A79D
+Original media: https://www.nps.gov/nps-audiovideo/legacy/mp3/akr/avElement/glba-Glaciericeonbeach.mp3
+
+landscape-alaska-rainforest-chorus.m4a — forest-chorus. Hank Lentfer / National Park Service; Bartlett Cove spruce/hemlock rainforest, Southeast Alaska. Public domain (National Park Service audio credited H. Lentfer / NPS).
+Trimmed from 3 s, filtered, level matched and faded for the 3D mix. Spring rainforest with local Varied Thrush, Alder Flycatcher, Sooty Grouse, Ruby-crowned Kinglet, Fox Sparrow and Pacific Wren. Blend into damp low forest, preserving quiet at higher altitude.
+Source: https://www.nps.gov/glba/learn/nature/bartlett-cove-soundscape-gallery.htm
+Original media: https://www.nps.gov/nps-audiovideo/legacy/mp3/akr/avElement/glba-soundscapeyrocwarbler.mp3
+
+landscape-alaska-steep-creek-salmon.m4a — salmon-splash. Hank Lentfer / National Park Service; Gloomy Knob, Glacier Bay, Southeast Alaska. Public domain (National Park Service audio credited H. Lentfer / NPS).
+Trimmed from 5 s, filtered, level matched and faded for the 3D mix. Real salmon splashes for seasonally active Steep Creek, suppress first spoken phrase; background eagles and ravens are both local.
+Source: https://www.nps.gov/glba/learn/nature/lower-bay-soundscape-gallery.htm
+Original media: https://www.nps.gov/nps-audiovideo/legacy/mp3/akr/avElement/glba-leapingsalmon.mp3
+
+landscape-dixville-nh-brook.m4a — brook. lgarrett; Smarts Mountain near Lyme, New Hampshire. CC BY 3.0.
+Trimmed from 1 s, filtered, level matched and faded for the 3D mix. Select open-water sounding excerpt from February creek. Avoid obvious ice resonance during the autumn default.
+Source: https://freesound.org/people/lgarrett/sounds/17147/
+Original media: https://cdn.freesound.org/previews/17/17147_58726-hq.mp3
+
+landscape-lofoten-fredvang-surf.m4a — exposed-surf. dobroide; Fredvang, Lofoten, Norway. CC BY 4.0.
+Trimmed from 1 s, filtered, level matched and faded for the 3D mix. Use at Atlantic-exposed shoreline and wave wash. Separate from the sheltered fjord bed.
+Source: https://freesound.org/people/dobroide/sounds/317414/
+Original media: https://cdn.freesound.org/previews/317/317414_8043-hq.mp3
+
+landscape-lofoten-nusfjord-lap.m4a — sheltered-inlet. dobroide; Nusfjord area, Lofoten, Norway. CC BY 4.0.
+Trimmed from 1 s, filtered, level matched and faded for the 3D mix. Use for sheltered fjord and village coves.
+Source: https://freesound.org/people/dobroide/sounds/317417/
+Original media: https://cdn.freesound.org/previews/317/317417_8043-hq.mp3
+
+landscape-swiss-isenthal-riffles.m4a — alpine-stream. 1_pull; Isenthal, Uri, Swiss Alps (~1700 m). CC BY 4.0.
+Trimmed from 1 s, filtered, level matched and faded for the 3D mix. Fast small Swiss alpine brook; use at glacial runoff feeding Oeschinensee.
+Source: https://freesound.org/people/1_pull/sounds/580710/
+Original media: https://cdn.freesound.org/previews/580/580710_13027121-hq.mp3
+
+landscape-yosemite-branch-snap.m4a — branch snap. National Park Service, via Montana State University Acoustic Atlas; Yosemite National Park, California. US public domain.
+Trimmed from 0.18 s, filtered, level matched and faded for the 3D mix. occasional tree sound on a low gusty pass
+Source: https://acousticatlas.org/item/750
+Original media: https://acousticatlas.org/acoustic-atlas/objects/aa0000750.mp3
+
+landscape-yosemite-rockslide.m4a — rockslide. National Park Service, via Montana State University Acoustic Atlas; Yosemite National Park, California. US public domain.
+Trimmed from 0.18 s, filtered, level matched and faded for the 3D mix. rare cliff event
+Source: https://acousticatlas.org/item/1069
+Original media: https://acousticatlas.org/acoustic-atlas/objects/aa0001069.mp3
+
+landscape-yosemite-sentinel-waterfall.m4a — distant-waterfall. National Park Service; Sentinel Rock, Yosemite National Park. Public domain (NPS).
+Trimmed from 0.1 s, filtered, level matched and faded for the 3D mix. Authentic Yosemite falls at distance, from near Sentinel Rock, for more diffuse canyon-scale listening.
+Source: https://acousticatlas.org/item/1163
+Original media: https://acousticatlas.org/acoustic-atlas/objects/aa0001163.mp3
+
+landscape-yosemite-sentinel-wind.m4a — mountain-wind. National Park Service; Sentinel Rock, Yosemite National Park. Public domain (NPS).
+Trimmed from 0.1 s, filtered, level matched and faded for the 3D mix. Use on exposed rocky ledges under gusts or at Sentinel Rock.
+Source: https://acousticatlas.org/item/1185
+Original media: https://acousticatlas.org/acoustic-atlas/objects/aa0001185.mp3

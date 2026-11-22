@@ -1,7 +1,7 @@
 // Regional soundscapes: every world's water, weather, human presence and
 // wildlife events, placed in survey space and rendered by makeSpatialAudio.
-// Recordings are credited in soundscape-credits.txt. Thunder and close rain
-// are synthesised physically from the storm geometry shown on screen.
+// Recordings are credited in soundscape-credits.txt. Thunder combines the
+// moving squall's geometry with recordings of Pacific Northwest storms.
 (() => {
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
   const rand = (a, b) => a + (b - a) * Math.random();
@@ -60,25 +60,46 @@
   }
   function landmark(world, re) { return (world.landmarks || []).find(p => re.test(p.name)); }
   // Nearest water to a point, searched on rings (rivers have no polyline).
-  function nearestWater(world, x, z, maxR = 1600) {
-    if (isWet(world, x, z)) return {x, z, d: 0};
+  function nearestWater(world, x, z, maxR = 1600, wet = (px, pz) => isWet(world, px, pz)) {
+    if (wet(x, z)) return {x, z, d: 0};
     for (const r of [15, 30, 55, 90, 140, 210, 300, 420, 600, 850, 1200, 1600]) {
       if (r > maxR) break;
       let best = null;
       for (let i = 0; i < 24; i++) {
         const a = i / 24 * Math.PI * 2, px = x + Math.cos(a) * r, pz = z + Math.sin(a) * r;
-        if (isWet(world, px, pz)) { best = {x: px, z: pz, d: r}; break; }
+        if (wet(px, pz)) { best = {x: px, z: pz, d: r}; break; }
       }
       if (best) return best;
     }
     return null;
   }
+  // Find the waterline from either side when the world has no surveyed edge nearby.
+  function nearestWaterline(world, x, z, maxR) {
+    const wet = isWet(world, x, z);
+    let previous = 0;
+    for (const r of [10, 22, 38, 64, 100, 165, 285, 420, 600, maxR]) {
+      if (r > maxR || r <= previous) continue;
+      for (let i = 0; i < 16; i++) {
+        const a = i * Math.PI / 8, dx = Math.cos(a), dz = Math.sin(a);
+        if (isWet(world, x + dx * r, z + dz * r) === wet) continue;
+        let lo = previous, hi = r;
+        for (let j = 0; j < 7; j++) {
+          const m = (lo + hi) / 2;
+          if (isWet(world, x + dx * m, z + dz * m) === wet) lo = m; else hi = m;
+        }
+        const d = wet ? lo : hi;
+        return {x: x + dx * d, z: z + dz * d, d};
+      }
+      previous = r;
+    }
+    return null;
+  }
   // Two more water points about `span` metres either side of p (a river reach).
-  function waterReach(world, p, span) {
+  function waterReach(world, p, span, wet = (px, pz) => isWet(world, px, pz)) {
     const out = [];
     for (let i = 0; i < 16 && out.length < 2; i++) {
       const a = i / 16 * Math.PI * 2, px = p.x + Math.cos(a) * span, pz = p.z + Math.sin(a) * span;
-      if (isWet(world, px, pz) && !out.some(o => Math.hypot(o.x - px, o.z - pz) < span)) out.push({x: px, z: pz});
+      if (wet(px, pz) && !out.some(o => Math.hypot(o.x - px, o.z - pz) < span)) out.push({x: px, z: pz});
     }
     return out;
   }
@@ -116,7 +137,7 @@
     const pts = [];
     let x = strike.x, y = cloudY, z = strike.z;
     const branches = [];
-    while (y > strike.y) {
+    while (y > strike.y && pts.length < 768) {
       const tx = strike.x - x, ty = strike.y - y, tz = strike.z - z, tl = Math.hypot(tx, ty, tz) || 1;
       // Mean tortuosity ~16 degrees between 5-15 m steps.
       let ux = tx / tl + rand(-.55, .55), uy = ty / tl + rand(-.25, .25), uz = tz / tl + rand(-.55, .55);
@@ -131,6 +152,7 @@
         let ux = hx + rand(-.6, .6), uy = -.55 + rand(-.3, .3), uz = hz + rand(-.6, .6);
         const ul = Math.hypot(ux, uy, uz), step = rand(5, 12);
         px += ux / ul * step; py += uy / ul * step; pz += uz / ul * step;
+        if (py < strike.y) break;
         pts.push([px, py, pz, ux / ul, uy / ul, uz / ul, .45]);
       }
     }
@@ -142,7 +164,7 @@
         const ly = mirror ? 2 * groundY - ear.y : ear.y;
         const dx = p[0] - ear.x, dy = p[1] - ly, dz = p[2] - ear.z, r = Math.max(30, Math.hypot(dx, dy, dz));
         const cos = (dx * p[3] + dy * p[4] + dz * p[5]) / r;
-        const radiate = Math.pow(1 - cos * cos, 1.5);
+        const radiate = Math.pow(Math.max(0, 1 - cos * cos), 1.5);
         const t = r / c;
         arrivals.push([t, (p[6] || 1) * radiate / r * (mirror ? .55 : 1), r]);
         tmin = Math.min(tmin, t); tmax = Math.max(tmax, t);
@@ -188,7 +210,7 @@
   // Drops on water excite a Minnaert bubble (rising chirp around 1-3 kHz);
   // drops on needles and leaves give short noisy ticks; on rock, a dry click.
   function synthRain(context, surface, density, seconds = 4) {
-    const fs = context.sampleRate, len = Math.floor(seconds * fs);
+    const fs = Math.min(24000, context.sampleRate), len = Math.floor(seconds * fs);
     const buffer = context.createBuffer(2, len, fs);
     for (let ch = 0; ch < 2; ch++) {
       const out = buffer.getChannelData(ch);
@@ -286,8 +308,8 @@
         // about the sixth power of airspeed in sound power (measured on
         // cyclists: 85 dBA at 6.7 m/s, 120 dBA at 27 m/s), so its amplitude
         // follows v^2.6: a whisper at 8 m/s, level with a loud call close by
-        // at 15 m/s (about -22 dBFS), and held from 19 m/s so a dive cannot clip.
-        const level = .08 * Math.pow(clamp(v, 0, 19) / 15, 2.6) * (real ? 1 : 1.35) / (rms * .32 * .86);
+        // at 15 m/s (about -23 dBFS), and held from 19 m/s so a dive cannot clip.
+        const level = .068 * Math.pow(clamp(v, 0, 19) / 15, 2.6) * (real ? 1 : 1.35) / (rms * .32 * .86);
         // The recording was made at about cruising speed: slower air loses its
         // hiss, faster air keeps all of it.
         const reach = real ? clamp(1500 * Math.pow(2, (v - 8) / 3), 700, 12000) : 280 + 55 * v;
@@ -354,6 +376,10 @@
     const x = p.x + rand(-jitter, jitter), z = p.z + rand(-jitter, jitter);
     return {x, y: ground(c.world, x, z) + dy, z};
   };
+  const atWater = re => c => {
+    const p = landmark(c.world, re); if (!p) return null;
+    return {x: p.x, z: p.z, y: (waterLevel(c.world) ?? ground(c.world, p.x, p.z)) + .65};
+  };
   // Placements marked stable name a habitat. Their callers keep fixed posts
   // in the world (see stablePost), so a bird heard on the approach is the
   // same bird, in the same tree, on the way back.
@@ -383,13 +409,28 @@
     }
     return null;
   });
-  const onGround = (r0, r1) => stable(c => {
+  const onGround = (r0, r1, maxSlope = Infinity) => stable(c => {
     for (let i = 0; i < 20; i++) {
       const a = Math.random() * Math.PI * 2, r = rand(r0, r1), x = c.ear.x + Math.cos(a) * r, z = c.ear.z + Math.sin(a) * r;
-      if (!isWet(c.world, x, z)) return {x, y: ground(c.world, x, z) + .5, z};
+      if (isWet(c.world, x, z)) continue;
+      const g = ground(c.world, x, z);
+      if (Number.isFinite(maxSlope) && Math.hypot(ground(c.world, x + 5, z) - g, ground(c.world, x, z + 5) - g) > 5 * maxSlope) continue;
+      return {x, y: g + .5, z};
     }
     return null;
   });
+
+  const regionalHabitats = {
+    canopy: {where: inTrees(15, 115, .68), ref: 14, reach: 270},
+    understory: {where: inTrees(15, 110, .2), ref: 12, reach: 225},
+    meadow: {where: onGround(12, 100, .7), ref: 10, reach: 210},
+    cliff: {where: onCliff(18, 150), ref: 20, reach: 430},
+    water: {where: onWater(20, 150, .8), ref: 25, reach: 480},
+    shore: {where: stable(c => {
+      const p = nearestWaterline(c.world, c.ear.x, c.ear.z, 160);
+      return p && {x: p.x, z: p.z, y: (waterLevel(c.world) ?? ground(c.world, p.x, p.z)) + .5};
+    }), ref: 16, reach: 330}
+  };
 
   // ---- directional logic shared with the checks ---------------------------------
   // Songbirds and frogs fall silent when a raptor is close; jays, chickadees,
@@ -424,8 +465,8 @@
     return () => { h = (Math.imul(h ^ (h >>> 15), 2246822519) + 374761393) >>> 0; h ^= h >>> 13; return (((Math.imul(h, 3266489917) >>> 0) ^ (h >>> 16)) >>> 0) / 4294967296; };
   }
   const POST_CELL = 160;      // metres; one post per caller kind per cell
-  function postFor(where, index, ix, iz, context) {
-    const centre = {x: (ix + .5) * POST_CELL, y: context.ear.y, z: (iz + .5) * POST_CELL};
+  function postFor(where, index, ix, iz, context, cell = POST_CELL) {
+    const centre = {x: (ix + .5) * cell, y: context.ear.y, z: (iz + .5) * cell};
     const random = Math.random;
     Math.random = seededRandom(index, ix, iz);
     try { return where(Object.assign({}, context, {ear: centre})); } finally { Math.random = random; }
@@ -434,6 +475,14 @@
 
   const nearEar = (r = 1.6) => c => ({x: c.ear.x + rand(-r, r), y: c.ear.y + rand(-.4, .7), z: c.ear.z + rand(-r, r)});
   const lowAndLeafy = c => c.agl < 18 && !c.overWater;
+  // Short bouts from real ground posts; never carry these small animals high
+  // into the flight mix. The quieter eastern and Yosemite recordings need
+  // extra presence, rather than bringing up the whole regional bed.
+  const chipmunk = (clip, every, gain) => ({
+    clip, every, gain, ref: 22, reach: 150, wet: .22, masking: .32,
+    echo: false, nearest: 105, cell: 96, initial: [3, 8], retry: [1.5, 3.5],
+    when: c => c.agl < 85, where: onGround(8, 40, 1.15)
+  });
   // Levels were set against real recordings of each kind of place (a minute
   // from a perch in every world, compared band by band): the Sierra cicadas
   // stood 20 dB above anything in a real Sierra valley at 8 kHz. Singers of
@@ -445,16 +494,22 @@
   const scapes = {
     alaska: {
       falls: {clip: 'scape-alaska-nugget-falls', ref: 70, reach: 3200, gain: .95},
-      water: [{clip: 'scape-alaska-meltwater', kind: 'stream', ref: 18, reach: 500, gain: .55, maxR: 350}],
+      beds: [{clip: 'landscape-alaska-rainforest-chorus', gain: c => .18 * c.canopy * (1 - smooth(24, 120, c.agl))}],
+      loops: [
+        {clip: 'landscape-alaska-glacier-shore-drips', ref: 8, reach: 240, gain: .54, where: atWater(/Blue Ice Passage/)},
+        {clip: 'landscape-alaska-bergy-seltzer', ref: 4, reach: 95, gain: .39, where: atWater(/Mendenhall Glacier/)},
+        {clip: 'landscape-alaska-alder-drip', ref: 9, reach: 235, gain: .42, where: at(/Steep Creek salmon boardwalk/, 1)}
+      ],
       events: [
         // Calving at the terminus; booms carry across the lake with a delay.
         {clip: ['scape-alaska-calving', 'scape-alaska-calving-alt'], every: [120, 320], ref: 450, reach: 9000, gain: .9, wet: .9,
           where: c => { const g = landmark(c.world, /Mendenhall Glacier/); const p = landmark(c.world, /Blue Ice/);
             if (!g) return null; const t = Math.random(); const x = (p ? p.x : g.x) + rand(-520, 520), z = (p ? p.z : g.z) + rand(-120, 160);
             return {x, y: (waterLevel(c.world) ?? 0) + rand(8, 40), z}; }},
-        {clip: 'scape-alaska-varied-thrush', every: [14, 30], ref: 20, reach: 650, gain: .6, where: inTrees(60, 420, .7)},
         {clip: 'scape-alaska-pacific-wren', every: [18, 40], ref: 12, reach: 320, gain: .55, where: inTrees(40, 250, .1)},
-        {clip: 'scape-alaska-mosquito-swarm', every: [18, 40], ref: 1.2, reach: 20, gain: .35, when: lowAndLeafy, where: nearEar()},
+        {clip: 'landscape-alaska-steep-creek-salmon', every: [28, 80], initial: [3, 8], ref: 11, reach: 190, gain: .58,
+          when: c => c.agl < 90 && !!c.world.steepCreek?.fish?.length,
+          where: c => { const p = c.world.steepCreek?.landmark; return p && {x: p.approach[2], z: p.approach[3], y: ground(c.world, p.approach[2], p.approach[3]) + .65}; }},
         {clip: 'scape-alaska-arctic-tern', every: [22, 55], ref: 25, reach: 700, gain: .55, where: onWater(80, 600, 6)}
       ]
     },
@@ -473,6 +528,7 @@
     },
     swiss: {
       falls: {clip: 'scape-swiss-alpine-falls', ref: 45, reach: 2400, gain: .85},
+      fallTakes: [{clip: 'landscape-swiss-isenthal-riffles', where: /tributary/i}],
       beds: [{clip: 'scape-swiss-alpine-wind', ref: 1, gain: c => .06 + .32 * c.exposure * (.6 + .5 * c.gust)}],
             choruses: [{clip: 'scape-swiss-alpine-grasshoppers', habitat: 'grass', count: 4, r: [12, 110], ref: 8, reach: 300, gain: .45}],
       events: [
@@ -483,6 +539,8 @@
     },
     yosemite: {
       falls: {clip: 'scape-yosemite-yosemite-falls', ref: 150, reach: 6000, gain: .95},
+      fallTakes: [{clip: 'landscape-yosemite-sentinel-waterfall', where: /Lower Yosemite|Middle Cascades/i}],
+      beds: [{clip: 'landscape-yosemite-sentinel-wind', gain: c => .27 * c.exposure * (.4 + .6 * c.gust)}],
       water: [{clip: 'scape-yosemite-merced-river', kind: 'river', ref: 28, reach: 1200, gain: .75, maxR: 900, span: 120}],
       choruses: [{clip: 'scape-yosemite-sierra-cicada', habitat: 'trees', count: 2, r: [25, 170], ref: 12, reach: 500, gain: .15},
                  {clip: 'scape-yosemite-dusk-crickets', night: true, habitat: 'grass', count: 4, r: [15, 120], ref: 10, reach: 380, gain: .4}],
@@ -490,25 +548,29 @@
         {clip: 'scape-yosemite-coyote', every: [600, 1500], ref: 90, reach: 3500, gain: .6, wet: .8, where: onGround(500, 1600)},
         {clip: 'scape-yosemite-brewers-blackbird', every: [16, 36], ref: 12, reach: 300, gain: .5, where: at(/El Capitan Meadow/, 1, 250)},
         {clip: 'scape-yosemite-steller-jay-yosemite', every: [26, 60], ref: 18, reach: 450, gain: .5, where: inTrees(50, 350, .7)},
-        {clip: 'scape-yosemite-chipmunk', every: [45, 110], ref: 6, reach: 150, gain: .5, where: onGround(20, 120)},
-        {clip: 'scape-yosemite-rockfall-granite', every: [900, 2400], ref: 120, reach: 6000, gain: .6, wet: 1, where: onCliff(600, 2500)}
+        chipmunk('scape-yosemite-chipmunk', [36, 75], .85),
+        {clip: 'landscape-yosemite-rockslide', every: [900, 2400], ref: 120, reach: 6000, gain: .6, wet: 1, where: onCliff(600, 2500)},
+        {clip: 'landscape-yosemite-branch-snap', every: [100, 320], ref: 14, reach: 280, gain: .56,
+          when: c => c.agl < 125 && c.gust > .55, where: inTrees(25, 165, .76)}
       ]
     },
     crater: {
-      storm: {front: [.948683, .316228], speed: 17, head: -2590, period: 18000, cloudY: 3000},
+      storm: {cloudY: 3000},
       beds: [{clip: 'scape-crater-rim-wind', ref: 1, gain: c => .08 + .36 * c.exposure * (.6 + .5 * c.gust)}],
       events: [
-        {clip: 'scape-crater-grasshopper-crepitation', every: [9, 22], ref: 6, reach: 160, gain: .45, where: onGround(10, 90)},
-        {clip: 'scape-crater-canada-jay', every: [24, 55], ref: 15, reach: 380, gain: .5, where: inTrees(40, 260, .6)},
-        {clip: 'scape-crater-chipmunk', every: [50, 120], ref: 6, reach: 150, gain: .3, where: onGround(20, 120)}
+        chipmunk('scape-crater-chipmunk', [43, 90], .66)
       ]
     },
     lofoten: {
-      water: [{clip: 'scape-lofoten-waves-rocks', kind: 'shore', ref: 25, reach: 900, gain: .8, maxR: 700, span: 160}],
+      water: [{clip: 'landscape-lofoten-fredvang-surf', alternates: ['landscape-lofoten-nusfjord-lap'], kind: 'shore', ref: 25, reach: 900, gain: .68, maxR: 700, span: 160,
+        select: c => {
+          const harbor = landmark(c.world, /Reine fishing quay/);
+          return harbor && Math.hypot(c.ear.x - harbor.x, c.ear.z - harbor.z) < 650
+            ? 'landscape-lofoten-nusfjord-lap' : 'landscape-lofoten-fredvang-surf';
+        }}],
+      loops: [{clip: 'scape-lofoten-waves-rocks', ref: 22, reach: 400, gain: .42, where: atWater(/^Hamnøy$/)}],
       events: [
-        {clip: 'scape-lofoten-bumblebees', every: [25, 60], ref: 2.5, reach: 50, gain: .4, when: c => c.agl < 30, where: onGround(4, 25)},
         {clip: 'scape-lofoten-white-tailed-eagle', every: [300, 800], ref: 40, reach: 1600, gain: .6, wet: .7, where: onCliff(200, 900)},
-        {clip: 'scape-lofoten-herring-gull', every: [14, 32], ref: 25, reach: 700, gain: .55, where: onWater(60, 500, 3)},
         {clip: 'scape-lofoten-arctic-tern-colony', every: [30, 70], ref: 30, reach: 800, gain: .55, where: onWater(100, 600, 4)}
       ]
     },
@@ -519,6 +581,8 @@
       loops: [
         {clip: 'scape-acadia-cove', ref: 15, reach: 460, gain: .70, where: fixed(600, .45, -979)},
         {clip: 'scape-acadia-ledge', ref: 36, reach: 1250, gain: .85, where: fixed(68, .55, 1072)},
+        {clip: 'landscape-acadia-storm-surf', ref: 34, reach: 1000, gain: .62, where: fixed(93, .5, 985),
+          level: c => smooth(.42, .78, c.gust) * (.4 + .6 * (c.world.acadiaCoast?.surge(c.t) ?? 0))},
         {clip: 'scape-acadia-cobbles', ref: 12, reach: 275, gain: .67, where: fixed(-84, 1.4, 490)},
         {clip: 'scape-acadia-cove', ref: 11, reach: 360, gain: .38, where: fixed(61, .7, -26)},
         // Extend the park recordings to measured tidal edges around the two
@@ -530,10 +594,7 @@
         {clip: 'scape-acadia-cobbles', ref: 12, reach: 225, gain: .55, where: fixed(-208.5, .5, 9022.5)}
       ],
       surge: {clip: 'scape-acadia-chamber', where: c => c.world.acadiaCoast.thunder, ref: 40, reach: 1150},
-      choruses: [
-        {clip: 'scape-acadia-spruce', habitat: 'trees', count: 3, r: [18,145], ref: 12, reach: 235, gain: .43},
-        {clip: 'scape-moosehead-field-crickets', habitat: 'forest-edge', count: 2, r: [10,78], ref: 6, reach: 95, gain: .25}
-      ]
+      choruses: [{clip: 'scape-acadia-spruce', habitat: 'trees', count: 3, r: [18,145], ref: 12, reach: 235, gain: .43}]
     },
     winnipesaukee: {
       choruses: [{clip: 'scape-winnipesaukee-snowy-tree-cricket', night: true, rate: 1.11 /* Dolbear's law: recorded at 21 C, sung at 23 C */, habitat: 'trees', count: 3, r: [15, 140], ref: 9, reach: 350, gain: .45},
@@ -546,7 +607,7 @@
       events: [
         {clip: 'scape-winnipesaukee-veery', every: [18, 40], ref: 15, reach: 400, gain: .55, where: inTrees(40, 300, .2)},
         {clip: 'scape-winnipesaukee-wood-thrush', every: [20, 45], ref: 18, reach: 450, gain: .55, where: inTrees(40, 300, .4)},
-        {clip: 'scape-winnipesaukee-chipmunk', every: [35, 80], ref: 6, reach: 150, gain: .45, where: onGround(20, 120)}
+        chipmunk('scape-winnipesaukee-chipmunk', [29, 64], .86)
       ]
     },
     surry: {
@@ -559,11 +620,11 @@
         {clip: 'scape-surry-gray-catbird', every: [20, 45], ref: 12, reach: 300, gain: .5, where: inTrees(30, 220, .25)},
         {clip: 'scape-surry-song-sparrow', every: [16, 38], ref: 12, reach: 320, gain: .5, where: onGround(30, 250)},
         {clip: 'scape-surry-gray-treefrog', every: [120, 300], ref: 12, reach: 280, gain: .45, where: inTrees(20, 200, .15)},
-        {clip: 'scape-winnipesaukee-chipmunk', every: [35, 80], ref: 6, reach: 150, gain: .45, where: onGround(20, 120)}
+        chipmunk('scape-winnipesaukee-chipmunk', [29, 64], .86)
       ]
     },
     dixville: {
-      water: [{clip: 'scape-dixville-notch-brook', kind: 'stream', ref: 14, reach: 450, gain: .6, maxR: 380, span: 70}],
+      falls: {clip: 'landscape-dixville-nh-brook', ref: 13, reach: 520, gain: .65},
       beds: [{clip: 'scape-dixville-dry-leaves', ref: 1, gain: c => (.06 + .22 * c.gust) * c.canopy}],
       events: [
         {clip: 'scape-dixville-white-throated-sparrow', every: [14, 30], ref: 16, reach: 420, gain: .6, where: inTrees(40, 300, .2)},
@@ -572,11 +633,11 @@
         {clip: 'scape-dixville-pileated-woodpecker', every: [150, 400], ref: 30, reach: 900, gain: .55, where: inTrees(80, 500, .6)},
         {clip: 'scape-dixville-blue-jay', every: [24, 55], ref: 20, reach: 500, gain: .55, where: inTrees(40, 350, .7)},
         // Eastern chipmunks are still above ground in late autumn, but call less.
-        {clip: 'scape-winnipesaukee-chipmunk', every: [70, 160], ref: 6, reach: 150, gain: .42, where: onGround(20, 120)}
+        chipmunk('scape-winnipesaukee-chipmunk', [55, 110], .78)
       ]
     },
     labrador: {
-      shower: true,
+      shower: true, rainSurfaces: ['lake', 'spruce'], rainAmbience: 'scape-moosehead-mosquitoes',
       // GRHQ line and lidar profile put these emitters on three separate short sills.
       loops: [
         {clip: 'scape-cabert-brook', ref: 9, reach: 145, gain: .48, where: fixed(-3718.6, 379.9, 1330.8)},
@@ -587,30 +648,21 @@
         {clip: 'scape-labrador-mosquitoes', every: [16, 36], ref: 1.2, reach: 20, gain: .35, when: lowAndLeafy, where: nearEar()},
         {clip: 'scape-labrador-swainsons-thrush', every: [16, 34], ref: 16, reach: 420, gain: .6, where: inTrees(40, 300, .4)},
         {clip: 'scape-labrador-boreal-chickadee', every: [24, 55], ref: 10, reach: 250, gain: .5, where: inTrees(30, 220, .5)},
-        {clip: 'scape-labrador-white-throated-sparrow-qc', every: [18, 42], ref: 16, reach: 420, gain: .55, where: inTrees(40, 320, .2)},
-        {clip: 'scape-labrador-black-flies', every: [30, 70], ref: 1.5, reach: 25, gain: .35, when: c => c.agl < 25,
-          where: c => ({x: c.ear.x + rand(-1.5, 1.5), y: c.ear.y + rand(-.5, .8), z: c.ear.z + rand(-1.5, 1.5)})}
+        {clip: 'scape-labrador-white-throated-sparrow-qc', every: [18, 42], ref: 16, reach: 420, gain: .55, where: inTrees(40, 320, .2)}
       ]
     },
     moosehead: {
       choruses: [{clip: 'scape-moosehead-field-crickets', habitat: 'grass', count: 4, r: [15, 120], ref: 10, reach: 380, gain: .3}],
       events: [
-        {clip: 'scape-moosehead-mosquitoes', every: [18, 40], ref: 1.2, reach: 20, gain: .35, when: lowAndLeafy, where: nearEar()},
         {clip: 'scape-moosehead-ovenbird', every: [30, 70], ref: 16, reach: 420, gain: .55, where: inTrees(40, 300, .15)},
         {clip: 'scape-moosehead-black-throated-green', every: [20, 45], ref: 12, reach: 300, gain: .5, where: inTrees(40, 260, .8)},
         {clip: 'scape-moosehead-red-breasted-nuthatch', every: [24, 55], ref: 8, reach: 200, gain: .45, where: inTrees(30, 200, .7)},
-        {clip: 'scape-winnipesaukee-chipmunk', every: [35, 80], ref: 6, reach: 150, gain: .45, where: onGround(20, 120)}
+        chipmunk('scape-winnipesaukee-chipmunk', [29, 64], .86)
       ]
     }
   };
   window.aerieSoundscapes = scapes;
 
-  function stormDepth(storm, x, z, t) {
-    const [ax, az] = storm.front, sx = -az, sz = ax, side = x * sx + z * sz;
-    const edge = 175 * Math.sin(side * .00073) + 112 * Math.sin(side * .00181 + .7) + 43 * Math.sin(side * .0031);
-    const raw = x * ax + z * az - (storm.head - t * storm.speed) - edge;
-    return ((raw + 7000) % storm.period + storm.period) % storm.period - 7000;
-  }
   // Rain at a point, 0 to 1: inside the Lac Berte sun shower or the Crater
   // Lake storm bank. The eagle's motion uses this too, with or without sound.
   window.aerieRainAt = function aerieRainAt(world, region, x, z, t) {
@@ -624,12 +676,13 @@
       const dx = x - cx, dz = z - cz, across = dx * sideX + dz * sideZ, along = dx * axisX + dz * axisZ;
       return (1 - smooth(140, 470, Math.abs(along))) * (1 - smooth(650, 1600, Math.abs(across)));
     }
-    if (spec.storm) { const d = stormDepth(spec.storm, x, z, t); return smooth(-310, 330, d) * (1 - smooth(4700, 7400, d)); }
+    if (spec.storm) { const d = window.aerieCalderaStormDepth?.(x, z, t) ?? -7000; return smooth(-310, 330, d) * (1 - smooth(4700, 7400, d)); }
     return 0;
   };
 
   window.makeSoundscape = function makeSoundscape(context, world, region, destination) {
     const spec = scapes[region] || {}, air = climate[region] || {};
+    const banks = (window.aerieRegionalRecordings?.[region] || []).map(bank => ({...regionalHabitats[bank.habitat], ...bank}));
     const engine = window.makeSpatialAudio(context, world, {climate: air});
     engine.setSurveyPath(window.aerieSoundPath);
     // The 3D field carries the world; the head-locked wind layers step back ~4 dB.
@@ -637,7 +690,17 @@
     // Today's air at the real location, when reachable; the stored climate otherwise.
     liveAir(region).then(airNow => { if (airNow) { engine.setClimate(airNow); engine.live = airNow; } });
     engine.output.connect(destination);
-    const buffers = new Map(), loading = new Map();
+    const buffers = new Map(), loading = new Map(), recentRegional = new Set();
+    // Regional wildlife streams on demand. Holding the most recent eight decoded
+    // recordings bounds RAM even on a long mobile flight through many habitats.
+    function regionalBuffer(id) {
+      recentRegional.delete(id); recentRegional.add(id);
+      if (recentRegional.size > 8) {
+        const oldest = recentRegional.values().next().value;
+        recentRegional.delete(oldest); buffers.delete(oldest);
+      }
+      return load(id);
+    }
     function load(id) {
       if (buffers.has(id)) return Promise.resolve(buffers.get(id));
       if (loading.has(id)) return loading.get(id);
@@ -657,12 +720,14 @@
     const ids = new Set();
     const listClips = c => Array.isArray(c) ? c : [c];
     for (const e of spec.events || []) listClips(e.clip).forEach(id => ids.add(id));
-    for (const g of [spec.falls, spec.surge, ...(spec.water || []), ...(spec.beds || []), ...(spec.loops || []), ...(spec.choruses || [])]) if (g) ids.add(g.clip);
+    for (const g of [spec.falls, spec.surge, ...(spec.fallTakes || []), ...(spec.water || []), ...(spec.beds || []), ...(spec.loops || []), ...(spec.choruses || [])]) if (g) ids.add(g.clip);
+    for (const w of spec.water || []) for (const id of w.alternates || []) ids.add(id);
     for (const id of ids) load(id);
     load('ir-' + (air.ir || 'lake')).then(b => engine.setImpulse(b, (irLevel[air.ir || 'lake'] || .0002) * 7.5));
-    if (spec.shower) { load('scape-' + region + '-rain-on-lake'); load('scape-' + region + '-rain-on-spruce'); }
+    for (const surface of spec.rainSurfaces || []) load('scape-' + region + '-rain-on-' + surface);
+    if (spec.rainAmbience) load(spec.rainAmbience);
     if (spec.storm) load('scape-' + region + '-rain-approach');
-    if (spec.storm || spec.shower) load('rain-steady');
+    if (spec.storm) load('rain-steady');
     if (spec.storm) { load('scape-crater-thunder-near'); load('scape-crater-thunder-far'); }
 
     // Existing regional beds handed over by field-audio.js become 3D sources.
@@ -723,8 +788,8 @@
       return free.length ? free[Math.floor(Math.random() * free.length)] : null;
     }
     let enabled = false;
-    const state = {falls: new Map(), water: [], beds: [], loops: [], choruses: [], movers: new Set(), steps: new Map(), rain: null, due: new Map(),
-      posts: new Map(), singers: new Map(), voices: new Set()};
+    const state = {falls: new Map(), water: [], beds: [], loops: [], choruses: [], movers: new Set(), rain: null, due: new Map(),
+      posts: new Map(), singers: new Map(), voices: new Set(), thunder: new Set()};
     const rainTex = {};
     function rainTexture(surface, density) {
       const key = surface + density;
@@ -739,17 +804,24 @@
       state.loops.forEach(l => l.source?.stop(.4));
       state.choruses.forEach(c => c.forEach(e => e.stop(.4)));
       for (const m of state.movers) m.source.stop(.3);
-      for (const src of state.steps.values()) src.stop(.3);
       for (const v of state.voices) v.source.stop?.(.3);
       state.voices.clear();
+      for (const source of state.thunder) source.stop(.2);
+      state.thunder.clear();
       if (state.rain) state.rain.emitters.forEach(s => s.stop(.4));
-      state.falls.clear(); state.water = []; state.beds = []; state.loops = []; state.choruses = []; state.movers.clear(); state.steps.clear(); state.rain = null;
+      state.falls.clear(); state.water = []; state.beds = []; state.loops = []; state.choruses = []; state.movers.clear(); state.rain = null; regionalCall = null;
     }
     function setEnabled(value) {
       if (enabled === value) return; enabled = value;
       if (!enabled) { stopAll(); airflow?.stop(context.currentTime); return; }
       const now = context.currentTime;
-      for (const [i, e] of (spec.events || []).entries()) state.due.set(i, now + rand(2, Math.min(25, e.every[0])));
+      nextScan = now; nextRegional = now + rand(4, 8);
+      for (const [i, e] of (spec.events || []).entries()) {
+        if (!state.due.has(i)) state.due.set(i, now + rand(...(e.initial || [3, Math.min(25, e.every[0])])));
+        // An expired cooldown doesn't unleash a stack of calls when unmuting.
+        else if (state.due.get(i) < now) state.due.set(i, now + rand(2, 6));
+      }
+      if (spec.storm && thunderDue < now + 1) thunderDue = now + rand(1.5, 4);
     }
 
     // Four decorrelated emitters 18 m around the listener form a diffuse bed.
@@ -766,7 +838,7 @@
     function placeBed(bed, level, now) {
       for (const s of bed.emitters) {
         s.x = engine.ear.x + Math.cos(s.angle) * 18; s.z = engine.ear.z + Math.sin(s.angle) * 18; s.y = engine.ear.y + s.height;
-        s.gain = level * .5;
+        s.gain = level * .5 * (s.mix ?? 1);
       }
     }
 
@@ -808,8 +880,7 @@
     function installControls() {
       if (!document.getElementById('aerieEarsStyle')) {
         const st = document.createElement('style'); st.id = 'aerieEarsStyle';
-        st.textContent = '#earsToggle{width:auto;padding:0 13px;gap:7px;border-radius:24px;font-size:12px;font-weight:600;white-space:nowrap}' +
-          '#earsToggle[aria-pressed=true]{background:#efe0b9;color:#192720;border-color:#fff1ca}' +
+        st.textContent = '#earsToggle[aria-pressed=true]{background:#efe0b9;color:#192720;border-color:#fff1ca}' +
           '.headProfile{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0;font-size:13px}.headProfile select{max-width:100%}';
         document.head.appendChild(st);
       }
@@ -818,7 +889,7 @@
         const b = document.createElement('button');
         b.className = 'icon flightOnly'; b.id = 'earsToggle'; b.setAttribute('aria-pressed', 'false'); b.title = 'Eagle Ears (L)';
         b.setAttribute('aria-label', 'Toggle Eagle Ears (L)');
-        b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 18c0 2 1.5 3 3 3s3-1.5 3-3.2c0-1.6 1.2-2.3 2.2-3.4A6.5 6.5 0 1 0 6 9.5"/><path d="M10 10.5a2.5 2.5 0 1 1 4 2"/></svg><span>Eagle Ears</span>';
+        b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 18c0 2 1.5 3 3 3s3-1.5 3-3.2c0-1.6 1.2-2.3 2.2-3.4A6.5 6.5 0 1 0 6 9.5"/><path d="M10 10.5a2.5 2.5 0 1 1 4 2"/></svg>';
         vision.after(b);
       }
       const box = document.getElementById('instructions');
@@ -933,26 +1004,60 @@
     window.aerieBodySoundHandler = e => bodySound(e.detail);
     window.addEventListener('aerie-eagle-body', window.aerieBodySoundHandler);
     function strike(storm, t) {
-      // Search the rain bank for a cell 1.5-12 km away.
-      for (let i = 0; i < 60; i++) {
-        const a = Math.random() * Math.PI * 2, r = rand(1500, 12000), x = engine.ear.x + Math.cos(a) * r, z = engine.ear.z + Math.sin(a) * r;
-        const d = stormDepth(storm, x, z, t);
-        if (d > 400 && d < 4200) return {x, y: ground(world, x, z), z};
+      const depth = window.aerieCalderaStormDepth;
+      if (!depth) return null;
+      const ear = engine.ear;
+      const candidate = (angle, distance) => {
+        const x = ear.x + Math.cos(angle) * distance, z = ear.z + Math.sin(angle) * distance;
+        const d = depth(x, z, t);
+        if (d <= 400 || d >= 4700) return null;
+        const level = waterLevel(world);
+        const y = isWet(world, x, z) && Number.isFinite(level) ? level : ground(world, x, z);
+        if (Number.isFinite(y) && y < storm.cloudY - 300) return {x, y, z};
+        return null;
+      };
+      // The closest appreciable cell gets first chance, but every bolt is
+      // still inside the moving bank. A ring scan backs up the random search.
+      for (let i = 0; i < 48; i++) {
+        const s = candidate(rand(0, 2 * Math.PI), 1400 + 9000 * Math.random() ** 2);
+        if (s) return s;
+      }
+      for (const d of [1900, 3000, 4700, 6900, 9900]) {
+        for (let i = 0; i < 16; i++) {
+          const s = candidate(i * Math.PI / 8, d);
+          if (s) return s;
+        }
       }
       return null;
     }
     function thunder(storm, t) {
-      const s = strike(storm, t); if (!s) return;
-      const synth = synthThunder(context, s, storm.cloudY + rand(-300, 300), engine.ear, engine.absorption);
-      const pos = {x: s.x, y: (s.y + storm.cloudY) / 2, z: s.z};
-      engine.play(synth.buffer, pos, {gain: .9, ref: 900, reach: 30000, wet: .9, occlude: false});
-      // Recorded rumble tail adds the cloud-to-cloud body the channel model lacks.
-      // Close strikes also carry a recorded crack for the near-field tearing sound.
+      const s = strike(storm, t); if (!s) return null;
+      const cloudY = storm.cloudY + rand(-165, 235);
+      const synth = synthThunder(context, s, cloudY, engine.ear, engine.absorption);
+      const pos = {x: s.x, y: (s.y + cloudY) / 2, z: s.z};
+      // The channel buffer is timed from its first pressure arrival; adding
+      // a propagating point-source delay here would count the distance twice.
+      const when = synth.nearest / 343;
+      const play = (buffer, position, opts) => {
+        if (!buffer) return;
+        const source = engine.play(buffer, position, {reach: 24000, occlude: false,
+          doppler: false, masking: .20, ...opts});
+        if (source) state.thunder.add(source);
+      };
       const near = buffers.get('scape-crater-thunder-near');
-      if (near && synth.nearest < 3500) engine.play(near, {x: s.x, y: s.y + 300, z: s.z}, {gain: .55, ref: 600, reach: 30000, wet: .8, occlude: false});
       const far = buffers.get('scape-crater-thunder-far');
-      if (far && Math.random() < .55) engine.play(far, pos, {gain: .45, ref: 1500, reach: 30000, wet: 1, occlude: false, when: rand(.6, 2.2)});
-      window.dispatchEvent(new CustomEvent('aerie-lightning', {detail: {x: s.x, z: s.z, cloudY: storm.cloudY, distance: synth.nearest}}));
+      const close = synth.nearest < 3600;
+      const recording = close ? near || far : far || near;
+      play(synth.buffer, pos, {gain: recording ? .62 : .98, ref: 2100, wet: .67, when, label: 'thunder-channel'});
+      // Layer one corresponding recording so the transient rolls and breaks
+      // up naturally; the simulated channel can stand alone if it is absent.
+      if (recording === near && near) {
+        play(near, pos, {gain: .82, ref: 1580, wet: .68, when, offset: .32, label: 'thunder-crack'});
+      } else if (far) {
+        play(far, pos, {gain: .82, ref: 2450, wet: .78, when: when + .45, label: 'thunder-rumble'});
+      }
+      window.dispatchEvent(new CustomEvent('aerie-lightning', {detail: {x: s.x, y: s.y, z: s.z, cloudY, distance: synth.nearest, delay: when}}));
+      return when;
     }
     const weatherSample = {};
     let listenerWeather = null, sampledField = null, lastWeatherTime = -Infinity;
@@ -1008,30 +1113,50 @@
           .filter(o => o.d < fallsSpec.reach);
         const keep = new Set(ranked.map(o => o.i));
         for (const [i, src] of state.falls) if (!keep.has(i)) { src.stop(1.5); state.falls.delete(i); }
-        for (const {p, i} of ranked) if (!state.falls.has(i)) {
+        for (const {p, i} of ranked) {
+          const take = spec.fallTakes?.find(o => o.where.test(p.name || ''));
+          const clip = (take && buffers.get(take.clip)) || fallsClip;
+          const current = state.falls.get(i);
+          if (current) { current.replaceBuffer(clip); continue; }
           const y = (p.y ?? ground(world, p.x, p.z)) + Math.min(14, 3 + .2 * (p.drop || 20));
           const size = clamp(.55 + (p.drop || 40) / 160 + (p.width || 10) / 80, .5, 1.25);
-          state.falls.set(i, engine.loop(fallsClip, {x: p.x, y, z: p.z}, {label: 'falls', gain: fallsSpec.gain * size, ref: fallsSpec.ref * size, reach: fallsSpec.reach, wet: .6, echo: true, rate: clamp(1.08 - (p.drop || 40) / 900, .9, 1.08)}));
+          state.falls.set(i, engine.loop(clip, {x: p.x, y, z: p.z}, {label: 'falls', switchable: true, gain: fallsSpec.gain * size, ref: fallsSpec.ref * size, reach: fallsSpec.reach, wet: .6, echo: true, rate: clamp(1.08 - (p.drop || 40) / 900, .9, 1.08)}));
         }
       }
-      // Rivers, streams and rocky shores: three emitters on the nearest water.
+      // Rivers, streams and rocky shores: spread the sound along the water.
       [...(spec.water || []), ...extraWater].forEach((w, k) => {
-        const b = clipOf(w) || (w.kind === 'river' ? fallback.river : w.kind === 'shore' ? fallback.shore : null); if (!b) return;
+        const b = (w.select && buffers.get(w.select(ctx))) || clipOf(w) || (w.kind === 'river' ? fallback.river : w.kind === 'shore' ? fallback.shore : null); if (!b) return;
         let entry = state.water[k];
         if (!entry) entry = state.water[k] = {emitters: []};
-        // Lapping belongs on the nearest shoreline, never under the bird mid-lake.
-        let p = w.kind === 'shore' && ctx.shore ? {x: ctx.shore.x, z: ctx.shore.z, d: Math.hypot(ctx.shore.x - ear.x, ctx.shore.z - ear.z)} : nearestWater(world, ear.x, ear.z, w.maxR);
-        if (p && p.d > w.maxR) p = null;
-        if (!p) { entry.emitters.forEach(e => e.stop(1.2)); entry.emitters = []; return; }
-        const pts = [p, ...waterReach(world, p, w.span || 100)];
-        while (entry.emitters.length < pts.length) entry.emitters.push(engine.loop(b, {x: p.x, y: 0, z: p.z}, {gain: w.gain, ref: w.ref, reach: w.reach, spread: w.kind === 'river' ? 'line' : 'point', wet: .45}));
-        entry.emitters.forEach((e, i) => {
-          const q = pts[i] || p, gy = waterLevel(world);
+        const emitters = entry.emitters;
+        const river = w.kind === 'river' ? world.riverSurfaceAt : null;
+        const withinRiver = river ? (x, z) => Number.isFinite(river(x, z)) : undefined;
+        const p = w.kind === 'shore'
+          ? ctx.shore || nearestWaterline(world, ear.x, ear.z, w.maxR)
+          : nearestWater(world, ear.x, ear.z, w.maxR, withinRiver);
+        if (!p || Math.hypot(p.x - ear.x, p.z - ear.z) > w.maxR) {
+          emitters.forEach(e => e.stop(1.2)); emitters.length = 0; return;
+        }
+        const pts = [p, ...waterReach(world, p, w.span || 100, withinRiver)];
+        const waterY = waterLevel(world);
+        const yAt = (x, z) => {
+          const level = river ? river(x, z) : w.kind === 'shore' ? waterY : null;
+          return (Number.isFinite(level) ? level : ground(world, x, z)) + .5;
+        };
+        pts.forEach((q, i) => {
+          const gain = w.gain * (i === 0 ? 1 : .7);
+          const e = emitters[i];
+          if (!e) {
+            emitters[i] = engine.loop(b, {x: q.x, y: yAt(q.x, q.z), z: q.z}, {label: w.kind, switchable: true, gain, ref: w.ref, reach: w.reach, spread: w.kind === 'river' ? 'line' : 'point', wet: .45});
+            return;
+          }
+          e.replaceBuffer(b);
           // Emitters glide along the water instead of jumping.
-          e.x += (q.x - e.x) * (e.y === 0 ? 1 : .35); e.z += (q.z - e.z) * (e.y === 0 ? 1 : .35);
-          e.y = (w.kind === 'river' ? ground(world, e.x, e.z) : (gy ?? ground(world, e.x, e.z))) + .5;
-          e.gain = w.gain * (i === 0 ? 1 : .7);
+          e.x += (q.x - e.x) * .35; e.z += (q.z - e.z) * .35;
+          e.y = yAt(e.x, e.z); e.gain = gain;
         });
+        // At a narrow stretch keep the spare sources quiet, ready to follow the next bend.
+        for (let i = pts.length; i < emitters.length; i++) emitters[i].gain = 0;
       });
       // Fixed loops at modeled structures (the Surry dam outlet).
       (spec.loops || []).forEach((l, k) => {
@@ -1039,8 +1164,10 @@
         let entry = state.loops[k];
         if (!entry) { const pos = l.where({...ctx}); if (!pos) return; entry = state.loops[k] = {pos}; }
         const d = Math.hypot(entry.pos.x - ear.x, entry.pos.z - ear.z);
-        if (d < l.reach && !entry.source) entry.source = engine.loop(b, entry.pos, {label: l.clip, gain: l.gain, ref: l.ref, reach: l.reach, wet: .5});
-        else if (d > l.reach * 1.1 && entry.source) { entry.source.stop(1); entry.source = null; }
+        const gain = l.gain * (l.level?.(ctx) ?? 1);
+        if (d < l.reach && gain > .02 && !entry.source) entry.source = engine.loop(b, entry.pos, {label: l.clip, gain, ref: l.ref, reach: l.reach, wet: .5});
+        else if (entry.source && d > l.reach * 1.1) { entry.source.stop(1); entry.source = null; }
+        else if (entry.source) entry.source.gain = gain;
       });
       // Insect choruses seeded in habitat around the eagle.
       const daylight = clamp(((world.sunDirection?.y ?? .4) - .05) / .2, 0, 1);
@@ -1066,22 +1193,25 @@
       });
       // Rain at the eagle: recorded rain plus synthesised near drops on the surface below.
       const rain = ctx.rain ?? window.aerieRainAt(world, region, ear.x, ear.z, t);
-      // A flight can begin under the storm, before the recording has decoded:
-      // start the bed again with it once it is there.
-      if (state.rain && !state.rain.real && buffers.get('rain-steady')) { state.rain.emitters.forEach(e => e.stop(1.2)); state.rain = null; }
-      if (rain > .01 && !state.rain) {
-        const below = isWet(world, ear.x, ear.z) ? 'water' : (world.habitat?.nearestTree?.(ear.x, ear.z, 25) ? 'leaves' : 'rock');
-        const rec = buffers.get('scape-' + region + (below === 'water' ? '-rain-on-lake' : '-rain-on-spruce')) || buffers.get('scape-' + region + '-rain-approach');
-        const emitters = [];
-        // A recording of a woodland downpour carries the body of the rain; the
-        // synthesised texture only stands in until it has loaded.
-        const tex = buffers.get('rain-steady') || rainTexture(below, region === 'crater' ? 900 : 420);
-        for (let i = 0; i < 4; i++) {
-          const opt = {gain: 0, ref: 18, spread: 'none', occlude: false, doppler: false, wet: .2, offset: i * .9};
-          const e = engine.loop(i % 2 && rec ? rec : tex, {x: ear.x, y: ear.y, z: ear.z}, opt);
-          e.angle = i * Math.PI / 2 + Math.PI / 4; e.height = i % 2 ? -12 : -4; emitters.push(e);
+      if (rain > .01 || (state.rain && rain >= .005)) {
+        const below = ctx.overWater ? 'water' : (world.habitat?.nearestTree?.(ear.x, ear.z, 25) ? 'leaves' : 'rock');
+        const surfaceClip = below === 'water' ? 'rain-on-lake' : below === 'leaves' ? 'rain-on-spruce' : 'rain-on-rock';
+        const texture = buffers.get('scape-' + region + '-' + surfaceClip) || rainTexture(below, region === 'crater' ? 900 : 420);
+        // Distant rainfall keeps its character while the close impacts follow the surface below.
+        const localRain = below === 'leaves' && agl < 30 ? buffers.get(spec.rainAmbience) : null;
+        const diffuse = localRain || buffers.get('scape-' + region + '-rain-approach') || (spec.storm && buffers.get('rain-steady')) || texture;
+        if (!state.rain) {
+          const emitters = [];
+          for (let i = 0; i < 4; i++) {
+            const opt = {gain: 0, label: i % 2 ? 'rain surface' : 'rain ambience', switchable: true, ref: 18, spread: 'none', occlude: false, doppler: false, wet: .2, offset: i * .49};
+            const e = engine.loop(i % 2 ? texture : diffuse, ear, opt);
+            e.angle = i * Math.PI / 2 + Math.PI / 4; e.height = i % 2 ? -12 : -4; emitters.push(e);
+          }
+          state.rain = {emitters};
+        } else {
+          state.rain.emitters.forEach((e, i) => e.replaceBuffer(i % 2 ? texture : diffuse));
         }
-        state.rain = {emitters, real: !!buffers.get('rain-steady')};
+        state.rain.emitters.forEach((e, i) => { e.mix = i % 2 ? 1 - .75 * smooth(30, 260, agl) : 1; });
       }
       if (state.rain && rain > .2 && eagleEars) {      // synthesised drops on the eagle: Eagle Ears only
         ticks = ticks || synthTicks(context);
@@ -1097,9 +1227,12 @@
         else placeBed(state.rain, clamp(rain * 1.4, 0, 1.2) * (1 - .55 * smooth(80, 600, agl)), now);
       }
       // Thunder from the real storm bank (Crater Lake).
-      if (spec.storm && now >= thunderDue) {
-        thunderDue = now + rand(14, 42);
-        if (enabled) thunder(spec.storm, t);
+      if (spec.storm) {
+        for (const source of state.thunder) if (!source.alive) state.thunder.delete(source);
+        if (now >= thunderDue) {
+          const delay = thunder(spec.storm, t);
+          thunderDue = now + (delay === null ? rand(3, 7) : delay + rand(28, 48));
+        }
       }
       tickEvents(now);
     }
@@ -1110,23 +1243,24 @@
     // and a new singer is one of the nearest. No post inside its hush radius
     // is used.
     function stablePost(e, index, hush) {
-      const ear = engine.ear, ix0 = Math.floor(ear.x / POST_CELL), iz0 = Math.floor(ear.z / POST_CELL), near = [];
-      const singer = state.singers.get(index);
-      for (let ix = ix0 - 2; ix <= ix0 + 2; ix++) for (let iz = iz0 - 2; iz <= iz0 + 2; iz++) {
+      const ear = engine.ear, cell = e.cell || POST_CELL, ix0 = Math.floor(ear.x / cell), iz0 = Math.floor(ear.z / cell), near = [];
+      const singer = state.singers.get(index), ring = e.cell ? 1 : 2;
+      for (let ix = ix0 - ring; ix <= ix0 + ring; ix++) for (let iz = iz0 - ring; iz <= iz0 + ring; iz++) {
         const key = index + ':' + ix + ':' + iz;
         let post = state.posts.get(key);
         if (post === undefined) {
           if (state.posts.size > 1500) state.posts.clear();
-          post = postFor(e.where, index, ix, iz, ctx) || null;
+          post = postFor(e.where, index, ix, iz, ctx, cell) || null;
           if (post) post.key = key;
           state.posts.set(key, post);
         }
         if (!post) continue;
         const d = Math.hypot(post.x - ear.x, post.y - ear.y, post.z - ear.z);
-        if (d > hush && d < e.reach * (singer?.key === key ? 1 : .9)) near.push({post, d});
+        if (d > hush && d < (e.nearest ?? e.reach * (singer?.key === key ? 1 : .9))) near.push({post, d});
       }
       if (!near.length) return null;
       near.sort((a, b) => a.d - b.d);
+      if (e.nearest) return near[0].post;
       const going = singer && singer.left > 0 && near.find(n => n.post.key === singer.key);
       if (going && Math.random() < .8) { singer.left--; return going.post; }
       const u = Math.random(), chosen = near[Math.min(near.length - 1, u < .6 ? 0 : u < .85 ? 1 : 2)];
@@ -1134,42 +1268,52 @@
       if (!going) state.singers.set(index, {key: chosen.post.key, left: 3 + Math.floor(Math.random() * 5)});
       return chosen.post;
     }
+    let nextRegional = Infinity, regionalCall = null;
+    const regionalHistory = new Map(), lastRegional = new Map();
+    function regionalWildlife(now) {
+      if (!banks.length) return;
+      const ear = engine.ear;
+      if (regionalCall) {
+        const {bank, id, where, until} = regionalCall;
+        const gap = Math.hypot(where.x - ear.x, where.y - ear.y, where.z - ear.z);
+        if (now > until || gap < bank.hush || gap > bank.reach) regionalCall = null;
+        else if (buffers.has(id)) {
+          const b = buffers.get(id); regionalCall = null;
+          if (b) {
+            const source = engine.play(b, where, {label: id, id: bank.name + ' post ' + where.key,
+              gain: bank.gain ?? .48, ref: bank.ref, reach: bank.reach, wet: .4, masking: .68});
+            quiet(source, bank.hush);
+          }
+        }
+      }
+      if (regionalCall || now < nextRegional) return;
+      nextRegional = now + rand(8, 16);
+      if (ctx.agl > 340 || (ctx.rain ?? 0) > .58) return;
+      const night = region === 'acadia' || (world.sunDirection?.y ?? .4) < -.025;
+      const start = Math.floor(Math.random() * banks.length);
+      for (let i = 0; i < banks.length; i++) {
+        const k = (start + i) % banks.length, bank = banks[k];
+        if (bank.period !== 'any' && (bank.period === 'night') !== night) continue;
+        if (now - (lastRegional.get(k) ?? -Infinity) < (bank.rest ?? 48)) continue;
+        const where = stablePost(bank, k + 1000, bank.hush);
+        if (!where) continue;
+        let history = regionalHistory.get(k);
+        if (!history?.size) { history = new Set(bank.clips); regionalHistory.set(k, history); }
+        const id = pick([...history]); history.delete(id); lastRegional.set(k, now);
+        regionalCall = {bank, id, where, until: now + 5};
+        regionalBuffer(id);
+        return;
+      }
+    }
     function tickEvents(now) {
       const ear = engine.ear;
       // A songbird or frog stops mid-phrase if the eagle closes within its hush radius.
       for (const v of state.voices) {
         const s0 = v.source;
-        if (!s0.alive || now > (s0.endsAt ?? 0)) { state.voices.delete(v); continue; }
-        if (Math.hypot(s0.x - ear.x, s0.y - ear.y, s0.z - ear.z) < v.hush) { s0.stop(.35); state.voices.delete(v); }
+        if (!s0.alive) { state.voices.delete(v); continue; }
+        if (v.hush > 0 && Math.hypot(s0.x - ear.x, s0.y - ear.y, s0.z - ear.z) < v.hush) { s0.stop(.35); state.voices.delete(v); }
       }
-      // The licensed ground recording is a heavy animal walking through
-      // dry foliage. Stop it at the bank as well as when the animal is still.
-      // A deer steps through the same litter: lighter, quicker and heard
-      // from less far.
-      const walkers = [];
-      for (const a of world.wildlife?.land?.drawn || []) {
-        const deer = /deer/.test(a.id || '');
-        if ((a.id !== 'moose' && !deer) || !(a.speed > .22)) continue;
-        const d = Math.hypot(a.x - ear.x, a.y - ear.y, a.z - ear.z);
-        if (d < (deer ? 130 : 190) && !isWet(world, a.x, a.z)) walkers.push({a, d, deer});
-      }
-      walkers.sort((p, q) => p.d - q.d); walkers.length = Math.min(walkers.length, 3);
-      for (const [a, src] of state.steps) if (!walkers.some(w => w.a === a)) { src.stop(.8); state.steps.delete(a); }
-      for (const {a, deer} of walkers) {
-        let src = state.steps.get(a);
-        if (!src) {
-          const id = 'move-moose';
-          if (!buffers.has(id) && !loading.has(id)) load(id);
-          const b = buffers.get(id);
-          if (!b) continue;
-          src = engine.loop(b, {x: a.x, y: a.feetY ?? a.y, z: a.z}, {label: deer ? 'move-deer' : id, follows: true, gain: 0, ref: deer ? 6 : 9, reach: deer ? 130 : 190, wet: .3, shuffle: false});
-          if (!src) continue;
-          state.steps.set(a, src);
-        }
-        src.x = a.x; src.y = a.feetY ?? a.y; src.z = a.z;
-        src.gain = (deer ? .45 : .8) * clamp((a.speed - .15) / .45, 0, 1.3);
-        src.source?.playbackRate.setTargetAtTime(clamp(.86 + .24 * a.speed, .9, 1.45) * (deer ? 1.25 : 1), now, .3);
-      }
+      regionalWildlife(now);
       // Moving sources follow their paths.
       for (const m of state.movers) {
         const p = m.path, u = clamp((now - m.start) * p.speed / Math.hypot(p.bx - p.ax, p.bz - p.az), 0, 1);
@@ -1180,28 +1324,35 @@
       }
       (spec.events || []).forEach((e, i) => {
         if (now < (state.due.get(i) ?? Infinity)) return;
-        state.due.set(i, now + rand(e.every[0], e.every[1]));
-        if (e.when && !e.when(ctx)) return;
+        state.due.set(i, now + rand(...e.every));
         const clip = Array.isArray(e.clip) ? pick(e.clip.filter(id => buffers.get(id))) : e.clip;
-        const b = clip && buffers.get(clip); if (!b) return;
+        const isWildlife = !e.repeat && !/calving|rockfall|church-bell/.test(clip || '');
+        const retry = () => {
+          const wait = e.retry || (isWildlife && e.every[0] < 90 ? [5, 10] : null);
+          if (wait) state.due.set(i, now + rand(...wait));
+        };
+        if (e.when && !e.when(ctx)) { retry(); return; }
+        const b = clip && buffers.get(clip); if (!b) { if (loading.has(clip)) retry(); return; }
         const hush = hushRadius(clip);
-        const where = e.where.stable ? stablePost(e, i, hush) : e.where(ctx); if (!where) return;
+        const where = e.where.stable ? stablePost(e, i, hush) : e.where(ctx);
+        if (!where) { retry(); return; }
+        // Gusts still partly mask a call, and terrain and distance still apply.
+        const masking = e.masking ?? (isWildlife ? .62 : 1);
         if (where.path) {
           const p = where.path;
-          const src = engine.loop(b, {x: p.ax, y: p.y, z: p.az}, {gain: 0, ref: e.ref, reach: e.reach, wet: e.wet ?? .5});
-          state.movers.add({source: src, path: p, start: now, gain: e.gain});
+          const src = engine.loop(b, {x: p.ax, y: p.y, z: p.az}, {gain: 0, ref: e.ref, reach: e.reach,
+            wet: e.wet ?? .5, masking, label: clip});
+          if (src) state.movers.add({source: src, path: p, start: now, gain: e.gain});
         } else {
-          if (Math.hypot(where.x - ear.x, where.y - ear.y, where.z - ear.z) > e.reach) return;
-          const strikes = e.repeat ? Math.round(rand(e.repeat[0], e.repeat[1])) : 1;
+          if (Math.hypot(where.x - ear.x, where.y - ear.y, where.z - ear.z) > e.reach) { retry(); return; }
+          const strikes = e.repeat ? Math.round(rand(...e.repeat)) : 1;
           for (let k = 0; k < strikes; k++) {
-            // A voice that is heard again gives a different run of its calls, at a slightly different pitch.
             const part = e.repeat || e.whole ? null : engine.excerpt(b, Math.random, true);
-            // Less of the recording was heard, so the next bout comes sooner: the calls per minute stay as timed.
-            if (part) state.due.set(i, now + (state.due.get(i) - now) * clamp(part.duration / b.duration, .5, 1));
-            const source = engine.play(b, where, {gain: e.gain, ref: e.ref, reach: e.reach, wet: e.wet ?? .45, rate: e.repeat ? 1 : rand(.965, 1.035), when: k * (e.spacing || 0), echo: e.ref >= 20, label: clip,
+            const source = engine.play(b, where, {gain: e.gain, ref: e.ref, reach: e.reach, wet: e.wet ?? .45,
+              masking, rate: e.repeat ? 1 : rand(.965, 1.035), when: k * (e.spacing || 0), echo: e.echo ?? e.ref >= 20, label: clip,
               offset: part?.offset, duration: part?.duration,
               id: where.key ? clip + ' post ' + where.key.split(':').slice(1).join(',') : ''});
-            quiet(source, hush);
+            if (source) state.voices.add({source, hush});
           }
         }
       });

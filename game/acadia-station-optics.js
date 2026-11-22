@@ -69,9 +69,9 @@ window.acadiaIslandSurface=function acadiaIslandSurface(shader,localUV,sampler){
         substrate*=1.+closeGrain*mix((grass-.45)*.69,(mineral-1.)*.49,slab);
         substrate*=mix(1.,.66+.08*mineral,density);
         vec3 nightSky=vec3(.111,.143,.182)*(.70+.30*max(0.,normal.y))*landformHorizon.x;
-        vec3 westLight=vec3(.081,.096,.133)*max(0.,dot(normal,sun));
+        vec3 moonLight=vec3(.10,.13,.18)*max(0.,dot(normal,sun))*(1. /* direct terrain visibility */);
         float wet=mix(.49,1.,smoothstep(.5,3.9,wp.y));
-        vec3 localGround=pow(max(vec3(.014),substrate),vec3(2.2))*(nightSky+westLight)*wet;
+        vec3 localGround=pow(max(vec3(.014),substrate),vec3(2.2))*(nightSky+moonLight)*wet;
         c=mix(c,localGround,landformHorizon.w*(1.-.91*rockBlend));
       }
       float dep=1.-exp(`);

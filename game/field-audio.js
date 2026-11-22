@@ -3,26 +3,26 @@
   // The player travels with the same voice. Wild callers belong to their
   // destination and are emitted from a suitable place in the terrain.
   const scenes = {
-    alaska:{beds:{lake:'lapping-glacial',canopy:'leaves-boreal',ice:'ice',cascade:'falls-spray'},birds:['jay','thrush','ak-goose','ak-raven','ak-mallard','ak-dipper'],animals:['juneau-red-squirrel']},
-    swiss:{beds:{lake:'lapping-glacial',canopy:'leaves-alpine',cascade:'falls-spray'},birds:['chough','dunnock','ch-accentor','ch-wagtail','ch-raven','ch-mallard'],animals:['alpine-marmot']},
+    alaska:{beds:{lake:'lapping-glacial',ice:'ice',cascade:'falls-spray'},birds:['jay','ak-goose','ak-raven','ak-mallard','ak-dipper'],animals:['juneau-red-squirrel']},
+    swiss:{beds:{},birds:['chough','dunnock','ch-accentor','ch-wagtail','ch-raven','ch-mallard'],animals:['alpine-marmot']},
     canyon:{beds:{river:'stream-rock'},birds:['canyon-wren','poorwill','az-raven','az-peregrine','az-rock-wren','az-merganser'],animals:['canyon-treefrog']},
-    yosemite:{beds:{canopy:'leaves-montane',river:'stream-forest',cascade:'falls-spray'},birds:['nutcracker','thrush','jay','yo-chickadee','yo-dipper','yo-acorn'],animals:['douglas-squirrel']},
-    crater:{beds:{lake:'lapping-caldera',canopy:'leaves-montane',cascade:'stream-rock'},birds:['nutcracker','jay','cl-bluebird','cl-junco','cl-robin','cl-raven'],animals:['american-pika']},
-    lofoten:{beds:{inlet:'inlet',cascade:'stream-rock'},birds:['kittiwake','oystercatcher','meadow-pipit','no-eider','no-gull','no-tern'],animals:['norwegian-sheep']},
-    acadia:{beds:{},birds:['acadia-barred-owl','no-eider'],animals:['harbor-seal']},
-    dixville:{beds:{lake:'lapping-boreal',canopy:'leaves-hardwood',cascade:'stream-rock'},birds:['me-chickadee','me-kinglet','thrush','nh-kingfisher','nh-mallard','nh-vireo','ak-raven'],animals:['juneau-red-squirrel']},
-    labrador:{beds:{lake:'lapping-boreal',canopy:'leaves-boreal'},birds:['loon-moosehead','ne-goose','ak-raven','thrush','cl-junco'],animals:['juneau-red-squirrel']},
-    winnipesaukee:{beds:{lake:'lapping-islands',canopy:'leaves-hardwood',cascade:'stream-rock'},birds:['loon-winnipesaukee','nh-vireo','ne-goose','nh-mallard','me-black-duck','nh-heron','nh-kingfisher'],animals:['nh-bullfrog']},
-    surry:{beds:{lake:'lapping-reservoir',canopy:'leaves-hardwood',river:'stream-forest',cascade:'stream-rock'},birds:['nh-kingfisher','nh-vireo','ne-goose','nh-mallard','nh-heron','nh-wood-duck'],animals:['nh-spring-peeper']},
-    moosehead:{beds:{lake:'lapping-boreal',canopy:'leaves-boreal',cascade:'stream-rock'},birds:['loon-moosehead','me-kinglet','ne-goose','me-black-duck','nh-mallard','nh-kingfisher','me-chickadee'],animals:['maine-green-frog']}
+    yosemite:{beds:{},birds:['nutcracker','thrush','jay','yo-chickadee','yo-dipper','yo-acorn'],animals:['douglas-squirrel']},
+    crater:{beds:{lake:'lapping-caldera',canopy:'leaves-montane'},birds:['jay','cl-bluebird','cl-junco','cl-robin','cl-raven'],animals:['american-pika']},
+    lofoten:{beds:{inlet:'inlet'},birds:['kittiwake','oystercatcher','meadow-pipit','no-eider','no-tern'],animals:['norwegian-sheep']},
+    acadia:{beds:{},birds:['no-eider'],animals:['harbor-seal']},
+    dixville:{beds:{},birds:['me-chickadee','me-kinglet','thrush','nh-kingfisher','nh-mallard','nh-vireo','ak-raven'],animals:['juneau-red-squirrel']},
+    labrador:{beds:{canopy:'leaves-boreal'},birds:['ne-goose'],animals:['juneau-red-squirrel']},
+    winnipesaukee:{beds:{lake:'lapping-islands',canopy:'leaves-hardwood'},birds:['loon-winnipesaukee','nh-vireo','ne-goose','nh-mallard','me-black-duck','nh-heron','nh-kingfisher'],animals:['nh-bullfrog']},
+    surry:{beds:{lake:'lapping-reservoir',river:'stream-forest'},birds:['nh-kingfisher','nh-vireo','ne-goose','nh-mallard','nh-heron','nh-wood-duck'],animals:['nh-spring-peeper']},
+    moosehead:{beds:{lake:'lapping-boreal'},birds:['loon-moosehead','me-kinglet','ne-goose','me-black-duck','nh-mallard','nh-kingfisher','me-chickadee'],animals:['maine-green-frog']}
   };
   // Sound source, useful audible range in metres, and source gain.
   const birds={
     "ak-goose":["goose","grazing",370],
     "ne-goose":["goose","grazing",370],
-    "ak-mallard":["mallard","water",170],
-    "ch-mallard":["mallard","water",170],
-    "nh-mallard":["mallard","water",170],
+    "ak-mallard":["mallard","water",220],
+    "ch-mallard":["mallard","water",220],
+    "nh-mallard":["mallard","water",220],
     "ak-raven":["raven","rock",265],
     "ch-raven":["raven","rock",265],
     "az-raven":["raven","rock",265],
@@ -153,8 +153,9 @@
     'barred-owl':{idle:[72,210],night:Infinity},
     'harbor-seal':{}, // Hauled-out adults are silent on this late-summer flight.
     loon:{idle:[300,800],alarm:{chance:.7,clips:[1,1],gap:[4,9],bouts:3,rest:[60,240]}},
-    goose:{idle:[60,180],alarm:{chance:1,clips:[3,5],gap:[-3.4,-2.2],bouts:2,rest:[14,28],range:160}},
-    mallard:duck,'black-duck':duck,
+    goose:{idle:[50,145],alarm:{chance:1,clips:[3,5],gap:[-3.4,-2.2],bouts:2,rest:[14,28],range:195}},
+    mallard:{idle:[65,175],alarm:{chance:.85,clips:[1,2],gap:[1.5,4],bouts:1,rest:[30,60],range:125}},
+    'black-duck':duck,
     'wood-duck':{idle:[300,900],alarm:{chance:.85,clips:[1,2],gap:[1,3],bouts:1,rest:[30,60]}},
     merganser:{alarm:{chance:.4,clips:[1,1],gap:[2,4],bouts:1,rest:[60,120]}},
     eider:{idle:[90,240],alarm:{chance:.5,clips:[1,2],gap:[2,5],bouts:1,rest:[30,60]}},
@@ -206,6 +207,9 @@
     soaring:['eagle-alaska','eagle-peale-answer']
   };
   const playerCalls=Object.values(phrases).flat();
+  // Short, credited bald-eagle takes already shipped with the flight.
+  const manualCalls=['eagle-yellowstone','eagle-peale-short','eagle-lake-series'];
+  const isWaterfowl=id=>/-(goose|mallard)$/.test(id);
   // The eagle's bill follows each of its own calls: the loudness envelope of
   // the recording (60 frames a second, peak 1, noise floor gated) goes out
   // with an 'aerie-eagle-call' event when the phrase starts.
@@ -326,15 +330,19 @@
     const knee=window.aerieSoftKnee?.(context);
     if(knee)master.connect(knee.input);
     else master.connect(context.destination);
+    const environmentMix=context.createGain();
+    environmentMix.gain.value=1;
+    environmentMix.connect(master);
     const airBuffer=airStream(context),air=context.createGain(),shelf=context.createBiquadFilter();
     shelf.type='lowpass';shelf.frequency.value=600;air.gain.value=0;
-    shelf.connect(air).connect(master);let windSource=null;
+    shelf.connect(air).connect(environmentMix);let windSource=null;
     const forward=new THREE.Vector3(),up=new THREE.Vector3();
     const buffers=new Map(), loading=new Map(), loops=new Map(), shots=new Set();
     let enabled=false, generation=0, tick=0, started=false;
     // Regional 3D soundscape (soundscapes.js): created once the world exists.
     let scape=null,scapeExtras={},scapeBeds=new Set();
     let eagleDue=0, wildlifeUntil=0, idleTurn=0;
+    let manualDue=0, manualPending=false, lastManual='', playerShot=null;
     // Each kind of animal keeps its own time: when its next undisturbed bout is due.
     const idleIds=[...profile.birds,...profile.animals].filter(id=>species[id]&&(timingOf(id).idle||timingOf(id).alarm)),idleDue=new Map(),mammalDue=new Map();
     const between=([a,b])=>random(a,b);
@@ -368,7 +376,7 @@
       loading.set(id,task);
       return task;
     }
-    function channel(buffer,anchor){
+    function channel(buffer,anchor,bus=anchor?environmentMix:master){
       const source=context.createBufferSource(),gain=context.createGain();
       const pan=anchor?context.createPanner():context.createStereoPanner(),filter=context.createBiquadFilter();
       if(anchor){
@@ -377,8 +385,8 @@
       }
       filter.type='lowpass';filter.frequency.value=16000;
       source.buffer=buffer;
-      source.connect(filter).connect(pan).connect(gain).connect(master);
-      return {source,gain,pan,filter,anchor};
+      source.connect(filter).connect(pan).connect(gain).connect(bus);
+      return {source,gain,pan,filter,anchor,bus};
     }
     function release(c){
       c.source.disconnect();c.filter.disconnect();c.pan.disconnect();c.gain.disconnect();
@@ -386,7 +394,7 @@
     function startBed(id,buffer,token){
       if(!enabled||generation!==token||!buffer||loops.has(id))return;
       if(scape&&scape.adopt(id,buffer)){scapeBeds.add(id);return;}
-      const bed=channel(buffer);
+      const bed=channel(buffer,null,environmentMix);
       bed.source.loop=true;
       bed.gain.gain.value=0;
       bed.source.start(0,Math.random()*buffer.duration);
@@ -401,6 +409,9 @@
       master.gain.cancelScheduledValues(now);
       master.gain.setTargetAtTime(enabled?.86:0,now,.055);
       if(!enabled){
+        manualPending=false;manualDue=now;playerShot=null;
+        environmentMix.gain.cancelScheduledValues(now);
+        environmentMix.gain.setTargetAtTime(1,now,.055);
         if(windSource){windSource.stop(now+.32);windSource=null;}
         for(const bed of loops.values())bed.source.stop(now+.32);
         for(const shot of shots)shot.source.stop(now+.32);
@@ -418,7 +429,8 @@
       eagleDue=now+(started?random(14,24):random(3.9,5.4));
       // Every animal starts somewhere in its own cycle, so a flight does not open with a chorus.
       idleDue.clear();mammalDue.clear();alarms.clear();
-      for(const id of idleIds)idleDue.set(id,timingOf(id).idle?now+random(.04,1)*between(timingOf(id).idle):Infinity);
+      for(const id of idleIds)idleDue.set(id,timingOf(id).idle?
+        now+(isWaterfowl(id)?random(5,22):random(.04,1)*between(timingOf(id).idle)):Infinity);
       for(const id of localMammals)mammalDue.set(id,timingOf(id).idle?now+random(.1,1)*between(timingOf(id).idle):Infinity);
       wildlifeUntil=now;
       started=true;tick=0;
@@ -435,7 +447,9 @@
         // An animal that calls again gives a different run of its calls, at a slightly different pitch.
         // A mammal's single long call is never cut into; a bird's dense chatter can start anywhere.
         const part=scape.engine.excerpt?.(buffer,Math.random,!id.startsWith('land-'));
-        const s=scape.engine.play(buffer,{x:anchor.x,y:anchor.y,z:anchor.z},{label:id,id:who,follows:!!anchor.actor,gain:gain*1.1,ref:clamp(anchor.reach*.18,12,95),
+        const waterfowl=isWaterfowl(id), emphasis=waterfowl?(id.endsWith('-goose')?1.40:1.18):1;
+        const s=scape.engine.play(buffer,{x:anchor.x,y:anchor.y,z:anchor.z},{label:id,id:who,follows:!!anchor.actor,gain:gain*1.1*emphasis,
+          ref:clamp(anchor.reach*(waterfowl?.23:.18),12,95),masking:waterfowl?.78:1,
           reach:anchor.reach*1.3,wet:.42,echo:anchor.reach>=220,rate:random(.965,1.035),offset:part?.offset,duration:part?.duration});
         if(s&&anchor.actor)s.onUpdate=()=>{s.x=anchor.actor.x;s.y=anchor.actor.y;s.z=anchor.actor.z;};
         // A songbird or frog that is already singing stops if the eagle closes inside its hush radius.
@@ -448,8 +462,61 @@
       c.filter.frequency.value=cutoff;
       c.source.playbackRate.value=random(.982,1.015);
       shots.add(c);reflectCall(c,anchor);
-      c.source.onended=()=>{shots.delete(c);release(c);};
+      if(!anchor&&id.startsWith('eagle-'))playerShot=c;
+      c.source.onended=()=>{if(playerShot===c)playerShot=null;shots.delete(c);release(c);};
       c.source.start();return true;
+    }
+    function callEagle() {
+      const now=context.currentTime;
+      const running=()=>!context.state||context.state==='running';
+      if(!enabled||context.state==='closed'||now<manualDue||manualPending)return false;
+      if(!running()){
+        if(!context.resume)return false;
+        const token=generation, requestedAt=Date.now();
+        manualPending=true;
+        context.resume().then(()=>{
+          if(token!==generation)return;
+          manualPending=false;
+          if(running()&&Date.now()-requestedAt<=1100)callEagle();
+        }).catch(()=>{if(token===generation)manualPending=false;});
+        return true;
+      }
+      const play=()=>{
+        const choices=manualCalls.filter(id=>buffers.has(id));
+        if(!choices.length)return false;
+        const id=choices.find(id=>id!==lastManual)||choices[0], buffer=buffers.get(id), at=context.currentTime;
+        // The requested phrase takes priority over an automatic call, without a pop.
+        if(playerShot){
+          playerShot.gain.gain.setTargetAtTime(0,at,.009);
+          playerShot.source.stop(at+.045);
+        }
+        if(!voice(id,1.17,0,15500))return false;
+        const duration=buffer.duration/playerShot.source.playbackRate.value;
+        lastManual=id;
+        manualDue=at+Math.max(3.6,duration+.5);
+        pending=null;
+        quietUntil=Math.max(quietUntil,at+duration+.4);
+        wildlifeUntil=Math.max(wildlifeUntil,at+duration+.3);
+        eagleDue=Math.max(eagleDue,at+duration+8);
+        const gain=environmentMix.gain;
+        gain.cancelScheduledValues(at);
+        gain.setTargetAtTime(.68,at,.035);
+        gain.setTargetAtTime(1,at+duration,.14);
+        announceCall(id,buffer);
+        return true;
+      };
+      if(play())return true;
+      // The filter graph may be ready before the first decode. Do not let a slow
+      // load play a stale gesture after pause, mute, or a different flight.
+      const token=generation;
+      manualPending=true;
+      let awaiting=manualCalls.length;
+      for(const id of manualCalls)load(id).then(buffer=>{
+        if(token!==generation||!manualPending)return;
+        if(buffer&&enabled&&running()&&context.currentTime-now<=1.1&&play())manualPending=false;
+        else if(!--awaiting)manualPending=false;
+      });
+      return true;
     }
     function callWildlife(list,index,s,world,shore,waterY,agl){
       for(let n=0;n<list.length;n++){
@@ -484,7 +551,7 @@
         const lag=context.createDelay(2),muffle=context.createBiquadFilter(),pan=context.createStereoPanner(),send=context.createGain();
         lag.delayTime.value=delay;muffle.type='lowpass';muffle.frequency.value=7000/(1+path/360);
         pan.pan.value=clamp(wall.dx*(-forward.z)+wall.dz*forward.x,-1,1)*.92;send.gain.value=level;
-        c.source.connect(lag).connect(muffle).connect(pan).connect(send).connect(master);
+        c.source.connect(lag).connect(muffle).connect(pan).connect(send).connect(c.bus);
         const endAt=now+c.source.buffer.duration/c.source.playbackRate.value+delay+.12;
         returns.add({lag,muffle,pan,send,endAt});
       }
@@ -499,7 +566,7 @@
       if(!enabled||!s||!world)return;
       if(scape===null&&window.makeSoundscape){
         try{
-          scape=window.makeSoundscape(context,world,region,master);scape.setEnabled(true);window.aerieSoundscapeDebug=scape;
+          scape=window.makeSoundscape(context,world,region,environmentMix);scape.setEnabled(true);window.aerieSoundscapeDebug=scape;
           // Beds that started before the soundscape existed move into 3D now.
           for(const [id,c] of [...loops])if(scape.adopt(id,c.source.buffer)){c.source.stop();loops.delete(id);scapeBeds.add(id);}
         }catch(error){console.warn('Aerie soundscape unavailable',error);scape=false;}
@@ -712,6 +779,6 @@
         }
       }
     }
-    return {setEnabled,update,resetEncounters,output:master};
+    return {setEnabled,update,resetEncounters,callEagle,output:master};
   };
 })();

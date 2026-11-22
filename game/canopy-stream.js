@@ -525,6 +525,10 @@
       leafSeason:{value:surveyRegion==='dixville'?1:surveyRegion==='surry'?2:0},clock:{value:0},photo:{value:null},relief:{value:null},sunVector:{value:sun},sunlight:{value:sunlight},
       terrainIllumination:{value:world.sunMask||null},lightSpan:{value:world.forestLightSpan||8000},useSurveyLight:{value:world.sunMask?1:0},
       aerialTint:{value:scene.fog?.color.clone()||new T.Color(.6,.64,.68)},fogStrength:{value:scene.fog?.density?Math.min(.001,scene.fog.density*.65):.00029}};
+    const veteranAPI=window.aerieVeteranTrees;
+    const veteranDefinition=veteranAPI?.definitions[surveyRegion];
+    let veteranRoot=null,veteranSprite=null;
+    const veteranRiparian=veteranAPI?.makeRiparian?.(T,foliageGroup,shadowScene,world,photo,common,screenHash,shadowGLSL);
     const counters={region:surveyRegion,ready:false,error:null,activeTiles:0,surveyTiles:0,overviewCells:grid?.cells.size||0,indexCellSize:grid?.size||CELL,drawnCrowns:0,
       measuredCrowns:0,ordinaryCrowns:0,addedCrowns:0,species:{},sitkaReady:false,sitkaForms:{},regionalSheets:[],regionalForms:{},lod:[0,0,0],shadowDraws:0,lastBuildMs:0,cacheCells:0,indexedTrees:grid?trees.length:0,maskedMaterials:0};
     let stopped=false,offset=grid?trees.length:0,lastCheck=-Infinity,lastBuild=-Infinity,lastShadow=-Infinity,dirty=true,pendingAssets=false,assetRetry=0;
@@ -776,6 +780,23 @@
           regionalBatches.push(batch);
           for(const f of b.forms)groups[f.m*3+f.l]={batch,form:f,used:0};
         }
+        // Select a single existing native root, outside measured/perch corridors.
+        // An incomplete optional veteran leaves all existing scenery intact.
+        if(veteranDefinition&&!veteranRiparian){
+          try{
+            const model=[...modelSources].find(([,s])=>s.sheet===veteranDefinition.sheet&&s.cell===veteranDefinition.cell)?.[0];
+            const tree=model==null?null:veteranAPI.choose(world,profile,(x,z)=>inSurvey(surveyRegion,Math.floor(x/CELL),Math.floor(z/CELL)),T);
+            if(tree){
+              veteranRoot={tree,model};
+              veteranSprite=veteranAPI.makeSprite(T,foliageGroup,shadowScene,world,photo,common,screenHash,shadowGLSL);
+              counters.veteran={species:veteranDefinition.species,x:tree.x,y:tree.y,z:tree.z,height:tree.height,
+                sheet:modelSources.get(model).sheet,cell:modelSources.get(model).cell};
+            }else counters.veteran={species:veteranDefinition.species,reserved:veteranDefinition.reserve||'No suitable existing tree root or model'};
+          }catch(error){
+            counters.veteran={species:veteranDefinition.species,reserved:'Placement unavailable'};
+            console.warn('Veteran tree:',error.message||error);
+          }
+        }
         counters.regionalSheets=loadedRegional;
         counters.sitkaReady=!!sitka;installTags();owned.push(...allocated);dirty=true;counters.ready=true;counters.error=null;
       }catch(error){
@@ -807,7 +828,8 @@
       const seed=kind==='survey'?t.seed:rootSeed(t),isFir=t.conifer??(firs?firs.has(t):true);
       const s=profile.species(t,seed/4294967296,isFir);
       if(!s||!Array.isArray(s.tint)||!Array.isArray(s.shape))return null;
-      const h=t.height*(kind==='survey'?1:(s.stature||1));
+      const veteran=kind==='original'&&t===veteranRoot?.tree;
+      const h=t.height*(veteran||kind==='survey'?1:(s.stature||1));
       let y=t.y;
       if(kind==='survey'){
         const land=world.elevation(t.x,t.z);
@@ -828,7 +850,7 @@
       const cell=maine&&window.mooseheadSourceCell?window.mooseheadSourceCell(s.name,variation,t.height):variation>>>28;
       const mature=maine&&regionalSpecies.get('Mature Maine forest');
       const matureCell=mature?window.mooseheadMatureCanopy.cellFor(s.name,variation,t.height):-1;
-      const model=matureCell>=0?mature.base+matureCell:authored&&(!pilot||variation%13!==0)?authored.base+cell
+      const model=veteran?veteranRoot.model:matureCell>=0?mature.base+matureCell:authored&&(!pilot||variation%13!==0)?authored.base+cell
         :pilot?sitkaModel(seed,h):shrub?4:s.family==='needle'?1+((seed>>>8)%3):0;
       const env=new Uint8Array(45),phase=(seed%1039)*.0178;
       for(let ring=0;ring<5;ring++){
@@ -847,7 +869,8 @@
         leafTone=(variant+.12+.73*leafTone)/4;
       }
       const gain=t.photoGain||(.90+(seed%997)/997*.19);
-      return {id:(kind==='survey'?'s':'')+key(t.x,t.z),leafTone,x:t.x,y:y-Math.min(.16,h*.025),z:t.z,h,seed,model,env,kind,species:s.name||s.family,broad:s.family==='broad',
+      return {id:(kind==='survey'?'s':'')+key(t.x,t.z),leafTone,x:t.x,y:y-Math.min(.16,h*.025),z:t.z,h,seed,model,env,kind,veteran,
+        species:veteran?veteranDefinition.species:s.name||s.family,broad:s.family==='broad',
         color:s.tint.map((v,i)=>clamp(v*gain*(t.photoTint?.[i]??1),.25,2.4)),radius,shrub};
     }
     const obstacleSize=16;
@@ -981,14 +1004,19 @@
       const a=opacity*near,b=opacity*solid;
       if(a>.001)draw(t,0,record,0,a);
       if(b-a>.001)draw(t,1,record,a,b);
-      if(opacity-b>.001)draw(t,2,record,b,opacity);
+      if(opacity-b>.001){
+        const start=t.veteran&&veteranSprite?veteranSprite.draw(t,detailEye,b,opacity):b;
+        if(opacity-start>.001)draw(t,2,record,start,opacity);
+      }
     }
     // On a deliberate departure the previous camera view is already gone. Fill the
     // first visible neighborhood at its normal opacity, with a one-time work cap.
     let firstView=false;
     function prepareDeparture(){
-      firstView=!!(counters.ready&&offset===trees.length&&!stopped&&
-        (world.region==='moosehead'||world.region==='winnipesaukee'));
+      // Indexing gets its last bounded work slice in update(), before this
+      // frame is drawn. If the canopy is still unavailable, that very first
+      // frame consumes the fill; a later pack uses the ordinary opacity ramp.
+      firstView=!stopped&&(world.region==='moosehead'||world.region==='winnipesaukee');
     }
     function refresh(now,seconds,opening=false){
       const started=performance.now(),cx=Math.floor(eye.x/CELL),cz=Math.floor(eye.z/CELL),active=[],rows=[];
@@ -1050,6 +1078,7 @@
       const move=(value,target,step)=>value+clamp(target-value,-step,step);
       let measured=0,ordinary=0,added=0,drawn=0,animating=false;
       for(const g of groups)if(g)g.used=0;
+      veteranSprite?.reset();
       fineShoots?.begin(detailEye,detailCamera);
       maskBytes.fill(0);maskStart.value.set(Math.floor(eye.x/maskStep)*maskStep-maskWorld*.5,Math.floor(eye.z/maskStep)*maskStep-maskWorld*.5);
       for(const {t,d,old} of selected){
@@ -1132,6 +1161,11 @@
       detailCamera=camera;
       if(stopped||!Number.isFinite(position?.y))return;
       eye.copy(position);detailEye.copy(view||position);common.clock.value=seconds;
+      if(veteranRoot)veteranSprite?.prime(Math.hypot(eye.x-veteranRoot.tree.x,eye.z-veteranRoot.tree.z));
+      if(veteranRiparian){
+        veteranRiparian.update(detailEye,eye,seconds);
+        if(!counters.veteran)counters.veteran=veteranRiparian.stats();
+      }
       if(offset<trees.length)buildIndex();
       const now=performance.now();
       if(!counters.ready){if(!pendingAssets&&now>=assetRetry)assets();return;}
@@ -1203,7 +1237,7 @@
       stopped=true;if(idleIndex!=null)window.cancelIdleCallback?.(idleIndex);ab.abort();maskEnabled.value=shadows.regionalCanopyShadowOn.value=0;
       for(const [mat,hooks] of patched){mat.onBeforeCompile=hooks.old;mat.customProgramCacheKey=hooks.oldKey;mat.needsUpdate=true;}
       for(const batch of regionalBatches)batch.dispose();
-      fineShoots?.dispose();
+      fineShoots?.dispose();veteranSprite?.dispose();veteranRiparian?.dispose();
       for(const resource of owned)resource.dispose();
       patched.clear();photos.clear();index.clear();cells.clear();obstacles.clear();measurements.clear();lodState.clear();scene.remove(foliageGroup);
       foliageGroup.clear();shadowScene.clear();
