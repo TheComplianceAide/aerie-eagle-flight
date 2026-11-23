@@ -215,8 +215,8 @@
 
   const shareMessage = byId('share-message');
   const shareDialog = byId('share-dialog');
-  const shareIntro = 'Fly as an eagle in Aerie. Lake Winnipesaukee is free to explore.';
-  const claimStarter = 'Aerie offered me three additional worlds for sharing my experience. I’ve been flying over Lake Winnipesaukee in Aerie. [Add what your flight was like.]';
+  const shareIntro = 'Hey, I like this game. I hope you do too!';
+  const claimStarter = 'Aerie offered me three additional worlds for sharing my experience. I flew as an eagle over Lake Winnipesaukee.';
   const suggestedPost = byId('suggested-post');
   const nativeShare = byId('native-share');
   let sharingClaim = false;
@@ -225,7 +225,7 @@
     sharingClaim = isClaim;
     byId('share-title').textContent = isClaim ? 'Share a flight' : 'Tell a friend';
     byId('share-instructions').textContent = isClaim
-      ? 'After trying the game, add your experience and disclose the three-world reward in your public post.'
+      ? 'After flying Aerie, share your experience and mention the three-world reward.'
       : 'Send a friend a free flight at Lake Winnipesaukee.';
     byId('claim-details').hidden = !isClaim;
     suggestedPost.value = claimStarter + ' ' + canonicalUrl;
@@ -240,7 +240,7 @@
   }
 
   byId('copy-share').addEventListener('click', () => copy(canonicalUrl, shareMessage, 'Aerie link copied.'));
-  byId('copy-post').addEventListener('click', () => copy(suggestedPost.value, shareMessage, 'Post starter copied. Add your own flight experience before sharing.'));
+  byId('copy-post').addEventListener('click', () => copy(suggestedPost.value, shareMessage, 'Post copied.'));
   function shareAerie(isClaim) {
     return navigator.share({ title: 'Aerie · Take Flight', text: isClaim ? claimStarter : shareIntro, url: canonicalUrl });
   }

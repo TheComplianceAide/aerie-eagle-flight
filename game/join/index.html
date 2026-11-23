@@ -26,15 +26,15 @@
   <meta name="twitter:image" content="https://playaerie.com/join/media/share-card.jpg">
   <meta name="twitter:image:alt" content="An eagle above Mount Major and Lake Winnipesaukee in Aerie.">
   <link rel="preload" href="media/mount-major.webp" as="image">
-  <link rel="stylesheet" href="landing.css?v=world-previews">
-  <script defer src="landing.js?v=world-previews"></script>
+  <link rel="stylesheet" href="landing.css?v=grand-views">
+  <script defer src="landing.js?v=grand-views"></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
   <main id="main">
     <section class="hero" aria-labelledby="hero-title">
       <div class="hero-picture" aria-hidden="true">
-        <video id="mount-major-flight" muted playsinline loop preload="none" data-src="media/mount-major-loop.mp4"></video>
+        <video id="mount-major-flight" muted playsinline loop preload="none" data-src="media/mount-major-loop.mp4?v=chase"></video>
       </div>
       <header class="topbar frame">
         <a class="wordmark" href="./" aria-label="Aerie home">
@@ -234,7 +234,7 @@
   <dialog id="film-dialog" class="dialog film-dialog" aria-labelledby="film-title">
     <button class="dialog-close" type="button" data-close aria-label="Close gameplay video">×</button>
     <h2 id="film-title">Aerie gameplay</h2>
-    <video id="feature-film" playsinline controls preload="none" poster="media/hero.webp" data-src="media/flight.mp4"></video>
+    <video id="feature-film" playsinline controls preload="none" poster="media/hero.webp" data-src="media/flight.mp4?v=grand-views"></video>
   </dialog>
 
   <dialog id="share-dialog" class="dialog" aria-labelledby="share-title">
@@ -252,9 +252,9 @@
       <p class="form-status" id="share-message" role="status" aria-live="polite"></p>
     </div>
     <div id="claim-details" hidden>
-      <label for="suggested-post">Copy and add your own experience</label>
+      <label for="suggested-post">Suggested post</label>
       <textarea id="suggested-post" rows="3" readonly></textarea>
-      <button class="text-link" type="button" id="copy-post">Copy post starter</button>
+      <button class="text-link" type="button" id="copy-post">Copy post</button>
       <form id="claim-form" data-form="share-claim">
         <fieldset disabled>
           <label for="claim-email">Email for your unlock</label>
