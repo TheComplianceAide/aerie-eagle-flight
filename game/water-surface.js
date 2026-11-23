@@ -315,6 +315,7 @@
   window.attachLocalWaterReflection=(T,surface,surfacePlane)=>{
     const u=surface.material.uniforms;
     const image=new T.WebGLRenderTarget(512,256,{stencilBuffer:false});
+    surface.material.addEventListener('dispose',()=>image.dispose());
     const mirror=new T.PerspectiveCamera(),projection=new T.Matrix4(),direction=new T.Vector3(),target=new T.Vector3();
     const lastEye=new T.Vector3(Infinity,0,0),lastDirection=new T.Vector3(),normal=new T.Vector3(),centre=new T.Vector3();
     const plane=new T.Plane(),clip=new T.Vector4(),corner=new T.Vector4();

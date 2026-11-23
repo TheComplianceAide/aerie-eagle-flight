@@ -16,6 +16,9 @@ expose('soundscapes.js'); expose('perch-acoustics.js'); expose('game-ranges.js')
 expose('yellowstone-audio.js', 'window.thermalLocations = fixed;');
 const thermalRecordings = JSON.parse(fs.readFileSync(path.join(dir, 'yellowstone-data/recordings.json')));
 const thermalLandmarks = JSON.parse(fs.readFileSync(path.join(dir, 'yellowstone-data/terrain.json'))).landmarks;
+const parkTakes = context.window.aerieYellowstoneRecordingIds;
+assert.deepEqual(Object.keys(thermalRecordings).sort(), Array.from(parkTakes).sort(), 'Yellowstone credits match the sounds the world can play');
+assert.ok(new Set(Object.values(thermalRecordings).map(take => take.recording)).size >= 35, 'Yellowstone has at least 35 distinct field originals');
 for (const [id, landmark] of context.window.thermalLocations) {
   assert.ok(thermalRecordings[id] && thermalLandmarks[landmark], `Yellowstone fixed emitter ${id} has a recording and surveyed anchor`);
 }
@@ -64,7 +67,13 @@ for (const [region, profile] of Object.entries(scenes)) {
       add(id + '.m4a', 'wildlife');
     }
   }
-  if (region === 'yellowstone') for (const id of Object.keys(thermalRecordings)) add(`yellowstone-data/${id}.m4a`, 'habitat');
+  if (region === 'yellowstone') {
+    const wildlife = new Set(context.window.aerieYellowstoneHabitatRecordings.flatMap(bank => bank.clips));
+    for (const id of parkTakes) {
+      const stem=`yellowstone-data/${id}`;
+      add(`${stem}.m4a`, wildlife.has(stem) ? 'wildlife' : 'habitat');
+    }
+  }
   if (!process.argv.includes('--counts-only')) {
     if (region !== 'yellowstone') {
       assert.ok(baseline[region], `${region} needs an audio inventory baseline`);
@@ -79,6 +88,7 @@ for (const [region, profile] of Object.entries(scenes)) {
     add(file, 'perch contact');
     assert.ok(fs.existsSync(path.join(dir, file)), `${region} is missing ${file}`);
   }
+  if (region === 'yellowstone') assert.ok(clips.size >= 56, 'Yellowstone matches the existing minimum audio inventory');
   report[region] = {baseline: baseline[region], total: clips.size, beforeNewWildlife, localizedWildlife, perchSounds: perchSounds.length, files: Object.fromEntries(clips)};
 }
 const reused = new Map();

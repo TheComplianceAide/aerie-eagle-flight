@@ -71,6 +71,38 @@
 
   function architecture(T,scene,meta,ground,loader) {
     const managedBins = new Map(), SIZE=40, index=(x,z)=> Math.floor(x/SIZE)+':'+Math.floor(z/SIZE);
+    const surfaces=new Map(), surfaceCell=8;
+    // Use the same top triangles for drawing and flight clearance. Keeping a
+    // local index avoids testing every roof on every physics tick.
+    function registerSurface(vertices, indices) {
+      for(let i=0;i<indices.length;i+=3){
+        const a=indices[i]*3,b=indices[i+1]*3,c=indices[i+2]*3;
+        const x=vertices[a],z=vertices[a+2],y=vertices[a+1];
+        const ux=vertices[b]-x,uz=vertices[b+2]-z,uy=vertices[b+1]-y;
+        const vx=vertices[c]-x,vz=vertices[c+2]-z,vy=vertices[c+1]-y;
+        const area=ux*vz-uz*vx;
+        if(Math.abs(area)<1e-6)continue;
+        const face={x,z,y,ux,uz,uy,vx,vz,vy,inv:1/area};
+        for(let column=Math.floor((x+Math.min(0,ux,vx))/surfaceCell);column<=Math.floor((x+Math.max(0,ux,vx))/surfaceCell);column++){
+          for(let row=Math.floor((z+Math.min(0,uz,vz))/surfaceCell);row<=Math.floor((z+Math.max(0,uz,vz))/surfaceCell);row++){
+            const key=column+':'+row;
+            if(!surfaces.has(key))surfaces.set(key,[]);
+            surfaces.get(key).push(face);
+          }
+        }
+      }
+    }
+    function clearance(x,z) {
+      const faces=surfaces.get(Math.floor(x/surfaceCell)+':'+Math.floor(z/surfaceCell));
+      if(!faces)return -Infinity;
+      let top=-Infinity;
+      for(const face of faces){
+        const dx=x-face.x,dz=z-face.z;
+        const u=(dx*face.vz-dz*face.vx)*face.inv,v=(face.ux*dz-face.uz*dx)*face.inv;
+        if(u>=-1e-6&&v>=-1e-6&&u+v<=1+1e-6)top=Math.max(top,face.y+u*face.uy+v*face.vy);
+      }
+      return top;
+    }
     function managedAt(x,z,reach) {
       for (let i=Math.floor((x-reach)/SIZE);i<=Math.floor((x+reach)/SIZE);i++) {
         for (let j=Math.floor((z-reach)/SIZE);j<=Math.floor((z+reach)/SIZE);j++) {
@@ -84,12 +116,16 @@
     wood.colorSpace=T.SRGBColorSpace;wood.wrapS=wood.wrapT=T.RepeatWrapping;wood.anisotropy=8;
     const roof=loader.load('acadia-egg-dormer.webp');
     roof.colorSpace=T.SRGBColorSpace;roof.wrapS=roof.wrapT=T.RepeatWrapping;roof.anisotropy=4;
+    const cedar=loader.load(asset('inn-cedar-shingles.webp'));
+    cedar.colorSpace=T.SRGBColorSpace;cedar.wrapS=cedar.wrapT=T.RepeatWrapping;cedar.anisotropy=8;
     const walls=new T.MeshStandardMaterial({map:wood,color:0x695147,roughness:.94,side:T.DoubleSide});
     const shingles=new T.MeshStandardMaterial({map:roof,color:0x74604c,roughness:.91,side:T.DoubleSide});
-    const dark=new T.MeshStandardMaterial({color:0x313238,roughness:.73,metalness:.08,side:T.DoubleSide});
+    const innShingles=new T.MeshStandardMaterial({map:cedar,color:0xbab2a1,roughness:.94,side:T.DoubleSide});
+    const dark=new T.MeshStandardMaterial({color:0x252d2c,roughness:.42,metalness:.13,side:T.DoubleSide});
+    const windows=[];
     let group=new T.Group();scene.add(group);
     group.name='Yellowstone · mapped timber buildings';
-    function roofAndWalls(poly,y,h,rise,inn) {
+    function roofAndWalls(poly,y,h,rise,inn,windowsOn=false,dormer=false) {
       let vertices=[], tex=[], triangles=[];
       const push=(x,y,z,u,v)=>{vertices.push(x,y,z);tex.push(u,v);};
       const cx=poly.reduce((s,v)=>s+v[0],0)/poly.length,cz=poly.reduce((s,v)=>s+v[1],0)/poly.length;
@@ -108,22 +144,21 @@
         const j=i*4;
         push(a,y,b,0,0);push(c,y,d,length*.32,0);push(c,eave,d,length*.32,h*.28);push(a,eave,b,0,h*.28);
         triangles.push(j,j+1,j+2,j,j+2,j+3);
-        if(inn&&length>7){
-          const frames=Math.floor(length/3.12);
-          for(let j=0;j<frames;j++){
-            const dx=(c-a)/length,dz=(d-b)/length;
-            const start=(j+.32)*length/frames;
-            const pane=new T.Mesh(new T.PlaneGeometry(1.37,1.22),dark);
-            pane.position.set(a+dx*start+.022*dz,y+2.1,b+dz*start-.022*dx);
-            pane.rotation.y=Math.atan2(-dz,dx);group.add(pane);
+        if(windowsOn&&length>(dormer?1.5:5.8)){
+          const frames=dormer?1:Math.max(1,Math.floor(length/3.12));
+          const dx=(c-a)/length,dz=(d-b)/length,yaw=Math.atan2(-dz,dx);
+          for(let j=0;j<frames;j++)for(const floor of dormer?[1.14]:h>7.5?[2.1,5.5]:[2.1]){
+            const start=(j+.5)*length/frames;
+            windows.push([a+dx*start+.04*dz,y+floor,b+dz*start-.04*dx,yaw,dormer?.95:1.37,dormer?.8:1.22]);
           }
         }
       }
-      function mesh(material,name){
+      function mesh(material,name,solid=false){
         const g=new T.BufferGeometry();
         g.setAttribute('position',new T.Float32BufferAttribute(vertices,3));
         g.setAttribute('uv',new T.Float32BufferAttribute(tex,2));g.setIndex(triangles);g.computeVertexNormals();
         const m=new T.Mesh(g, material);m.name=name;m.userData.terrainCaster=true;group.add(m);
+        if(solid)registerSurface(g.attributes.position.array,triangles);
         vertices=[];tex=[];triangles=[];
       }
       mesh(walls,'Yellowstone · timber façade');
@@ -131,7 +166,15 @@
       // along the actual ridge avoids filling concavities in the footprint.
       const outline=poly.map(([x,z])=>new T.Vector2(x,z));
       const faces=T.ShapeUtils.triangulateShape(outline,[]);
-      function roofY(x,z){return eave+rise*(1-clamp(Math.abs(offset([x,z]))/width,0,1));}
+      function roofY(x,z){
+        const sill=eave+rise*(1-clamp(Math.abs(offset([x,z]))/width,0,1));
+        if(!inn)return sill;
+        // The old house has a steep central roof and lower added wings.
+        const longitudinal=(x+582)*axis[0]+(z-52)*axis[1];
+        const lateral=(x+582)*axisN[0]+(z-52)*axisN[1];
+        const central=1-smooth(15,25,Math.abs(longitudinal));
+        return sill+central*Math.max(0,1-Math.abs(lateral)/32)*21;
+      }
       function roofTri(a,b,c,depth){
         if(depth){
           const mid=(u,v)=>[(u[0]+v[0])/2,(u[1]+v[1])/2];
@@ -146,11 +189,20 @@
         }
       }
       for(const [a,b,c] of faces)roofTri(poly[a],poly[b],poly[c],inn?4:2);
-      mesh(shingles,inn?'Old Faithful Inn · steep timber roof':'Yellowstone · shingled roof');
+      mesh(inn||dormer?innShingles:shingles,inn?'Old Faithful Inn · steep timber roof':'Yellowstone · shingled roof',true);
       if(inn){
+        for(const along of [-11,-3.7,3.7,11])for(const across of [-17,-9.9,9.9,17]){
+          const x=-582+axis[0]*along+axisN[0]*across,z=52+axis[1]*along+axisN[1]*across;
+          const outline=[[-1.18,-1.42],[1.18,-1.42],[1.18,1.42],[-1.18,1.42]]
+            .map(([u,v])=>[x+axis[0]*u+axisN[0]*v,z+axis[1]*u+axisN[1]*v]);
+          roofAndWalls(outline,roofY(x,z)-1.02,2.35,1.30,false,true,true);
+        }
         const stack=new T.Mesh(new T.BoxGeometry(2.5,9.5,2.1),new T.MeshStandardMaterial({color:0x696054,map:roof,roughness:1}));
-        stack.position.set(cx+axis[0]*7.1,eave+rise*.78,cz+axis[1]*7.1);
+        const chimneyX=-582+axis[0]*15.7,chimneyZ=52+axis[1]*15.7;
+        stack.position.set(chimneyX,roofY(chimneyX,chimneyZ)+1.7,chimneyZ);
         stack.userData.terrainCaster=true;group.add(stack);
+        const {x,y,z}=stack.position,top=y+4.75;
+        registerSurface([x-1.25,top,z-1.05,x+1.25,top,z-1.05,x-1.25,top,z+1.05,x+1.25,top,z+1.05],[0,1,2,1,3,2]);
       }
       managedAt(cx,cz,Math.max(5,width+.32*longest));
     }
@@ -161,7 +213,16 @@
       if(span<2.4||span>900)continue;
       const inn=/Old Faithful Inn/i.test(name);
       const y = Math.min(...poly.map(([x,z])=>ground(x,z)))-.25;
-      roofAndWalls(poly,y,inn?10:clamp(span*.14+1.8,2.7,11),inn?16:clamp(span*.07,1.15,4.5),inn);
+      roofAndWalls(poly,y,inn?8.9:clamp(span*.14+1.8,2.7,11),inn?6.8:clamp(span*.07,1.15,4.5),inn,!!name);
+    }
+    if(windows.length){
+      const panes=new T.InstancedMesh(new T.PlaneGeometry(1,1),dark,windows.length);
+      const transform=new T.Object3D();
+      for(const [i,[x,y,z,yaw,w,h]] of windows.entries()){
+        transform.position.set(x,y,z);transform.rotation.y=yaw;transform.scale.set(w,h,1);
+        transform.updateMatrix();panes.setMatrixAt(i,transform.matrix);
+      }
+      panes.name='Yellowstone · timber building windows';group.add(panes);
     }
     const deckMat=new T.MeshStandardMaterial({map:wood,color:0xbfb29a,roughness:.99,side:T.DoubleSide});
     const walk=[], uv=[],tris=[];
@@ -192,16 +253,19 @@
       g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));g.setIndex(tris);g.computeVertexNormals();
       const mesh=new T.Mesh(g,deckMat);mesh.name='Yellowstone · mapped boardwalk timber';
       mesh.userData.terrainCaster=true;scene.add(mesh);
+      registerSurface(g.attributes.position.array,tris);
     }
-    return (x,z)=>{
+    function managed(x,z){
       for(const [a,b,r] of managedBins.get(index(x,z))||[])if((x-a)**2+(z-b)**2<r*r)return true;
       return false;
-    };
+    }
+    return {managed,clearance};
   }
 
   function condensate(T,scene,ground,info,sun,fog) {
     const mobile=window.matchMedia('(pointer: coarse)').matches;
     const clock={value:0};
+    const glory={value:1};
     const noise=`
       float h(vec3 a){a=fract(a*.1031);a+=dot(a,a.zyx+31.32);return fract((a.x+a.y)*a.z);}
       float noise(vec3 x){
@@ -223,7 +287,7 @@
       geometry.instanceCount=stamps;
       geometry.boundingSphere=new T.Sphere(new T.Vector3(x,y+17,z),sourceRadius+buoyancy*2+jet+46);
       const uniforms={
-        clock, sun:{value:sun}, fog:{value:fog}, wind:{value:new T.Vector2(1.6,.6)},
+        clock, glory, sun:{value:sun}, fog:{value:fog}, wind:{value:new T.Vector2(1.6,.6)},
         vent:{value:new T.Vector3(x,y,z)}, form:{value:new T.Vector4(sourceRadius,buoyancy,0,jet)},
         density:{value:sourceRadius>=10?.34:.43}
       };
@@ -231,7 +295,7 @@
         vertexShader:`
           attribute vec4 particle;
           uniform float clock;uniform vec3 vent;uniform vec2 wind;uniform vec4 form;
-          varying vec2 card;varying vec3 center;varying vec4 db;
+          varying vec2 card;varying vec3 center,steamPoint;varying vec4 db;
           void main(){
             float water=step(.72,particle.w)*step(.16,form.z);
             float life=mix(10.,20.,particle.z);
@@ -252,13 +316,18 @@
             vec2 uvPos=vec2(dot(position.xy,uvAngle),dot(position.xy,vec2(-uvAngle.y,uvAngle.x)));
             card=uvPos;
             vec3 world=center+(right*position.x+up*position.y*mix(.90,1.66,water))*size;
+            steamPoint=world;
             db=vec4(age,particle.y,water,length(cameraPosition-world));
             gl_Position=projectionMatrix*viewMatrix*vec4(world,1.);
           }`,
         fragmentShader:`
-          uniform float clock,density;uniform vec3 sun,fog;
-          varying vec2 card;varying vec3 center;varying vec4 db;
+          uniform float clock,density,glory;uniform vec3 sun,fog;
+          varying vec2 card;varying vec3 center,steamPoint;varying vec4 db;
           ${noise}
+          float ring(float angle,float radius,float width){
+            float offset=(angle-radius)/width;
+            return exp(-offset*offset);
+          }
           void main(){
             float w=db.z,edge=dot(card,card);
             if(edge>1.)discard;
@@ -272,6 +341,17 @@
             float rim=pow(max(0.,dot(-view,sun)),3.);
             float core=smoothstep(.23,.78,turbulence);
             vec3 color=mix(vec3(.57,.64,.68),vec3(1.1,1.03,.90),.47+.26*rim+.13*core);
+            // Backscatter is visible only in droplets along the antisolar
+            // sightline. It moves with the observer rather than the plume card.
+            float back=dot(normalize(cameraPosition-steamPoint),sun);
+            if(back>.959&&w<.5&&glory>.0){
+              float angle=degrees(acos(min(1.,back)));
+              vec3 ringLight=vec3(.12,.20,.39)*ring(angle,4.45,1.02)
+                +vec3(.11,.34,.16)*ring(angle,5.55,.81)
+                +vec3(.49,.18,.08)*ring(angle,6.82,1.15)
+                +vec3(.22,.16,.16)*ring(angle,10.4,1.16);
+              color+=ringLight*glory*(1.-smoothstep(150.,460.,db.w))*(.35+.65*core);
+            }
             color=mix(color,fog,1.-exp(-db.w*.000068));
             if(opacity<.014)discard;
             gl_FragColor=vec4(color,opacity);
@@ -293,6 +373,7 @@
     add('excelsior runoff',info.runoff,6,8,0,0,0);
     const sample={};
     return {
+      setGlory(enabled){glory.value=enabled?1:0;},
       cycle(name,t){
         const e=entries.find(v=>v.name===name);
         if(!e?.period)return {power:0,phase:0};
@@ -325,8 +406,8 @@
       const {min,max}=castle.range;
       pts['Castle Geyser']=[(min.x+max.x)*.5,(min.z+max.z)*.5];
     }
-    const managed=architecture(T,scene,meta,elevation,loader);
+    const buildings=architecture(T,scene,meta,elevation,loader);
     const steam=condensate(T,scene,elevation,pts,sun,fog);
-    return {managed,cycle:steam.cycle,update(_dt,t,player,wind){steam.update(t,player,wind);}};
+    return {...buildings,cycle:steam.cycle,setGlory:steam.setGlory,update(_dt,t,player,wind){steam.update(t,player,wind);}};
   };
 })();
