@@ -230,9 +230,9 @@
 
   const shareMessage = byId('share-message');
   const shareDialog = byId('share-dialog');
-  const shareIntro = 'Come fly with me in Aerie. Lake Winnipesaukee is free.';
+  const shareIntro = 'Hey, I like this game. I hope you do too!';
   const friendInvite = `${shareIntro} Aerie offers me five more worlds for sharing with five friends.`;
-  const claimStarter = 'Aerie offers me five additional worlds for sharing my experience.';
+  const claimStarter = `${shareIntro} Aerie offers me five additional worlds for sharing my experience.`;
   const suggestedPost = byId('suggested-post');
   const nativeShare = byId('native-share');
   const friendConfirm = byId('confirm-friend-share');
@@ -251,8 +251,13 @@
       (available && checkoutConfig.rewardWorlds.every(world => status?.worlds?.includes(world)));
     friendConfirm.hidden = earned;
     friendConfirm.disabled = !available || friendShareBusy;
-    byId('friend-play').hidden = !earned;
-    if (earned) friendShareStatus.textContent = 'Your five worlds are ready to fly.';
+    const play = byId('friend-play');
+    play.hidden = !earned;
+    if (earned) {
+      const flight = new URLSearchParams({ world: checkoutConfig?.rewardWorlds?.[0] || 'moosehead', launch: 'grand' });
+      play.href = `../?play=1#${flight}`;
+      friendShareStatus.textContent = 'Your five worlds are ready to fly.';
+    }
     else if (checkoutConfig === undefined) friendShareStatus.textContent = 'Checking unlock availability…';
     else if (!available) friendShareStatus.textContent = 'Friend unlocks are temporarily unavailable.';
   }
@@ -267,20 +272,32 @@
     byId('post-instructions').hidden = !isClaim;
     byId('claim-submission').hidden = !isClaim;
     byId('post-share-summary').textContent = isClaim ? 'Post publicly for review' : 'Share on social media';
-    suggestedPost.value = claimStarter + '\n' + canonicalUrl;
+    suggestedPost.value = withShareLink(claimStarter);
     shareMessage.textContent = '';
+    byId('copy-share').textContent = isClaim ? 'Copy invitation' : 'Copy link';
     nativeShare.hidden = typeof navigator.share !== 'function';
     byId('linkedin-share').href = 'https://www.linkedin.com/sharing/share-offsite/?' + new URLSearchParams({ url: canonicalUrl });
-    byId('x-share').href = 'https://twitter.com/intent/tweet?' + new URLSearchParams({
-      url: canonicalUrl,
-      text: isClaim ? claimStarter : shareIntro
-    });
+    updatePostLink();
     if (isClaim) updateFriendOffer();
     show(shareDialog);
   }
 
-  byId('copy-share').addEventListener('click', () => copy(canonicalUrl, shareMessage, 'Aerie link copied.'));
-  byId('copy-post').addEventListener('click', () => copy(suggestedPost.value, shareMessage, 'Disclosure copied.'));
+  function withShareLink(value) {
+    const text = value.trim();
+    return text.endsWith(canonicalUrl) ? text : `${text}\n${canonicalUrl}`;
+  }
+
+  function updatePostLink() {
+    const text = withShareLink(sharingClaim ? suggestedPost.value : shareIntro);
+    byId('x-share').href = 'https://twitter.com/intent/tweet?' + new URLSearchParams({ text });
+  }
+
+  suggestedPost.addEventListener('input', updatePostLink);
+  byId('copy-share').addEventListener('click', () => {
+    const value = sharingClaim ? withShareLink(friendInvite) : canonicalUrl;
+    copy(value, shareMessage, sharingClaim ? 'Invitation copied.' : 'Aerie link copied.');
+  });
+  byId('copy-post').addEventListener('click', () => copy(withShareLink(suggestedPost.value), shareMessage, 'Post copied.'));
   function shareAerie(isClaim) {
     return navigator.share({ title: 'Aerie · Take Flight', text: isClaim ? friendInvite : shareIntro, url: canonicalUrl });
   }
