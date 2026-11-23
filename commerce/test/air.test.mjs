@@ -10,6 +10,10 @@ const example = () => ({
   current: { time: '2026-11-23T09:00', temperature_2m: 8.1, relative_humidity_2m: 86, surface_pressure: 992.2, wind_speed_10m: 0.28 },
   hourly: { temperature_80m: [10.4], temperature_120m: [null], wind_speed_80m: [0.86], wind_speed_120m: [2.03] }
 });
+const sampleSnapshot = () => ({
+  version: 1, generatedAt: new Date(start).toISOString(),
+  regions: Object.fromEntries(allWorlds.map(world => [world, example()]))
+});
 function fixture(env = {}, upstream = () => Response.json(example())) {
   const config = configuration(env);
   const urls = [], errors = [];
@@ -25,6 +29,36 @@ function fixture(env = {}, upstream = () => Response.json(example())) {
   }, { error: value => errors.push(value) });
   return { urls, request, errors, at: minutes => { time = start + minutes * minute; } };
 }
+
+test('a prepared live snapshot supplies all worlds in one fetch and an invalid refresh retains the previous forecast', async () => {
+  let payload = sampleSnapshot();
+  const address = 'https://weather.aerie.example/snapshot.json';
+  const api = fixture({
+    AERIE_STRIPE_MODE: 'live', AERIE_ACOUSTIC_SNAPSHOT_URL: address,
+    AERIE_OPEN_METEO_API_KEY: secret
+  }, () => Response.json(payload));
+  const results = await Promise.all(allWorlds.map(world => api.request(world)));
+  assert.ok(results.every(reply => reply.status === 200));
+  assert.equal(api.urls.length, 1);
+  assert.equal(api.urls[0].href, address);
+  assert.deepEqual(results[0].jsonBody, example());
+  payload = sampleSnapshot();
+  payload.regions.yosemite.current.surface_pressure = null;
+  api.at(6);
+  assert.deepEqual((await api.request('yosemite')).jsonBody, example());
+  assert.equal(api.urls.length, 2);
+  api.at(120);
+  assert.equal((await api.request('yosemite')).status, 204);
+  assert.equal(api.urls.length, 3);
+});
+
+test('a snapshot URL with credentials or a free Open-Meteo host makes no upstream request', async () => {
+  for (const address of ['https://weather.aerie.example/snapshot.json?key=fixture', 'https://api.open-meteo.com/v1/forecast']) {
+    const api = fixture({ AERIE_STRIPE_MODE: 'live', AERIE_ACOUSTIC_SNAPSHOT_URL: address });
+    assert.equal((await api.request()).status, 204);
+    assert.equal(api.urls.length, 0);
+  }
+});
 
 test('all 13 Aerie regions use their actual coordinates, forecast fields, units and models', async () => {
   const regions = {
