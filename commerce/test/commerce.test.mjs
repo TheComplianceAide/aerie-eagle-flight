@@ -19,7 +19,7 @@ const root = configuration({
   AERIE_SHARE_CLAIMS_ENABLED: 'true', AERIE_SIGNUP_ENABLED: 'true', AERIE_CHECKOUT_ENABLED: 'true'
 });
 
-function fixture({ config = {}, purchaseEmailOperations, hasPreviewReward, previewCheckoutId, now = Date.now } = {}) {
+function fixture({ config = {}, noStripeKey = false, purchaseEmailOperations, hasPreviewReward, previewCheckoutId, now = Date.now } = {}) {
   const settings = { ...root, ...config };
   const rows = new Map();
   const checkouts = new Map();
@@ -83,7 +83,7 @@ function fixture({ config = {}, purchaseEmailOperations, hasPreviewReward, previ
     }}
   };
   const app = createCommerce(settings, {
-    store, stripe, purchaseEmailOperations, hasPreviewReward, previewCheckoutId, now,
+    store, stripe: noStripeKey ? null : stripe, purchaseEmailOperations, hasPreviewReward, previewCheckoutId, now,
     sendEmail: async (email, subject, content) => messages.push({ email, subject, ...content }),
     assetUrl: async (world, path) => `https://blob.example/private/${world}/${path}?fixture=read-only`
   });
@@ -100,8 +100,8 @@ function fixture({ config = {}, purchaseEmailOperations, hasPreviewReward, previ
     req.query = new URL(req.url).searchParams;
     return app.handle(route, req);
   };
-  async function dispatch(type, value, signatureValid = true) {
-    const payload = JSON.stringify({ type, data: { object: value }, livemode: settings.live, created: Math.floor(now() / 1000) });
+  async function dispatch(type, value, signatureValid = true, envelope = {}) {
+    const payload = JSON.stringify({ type, data: { object: value }, livemode: settings.live, created: Math.floor(now() / 1000), ...envelope });
     const webhook = stripe.webhooks.generateTestHeaderString({ payload, secret: signingSecret });
     return call('stripe/webhook', { body: payload, origin: null, webhook: signatureValid ? webhook : 'not-a-signature' });
   }
@@ -368,7 +368,7 @@ test('an open preview checkout returning after launch can exit to free play', as
   const [checkout] = preview.checkouts.values();
   const order = checkout.client_reference_id;
   const live = fixture({
-    config: { mode: 'live', live: true },
+    config: { mode: 'live', live: true }, noStripeKey: true,
     previewCheckoutId: async reference => preview.rows.get('pending:' + reference)?.checkoutId ?? null
   });
   const owner = await live.call('checkout/confirm', { body: { order }, cookie: asCookie(started.cookies[0]) });
@@ -1004,4 +1004,192 @@ test('five-friend confirmation unlocks five worlds on this browser and survives 
   const another = await restore('second@example.test');
   await call('share-friends', { body: { sharedWithFive: true }, cookie: another.cookie });
   assert.deepEqual((await call('status', { cookie: another.cookie })).jsonBody.worlds, worlds);
+});
+
+const paymentLinkSettings = {
+  mode: 'live', live: true, ticketPriceCents: 199, priceId: 'price_Aerie123',
+  paymentLinkId: 'plink_Aerie123', paymentLinkUrl: 'https://buy.stripe.com/Aerie123'
+};
+const liveLink = {
+  id: paymentLinkSettings.paymentLinkId, livemode: true, active: true, url: paymentLinkSettings.paymentLinkUrl,
+  currency: 'usd', automatic_tax: { enabled: true }, allow_promotion_codes: false,
+  after_completion: { type: 'redirect', redirect: { url: site + '/join/return/#session={CHECKOUT_SESSION_ID}' } }
+};
+const linkSession = {
+  id: 'cs_live_paymentLinkSession', livemode: true, payment_link: liveLink.id, mode: 'payment', status: 'complete',
+  payment_status: 'paid', amount_subtotal: 199, amount_total: 210, currency: 'usd',
+  automatic_tax: { status: 'complete' }, total_details: { amount_discount: 0 }, payment_intent: 'pi_AeriePaid',
+  customer_details: { email: 'link-buyer@example.test' }, presentment_details: { presentment_currency: 'cad', presentment_amount: 310 }
+};
+const linkFixture = (options = {}) => fixture({ noStripeKey: true, config: paymentLinkSettings, ...options });
+
+test('Dashboard link configuration requires an exact host, ID, mode and ticket price', () => {
+  const env = { AERIE_TICKET_PRICE_CENTS: '199', AERIE_STRIPE_MODE: 'live',
+    AERIE_STRIPE_PRICE_ID: paymentLinkSettings.priceId, AERIE_STRIPE_PAYMENT_LINK_ID: liveLink.id,
+    AERIE_STRIPE_PAYMENT_LINK_URL: liveLink.url };
+  assert.equal(configuration(env).stripeKey, '');
+  for (const url of [liveLink.url + '?x=a', 'http://buy.stripe.com/x', 'https://buy.stripe.com@example.com/x',
+    'https://example.com/x', 'https://buy.stripe.com/test_Aerie123', '']) {
+    assert.throws(() => configuration({ ...env, AERIE_STRIPE_PAYMENT_LINK_URL: url }));
+  }
+  for (const fields of [{ AERIE_TICKET_PRICE_CENTS: '99' }, { AERIE_STRIPE_PRICE_ID: '' }, { AERIE_STRIPE_PAYMENT_LINK_ID: '' }]) {
+    assert.throws(() => configuration({ ...env, ...fields }));
+  }
+  assert.equal(configuration({ ...env, AERIE_STRIPE_MODE: 'test', AERIE_STRIPE_PAYMENT_LINK_URL: 'https://buy.stripe.com/test_Aerie123' }).live, false);
+});
+
+test('a signed Dashboard link update proves the live webhook before the public ticket opens', async () => {
+  let time = Date.now();
+  const { call, dispatch } = linkFixture({ now: () => time });
+  const offer = async () => (await call('config')).jsonBody;
+  assert.equal((await offer()).checkout, false);
+  assert.equal((await dispatch('payment_link.updated', liveLink, false)).status, 400);
+  assert.equal((await offer()).checkout, false);
+  await dispatch('payment_link.updated', { ...liveLink, id: 'plink_AnotherProduct' });
+  assert.equal((await offer()).checkout, false);
+  await dispatch('payment_link.updated', liveLink);
+  assert.equal((await offer()).checkout, true);
+  assert.equal((await offer()).priceAmount, 199);
+  assert.equal((await offer()).checkoutProvider, 'payment_link');
+  assert.equal((await offer()).checkoutLinkVerified, true);
+  assert.equal((await offer()).googlePayCheckout, false);
+  time += 2_000;
+  await dispatch('payment_link.updated', { ...liveLink, automatic_tax: { enabled: false } });
+  assert.equal((await offer()).checkout, false);
+  time -= 1_000;
+  await dispatch('payment_link.updated', liveLink);
+  assert.equal((await offer()).checkout, false);
+  time += 3_000;
+  await dispatch('payment_link.updated', { ...liveLink, after_completion: { type: 'hosted_confirmation' } });
+  assert.equal((await offer()).checkout, false);
+  time += 1_000;
+  await dispatch('payment_link.updated', liveLink);
+  assert.equal((await offer()).checkout, true);
+  const refreshed = await call('checkout', { body: { expectedOffer: { amount: 99, currency: 'usd', mode: 'live' } } });
+  assert.equal(refreshed.status, 409);
+});
+
+test('a signed paid link delivers once, returns www buyers to the right browser, and grants one redeemable gift', async () => {
+  const { call, dispatch, rows, restore } = linkFixture();
+  await dispatch('payment_link.created', liveLink);
+  const start = await call('checkout', { origin: alias, body: {} });
+  const url = new URL(start.jsonBody.url);
+  assert.equal(url.origin + url.pathname, liveLink.url);
+  assert.deepEqual([...url.searchParams.keys()], ['client_reference_id']);
+  const reference = url.searchParams.get('client_reference_id');
+  const cookie = asCookie(start.cookies[0]);
+  assert.match(reference, /^[a-f0-9]{64}$/);
+  assert.ok(!url.href.includes(start.cookies[0].value));
+  const session = { ...linkSession, client_reference_id: reference };
+  const confirm = (origin, proof) => call('checkout/confirm', { origin, body: { sessionId: session.id }, cookie: proof });
+  assert.equal((await confirm(site, cookie)).jsonBody.state, 'pending');
+  assert.equal((await dispatch('checkout.session.completed', session, false)).status, 400);
+  assert.equal((await confirm(site, cookie)).jsonBody.state, 'pending');
+  const both = await Promise.all([dispatch('checkout.session.completed', session), dispatch('checkout.session.async_payment_succeeded', session)]);
+  assert.ok(both.every(result => result.jsonBody.ok));
+  assert.equal([...rows.keys()].filter(key => key.startsWith('gift:')).length, 1);
+  assert.equal((await confirm(site)).jsonBody.state, 'return-to-www');
+  assert.equal((await confirm(alias)).jsonBody.state, 'restore');
+  const claimed = await confirm(alias, cookie);
+  assert.equal(claimed.jsonBody.state, 'success');
+  const login = asCookie(claimed.cookies[0]);
+  const status = async (who) => (await call('status', { cookie: who, query: '?gift=1' })).jsonBody;
+  assert.equal((await confirm(alias, login)).jsonBody.state, 'success');
+  assert.equal((await status(login)).fullAccess, true);
+  const giftCode = (await status(login)).giftUrl.split('=')[1];
+  const guest = await restore('friend@example.test', giftCode);
+  assert.equal((await call('gift/redeem', { body: { code: guest.result.giftCode }, cookie: guest.cookie })).jsonBody.ok, true);
+  assert.equal((await status(guest.cookie)).fullAccess, true);
+  await dispatch('charge.refunded', { payment_intent: linkSession.payment_intent, refunded: true });
+  assert.equal((await status(guest.cookie)).fullAccess, false);
+  assert.equal((await status(login)).fullAccess, false);
+});
+
+test('a direct or shared link delivers to the paying email and requires email restore on other browsers', async () => {
+  const { call, dispatch, restore } = linkFixture();
+  assert.equal((await dispatch('checkout.session.completed', linkSession)).jsonBody.ok, true);
+  const confirm = await call('checkout/confirm', { body: { sessionId: linkSession.id } });
+  assert.equal(confirm.jsonBody.state, 'restore');
+  assert.equal(confirm.cookies, undefined);
+  const buyer = await restore(linkSession.customer_details.email);
+  const info = (await call('status', { cookie: buyer.cookie, query: '?gift=1' })).jsonBody;
+  assert.equal(info.fullAccess, true);
+  assert.ok(info.giftUrl);
+  const other = await restore('somebody-else@example.test');
+  assert.equal((await call('status', { cookie: other.cookie })).jsonBody.fullAccess, false);
+});
+
+test('foreign, unpaid, discounted or incorrectly priced sessions cannot grant Aerie', async () => {
+  const { dispatch, rows } = linkFixture();
+  for (const extra of [
+    { payment_link: 'plink_Other' }, { payment_status: 'unpaid' }, { amount_subtotal: 99 }, { amount_total: 100 },
+    { total_details: { amount_discount: 100 } }, { currency: 'eur' }, { mode: 'subscription' },
+    { automatic_tax: { status: 'failed' } }, { livemode: false }, { id: 'cs_test_wrongMode' },
+    { line_items: { has_more: false, data: [{ quantity: 1, price: { id: 'price_wrong' } }] } }
+  ]) {
+    await dispatch('checkout.session.completed', { ...linkSession, ...extra });
+  }
+  assert.equal(rows.size, 0);
+});
+
+test('a signed reversal arriving before the paid event blocks the buyer and gift across webhook retries', async () => {
+  let time = Date.now();
+  const { call, dispatch, restore, rows } = linkFixture({ now: () => time });
+  const change = { id: 'dp_Disputed', payment_intent: linkSession.payment_intent, status: 'needs_response' };
+  await dispatch('charge.dispute.created', change);
+  assert.ok(!JSON.stringify([...rows]).includes(linkSession.payment_intent));
+  assert.ok(!JSON.stringify([...rows]).includes(change.id));
+  await dispatch('checkout.session.completed', linkSession);
+  const buyer = await restore(linkSession.customer_details.email);
+  const status = async () => (await call('status', { cookie: buyer.cookie, query: '?gift=1' })).jsonBody;
+  assert.equal((await status()).fullAccess, false);
+  time += 2_000;
+  await dispatch('charge.dispute.closed', { ...change, status: 'won' });
+  assert.equal((await status()).fullAccess, true);
+  assert.ok((await status()).giftUrl);
+});
+
+test('connected-account events cannot authorize this link, grant an order or record a reversal', async () => {
+  const { rows, call, dispatch } = linkFixture();
+  for (const envelope of [{ account: 'acct_other' }, { context: 'acct_other' }]) {
+    await dispatch('payment_link.updated', liveLink, true, envelope);
+    await dispatch('checkout.session.completed', linkSession, true, envelope);
+    await dispatch('charge.refunded', { payment_intent: linkSession.payment_intent, refunded: true }, true, envelope);
+  }
+  assert.equal(rows.size, 0);
+  assert.equal((await call('config')).jsonBody.checkout, false);
+});
+
+test('a paused link verifies delivery while keeping new tickets closed on both origins', async () => {
+  const { call, dispatch } = linkFixture({ config: { ...paymentLinkSettings, checkout: false } });
+  await dispatch('payment_link.updated', liveLink);
+  for (const origin of [site, alias]) {
+    const config = (await call('config', { origin })).jsonBody;
+    assert.equal(config.checkoutLinkVerified, true);
+    assert.equal(config.checkout, false);
+    assert.equal(config.priceAmount, undefined);
+    assert.equal((await call('checkout', { origin, body: {} })).status, 503);
+  }
+  await dispatch('checkout.session.completed', linkSession);
+  assert.equal((await call('checkout/confirm', { body: { sessionId: linkSession.id } })).jsonBody.state, 'restore');
+});
+
+test('a link with additional products or an explicitly different price cannot open the store', async () => {
+  for (const properties of [{ optional_items: [{ quantity: 1 }] },
+    { line_items: { has_more: false, data: [{ quantity: 1, price: { id: 'price_Other' } }] } },
+    { line_items: { has_more: true, data: [{ quantity: 1, price: { id: paymentLinkSettings.priceId } }] } }]) {
+    const { call, dispatch } = linkFixture();
+    await dispatch('payment_link.updated', { ...liveLink, ...properties });
+    assert.equal((await call('config')).jsonBody.checkout, false);
+  }
+});
+
+test('link refunds received before Checkout use the same hold when a legacy API credential is present', async () => {
+  const { call, dispatch, checkouts, rows, restore } = fixture({ config: paymentLinkSettings });
+  checkouts.set('old-session', { payment_intent: linkSession.payment_intent, metadata: { product: 'aerie-founder-and-gift' } });
+  await dispatch('charge.refunded', { payment_intent: linkSession.payment_intent, refunded: true });
+  assert.ok(!rows.has('payment:' + linkSession.payment_intent));
+  await dispatch('checkout.session.completed', linkSession);
+  const buyer = await restore(linkSession.customer_details.email);
+  assert.equal((await call('status', { cookie: buyer.cookie })).jsonBody.fullAccess, false);
 });
