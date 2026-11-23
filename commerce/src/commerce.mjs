@@ -260,7 +260,13 @@ export function createCommerce(config, { store, stripe, sendEmail, purchaseEmail
   async function createCheckout(request, _context, browserOrigin) {
     const price = await offer();
     if (!price) throw new HttpError(503, 'Checkout is currently unavailable.');
-    const { email: suppliedEmail, wallet } = await readJson(request);
+    const { email: suppliedEmail, wallet, expectedOffer } = await readJson(request);
+    if (expectedOffer !== undefined &&
+        (expectedOffer?.mode !== config.mode ||
+         expectedOffer?.amount !== price.amount ||
+         expectedOffer?.currency !== price.currency)) {
+      return { status: 409, jsonBody: { offerChanged: true, error: 'The ticket offer changed.' } };
+    }
     if (wallet !== undefined && wallet !== 'google_pay') throw new HttpError(400, 'Unsupported checkout wallet.');
     const googlePay = wallet === 'google_pay';
     const customerEmail = suppliedEmail === undefined ? {} : { customer_email: emailAddress(suppliedEmail) };

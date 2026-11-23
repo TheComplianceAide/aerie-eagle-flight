@@ -152,6 +152,41 @@ test('origin, email and offer are checked server-side before granting assets', a
   assert.match(publicFile.headers.Location, /\/winnipesaukee\/scene.bin\?/);
 });
 
+test('stale or malformed displayed offers never open a Stripe session or reserve a ticket', async () => {
+  for (const mode of ['test', 'live']) {
+    const { call, sessions, rows } = fixture({ config: { mode, live: mode === 'live', ticketPriceCents: 199 } });
+    const displayed = { mode, amount: 199, currency: 'usd' };
+    for (const expectedOffer of [
+      { ...displayed, mode: mode === 'test' ? 'live' : 'test' },
+      { ...displayed, amount: 99 }, { ...displayed, currency: 'cad' },
+      { ...displayed, amount: '199' }, { mode, amount: 199 },
+      null, false, 'test', [], {}
+    ]) {
+      const result = await call('checkout', { body: { expectedOffer, wallet: 'google_pay' } });
+      assert.equal(result.status, 409);
+      assert.deepEqual(result.jsonBody, { offerChanged: true, error: 'The ticket offer changed.' });
+    }
+    assert.equal(sessions.length, 0);
+    assert.equal(rows.size, 0);
+  }
+});
+
+test('standard and wallet checkout accept the displayed offer and keep the server price authoritative', async () => {
+  const { call, sessions, rows } = fixture({ config: { ticketPriceCents: 199 } });
+  const offer = (await call('config')).jsonBody;
+  const displayed = { mode: offer.checkoutMode, amount: offer.priceAmount, currency: offer.priceCurrency };
+  for (const wallet of [undefined, 'google_pay']) {
+    for (const expectedOffer of [displayed, undefined]) {
+      const result = await call('checkout', { body: { expectedOffer, wallet, amount: 1 } });
+      assert.ok(result.jsonBody.url);
+      const input = sessions.at(-1);
+      assert.equal(input.line_items[0].price_data.unit_amount, 199);
+      assert.equal(rows.get('pending:' + input.client_reference_id).amount, 199);
+      assert.equal(Boolean(input.shipping_address_collection), wallet === 'google_pay');
+    }
+  }
+});
+
 test('only a Google Pay opt-in collects a Stripe tax address for the digital ticket', async () => {
   const { call, sessions, rows } = fixture();
   assert.equal((await call('config')).jsonBody.googlePayCheckout, true);
@@ -223,9 +258,14 @@ test('new $1.99 tickets leave an already-open 99-cent ticket and its receipt at 
   const { call, rows, checkouts, settings } = fixture({ now: () => time, config: { ticketPriceCents: 99 } });
   const earlier = await call('checkout', { body: { email: 'old-price@example.test' } });
   const original = [...checkouts.values()].at(-1);
+  const displayed = { mode: 'test', amount: original.amount_subtotal, currency: original.currency };
   settings.ticketPriceCents = 199;
   time += 6 * 60_000;
   assert.equal((await call('config')).jsonBody.priceLabel, '$1.99 USD');
+  const stale = await call('checkout', { body: { expectedOffer: displayed } });
+  assert.equal(stale.status, 409);
+  assert.equal(checkouts.size, 1);
+  assert.equal(rows.size, 1);
   for (const wallet of [undefined, 'google_pay']) {
     await call('checkout', { body: { wallet, amount: 99 } });
     const latest = [...checkouts.values()].at(-1);
