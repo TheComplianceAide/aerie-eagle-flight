@@ -759,9 +759,10 @@
 
   const checkoutLaunch = byId('checkout-launch');
   const heroCheckout = byId('hero-buy');
+  const checkoutButtons = [checkoutLaunch, heroCheckout, ...document.querySelectorAll('[data-wallet-checkout]')];
   const heroCheckoutStatus = byId('hero-checkout-status');
   const checkoutAvailability = byId('checkout-availability');
-  const checkoutMerchant = byId('checkout-merchant');
+  const walletOptions = document.querySelectorAll('.wallet-option');
   const flightPrice = byId('flight-price');
   const purchaseDialog = byId('purchase-dialog');
   const purchaseFields = byId('purchase-form').querySelector('fieldset');
@@ -797,7 +798,8 @@
     byId('hero-ticket-price').textContent = price;
     flightPrice.textContent = price;
     byId('pass-restore').hidden = owned || unconfirmedReturn;
-    for (const disclosure of [checkoutMerchant, byId('hero-ticket-note')]) disclosure.hidden = true;
+    const walletAvailable = available && enabled(checkoutConfig, 'googlePayCheckout') && enabled(checkoutConfig, 'checkoutCollectsEmail');
+    for (const option of walletOptions) option.hidden = owned || unconfirmedReturn || !walletAvailable;
     checkoutAvailability.hidden = unconfirmedReturn;
     if (!checkoutBusy) {
       checkoutAvailability.textContent = owned || available ? '' : checkoutConfig === undefined
@@ -841,7 +843,7 @@
 
   function setCheckoutBusy(busy) {
     checkoutBusy = busy;
-    for (const button of [checkoutLaunch, heroCheckout]) {
+    for (const button of checkoutButtons) {
       button.disabled = busy;
       button.setAttribute('aria-busy', String(busy));
     }
@@ -868,7 +870,8 @@
 
   async function launchCheckout(event) {
     if (checkoutBusy || playOwnedPass()) return;
-    const fromHero = event.currentTarget === heroCheckout;
+    const walletRequested = event.currentTarget.hasAttribute('data-wallet-checkout');
+    const fromHero = Boolean(event.currentTarget.closest('.hero'));
     const output = fromHero ? heroCheckoutStatus : checkoutAvailability;
     if (fromHero) output.hidden = false;
     const attempt = setCheckoutBusy(true);
@@ -889,10 +892,10 @@
       show(purchaseDialog);
       return;
     }
-    await openStripeCheckout({}, output, attempt);
+    await openStripeCheckout(walletRequested ? { wallet: 'google_pay' } : {}, output, attempt);
   }
 
-  for (const button of [checkoutLaunch, heroCheckout]) button.addEventListener('click', launchCheckout);
+  for (const button of checkoutButtons) button.addEventListener('click', launchCheckout);
 
   purchaseDialog.addEventListener('close', () => {
     if (checkoutBusy) setCheckoutBusy(false);

@@ -28,8 +28,8 @@
   <link rel="preload" href="media/mount-major.webp" as="image">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="media/aerie-app-180.png">
-  <link rel="stylesheet" href="landing.css?v=founder-contact">
-  <script defer src="landing.js?v=share-flight-photo"></script>
+  <link rel="stylesheet" href="landing.css?v=wallet-checkout">
+  <script defer src="landing.js?v=wallet-checkout"></script>
   <script defer src="save-aerie.js?v=1"></script>
 </head>
 <body>
@@ -103,7 +103,7 @@
             </button>
           </div>
         </div>
-        <p class="ticket-note" id="hero-ticket-note" hidden></p>
+        <p class="ticket-note wallet-option" id="hero-ticket-note" hidden><button type="button" data-wallet-checkout aria-label="Wallet checkout for Google Pay on eligible devices">Wallet checkout</button> for Google Pay</p>
         <p id="hero-checkout-status" class="hero-checkout-status" role="status" hidden></p>
         <div class="actions hero-explore">
           <button class="button button-glass" id="watch-film" type="button"><span class="play-symbol" aria-hidden="true"></span> Watch gameplay · 1:00</button>
@@ -238,7 +238,7 @@
               <span class="ticket-face"><strong id="checkout-label">All worlds</strong></span>
               <span class="ticket-stub" id="flight-price">↗</span>
             </button>
-            <p class="ticket-note" id="checkout-merchant" hidden></p>
+            <p class="ticket-note wallet-option" id="checkout-merchant" hidden><button type="button" data-wallet-checkout aria-label="Wallet checkout for Google Pay on eligible devices">Wallet checkout</button> for Google Pay</p>
             <span id="checkout-availability" class="availability" role="status">Checking checkout availability…</span>
             <a class="text-link" href="policies/#terms">Ticket terms &amp; refunds</a>
             <div class="pass-restore" id="pass-restore" hidden><button class="text-link" type="button" data-open="restore">Restore ticket</button></div>
