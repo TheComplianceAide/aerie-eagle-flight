@@ -5,10 +5,13 @@ import { createCommerce } from '../src/commerce.mjs';
 import { allWorlds, configuration } from '../src/settings.mjs';
 
 const site = 'https://aerie.example';
+const alias = 'https://www.aerie.example';
+const functionsHost = 'https://aerie-functions.example';
 const signingSecret = 'whsec_test_fixture_no_real_credentials';
 const priceId = 'price_fixture';
 const root = configuration({
-  AERIE_SITE_URL: site, AERIE_IDENTITY_SECRET: 'fictional-test-identity-key-no-real-credentials',
+  AERIE_SITE_URL: site, AERIE_ALLOWED_ORIGINS: alias,
+  AERIE_IDENTITY_SECRET: 'fictional-test-identity-key-no-real-credentials',
   AERIE_STRIPE_WEBHOOK_SECRET: signingSecret, AERIE_STRIPE_PRICE_ID: priceId,
   AERIE_SHARE_CLAIMS_ENABLED: 'true', AERIE_SIGNUP_ENABLED: 'true', AERIE_CHECKOUT_ENABLED: 'true'
 });
@@ -60,14 +63,14 @@ function fixture() {
     sendEmail: async (email, subject, body) => messages.push({ email, subject, body }),
     assetUrl: async (world, path) => `https://blob.example/private/${world}/${path}?fixture=read-only`
   });
-  const call = (route, { body, cookie, query = '', origin = site, method, webhook } = {}) => {
+  const call = (route, { body, cookie, query = '', origin = site, method, webhook, requestBase = functionsHost } = {}) => {
     const headers = {};
     if (origin) headers.origin = origin;
     if (cookie) headers.cookie = cookie;
     if (body) headers['content-type'] = 'application/json';
     if (webhook) headers['stripe-signature'] = webhook;
     const raw = typeof body === 'string' ? body : body && JSON.stringify(body);
-    const req = new Request(`${site}/api/aerie/${route}${query}`, {
+    const req = new Request(`${requestBase}/api/aerie/${route}${query}`, {
       headers, body: raw, method: method || (raw ? 'POST' : 'GET')
     });
     req.query = new URL(req.url).searchParams;
@@ -83,6 +86,7 @@ function fixture() {
     assert.equal(start.cookies[0].sameSite, 'Lax');
     assert.equal(start.cookies[0].httpOnly, true);
     assert.equal(sessions.at(-1).automatic_tax.enabled, true);
+    assert.equal(sessions.at(-1).customer_email, email);
     assert.deepEqual(sessions.at(-1).line_items, [{ price: priceId, quantity: 1 }]);
     const state = asCookie(start.cookies[0]);
     const id = [...checkouts.keys()].at(-1);
@@ -99,7 +103,7 @@ function fixture() {
     assert.equal(ended.jsonBody.ok, true);
     return { token, cookie: asCookie(ended.cookies[0]), result: ended.jsonBody };
   }
-  return { app, call, buy, restore, dispatch, sessions, rows, checkouts };
+  return { app, call, buy, restore, dispatch, sessions, messages, rows, checkouts };
 }
 
 const asCookie = cookie => `${cookie.name}=${cookie.value}`;
@@ -162,6 +166,49 @@ test('checkout return verifies exact purchase and single fulfillment survives we
   assert.deepEqual((await call('status', { cookie: bought.cookie })).jsonBody.worlds, ['winnipesaukee']);
 });
 
+test('an alias keeps checkout, hosted email recovery, and its gift on the originating host', async () => {
+  const { call, sessions, checkouts, messages } = fixture();
+  const flags = await call('config', { origin: null });
+  assert.equal(flags.jsonBody.checkoutCollectsEmail, true);
+  const start = await call('checkout', { body: {}, origin: alias });
+  assert.equal(start.headers['Access-Control-Allow-Origin'], alias);
+  assert.equal(start.cookies[0].name, '__Host-aerie_checkout');
+  assert.equal(start.cookies[0].domain, undefined);
+  assert.equal(start.cookies[0].secure, true);
+  assert.equal(Object.hasOwn(sessions[0], 'customer_email'), false);
+  assert.deepEqual(sessions[0].branding_settings, {
+    display_name: 'Aerie', background_color: '#0d1919', button_color: '#efd092',
+    logo: { type: 'url', url: `${site}/join/media/aerie-checkout-logo.png` }
+  });
+  assert.equal(sessions[0].success_url, `${alias}/api/aerie/checkout/complete?session_id={CHECKOUT_SESSION_ID}`);
+  assert.equal(sessions[0].cancel_url, `${alias}/join/?checkout=cancel`);
+
+  const checkout = [...checkouts.values()][0];
+  const checkoutEmail = 'hosted-checkout@example.test';
+  checkout.payment_status = 'paid';
+  checkout.customer_details = { email: checkoutEmail };
+  const query = `?session_id=${checkout.id}`;
+  const wrongHost = await call('checkout/complete', { query, origin: null });
+  assert.equal(wrongHost.headers.Location, '/join/?checkout=pending');
+  const finish = await call('checkout/complete', { query, origin: null, cookie: asCookie(start.cookies[0]) });
+  assert.equal(finish.status, 303);
+  assert.equal(finish.headers.Location, '/join/?checkout=success');
+
+  const bought = (await call('status', { origin: null, cookie: asCookie(finish.cookies[0]) })).jsonBody;
+  assert.equal(bought.fullAccess, true);
+  assert.match(bought.giftUrl, /^\/join\/#gift=[\w-]+$/);
+  assert.equal(new URL(bought.giftUrl, alias).origin, alias);
+  await call('restore', { origin: alias, body: { email: checkoutEmail } });
+  assert.equal(messages[0].email, checkoutEmail);
+  const link = messages[0].body.match(/https:\/\/\S+#restore=[\w-]+/)[0];
+  assert.equal(new URL(link).origin, alias);
+  const token = new URL(link).hash.slice('#restore='.length);
+  const confirm = await call('restore/confirm', { origin: alias, body: { token } });
+  const restored = (await call('status', { origin: null, cookie: asCookie(confirm.cookies[0]) })).jsonBody;
+  assert.equal(restored.emailVerified, true);
+  assert.equal(restored.giftUrl, bought.giftUrl);
+});
+
 test('verified email can restore access; checkout scoped cookies cannot see another purchase or consume a gift', async () => {
   const { call, buy, restore } = fixture();
   const older = await buy('buyer@example.test');
@@ -170,7 +217,7 @@ test('verified email can restore access; checkout scoped cookies cannot see anot
   const newerStatus = (await call('status', { cookie: newer.cookie })).jsonBody;
   assert.equal(newerStatus.emailVerified, false);
   assert.notEqual(newerStatus.giftUrl, olderGift);
-  const code = new URL(olderGift).hash.split('=')[1];
+  const code = new URL(olderGift, site).hash.split('=')[1];
   assert.equal((await call('gift/redeem', { body: { code }, cookie: newer.cookie })).status, 401);
   const { cookie, token } = await restore('buyer@example.test');
   const restored = (await call('status', { cookie })).jsonBody;
@@ -183,7 +230,7 @@ test('two verified friends cannot redeem the same gift', async () => {
   const { call, buy, restore, rows } = fixture();
   const buyer = await buy('buyer@example.test');
   const status = (await call('status', { cookie: buyer.cookie })).jsonBody;
-  const code = new URL(status.giftUrl).hash.split('=')[1];
+  const code = new URL(status.giftUrl, site).hash.split('=')[1];
   const first = await restore('first@example.test', code);
   const second = await restore('second@example.test');
   assert.equal(first.result.giftCode, code);
