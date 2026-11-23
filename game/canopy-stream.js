@@ -13,14 +13,122 @@
     const path='canopy-data/'+name;
     return window.aerieAssetURL?.(path)||path;
   };
-  async function unpack(name,signal) {
-    const response=await fetch(urlFor(name),{signal});
+  async function unpack(name,signal,url=urlFor(name)) {
+    const response=await fetch(url,{signal});
     if(!response.ok)throw Error('Canopy asset '+name+' returned '+response.status);
     if(typeof DecompressionStream==='function' && response.body){
       return new Response(response.body.pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
     }
     if(window.pako)return window.pako.inflate(new Uint8Array(await response.arrayBuffer())).buffer;
     throw Error('Gzip decoding is unavailable for canopy assets');
+  }
+  // These original models resolve to public files on the production site. Keep the
+  // allowlist explicit so a new or access-controlled specimen never gains a public alias.
+  const publicModels=new Set(`alaska-alder alaska-cottonwood alaska-hemlock alaska-tree
+    canyon-mormon-tea canyon-sand-sage canyon-tree crater-red-fir crater-tree crater-whitebark
+    dixville-balsam dixville-beech dixville-birch dixville-spruce dixville-tree
+    labrador-birch labrador-fir labrador-labrador-tea labrador-tree lofoten-heath lofoten-tree lofoten-willow
+    moosehead-birch moosehead-cedar moosehead-mature moosehead-red-spruce moosehead-tree
+    surry-birch surry-maple surry-tree surry-white-pine swiss-dwarf-willow swiss-spruce swiss-stone-pine swiss-tree
+    winnipesaukee-birch winnipesaukee-maple winnipesaukee-oak winnipesaukee-tree
+    yosemite-cottonwood yosemite-incense yosemite-oak yosemite-tree yosemite-white-fir`.split(/\s+/));
+  const packedDir='regional-packed-v1/';
+  const marker=0xc7;
+  const blockCount=4096;
+  let scratch;
+  function meshLayout(buffer,packed){
+    const view=new DataView(buffer);
+    const size=view.getUint32(0,true);
+    if((size>>>24)!==(packed?marker:0))throw Error('Unrecognized canopy mesh format');
+    const length=size&0xffffff;
+    const base=4+length;
+    if(base>buffer.byteLength)throw Error('Incomplete canopy header');
+    const records=JSON.parse(new TextDecoder().decode(new Uint8Array(buffer,4,length)));
+    if(!Array.isArray(records))throw Error('Invalid canopy record list');
+    let end=base;
+    for(const {p,v,i} of records){
+      const offset=base+p;
+      if(![p,v,i].every(n=>Number.isSafeInteger(n)&&n>=0)||offset<end)
+        throw Error('Invalid canopy mesh layout');
+      end=offset+v*16+i*(v>65535?4:2);
+      if(end>buffer.byteLength)throw Error('Incomplete canopy model');
+    }
+    return {base,records};
+  }
+  function* blocks(layout){
+    for(const {p,v,i} of layout.records){
+      let start=layout.base+p;
+      for(const [count,stride] of [[v,16],[i,v>65535?4:2]]){
+        for(let first=0;first<count;first+=blockCount){
+          const n=Math.min(blockCount,count-first);
+          yield [start,n,stride];
+          start+=n*stride;
+        }
+      }
+    }
+  }
+  function restoreBlock(bytes,start,count,stride){
+    // A shared 64 KiB scratch buffer suffices for every model, including concurrent loads.
+    // The byte planes and their deltas are independent within each block.
+    for(let c=0;c<stride;c++){
+      let previous=0;
+      let dst=c;
+      for(let i=start+c*count,end=i+count;i<end;i++,dst+=stride){
+        previous=(previous+bytes[i])&255;
+        scratch[dst]=previous;
+      }
+    }
+    bytes.set(scratch.subarray(0,count*stride),start);
+  }
+  function checkAbort(signal){
+    if(signal?.aborted)throw signal.reason||new DOMException('Aborted','AbortError');
+  }
+  async function restoreMesh(buffer,signal){
+    checkAbort(signal);
+    const layout=meshLayout(buffer,true);
+    const bytes=new Uint8Array(buffer);
+    scratch ||= new Uint8Array(blockCount*16);
+    let slice=performance.now();
+    for(const [start,n,stride] of blocks(layout)){
+      restoreBlock(bytes,start,n,stride);
+      if(performance.now()-slice>=4){
+        if(globalThis.scheduler?.yield)await globalThis.scheduler.yield();
+        else await new Promise(resolve=>setTimeout(resolve,0));
+        checkAbort(signal);
+        slice=performance.now();
+      }
+    }
+    bytes[3]=0;
+    return buffer;
+  }
+  async function regionalMesh(id,signal){
+    const original='regional/'+id+'.bin';
+    const originalURL=urlFor(original);
+    // Offline HTML serves embedded originals. Custom pass/signed URLs stay on their
+    // existing route even if an entitlement policy changes for a listed specimen.
+    if(publicModels.has(id)&&window.location.protocol!=='file:'){
+      const local=originalURL==='canopy-data/'+original;
+      const repo='https://raw.githubusercontent.com/TheComplianceAide/aerie-eagle-flight/';
+      const suffix='/game/canopy-data/'+original;
+      const revision=originalURL.slice(repo.length,-suffix.length);
+      const publicRaw=originalURL.startsWith(repo)&&originalURL.endsWith(suffix)&&/^[a-f0-9]{40}$/.test(revision);
+      if(local||publicRaw){
+        const variant=packedDir+id+'.bin';
+        const url=urlFor(variant);
+        // Hosted releases publish a pinned variant alias. An older overlay can
+        // still run the new script without paying for a failing variant request.
+        if(local||url!=='canopy-data/'+variant){
+          try{return await restoreMesh(await unpack(variant,signal,url),signal);}
+          catch(error){checkAbort(signal);if(error?.name==='AbortError')throw error;}
+        }
+      }
+    }
+    return unpack(original,signal,originalURL);
+  }
+  // The deterministic baker and fixtures exercise the exact decoder shipped to browsers.
+  if(typeof window==='undefined'&&typeof module!=='undefined'){
+    module.exports={publicModels,packedDir,marker,blocks,meshLayout,restoreMesh,regionalMesh};
+    return;
   }
   const shadowGLSL=`
     uniform sampler2D regionalCanopyDepth;
@@ -633,7 +741,7 @@
         const packs=await Promise.all(catalog.map(async meta=>{
           try{
             const stem='regional/'+meta.id;
-            const [data,map]=await Promise.all([unpack(stem+'.bin',ab.signal),photo(stem+'.webp')]);
+            const [data,map]=await Promise.all([regionalMesh(meta.id,ab.signal),photo(stem+'.webp')]);
             return {meta,data,map};
           }catch(error){
             if(!stopped)console.warn('Regional specimen '+meta.id+':',error.message||error);

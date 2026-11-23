@@ -53,6 +53,8 @@ with NamedTemporaryFile('w',dir=output.parent,prefix='.Aerie-',delete=False) as 
     f.write('<script>'+safe((codec/'pako_inflate.min.js').read_text())+'\n/* '+(codec/'LICENSE').read_text()+' */</script>')
     for p in sorted(dist.rglob('*')):
         if not p.is_file():continue
+        # Embedded originals work without a network and avoid storing both encodings.
+        if p.parent==dist/'canopy-data'/'regional-packed-v1':continue
         name=p.relative_to(dist).as_posix()
         if name in attached or name in {'style.css','index.html','three-LICENSE.txt'}:continue
         if p.suffix=='.js' and p.stat().st_size>64000:
