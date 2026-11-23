@@ -111,6 +111,14 @@ function purchases(account) {
   return account ? JSON.parse(account.purchases || '[]') : [];
 }
 
+export const expiryProbeTag = 'signed-expiry-v1';
+export function expiryProbeMarker(sessionId) {
+  return digest('aerie-expiry-v1:' + sessionId);
+}
+export function expiryProbeKey(marker, signingSecret) {
+  return 'preflight-expiry:' + createHmac('sha256', signingSecret).update('expiry-receipt:' + marker).digest('hex');
+}
+
 export function createCommerce(config, { store, stripe, sendEmail, purchaseEmailOperations, assetUrl, now = Date.now }) {
   const restoreEnabled = Boolean(store && sendEmail && config.site);
   const canCheckout = Boolean(config.checkout && restoreEnabled && stripe && config.priceId && config.webhookSecret && assetUrl);
@@ -489,6 +497,21 @@ export function createCommerce(config, { store, stripe, sendEmail, purchaseEmail
     }
   }
 
+  async function recordProbeExpiry(checkout) {
+    if (checkout?.metadata?.aerie_preflight !== expiryProbeTag || checkout.metadata.product !== 'aerie-founder-and-gift' ||
+        checkout.livemode !== config.live || checkout.status !== 'expired' || checkout.payment_status !== 'unpaid' ||
+        checkout.mode !== 'payment' || !/^cs_(test|live)_[A-Za-z0-9_]+$/.test(checkout.id) ||
+        !checkout.id.startsWith('cs_' + config.mode + '_')) return;
+    const key = expiryProbeKey(expiryProbeMarker(checkout.id), config.webhookSecret);
+    try {
+      await store.transaction([['create', row(key, {
+        verifiedAt: new Date(now()).toISOString(), ...(config.releaseRevision && { releaseRevision: config.releaseRevision })
+      })]]);
+    } catch (error) {
+      if (!conflict(error) || !(await store.get(key))?.verifiedAt) throw error;
+    }
+  }
+
   async function webhook(request) {
     if (!store || !stripe || !config.webhookSecret) throw new HttpError(503, 'Webhook is not configured.');
     const payload = Buffer.from(await request.arrayBuffer());
@@ -500,7 +523,9 @@ export function createCommerce(config, { store, stripe, sendEmail, purchaseEmail
       throw new HttpError(400, 'Invalid webhook signature.');
     }
     if (event.livemode !== config.live) throw new HttpError(400, 'Stripe event mode does not match.');
-    if (['checkout.session.completed', 'checkout.session.async_payment_succeeded'].includes(event.type)) {
+    if (event.type === 'checkout.session.expired') {
+      await recordProbeExpiry(event.data.object);
+    } else if (['checkout.session.completed', 'checkout.session.async_payment_succeeded'].includes(event.type)) {
       await deliverPaidCheckout(event.data.object.id);
     } else if (['charge.refunded', 'charge.dispute.created', 'charge.dispute.updated',
       'charge.dispute.funds_withdrawn', 'charge.dispute.closed'].includes(event.type)) {

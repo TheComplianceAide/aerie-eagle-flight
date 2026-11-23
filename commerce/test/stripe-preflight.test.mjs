@@ -1,11 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import Stripe from 'stripe';
+import { createCommerce, expiryProbeMarker, expiryProbeTag } from '../src/commerce.mjs';
+import { configuration } from '../src/settings.mjs';
 import { options, preflight } from '../tools/stripe-preflight.mjs';
 
 const args = ['--mode', 'test', '--account', 'acct_Aerie'];
 const opts = options([...args, '--registrations', 'none']);
 const requiredEvents = [
-  'checkout.session.completed', 'checkout.session.async_payment_succeeded',
+  'checkout.session.completed', 'checkout.session.async_payment_succeeded', 'checkout.session.expired',
   'charge.refunded', 'charge.dispute.created', 'charge.dispute.updated', 'charge.dispute.funds_withdrawn', 'charge.dispute.closed'
 ];
 const url = 'https://playaerie.com/api/aerie/stripe/webhook';
@@ -25,7 +28,7 @@ function fixture(livemode = false) {
       assert.ok(input.expires_at - Date.now() / 1000 > 1800);
       const line = input.line_items[0];
       sessions.opened = {
-        id: 'cs_fixture', url: 'https://checkout.stripe.com/fixture', livemode,
+        id: livemode ? 'cs_live_fixture' : 'cs_test_fixture', url: 'https://checkout.stripe.com/fixture', livemode,
         amount_subtotal: 199, status: 'open', payment_status: 'unpaid', currency: 'usd',
         metadata: input.metadata, mode: input.mode, automatic_tax: input.automatic_tax,
         line_items: { has_more: false, data: [{ quantity: 1, price: line.price_data
@@ -47,7 +50,7 @@ function fixture(livemode = false) {
     }
   };
   return { product, price, account, webhook, registrations, expired, sessions, runtime,
-    configuredCents: 199, signingSecret: 'whsec_fixture' };
+    configuredCents: 199, signingSecret: 'whsec_fixture', readReceipt: async () => null };
 }
 
 test('operator has to select mode and seller; no registrations is a valid explicit confirmation', () => {
@@ -66,10 +69,12 @@ test('discovers one gift product and confirms the effective price, typed tax are
     { country: 'GB' }
   ].map(r => ({ ...r, livemode: false, status: 'active' })));
   const report = await preflight(options([...args, '--registrations', 'US-ME,CA-QC,GB', '--smoke']), f);
-  assert.equal(report.ready, true);
+  assert.equal(report.configurationVerified, true);
+  assert.equal(report.ready, false);
   assert.equal(report.signedDeliveryVerified, false);
+  assert.equal(status(report, 'signed expiry delivery'), 'unverified');
   assert.equal(status(report, 'unopened Checkout'), 'pass');
-  assert.deepEqual(f.expired, ['cs_fixture']);
+  assert.deepEqual(f.expired, ['cs_test_fixture']);
 });
 
 test('an identified catalog $1.99 ticket requires no override or new session', async () => {
@@ -152,5 +157,112 @@ test('an opened smoke session expires even when Stripe returns an unexpected sub
   f.sessions.retrieve = async () => ({ ...f.sessions.opened, amount_subtotal: 99 });
   const report = await preflight({ ...opts, smoke: true }, f);
   assert.equal(status(report, 'unopened Checkout'), 'fail');
-  assert.deepEqual(f.expired, ['cs_fixture']);
+  assert.deepEqual(f.expired, ['cs_test_fixture']);
+});
+
+
+function localWebhook(live, secret) {
+  const rows = new Map();
+  const config = configuration({ AERIE_STRIPE_MODE: live ? 'live' : 'test', AERIE_SITE_URL: 'https://playaerie.com',
+    AERIE_CHECKOUT_ENABLED: 'false', AERIE_STRIPE_WEBHOOK_SECRET: secret });
+  const store = {
+    async transaction([[action, row]]) {
+      assert.equal(action, 'create');
+      if (rows.has(row.rowKey)) throw Object.assign(new Error('Duplicate'), { statusCode: 409 });
+      rows.set(row.rowKey, row);
+    },
+    async get(key) { return rows.get(key); }
+  };
+  const { webhooks } = new Stripe('sk_test_local_fixture');
+  const app = createCommerce(config, { store, stripe: { webhooks } });
+  async function deliver(checkout, eventLive = live, signer = secret) {
+    const payload = JSON.stringify({ type: 'checkout.session.expired', livemode: eventLive, data: { object: checkout } });
+    const signature = webhooks.generateTestHeaderString({ payload, secret: signer });
+    return app.handle('stripe/webhook', new Request(url, {
+      method: 'POST', headers: { 'stripe-signature': signature }, body: payload
+    }));
+  }
+  return { rows, store, deliver };
+}
+
+test('both modes verify exactly one signed expiry through the staged commerce handler', async () => {
+  for (const live of [false, true]) {
+    const f = fixture(live);
+    const mode = live ? 'live' : 'test';
+    const receiver = localWebhook(live, f.signingSecret);
+    f.stagedLiveReceiver = async () => true;
+    f.sessions.expire = async () => {
+      const expired = { ...f.sessions.opened, status: 'expired' };
+      for (let retry = 0; retry < 2; retry++) assert.equal((await receiver.deliver(expired)).jsonBody.ok, true);
+      return expired;
+    };
+    f.readReceipt = async (requestedMode, rowKey) => {
+      assert.equal(requestedMode, mode);
+      return receiver.rows.get(rowKey) || null;
+    };
+    const result = await preflight({ ...opts, mode, smoke: true }, f);
+    assert.equal(result.configurationVerified, true);
+    assert.equal(result.signedDeliveryVerified, true);
+    assert.equal(result.ready, true);
+    assert.equal(result.deliveryMarker, expiryProbeMarker(f.sessions.opened.id));
+    assert.equal(receiver.rows.size, 1);
+    assert.doesNotMatch(JSON.stringify([...receiver.rows.values()]), /cs_(live|test)|whsec_fixture|@|client_reference_id/);
+    f.sessions.create = () => assert.fail('receipt recheck created a new Checkout');
+    const replay = await preflight({ ...opts, mode, 'verify-delivery': result.deliveryMarker }, f);
+    assert.equal(replay.signedDeliveryVerified, true);
+    const rotated = await preflight({ ...opts, mode, 'verify-delivery': result.deliveryMarker },
+      { ...f, signingSecret: 'whsec_rotated' });
+    assert.equal(rotated.signedDeliveryVerified, false);
+    const unrelated = await preflight({ ...opts, mode, 'verify-delivery': '0'.repeat(64) }, f);
+    assert.equal(unrelated.configurationVerified, true);
+    assert.equal(unrelated.signedDeliveryVerified, false);
+    assert.equal(unrelated.ready, false);
+  }
+});
+
+test('a marked expiry is accepted only after signature, event mode and session details are verified', async () => {
+  const f = fixture();
+  const r = localWebhook(false, f.signingSecret);
+  const candidate = { id: 'cs_test_abc', livemode: false, status: 'expired', mode: 'payment',
+    payment_status: 'unpaid', metadata: { product: 'aerie-founder-and-gift', aerie_preflight: expiryProbeTag } };
+  assert.equal((await r.deliver(candidate, false, 'whsec_other')).status, 400);
+  assert.equal((await r.deliver(candidate, true)).status, 400);
+  for (const override of [{ metadata: {} }, { metadata: { product: 'aerie-founder-and-gift' } },
+    { metadata: { product: 'unrelated', aerie_preflight: expiryProbeTag } }, { livemode: true },
+    { id: 'cs_live_other' }, { status: 'open' }, { payment_status: 'paid' }, { mode: 'setup' }]) {
+    assert.equal((await r.deliver({ ...candidate, ...override })).jsonBody.ok, true);
+  }
+  assert.equal(r.rows.size, 0);
+  r.store.transaction = async () => { throw new Error('Unavailable'); };
+  assert.equal((await r.deliver(candidate)).status, 503);
+  assert.equal(r.rows.size, 0);
+});
+
+test('a smoke run requires the expiry subscription and a live site must first disable public checkout', async () => {
+  for (const live of [false, true]) {
+    const f = fixture(live);
+    f.webhook.enabled_events = f.webhook.enabled_events.filter(t => t !== 'checkout.session.expired');
+    const report = await preflight({ ...opts, smoke: true, mode: live ? 'live' : 'test' }, f);
+    assert.equal(status(report, 'webhook endpoint'), 'fail');
+    assert.equal(status(report, 'unopened Checkout'), 'skipped');
+    assert.equal(f.sessions.opened, undefined);
+  }
+  const f = fixture(true);
+  f.stagedLiveReceiver = async () => false;
+  const result = await preflight({ ...opts, mode: 'live', smoke: true }, f);
+  assert.equal(status(result, 'staged live receiver'), 'fail');
+  assert.equal(status(result, 'unopened Checkout'), 'skipped');
+  assert.equal(f.sessions.opened, undefined);
+  assert.throws(() => options([...args, '--verify-delivery', 'cs_test_not_a_digest']));
+  assert.throws(() => options([...args, '--verify-delivery', 'a'.repeat(64), '--smoke']));
+});
+
+test('table read restrictions remain distinct from a signed delivery', async () => {
+  const f = fixture();
+  f.readReceipt = async () => { throw new Error('private provider error'); };
+  const result = await preflight({ ...opts, 'verify-delivery': 'a'.repeat(64) }, f);
+  assert.equal(result.configurationVerified, true);
+  assert.equal(result.signedDeliveryVerified, false);
+  assert.equal(status(result, 'signed expiry delivery'), 'unverified');
+  assert.doesNotMatch(JSON.stringify(result), /private provider error/);
 });
