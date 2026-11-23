@@ -668,7 +668,12 @@
         :"The range could not finish loading. Try again to reopen this flight.";
     }finally{launchPending=false;button.disabled=false;flyLabel();}
   };
-  function flyLabel(){el("fly").lastChild.textContent=savedFlight()?"Resume flight":"Take flight";}
+  // The access-pass script owns "Unlock this world"; otherwise offer a saved flight back.
+  window.aerieFlyText=()=>savedFlight()?"Resume flight":"Take flight";
+  function flyLabel(){
+    const label=el("fly").lastChild;
+    if(label.textContent!=="Unlock this world")label.textContent=window.aerieFlyText();
+  }
 
   function resumeSaved(snapshot){
     forgetFlight();
@@ -762,6 +767,8 @@
   const resumeKey="aerie:resume",resumeFields=["x","y","z","yaw","airspeed","indicatedAirspeed","path","pitch","verticalSpeed","wingExtension"];
   function saveFlight(){
     if(!started||!dynamics||!world)return;
+    // A bird that has just hit terrain is not worth bringing back.
+    if(dynamics.state.contact){forgetFlight();return;}
     const s=dynamics.state,snapshot={at:Date.now(),region:el("worldPicker").value,launch:launchPicker.value,
       stage:perching?.stage||"free",elapsed,distance,state:{}};
     for(const key of resumeFields)if(Number.isFinite(s[key]))snapshot.state[key]=s[key];
@@ -772,6 +779,7 @@
     try{
       const snapshot=JSON.parse(localStorage.getItem(resumeKey)||"null");
       if(snapshot&&Date.now()-snapshot.at<45*60*1000&&snapshot.region===el("worldPicker").value&&
+        snapshot.launch===launchPicker.value&&
         resumeFields.slice(0,3).every(key=>Number.isFinite(snapshot.state?.[key])))return snapshot;
     }catch{}
     return null;
@@ -784,6 +792,7 @@
   window.addEventListener("pagehide",()=>{if(started)saveFlight();});
   flyLabel();
   el("worldPicker").addEventListener("change",flyLabel);
+  launchPicker.addEventListener("change",flyLabel);
   window.addEventListener("blur",resetInput);
   const viewport=el("viewport");
   function pickPerch(x,y){

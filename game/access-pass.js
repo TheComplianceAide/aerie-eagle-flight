@@ -25,7 +25,7 @@
     const canFly = region => region === freeWorld || pass.fullAccess || pass.worlds.includes(region);
     function refreshMenu() {
       const allowed = canFly(picker.value);
-      fly.lastChild.textContent = allowed ? 'Take flight' : 'Unlock this world';
+      fly.lastChild.textContent = allowed ? (window.aerieFlyText?.() || 'Take flight') : 'Unlock this world';
       for (const button of document.querySelectorAll('#worldList [data-choice]')) {
         button.dataset.pass = canFly(button.dataset.choice) ? 'open' : 'locked';
       }

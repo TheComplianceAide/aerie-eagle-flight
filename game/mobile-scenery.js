@@ -62,6 +62,15 @@
   function shrink(texture) {
     const image = texture.image, w = image?.naturalWidth || image?.width, h = image?.naturalHeight || image?.height;
     if (!w || !h || Math.max(w, h) <= limit || !mipmapped(texture)) return;
+    // A 2D canvas premultiplies alpha, which would erase the colour under any
+    // transparent or masked pixel. Images that use alpha keep their full size.
+    const probe = document.createElement('canvas'), side = 256;
+    probe.width = probe.height = side;
+    const look = probe.getContext('2d', {willReadFrequently: true});
+    if (!look) return;
+    look.drawImage(image, 0, 0, side, side);
+    const alpha = look.getImageData(0, 0, side, side).data;
+    for (let i = 3; i < alpha.length; i += 4) if (alpha[i] < 255) return;
     const scale = limit / Math.max(w, h);
     const canvas = document.createElement('canvas');
     canvas.width = Math.max(1, Math.round(w * scale)); canvas.height = Math.max(1, Math.round(h * scale));
