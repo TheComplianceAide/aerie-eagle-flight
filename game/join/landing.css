@@ -81,6 +81,17 @@ fieldset { padding: 0; border: 0; margin: 0; min-width: 0; }
 .button-glass { background: #12252371; border-color: #fbf2dd5c; backdrop-filter: blur(10px); }
 .button-outline:hover, .button-glass:hover { background: #f6e8c51a; border-color: #f6e8c595; }
 .play-symbol { border-block: 5px solid transparent; border-left: 8px solid var(--gold); }
+.device-guide {
+  display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .9rem;
+  margin-top: 1.35rem; color: #f7ecd6; text-shadow: 0 1px 8px #081412;
+}
+.device-guide p { margin: 0; font-size: .7rem; font-weight: 650; letter-spacing: .075em; text-transform: uppercase; }
+.device-guide ul { display: flex; flex-wrap: wrap; gap: .35rem .85rem; margin: 0; padding: 0; list-style: none; }
+.device-guide li { display: inline-flex; align-items: center; gap: .28rem; font-size: .78rem; font-weight: 600; }
+.device-guide svg {
+  width: 1.75rem; height: 1.45rem; color: var(--gold);
+  fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round;
+}
 .hero-footer {
   min-height: 56px; display: flex; align-items: center; justify-content: space-between;
   gap: 1rem; border-top: 1px solid var(--line); color: #e0e0d3; font-size: .77rem;
@@ -186,6 +197,7 @@ fieldset:disabled input, fieldset:disabled button, .button:disabled { opacity: .
   .toplinks .top-flight { padding-inline: 9px; }
   .hero-content .button { width: fit-content; }
   .hero-content .actions { gap: 8px; }
+  .device-guide { align-items: flex-start; flex-direction: column; }
   .signup .input-row { flex-wrap: wrap; }
   .signup .input-row input { flex-basis: 100%; }
 }
