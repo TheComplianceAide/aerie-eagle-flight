@@ -28,7 +28,12 @@
 <meta name="twitter:title" content="Aerie · Fly as an eagle">
 <meta name="twitter:description" content="Fly free as an eagle from Mount Major over Lake Winnipesaukee, New Hampshire.">
 <meta name="twitter:image" content="https://playaerie.com/join/media/share-card.jpg">
-<link rel="stylesheet" href="access-pass.css?v=pocket-tickets">
+<link rel="manifest" href="join/manifest.webmanifest">
+<link rel="apple-touch-icon" href="join/media/aerie-app-180.png">
+<link rel="stylesheet" href="access-pass.css?v=return-flights">
+<link rel="stylesheet" href="join/return-flight.css?v=1">
+<script defer src="join/save-aerie.js?v=return"></script>
+<script defer src="join/flight-reminder.js"></script>
 </head>
 <body><main id="app" data-mode="title">
 <div id="landscape" aria-hidden="true"></div><div id="viewport"></div><span id="steerCue" hidden aria-hidden="true"></span><div class="shade"></div>
@@ -45,10 +50,12 @@
     <a class="flight-buy" href="join/#passes" aria-label="Buy a flight ticket for all worlds and a gift copy"><span>Flight ticket<small>All worlds + a gift</small></span><b id="flightTicketPrice" aria-hidden="true">↗</b></a>
     <a class="flight-share" href="join/#invite" aria-label="Share with five friends or post to unlock five more worlds"><span>Share ticket<small>Share with 5 friends</small></span><b aria-hidden="true">+5</b></a>
   </div>
-</div><p id="summary"></p><button id="back" class="primary">Back</button><button id="end" class="secondary">Choose a world</button></section></div>
+</div><p id="summary"></p><button id="back" class="primary">Back</button><button id="end" class="secondary">Choose a world</button><nav class="after-flight" aria-label="Fly another day">
+  <a href="join/?return=1">Your flights</a><button type="button" data-install-aerie>Add app icon</button><button type="button" data-flight-reminder>Weekly reminder</button>
+</nav></section></div>
 <dialog id="graphicsRecovery" aria-labelledby="graphicsRecoveryTitle">
   <h2 id="graphicsRecoveryTitle">Restoring graphics</h2>
   <p>Your flight is paused while the browser reconnects to the graphics processor.</p>
   <button id="reloadGraphics" class="primary" type="button">Reload game</button>
 </dialog>
-</main><script src="three.min.js"></script><script src="mobile-scenery.js"></script><script src="flight-pointer.js"></script><script src="range-loader.js?v=0.34.0"></script><script src="perch-routes.js"></script><script src="game-ranges.js"></script><script src="access-pass.js?v=ticket-return"></script><script src="aerie-monitor.js?v=1"></script><script src="world-menu.js?v=mount-major"></script><script src="game-units.js"></script><script src="game.js?v=0.34.0-ticket-return"></script></body></html>
+</main><script src="three.min.js"></script><script src="mobile-scenery.js"></script><script src="flight-pointer.js"></script><script src="range-loader.js?v=0.34.0"></script><script src="perch-routes.js"></script><script src="game-ranges.js"></script><script src="access-pass.js?v=return-flights"></script><script src="aerie-monitor.js?v=1"></script><script src="world-menu.js?v=mount-major"></script><script src="game-units.js"></script><script src="game.js?v=0.34.0-return-flights"></script></body></html>

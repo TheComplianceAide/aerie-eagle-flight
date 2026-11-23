@@ -1,0 +1,26 @@
+.flight-deck { padding-block: clamp(1.5rem, 4vw, 3.5rem); }
+.flight-deck-header { display: flex; align-items: end; justify-content: space-between; flex-wrap: wrap; gap: .3rem 1.5rem; margin-bottom: 1rem; }
+.flight-deck-header h2 { font: 400 clamp(2rem, 4vw, 3.5rem)/1.03 var(--serif); }
+.flight-deck-tools, .after-flight { display: flex; gap: .2rem 1rem; flex-wrap: wrap; align-items: center; }
+.flight-deck-tools button, #last-departure, .after-flight :is(a,button) {
+  display: inline-flex; align-items: center; min-height: 44px; border: 0; padding: 0; background: none; color: #efd092;
+  font: 600 .86rem/1.35 system-ui,sans-serif; text-decoration: underline; text-underline-offset: .25em; cursor: pointer;
+}
+.daily-departure { min-height: clamp(14rem,28vw,24rem); overflow: hidden; position: relative; isolation: isolate; display: flex; align-items: end; border-radius: .4rem; background: #1d332f; color: #fff8eb; text-decoration: none; }
+.daily-departure > img, .daily-departure::before { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; }
+.daily-departure > img { object-fit: cover; object-position: center; }
+.daily-departure::before { content: ''; z-index: 0; background: linear-gradient(0deg, #091817e8, transparent 80%), linear-gradient(90deg, #0a181b66, transparent 78%); }
+.daily-caption { z-index: 1; display: grid; justify-items: start; padding: clamp(1.1rem,3.5vw,2.75rem); gap: .3rem; line-height: 1.35; }
+.daily-caption strong { font: 400 clamp(2.2rem,5.4vw,5.2rem)/1.02 var(--serif); letter-spacing: -.04em; }
+.daily-caption .daily-fly { font-size: .83rem; font-weight: 700; margin-top: .5rem; color: var(--gold); }
+.after-flight { display: none; margin-top: .6rem; }
+.modal[data-dialog="contact"] .after-flight, .modal[data-dialog="pause"] .after-flight { display: flex; }
+.after-flight :is(a,button) { color: #f8dfaa; }
+.save-aerie-dialog { position: fixed; inset: 0; box-sizing: border-box; width: min(91vw,28rem); max-height: 85svh; overflow: auto; margin: auto; padding: 1.6rem; border: 1px solid #bbaa7e; border-radius: 8px; background: #172a28; color: #fbf5e7; font: 1rem/1.45 system-ui,sans-serif; }
+.save-aerie-dialog::backdrop { background: #05100ed9; }
+.save-aerie-dialog h2 { margin: .55rem 0; font: 400 2rem/1.12 Georgia,serif; }
+.save-aerie-dialog img { display: block; border-radius: 12px; }
+.save-aerie-dialog .dialog-close { position: absolute; inset: .3rem .4rem auto auto; width: 44px; height: 44px; color: #f7eccf; background: none; border: 0; font: 1.6rem/1 system-ui; cursor: pointer; }
+.save-aerie-dialog .button { min-height: 44px; margin-top: .85rem; padding: .45rem .9rem; border: 0; border-radius: 4px; background: #efd092; color: #182622; cursor: pointer; }
+.save-aerie-dialog [role="status"] { overflow-wrap: anywhere; }
+@media(max-width:600px) { .flight-deck-tools { gap: 1.2rem; } .daily-caption strong { font-size: clamp(2rem,10vw,3.15rem); } }
