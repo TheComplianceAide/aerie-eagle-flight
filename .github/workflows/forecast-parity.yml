@@ -1,0 +1,39 @@
+name: Isolated forecast parity
+on:
+  push:
+    branches: [qa/self-hosted-forecast-parity]
+    paths: [.github/workflows/forecast-parity.yml, 'qa/weather/**']
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 14
+    env:
+      IMAGE: ghcr.io/open-meteo/open-meteo@sha256:5f23284824917315514aa356acf4184961d9be19f72b3c74b119faccdacd527f
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          sparse-checkout: /qa/weather/
+          sparse-checkout-cone-mode: false
+      - name: Pull pinned upstream release
+        run: time docker pull "$IMAGE"
+      - name: Run disposable weather server
+        run: |
+          docker run -d --name parity --memory=4g --cpus=2 --pids-limit=400 \
+            -p 127.0.0.1:8080:8080 -e CACHE_SIZE=1GB \
+            -e REMOTE_DATA_DIRECTORY=https://openmeteo.s3.amazonaws.com/data/ "$IMAGE"
+          for attempt in $(seq 1 35); do
+            if curl --silent --output /dev/null http://127.0.0.1:8080/; then exit 0; fi
+            sleep 1
+          done
+          docker logs --tail 20 parity
+          exit 1
+      - name: Compare the two providers and repeat from warm cache
+        run: python3 -u qa/weather/compare.py
+      - name: Remove server and temporary cache
+        if: always()
+        run: |
+          docker logs --tail 14 parity || true
+          docker rm -fv parity || true
