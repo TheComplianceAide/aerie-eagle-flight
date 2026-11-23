@@ -302,13 +302,11 @@
         typeof navigator.share !== 'function' || typeof navigator.canShare !== 'function') return;
     loadingPhoto = true;
     try {
-      const fileOptions = { type: 'image/jpeg' };
-      if (!navigator.canShare({ files: [new File([], photoDownload.download, fileOptions)] })) return;
       const response = await fetch(photoDownload.href);
       if (!response.ok) return;
       const blob = await response.blob();
-      if (blob.type !== fileOptions.type || !blob.size) return;
-      const photo = new File([blob], photoDownload.download, fileOptions);
+      if (blob.type !== 'image/jpeg' || !blob.size) return;
+      const photo = new File([blob], photoDownload.download, { type: blob.type });
       if (navigator.canShare({ files: [photo] })) {
         flightPhoto = photo;
         sharePhoto.hidden = false;
