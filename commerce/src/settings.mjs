@@ -42,6 +42,8 @@ export function configuration(env = process.env) {
   const storage = env.AERIE_BLOB_URL || '';
   const container = env.AERIE_PRIVATE_CONTAINER || '';
   const account = storage ? new URL(storage).hostname.split('.')[0] : '';
+  const sandboxEmail = (env.AERIE_SANDBOX_PURCHASE_EMAIL_RECIPIENT || '').trim().toLowerCase();
+  const validSandboxEmail = sandboxEmail.length <= 254 && /^[^\s@,<>]+@[^\s@,.<>]+(?:\.[^\s@,.<>]+)+$/.test(sandboxEmail);
   return {
     mode, live: mode === 'live', site: site?.origin || '', origins, rewards, secret,
     stripeKey, priceId: env.AERIE_STRIPE_PRICE_ID || '', webhookSecret: env.AERIE_STRIPE_WEBHOOK_SECRET || '',
@@ -50,7 +52,53 @@ export function configuration(env = process.env) {
     signup: env.AERIE_SIGNUP_ENABLED === 'true', checkout: env.AERIE_CHECKOUT_ENABLED === 'true',
     claims: env.AERIE_SHARE_CLAIMS_ENABLED === 'true',
     monitoring: env.AERIE_MONITORING_ENABLED === 'true',
-    purchaseHelp: env.AERIE_PURCHASE_HELP_ENABLED === 'true'
+    purchaseHelp: env.AERIE_PURCHASE_HELP_ENABLED === 'true',
+    purchaseEmails: env.AERIE_PURCHASE_EMAILS_ENABLED === 'true',
+    sandboxPurchaseEmail: validSandboxEmail ? sandboxEmail : ''
+  };
+}
+
+function emailOperations(endpoint, credential) {
+  const host = new URL(endpoint).origin;
+  const retryAfter = response => (Number(response?.headers.get('retry-after')) || 0) * 1000;
+  async function request(path, options = {}) {
+    try {
+      const signal = AbortSignal.timeout(12_000);
+      const { token } = await credential.getToken('https://communication.azure.com/.default', { abortSignal: signal });
+      return await fetch(`${host}${path}?api-version=2025-09-01`, {
+        ...options, signal, redirect: 'error',
+        headers: { Authorization: `Bearer ${token}`, ...options.headers }
+      });
+    } catch {
+      return null;
+    }
+  }
+  return {
+    async status(operationId) {
+      const response = await request(`/emails/operations/${operationId}`);
+      if (response?.status === 404) return { state: 'missing' };
+      if (!response?.ok) return { state: 'unknown', retryAfter: retryAfter(response) };
+      const { status } = await response.json();
+      if (status === 'Succeeded') return { state: 'accepted' };
+      if (status === 'Failed' || status === 'Canceled') return { state: 'failed' };
+      return { state: 'pending', retryAfter: retryAfter(response) };
+    },
+    async submit(message, operationId, firstSentAt) {
+      const response = await request('/emails:send', {
+        method: 'POST', body: JSON.stringify(message),
+        headers: {
+          'Content-Type': 'application/json',
+          'Operation-Id': operationId,
+          'Repeatability-Request-ID': operationId,
+          'Repeatability-First-Sent': new Date(firstSentAt).toUTCString()
+        }
+      });
+      const status = response?.status || 0;
+      const wait = retryAfter(response);
+      if (status === 202 || status === 409) return { state: 'pending', retryAfter: wait };
+      if (status === 429) return { state: 'throttled', retryAfter: wait };
+      return { state: status >= 400 && status < 500 ? 'failed' : 'unknown', retryAfter: wait };
+    }
   };
 }
 
@@ -66,6 +114,7 @@ export function configuredServices(config) {
   let keyExpires = 0;
   return {
     store, stripe,
+    purchaseEmailOperations: email && config.purchaseEmails ? emailOperations(config.emailUrl, credential) : null,
     sendEmail: email && (async (address, subject, { plainText, html }) => {
       const send = await email.beginSend({
         senderAddress: config.sender,

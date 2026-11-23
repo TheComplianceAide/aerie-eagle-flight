@@ -4,6 +4,12 @@ import { configuration, configuredServices } from './settings.mjs';
 
 const config = configuration();
 const commerce = createCommerce(config, configuredServices(config));
+if (commerce.purchaseMail.enabled) {
+  app.timer('aerie-purchase-confirmations', {
+    schedule: '0 */1 * * * *',
+    handler: (_timer, context) => commerce.purchaseMail.deliver(context)
+  });
+}
 for (const [name, [method]] of Object.entries(commerce.routes)) {
   app.http(`aerie-${name.replaceAll('/', '-')}`, {
     route: `aerie/${name}`,
