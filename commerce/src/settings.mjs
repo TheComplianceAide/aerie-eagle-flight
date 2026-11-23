@@ -70,7 +70,7 @@ function emailOperations(endpoint, credential) {
   async function request(path, options = {}) {
     try {
       const signal = AbortSignal.timeout(12_000);
-      const { token } = await credential.getToken('https://communication.azure.com/.default', { abortSignal: signal });
+      const { token } = await credential.getToken('https://communication.azure.com//.default', { abortSignal: signal });
       return await fetch(`${host}${path}?api-version=2025-09-01`, {
         ...options, signal, redirect: 'error',
         headers: { Authorization: `Bearer ${token}`, ...options.headers }
