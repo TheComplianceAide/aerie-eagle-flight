@@ -26,8 +26,15 @@
     try {
       const response = await fetch(api + path, opts);
       if (response.ok && response.headers.get('content-type')?.includes('application/json')) return await response.json();
-      throw new Error(response.status === 429 ? 'Too many attempts. Try again in a few minutes.' :
+      const error = new Error(response.status === 429 ? 'Too many attempts. Try again in a few minutes.' :
         'This could not be completed. Please try again.');
+      error.status = response.status;
+      if (path === '/restore/confirm' && response.headers.get('content-type')?.includes('application/json')) {
+        const details = await response.json().catch(() => null);
+        error.codeInvalid = details?.codeInvalid === true;
+        error.codeAttemptsExceeded = details?.codeAttemptsExceeded === true;
+      }
+      throw error;
     } finally {
       clearTimeout(timer);
     }
@@ -325,8 +332,12 @@
   const restoreDialog = byId('restore-dialog');
   const restoreIntro = byId('restore-intro');
   const restoreForm = byId('restore-form');
+  const confirmForm = byId('restore-confirm-form');
   const confirmRestore = byId('confirm-restore');
   const confirmMessage = byId('restore-confirm-message');
+  const restoreCodeField = byId('restore-code-field');
+  const restoreCode = byId('restore-code');
+  const requestRestoreAgain = byId('request-restore-again');
   const giftDetails = byId('gift-details');
   const giftMessage = byId('gift-message');
   const redeemGift = byId('redeem-gift');
@@ -337,9 +348,15 @@
   const giftInput = byId('gift-url');
   const playUnlocked = byId('play-unlocked');
   let status;
+  let statusRequest;
+  let statusCheckedAt = 0;
   let statusVersion = 0;
   let giftUrl;
   let restoreAvailable = false;
+  let codeRequired = false;
+  let confirmInProgress = false;
+  let confirmLocked = false;
+  let showRequestForm = false;
 
   function readGift(value) {
     try {
@@ -353,12 +370,17 @@
     const authenticated = status?.authenticated === true;
     const emailVerified = status?.emailVerified === true;
     const needsConfirmation = Boolean(restoreToken);
-    confirmRestore.hidden = !needsConfirmation;
-    confirmRestore.disabled = !restoreAvailable;
-    confirmMessage.hidden = !needsConfirmation;
-    restoreForm.hidden = needsConfirmation || (authenticated && !(pendingGift && !emailVerified));
-    restoreIntro.textContent = needsConfirmation ? 'Confirm that you want to open your Aerie access on this device.' :
-      pendingGift ? 'Verify your email to claim the pass a friend sent you.' :
+    confirmForm.hidden = !needsConfirmation;
+    confirmRestore.disabled = !restoreAvailable || confirmInProgress || confirmLocked;
+    confirmRestore.textContent = codeRequired ? 'Verify code' : 'Continue to Aerie';
+    restoreCodeField.hidden = !codeRequired;
+    restoreCode.disabled = !codeRequired || confirmRestore.disabled;
+    requestRestoreAgain.disabled = confirmInProgress;
+    restoreForm.hidden = needsConfirmation || (!showRequestForm && authenticated && !(pendingGift && !emailVerified));
+    restoreIntro.textContent = codeRequired ? 'Enter the 8-digit code from your Aerie access email.' :
+      needsConfirmation ? 'Confirm that you want to open your Aerie access on this device.' :
+      pendingGift ? (emailVerified ? 'Your email is verified. Redeem your gift to unlock all worlds.' :
+        'Verify your email to claim the pass a friend sent you.') :
       emailVerified ? 'Your email is verified on this device.' :
       authenticated ? 'Your Aerie access is open here. Use your checkout email to restore it on another device.' :
       'Use your purchase or claim email to restore access on this device.';
@@ -403,35 +425,86 @@
     if (focus) notice.focus();
   }
 
-  async function refreshStatus() {
+  function refreshStatus(afterMutation = false) {
+    if (statusRequest && !afterMutation) return statusRequest;
     const version = ++statusVersion;
-    let current;
-    try { current = await request('/status', undefined, 8000); } catch {}
-    if (version !== statusVersion) return;
-    status = current;
-    updateRestore();
-    updateCheckoutReturn();
+    statusRequest = request('/status', undefined, 8000).catch(() => null).then(current => {
+      if (version !== statusVersion) return;
+      status = current;
+      statusCheckedAt = Date.now();
+      updateRestore();
+      updateCheckoutReturn();
+      updateCheckoutOffer();
+    }).finally(() => {
+      if (version === statusVersion) statusRequest = null;
+    });
+    return statusRequest;
   }
 
-  confirmRestore.addEventListener('click', async () => {
-    confirmRestore.disabled = true;
+  requestRestoreAgain.addEventListener('click', () => {
+    restoreToken = null;
+    codeRequired = false;
+    confirmLocked = false;
+    showRequestForm = true;
+    restoreCode.value = '';
+    confirmMessage.textContent = '';
+    clearLinkParameter('restore');
+    updateRestore();
+    byId('restore-email').focus();
+  });
+
+  confirmForm.addEventListener('submit', async event => {
+    event.preventDefault();
+    if (confirmRestore.disabled || !restoreToken) return;
+    const payload = { token: restoreToken };
+    if (codeRequired) payload.code = restoreCode.value;
+    let focusCode = false;
+    confirmInProgress = true;
+    updateRestore();
     confirmMessage.textContent = 'Confirming your access…';
     try {
-      const result = await request('/restore/confirm', { token: restoreToken });
+      const result = await request('/restore/confirm', payload, 12000);
+      if (result.codeRequired === true && result.ok !== true) {
+        codeRequired = true;
+        focusCode = true;
+        confirmMessage.textContent = '';
+        return;
+      }
       if (result.ok !== true) throw new Error('This access link could not be confirmed.');
       if (typeof result.giftCode === 'string' && result.giftCode) {
         pendingGift = result.giftCode;
         try { sessionStorage.setItem(pendingGiftKey, pendingGift); } catch {}
       }
       restoreToken = null;
+      codeRequired = false;
+      restoreCode.value = '';
+      confirmMessage.textContent = '';
       clearLinkParameter('restore');
-      await refreshStatus();
-      if (!status?.authenticated) throw new Error('Please request a fresh access link.');
+      await refreshStatus(true);
+      if (!status?.authenticated) {
+        showRequestForm = true;
+        restoreForm.querySelector('.form-status').textContent = 'Request a new access link to open your worlds here.';
+      }
     } catch (error) {
-      confirmMessage.hidden = false;
-      confirmMessage.textContent = error.message;
-      confirmRestore.disabled = !restoreAvailable;
-      restoreForm.hidden = false;
+      if (error.codeInvalid) {
+        focusCode = true;
+        confirmMessage.textContent = 'That code didn’t match. Check the eight digits in your email and try again.';
+      } else if (error.codeAttemptsExceeded || error.status === 400) {
+        confirmLocked = true;
+        confirmMessage.textContent = error.codeAttemptsExceeded
+          ? 'Too many code attempts. Request a new access link.'
+          : 'This access link has expired or was already used. Request a new link.';
+      } else {
+        confirmMessage.textContent = error.name === 'AbortError' || error instanceof TypeError
+          ? 'Could not confirm your access. Try again.' : error.message;
+      }
+    } finally {
+      confirmInProgress = false;
+      updateRestore();
+      if (focusCode && !restoreCode.disabled) {
+        restoreCode.focus();
+        restoreCode.select();
+      }
     }
   });
 
@@ -442,7 +515,7 @@
       if (result.ok !== true) throw new Error('This gift could not be redeemed.');
       pendingGift = null;
       try { sessionStorage.removeItem(pendingGiftKey); } catch {}
-      await refreshStatus();
+      await refreshStatus(true);
       if (status?.fullAccess === true) giftMessage.textContent = 'Gift redeemed. All worlds are ready to fly.';
     } catch (error) {
       giftMessage.textContent = error.message;
@@ -480,6 +553,8 @@
 
   const checkoutLaunch = byId('checkout-launch');
   const checkoutAvailability = byId('checkout-availability');
+  const checkoutMerchant = byId('checkout-merchant');
+  const flightPrice = byId('flight-price');
   const purchaseDialog = byId('purchase-dialog');
   const purchaseFields = byId('purchase-form').querySelector('fieldset');
   let checkoutConfig;
@@ -499,6 +574,34 @@
       'One-time payment. Applicable tax shown at checkout.';
   }
 
+  function updateCheckoutOffer() {
+    const owned = status?.fullAccess === true;
+    const available = enabled(checkoutConfig, 'checkout');
+    const testCheckout = available && checkoutConfig.checkoutMode === 'test';
+    byId('checkout-label').textContent = owned ? 'Open your pass' : testCheckout ? 'Open test checkout' : 'Buy Founder Pass';
+    byId('pass-restore').hidden = owned;
+    checkoutMerchant.hidden = owned || !available;
+    flightPrice.hidden = owned;
+    if (!checkoutBusy) {
+      checkoutAvailability.textContent = owned ? 'All worlds are unlocked on this device.'
+        : checkoutConfig === undefined ? 'Checking Stripe checkout availability…' : checkoutNote(checkoutConfig);
+    }
+  }
+
+  function openOwnedPass() {
+    if (status?.fullAccess !== true) return false;
+    if (checkoutBusy) setCheckoutBusy(false);
+    if (purchaseDialog.open) purchaseDialog.close();
+    updateRestore();
+    updateCheckoutOffer();
+    show(restoreDialog);
+    return true;
+  }
+
+  function checkCheckoutAccess() {
+    return statusRequest || (Date.now() - statusCheckedAt >= 30000 ? refreshStatus() : null);
+  }
+
   function loadConfig() {
     if (!configRequest) {
       configRequest = request('/config', undefined, 8000).catch(() => null).then(config => {
@@ -506,20 +609,18 @@
         for (const form of forms) {
           const name = form.dataset.form;
           const available = enabled(config, configKeys[name]);
-          form.querySelector('fieldset').disabled = !available;
+          form.querySelector('fieldset').disabled = !available || (name === 'checkout' && checkoutBusy);
           form.querySelector('.form-status').textContent = available ? '' : fields[name].unavailable;
         }
         restoreAvailable = enabled(config, 'restore');
         updateRestore();
         const testCheckout = enabled(config, 'checkout') && config.checkoutMode === 'test';
-        byId('checkout-merchant').hidden = !enabled(config, 'checkout');
-        byId('checkout-label').textContent = testCheckout ? 'Open test checkout' : 'Buy Founder Pass';
         byId('purchase-mode-note').hidden = !testCheckout;
         if (enabled(config, 'checkout')) {
-          byId('flight-price').textContent = typeof config.priceLabel === 'string' && config.priceLabel
+          flightPrice.textContent = typeof config.priceLabel === 'string' && config.priceLabel
             ? config.priceLabel + ' for both passes' : 'One-time purchase';
         }
-        checkoutAvailability.textContent = checkoutNote(config);
+        updateCheckoutOffer();
         return config;
       }).finally(() => { configRequest = null; });
     }
@@ -552,13 +653,16 @@
   }
 
   checkoutLaunch.addEventListener('click', async () => {
-    if (checkoutBusy) return;
+    if (checkoutBusy || openOwnedPass()) return;
     const attempt = setCheckoutBusy(true);
-    checkoutAvailability.textContent = 'Checking Stripe checkout…';
-    const config = enabled(checkoutConfig, 'checkout') ? checkoutConfig : await loadConfig();
-    if (attempt !== checkoutAttempt) return;
+    checkoutAvailability.textContent = 'Checking your Aerie access…';
+    const [config] = await Promise.all([
+      enabled(checkoutConfig, 'checkout') ? checkoutConfig : loadConfig(), checkCheckoutAccess()
+    ]);
+    if (attempt !== checkoutAttempt || openOwnedPass()) return;
     if (!enabled(config, 'checkout')) {
       setCheckoutBusy(false);
+      updateCheckoutOffer();
       return;
     }
     if (!enabled(config, 'checkoutCollectsEmail')) {
@@ -578,7 +682,7 @@
   window.addEventListener('pageshow', event => {
     if (!event.persisted || !checkoutBusy) return;
     setCheckoutBusy(false);
-    checkoutAvailability.textContent = checkoutNote(checkoutConfig);
+    updateCheckoutOffer();
     if (purchaseDialog.open) purchaseDialog.close();
     updateCheckoutReturn(true);
     refreshStatus();
@@ -606,8 +710,11 @@
       const payload = Object.fromEntries(new FormData(form));
       for (const key of Object.keys(payload)) payload[key] = payload[key].trim();
       if (name === 'checkout') {
-        if (checkoutBusy) return;
+        if (checkoutBusy || openOwnedPass()) return;
         const attempt = setCheckoutBusy(true);
+        output.textContent = 'Checking your Aerie access…';
+        await checkCheckoutAccess();
+        if (attempt !== checkoutAttempt || openOwnedPass()) return;
         await openStripeCheckout(payload, output, attempt);
         return;
       }
@@ -639,6 +746,6 @@
   updateRestore();
   updateCheckoutReturn(Boolean(checkoutState));
   loadConfig();
-  if (checkoutState || pendingGift || restoreToken) refreshStatus();
+  refreshStatus();
   if (pendingGift || restoreToken) show(restoreDialog);
 })();

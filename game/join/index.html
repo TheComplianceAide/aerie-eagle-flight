@@ -26,8 +26,8 @@
   <meta name="twitter:image" content="https://playaerie.com/join/media/share-card.jpg">
   <meta name="twitter:image:alt" content="An eagle above Mount Major and Lake Winnipesaukee in Aerie.">
   <link rel="preload" href="media/mount-major.webp" as="image">
-  <link rel="stylesheet" href="landing.css?v=checkout-recovery">
-  <script defer src="landing.js?v=checkout-recovery"></script>
+  <link rel="stylesheet" href="landing.css?v=restore-code">
+  <script defer src="landing.js?v=restore-code"></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -200,6 +200,7 @@
             <button class="button button-gold" id="checkout-launch" type="button" aria-describedby="flight-price checkout-merchant checkout-availability"><span id="checkout-label">Buy Founder Pass</span><span aria-hidden="true">↗</span></button>
             <p class="checkout-merchant" id="checkout-merchant" hidden>Secure checkout by Stripe. The merchant is The ComplianceAide.</p>
             <span id="checkout-availability" class="availability" role="status">Checking Stripe checkout availability…</span>
+            <div class="pass-restore" id="pass-restore">Already have a pass? <button class="text-link" type="button" data-open="restore">Restore access</button></div>
           </div>
         </article>
       </div>
@@ -301,8 +302,17 @@
     <button class="dialog-close" type="button" data-close aria-label="Close purchase recovery">×</button>
     <h2 id="restore-title">Restore access</h2>
     <p id="restore-intro">Use the email address from your purchase or share claim. We’ll send a link to open your worlds on this device.</p>
-    <button class="button button-gold" type="button" id="confirm-restore" hidden disabled>Continue to Aerie</button>
-    <p id="restore-confirm-message" class="form-status" role="status" aria-live="polite" hidden></p>
+    <form id="restore-confirm-form" hidden>
+      <div id="restore-code-field" hidden>
+        <label for="restore-code">Code from your email</label>
+        <input id="restore-code" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{8}" maxlength="8" required disabled aria-describedby="restore-confirm-message">
+      </div>
+      <div class="restore-confirm-actions">
+        <button class="button button-gold" type="submit" id="confirm-restore" disabled>Continue to Aerie</button>
+        <button class="text-link" type="button" id="request-restore-again">Request a new access link</button>
+      </div>
+      <p id="restore-confirm-message" class="form-status" role="status" aria-live="polite"></p>
+    </form>
     <form id="restore-form" data-form="restore">
       <fieldset disabled>
         <label for="restore-email">Email address</label>
