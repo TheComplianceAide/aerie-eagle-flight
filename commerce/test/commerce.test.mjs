@@ -332,6 +332,30 @@ test('checkout return verifies exact purchase and single fulfillment survives we
   assert.deepEqual((await call('status', { cookie: bought.cookie })).jsonBody.worlds, allWorlds);
 });
 
+test('a paid webhook is retried until its order can be verified without a browser return', async () => {
+  const { call, dispatch, rows, checkouts } = fixture();
+  await call('checkout', { body: { email: 'closed-tab@example.test' } });
+  const [checkout] = checkouts.values();
+  const key = 'pending:' + checkout.client_reference_id;
+  const order = rows.get(key);
+  rows.delete(key);
+  const report = () => dispatch('checkout.session.completed', { id: checkout.id });
+  assert.equal((await report()).jsonBody.ok, true); // Unpaid session.
+  checkout.payment_status = 'paid';
+  checkout.metadata.product = 'unrelated';
+  assert.equal((await report()).jsonBody.ok, true);
+  checkout.metadata.product = 'aerie-founder-and-gift';
+  assert.equal((await report()).status, 503);
+  assert.equal(rows.has('purchase:' + checkout.id), false);
+
+  rows.set(key, order);
+  assert.equal((await report()).jsonBody.ok, true);
+  rows.delete(key);
+  assert.equal((await report()).jsonBody.ok, true); // Duplicate of a durable purchase.
+  assert.equal([...rows.keys()].filter(k => k.startsWith('purchase:')).length, 1);
+  assert.equal([...rows.keys()].filter(k => k.startsWith('gift:')).length, 1);
+});
+
 test('static checkout returns recover only their own paid order, including after the checkout cookie is consumed', async () => {
   const { call, rows, checkouts, sessions } = fixture();
   const first = await call('checkout', { body: { email: 'first@example.test' } });

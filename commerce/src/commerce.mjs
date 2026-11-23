@@ -343,7 +343,8 @@ export function createCommerce(config, { store, stripe, sendEmail, purchaseEmail
         checkout.metadata?.product !== 'aerie-founder-and-gift' || !/^[0-9a-f]{64}$/.test(reference || '') ||
         (expectedReference && reference !== expectedReference)) return null;
     const pending = await store.get(`pending:${reference}`);
-    if (!pending || lines?.has_more || lines?.data?.length !== 1 || lines.data[0].quantity !== 1 ||
+    if (!pending) return checkout.payment_status === 'paid' ? { missingPaidOrder: true } : null;
+    if (lines?.has_more || lines?.data?.length !== 1 || lines.data[0].quantity !== 1 ||
         lines.data[0].price?.id !== pending.priceId || checkout.amount_subtotal !== pending.amount ||
         checkout.currency !== pending.currency) return null;
     if (checkout.payment_status !== 'paid') return { paid: false };
@@ -465,7 +466,11 @@ export function createCommerce(config, { store, stripe, sendEmail, purchaseEmail
     }
     if (event.livemode !== config.live) throw new HttpError(400, 'Stripe event mode does not match.');
     if (['checkout.session.completed', 'checkout.session.async_payment_succeeded'].includes(event.type)) {
-      await fulfill(event.data.object.id);
+      const id = event.data.object.id;
+      const result = await fulfill(id);
+      if (result?.missingPaidOrder && !(await store.get(`purchase:${id}`))) {
+        throw new HttpError(503, 'The paid checkout is awaiting its order record.');
+      }
     } else if (['charge.refunded', 'charge.dispute.created', 'charge.dispute.closed'].includes(event.type)) {
       await changePayment(event);
     }
