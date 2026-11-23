@@ -612,6 +612,7 @@
       updateWeather=await window.makeMovingWeather(THREE,scene,world);
       updateOptics=window.addAtmosphericOptics(THREE,scene,world);
       if(region==='acadia')window.lightAcadiaNight(THREE,scene,world);
+      window.prepareTerrainTextures(THREE,renderer,scene,region);
       terrainShadows=window.makeTerrainShadows(THREE,renderer,scene,world);
       await window.prepareFlightMaterials(THREE,renderer,scene,camera);
       const departingCanopy=canopy;
