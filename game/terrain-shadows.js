@@ -3,7 +3,8 @@
 window.makeTerrainShadows=function makeTerrainShadows(T,renderer,scene,world){
   if(new URLSearchParams(location.search).get('terrainShadows')==='off')return null;
   const hardware=renderer.capabilities.isWebGL2;
-  const tile=Math.min(2048,Math.floor(renderer.capabilities.maxTextureSize/2));
+  // Phones: a 2048 x 1024 atlas (10 MB) instead of 4096 x 2048 (40 MB) of GPU memory.
+  const tile=Math.min(matchMedia('(pointer: coarse)').matches?1024:2048,Math.floor(renderer.capabilities.maxTextureSize/2));
   const atlas=new T.WebGLRenderTarget(2*tile,tile,{
     // WebGL 2 samples the depth attachment. Its unused color attachment only
     // needs one byte per pixel. WebGL 1 still packs depth into all four channels.
