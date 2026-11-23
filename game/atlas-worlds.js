@@ -1945,6 +1945,9 @@ class Water extends Mesh {
   // A local wharf repair must not change the random draw order for the rest of
   // Maine's infill forest. Test its pre-existing regional elevation, then move
   // eligible local roots to the measured ground after their draw is complete.
+  // Generated infill is most of a range's trees (about a million at Winnipesaukee);
+  // each one is a JS record plus instance data, which a phone tab cannot hold.
+  const phoneInfill=matchMedia('(pointer: coarse)').matches?.5:0,phoneInfillWidth=phoneInfill?Math.sqrt(1/phoneInfill)*.9:1;
   const infillHeight=repairedLanding?(x,z)=>repairedLanding.edge(x,z)>0?regionalElevation(x,z,true):elevation(x,z):elevation;
   for(let z=-h;z<h && (region!=='yosemite'||!crownPoints);z+=treeSpacing)for(let x=-h;x<h;x+=treeSpacing){
     const px=x+rand()*treeSpacing,pz=z+rand()*treeSpacing,y=infillHeight(px,pz);
@@ -1966,6 +1969,13 @@ class Water extends Mesh {
       const isFir=newEngland?rand()<clamp(firFraction+.10*Math.sin(tx*.006+tz*.0017)*Math.cos(tz*.004),0,1):conifer;
       const width=height*(isFir?.30+.19*rand():newEngland?.77+.32*rand():.68+.44*rand());
       const tree={x:tx,y:ty,z:tz,height,width,seed:rand()};
+      // Phones keep half of the generated infill (surveyed crowns are untouched).
+      // The choice hashes the position, so the random draw order and the layout
+      // of every kept tree match the desktop forest; kept crowns widen to hold cover.
+      if(phoneInfill){
+        if(((Math.imul(Math.floor(tx*7.31)^Math.imul(Math.floor(tz*3.17),0x9E3779B1),0x85EBCA6B)>>>0)/4294967296)>=phoneInfill)continue;
+        tree.width*=phoneInfillWidth;
+      }
       if(repairedLanding?.edge(tx,tz)>0){
         tree.y=elevation(tx,tz);if(wetGround(tx,tz,tree.y,.8))continue;
       }
