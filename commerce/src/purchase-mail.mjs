@@ -48,15 +48,17 @@ function confirmation(config, purchase, recipient, site) {
 
 export function createPurchaseMail(config, { store, operations, now }) {
   const enabled = Boolean(config.purchaseEmails && config.site && config.sender && store && operations &&
-    (config.live || config.sandboxPurchaseEmail));
+    (config.live || (config.sandboxPurchaseEmail && config.sandboxPurchaseTestPayer)));
 
   function enqueue(purchase, buyerEmail, site) {
     if (!enabled || purchase.currency !== 'usd' || !Number.isSafeInteger(purchase.amountTotal) || purchase.amountTotal < 0) return null;
+    if (!config.live && buyerEmail !== config.sandboxPurchaseTestPayer) return null;
     const recipient = config.live ? buyerEmail : config.sandboxPurchaseEmail;
     return {
       rowKey: `purchase-mail:${purchase.checkoutId}`,
       paymentIntent: purchase.paymentIntent,
       message: JSON.stringify(confirmation(config, purchase, recipient, site)),
+      ...(!config.live && { sandboxPayer: buyerEmail }),
       queuedAt: now(),
       nextAt: now(),
       state: 'queued',
@@ -90,7 +92,8 @@ export function createPurchaseMail(config, { store, operations, now }) {
     const job = await store.get(entry.rowKey);
     if (job?.leaseId !== leaseId) return;
     const message = JSON.parse(job.message);
-    if (!config.live && message.recipients.to[0].address !== config.sandboxPurchaseEmail) {
+    if (!config.live && (message.recipients.to[0].address !== config.sandboxPurchaseEmail ||
+        job.sandboxPayer !== config.sandboxPurchaseTestPayer)) {
       await finish(job, 'canceled', context);
       return;
     }

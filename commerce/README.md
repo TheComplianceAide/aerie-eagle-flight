@@ -30,7 +30,8 @@ Run `npm ci` and `npm test` with Node.js 22 or later. The tests use the official
 | `AERIE_PURCHASE_HELP_ENABLED` | Enable private purchase help after verifying owner alerting and Table Storage access. |
 | `AERIE_MONITORING_ENABLED` | Enable sanitized startup, script, graphics and promise error intake from the game origins. |
 | `AERIE_PURCHASE_EMAILS_ENABLED` | Enable confirmations for newly verified payments. Default off. Access and buyer receipt links work independently of email. |
-| `AERIE_SANDBOX_PURCHASE_EMAIL_RECIPIENT` | One explicitly approved address for redirected purchase confirmations in test mode. An empty setting suppresses test confirmations. Keep the address private in app settings. |
+| `AERIE_SANDBOX_PURCHASE_EMAIL_RECIPIENT` | One explicitly approved inbox for the authorized sandbox buyer's confirmation. Keep the address private in app settings. |
+| `AERIE_SANDBOX_PURCHASE_TEST_PAYER` | Exact reserved buyer email to accept for sandbox delivery, using an `example.com`, `example.net`, or `example.org` address. Both sandbox settings are required. |
 
 Azure Functions host settings such as `AzureWebJobsStorage` and `FUNCTIONS_WORKER_RUNTIME=node` are supplied separately by Azure. Use a low-cost Functions consumption plan and have an ingress rate-limit policy for email link requests before opening to the public. Set retention handling for old email-link, pending-checkout, session, and review records according to the business's data retention needs. Signups are stored as contact opt-ins; mailing campaigns are separate.
 

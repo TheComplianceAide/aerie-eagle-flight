@@ -185,7 +185,8 @@ test('the verified buyer gets a Stripe receipt and one exact sandbox confirmatio
   const submitted = [];
   const { app, call, checkouts, dispatch, restore, rows } = fixture({
     now: () => time,
-    config: { purchaseEmails: true, sender: 'aerie@example.test', sandboxPurchaseEmail: 'qa@example.test' },
+    config: { purchaseEmails: true, sender: 'aerie@example.test', sandboxPurchaseEmail: 'qa@example.test',
+      sandboxPurchaseTestPayer: 'synthetic-buyer@example.com' },
     purchaseEmailOperations: {
       submit: async (message, operationId, date) => {
         submitted.push({ message, operationId, date });
@@ -194,7 +195,7 @@ test('the verified buyer gets a Stripe receipt and one exact sandbox confirmatio
       status: async () => ({ state: 'accepted' })
     }
   });
-  const started = await call('checkout', { body: { email: 'synthetic-buyer@example.test' }, origin: alias });
+  const started = await call('checkout', { body: { email: 'synthetic-buyer@example.com' }, origin: alias });
   const checkout = [...checkouts.values()][0];
   checkout.payment_status = 'paid';
   const finish = () => call('checkout/complete', {
@@ -249,6 +250,24 @@ test('receipt lookup is buyer-only for historic purchases and sandbox email requ
   assert.equal([...rows.keys()].some(key => key.startsWith('purchase-mail:')), false);
 });
 
+test('sandbox redirects only the configured reserved payer and offers normal access to other sandbox purchases', async () => {
+  const approved = 'authorized-checkout@example.com';
+  assert.equal(configuration({ AERIE_SANDBOX_PURCHASE_TEST_PAYER: 'Someone@nonreserved.example' }).sandboxPurchaseTestPayer, '');
+  assert.equal(configuration({ AERIE_SANDBOX_PURCHASE_TEST_PAYER: ' Authorized-Checkout@Example.com ' }).sandboxPurchaseTestPayer, approved);
+  const { app, buy, call, rows } = fixture({
+    config: { purchaseEmails: true, sender: 'aerie@example.test', sandboxPurchaseEmail: 'qa@example.test',
+      sandboxPurchaseTestPayer: approved },
+    purchaseEmailOperations: { submit: async () => assert.fail('Unapproved sandbox purchase was sent') }
+  });
+  assert.equal(app.purchaseMail.enabled, true);
+  const unrelated = await buy('different-payer@example.com');
+  const buyer = await call('status', { cookie: unrelated.cookie });
+  assert.equal(buyer.jsonBody.fullAccess, true);
+  assert.equal(buyer.jsonBody.receiptUrl, receiptFixture);
+  assert.equal([...rows.keys()].some(key => key.startsWith('purchase-mail:')), false);
+  await app.purchaseMail.deliver();
+});
+
 test('a live confirmation targets the final verified Stripe email and skips an unsafe receipt URL', async () => {
   const { call, checkouts, dispatch, rows } = fixture({
     config: { mode: 'live', live: true, purchaseEmails: true, sender: 'aerie@example.test', sandboxPurchaseEmail: 'qa@example.test' },
@@ -272,13 +291,14 @@ test('an ambiguous send is retried with the same provider operation and never re
   const submissions = [];
   const { app, buy, rows } = fixture({
     now: () => time,
-    config: { purchaseEmails: true, sender: 'aerie@example.test', sandboxPurchaseEmail: 'qa@example.test' },
+    config: { purchaseEmails: true, sender: 'aerie@example.test', sandboxPurchaseEmail: 'qa@example.test',
+      sandboxPurchaseTestPayer: 'retry-buyer@example.com' },
     purchaseEmailOperations: {
       submit: async (...args) => { submissions.push(args); return { state: 'unknown' }; },
       status: async () => ({ state: 'missing' })
     }
   });
-  const paid = await buy('retry-buyer@example.test');
+  const paid = await buy('retry-buyer@example.com');
   await app.purchaseMail.deliver();
   time += 60_000;
   await app.purchaseMail.deliver();
@@ -295,7 +315,8 @@ test('a definitively throttled initial send retries later with a new provider op
   const submissions = [];
   const { app, buy, call, rows } = fixture({
     now: () => time,
-    config: { purchaseEmails: true, sender: 'aerie@example.test', sandboxPurchaseEmail: 'qa@example.test' },
+    config: { purchaseEmails: true, sender: 'aerie@example.test', sandboxPurchaseEmail: 'qa@example.test',
+      sandboxPurchaseTestPayer: 'throttled-buyer@example.com' },
     purchaseEmailOperations: {
       submit: async (_message, operationId) => {
         submissions.push(operationId);
@@ -304,7 +325,7 @@ test('a definitively throttled initial send retries later with a new provider op
       status: async () => ({ state: 'accepted' })
     }
   });
-  const paid = await buy('throttled-buyer@example.test');
+  const paid = await buy('throttled-buyer@example.com');
   await app.purchaseMail.deliver();
   const status = await call('status', { cookie: paid.cookie });
   assert.equal(status.jsonBody.fullAccess, true);

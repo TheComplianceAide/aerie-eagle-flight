@@ -11,6 +11,11 @@ export const allWorlds = [
 ];
 const defaultRewards = ['moosehead', 'canyon', 'labrador', 'alaska', 'acadia'];
 
+function configuredEmail(value = '') {
+  const email = value.trim().toLowerCase();
+  return email.length <= 254 && /^[^\s@,<>]+@[^\s@,.<>]+(?:\.[^\s@,.<>]+)+$/.test(email) ? email : '';
+}
+
 export function configuration(env = process.env) {
   const mode = env.AERIE_STRIPE_MODE || 'test';
   if (!['test', 'live'].includes(mode)) throw new Error('AERIE_STRIPE_MODE must be test or live.');
@@ -42,8 +47,8 @@ export function configuration(env = process.env) {
   const storage = env.AERIE_BLOB_URL || '';
   const container = env.AERIE_PRIVATE_CONTAINER || '';
   const account = storage ? new URL(storage).hostname.split('.')[0] : '';
-  const sandboxEmail = (env.AERIE_SANDBOX_PURCHASE_EMAIL_RECIPIENT || '').trim().toLowerCase();
-  const validSandboxEmail = sandboxEmail.length <= 254 && /^[^\s@,<>]+@[^\s@,.<>]+(?:\.[^\s@,.<>]+)+$/.test(sandboxEmail);
+  const sandboxPurchaseEmail = configuredEmail(env.AERIE_SANDBOX_PURCHASE_EMAIL_RECIPIENT);
+  const testPayer = configuredEmail(env.AERIE_SANDBOX_PURCHASE_TEST_PAYER);
   return {
     mode, live: mode === 'live', site: site?.origin || '', origins, rewards, secret,
     stripeKey, priceId: env.AERIE_STRIPE_PRICE_ID || '', webhookSecret: env.AERIE_STRIPE_WEBHOOK_SECRET || '',
@@ -54,7 +59,8 @@ export function configuration(env = process.env) {
     monitoring: env.AERIE_MONITORING_ENABLED === 'true',
     purchaseHelp: env.AERIE_PURCHASE_HELP_ENABLED === 'true',
     purchaseEmails: env.AERIE_PURCHASE_EMAILS_ENABLED === 'true',
-    sandboxPurchaseEmail: validSandboxEmail ? sandboxEmail : ''
+    sandboxPurchaseEmail,
+    sandboxPurchaseTestPayer: /@example\.(?:com|net|org)$/.test(testPayer) ? testPayer : ''
   };
 }
 
