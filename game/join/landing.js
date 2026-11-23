@@ -825,11 +825,21 @@
     byId('hero-ticket-price').textContent = price;
     flightPrice.textContent = price;
     const mode = checkoutConfig?.checkoutMode;
-    const note = mode === 'test' ? 'Preview checkout. Test cards only. No charge.' :
+    const liveLink = mode === 'live' && checkoutConfig.checkout === true &&
+      checkoutConfig.checkoutProvider === 'payment_link' && checkoutConfig.checkoutLinkVerified === true;
+    const heroNote = byId('hero-purchase-mode');
+    const ticketRow = heroCheckout.parentElement;
+    if (liveLink && !owned && !unconfirmedReturn) {
+      if (heroNote.parentElement !== ticketRow) heroCheckout.after(heroNote);
+    } else if (heroNote.parentElement === ticketRow) {
+      ticketRow.after(heroNote);
+    }
+    const note = liveLink ? 'Stripe will show The ComplianceAide, publisher of Aerie.' :
+      mode === 'test' ? 'Preview checkout. Test cards only. No charge.' :
       mode === 'live' ? 'Sold by The ComplianceAide, maker of Aerie.' : '';
     for (const element of document.querySelectorAll('[data-offer-note]')) {
-      element.textContent = note;
       element.hidden = !note || !available || owned || unconfirmedReturn;
+      element.textContent = element.hidden ? '' : note;
     }
     byId('preview-owned').hidden = !owned || mode !== 'test';
     byId('pass-restore').hidden = owned || unconfirmedReturn;
