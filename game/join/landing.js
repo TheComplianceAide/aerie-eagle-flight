@@ -858,6 +858,7 @@
     if (!configRequest) {
       configRequest = request('/config', undefined, 8000).catch(() => null).then(config => {
         checkoutConfig = config;
+        window.dispatchEvent(new CustomEvent('aerie:traffic-config', { detail: config?.traffic === true }));
         for (const form of forms) {
           const name = form.dataset.form;
           const available = name === 'share-claim' ? shareOfferAvailable(config) : enabled(config, configKeys[name]);
@@ -896,6 +897,7 @@
       if (attempt !== checkoutAttempt) return;
       const destination = new URL(url);
       if (destination.origin !== 'https://checkout.stripe.com') throw new Error('Checkout is unavailable right now.');
+      window.dispatchEvent(new Event('aerie:checkout-handoff'));
       location.assign(destination.href);
       rememberCheckout('started');
     } catch (error) {

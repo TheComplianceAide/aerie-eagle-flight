@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="../landing.css">
   <link rel="stylesheet" href="../help/help.css">
   <link rel="stylesheet" href="policies.css">
+  <script src="../traffic.js?v=1" data-traffic-page="privacy" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#terms">Skip to ticket terms</a>
@@ -36,6 +37,15 @@
       <p>The ComplianceAide operates Aerie. Your browser remembers flight preferences and your last departure. We use first-party cookies to recognize your ticket and sharing rewards. Clearing browser data can remove local progress and guest rewards.</p>
       <p>Stripe collects payment details. If you choose wallet checkout for Google Pay, Stripe also asks for an address to calculate tax on your digital ticket. Aerie uses your checkout email and payment references to deliver tickets, send your confirmation, verify access and handle refunds. We use Microsoft Azure for hosting, access records, transactional email and crash reports. A crash report can include the world, device platform, frame rate and graphics counts to help us diagnose a failed flight.</p>
       <p>If you submit a public post for review, we store the link and review result. For a private share, you select the recipients in your own messaging app. Aerie receives your confirmation. Support requests include the message and reply address you enter. Joining the flight-notes email list is optional.</p>
+      <section id="traffic-privacy" aria-labelledby="traffic-privacy-title">
+        <h3 id="traffic-privacy-title">Optional traffic analytics</h3>
+        <p>If you allow analytics, Aerie remembers a random browser ID for up to 90 days to count browsers across visits. We record a general referral source, visits to the landing page, flight starts and handoffs to Stripe checkout. Aerie stores the records in its Azure account for 90 days and reports totals. The analytics records contain no email addresses, payment information or full referring links.</p>
+        <p>Analytics is optional. You can change your choice here at any time. Turning it off clears the browser’s analytics ID and stops future recording.</p>
+        <div id="traffic-settings" hidden>
+          <button type="button" id="traffic-toggle" class="button button-outline">Allow analytics</button>
+          <p id="traffic-status" role="status"></p>
+        </div>
+      </section>
       <p>Contact us to ask what information we hold, request a correction or deletion, or leave the email list. We may need to verify your request and keep records required for transactions or by law. You can also read <a href="https://stripe.com/privacy">Stripe’s privacy policy</a>.</p>
     </section>
     <section id="contact" aria-labelledby="contact-title">
