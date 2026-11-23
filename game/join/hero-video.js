@@ -3,6 +3,7 @@
 
   const format = 'video/mp4; codecs="avc1.64001f"';
   const segmentCount = 61;
+  const startupSegments = 2;
   const bufferAheadSeconds = 4;
   const fallbackDelayMs = 6000;
 
@@ -57,7 +58,10 @@
 
       fetching = true;
       try {
-        const response = await fetch(video.dataset.segments + nextSegment + '.mp4', { signal: requests.signal });
+        const response = await fetch(video.dataset.segments + nextSegment + '.mp4', {
+          signal: requests.signal,
+          priority: nextSegment < startupSegments ? 'high' : 'auto'
+        });
         if (!response.ok) throw new Error('Background video segment could not be loaded.');
         const bytes = await response.arrayBuffer();
         if (!source) return;
@@ -79,7 +83,10 @@
             buffer = source.addSourceBuffer(format);
             // Match the original timeline after the stream-copy muxer shifted the decode timestamps.
             buffer.timestampOffset = -2 / 24;
-            buffer.addEventListener('updateend', fillBuffer);
+            buffer.addEventListener('updateend', () => {
+              if (active && nextSegment === startupSegments) play();
+              fillBuffer();
+            });
             buffer.addEventListener('error', useOriginal);
             fillBuffer();
           } catch {
@@ -119,7 +126,8 @@
         else return useOriginal();
       }
       if (source && video.readyState < HTMLMediaElement.HAVE_FUTURE_DATA) watchForStall();
-      play();
+      // The first fragment alone is too short to show motion while the next one downloads.
+      if (!source || (nextSegment >= startupSegments && !buffer?.updating)) play();
       fillBuffer();
     };
   }
