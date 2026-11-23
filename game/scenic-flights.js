@@ -69,7 +69,7 @@
   const rad=Math.PI/180,clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
   // Spawn coordinates, local clearance, feature along the flight line, and optional camera tilt limit.
   const grandViews={
-    yellowstone:[-2050,-6480,430,-1090,-7370,21],
+    yellowstone:[-2250,-6200,680,-1148,-7222,30],
     alaska:[400,-3450,900,-400,600],               // Mendenhall Glacier to the lake
     canyon:[660,-360,750,-650,-80,18],            // Horseshoe Bend toward the sunset
     swiss:[-1780,-850,800,30,260],                // Oeschinensee and Blüemlisalp

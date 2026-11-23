@@ -88,8 +88,7 @@ for (const region of regions) {
   const { x, y, z, yaw, lookDown } = launch;
   assert.ok(Object.values(launch).every(Number.isFinite), `${region} launch values must be finite`);
   assert.ok(margin(x, z) > 180, `${region} starts outside the automatic turn area`);
-  const minimumRise = region === 'yellowstone' ? 430 : 600;
-  assert.ok(y - surface(x, z) >= minimumRise - .001, `${region} starts at least ${minimumRise} m above the local surface`);
+  assert.ok(y - surface(x, z) >= 600 - .001, `${region} starts at least 600 m above the local surface`);
   assert.ok(lookDown >= 8 && lookDown <= 35, `${region} frames terrain and horizon`);
   assert.ok(margin(target.x, target.z) > 180, `${region} heads to a feature within the flight bounds`);
   const dx = target.x - x, dz = target.z - z;

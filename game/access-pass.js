@@ -62,7 +62,9 @@
         window.aerieAssetURL = file => {
           if (file !== entry) return prior?.(file) || file;
           const url = new URL('asset', endpoint);
-          url.search = new URLSearchParams({world:region, path:entry, redirect:'1'});
+          const versioned = region === 'yellowstone' && document.querySelector('meta[name="aerie-yellowstone-entry"]')?.content;
+          const path = /^yellowstone-world-v[0-9]{4,8}\.js$/.test(versioned || '') ? versioned : entry;
+          url.search = new URLSearchParams({world:region, path, redirect:'1'});
           return url.href;
         };
       }

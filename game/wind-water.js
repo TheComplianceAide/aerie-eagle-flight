@@ -48,7 +48,15 @@ window.addReadableWindWater=function(T,scene,world){
     if(!m?.fragmentShader || seen.has(m))return;
     seen.add(m);
     let shader=m.fragmentShader;
-    if(mesh.isWater && m.uniforms.shoreField){
+    if(mesh.userData.fireholeSurface){
+      shader=shader.replace('vec3 surface=normalize',`
+        float riverWind=windOnWater(p);
+        if(stream>.5){
+          float pixel=max(length(dFdx(p)),length(dFdy(p)));
+          curl+=catspawSlope(p,pixel,riverWind)*mix(.44,.19,shallow);
+        }
+        vec3 surface=normalize`);
+    }else if(mesh.isWater && m.uniforms.shoreField){
       // Atlas lakes, fjords, and open coasts. Keep nearby submerged gravel visible.
       shader=shader.replace('vec3 n=normalize(vec3(slope.x,1.,slope.y));',`
         float front=windOnWater(p)*mix(.76,1.,fetch)*${world.region==='surry'?'.18':'1.'};

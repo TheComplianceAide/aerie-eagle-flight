@@ -159,5 +159,23 @@
     "mule-deer-in-el-capitan-meadow",
     "wildlife-shallows",
     "yosemite-falls"
+  ],
+  "yellowstone": [
+    "biscuit-basin",
+    "bison-on-the-firehole-floodplain",
+    "black-sand-basin",
+    "castle-geyser",
+    "excelsior-geyser-crater",
+    "fairy-falls",
+    "fountain-paint-pot",
+    "geyser-hill",
+    "giant-geyser",
+    "grand-geyser",
+    "grand-prismatic-spring",
+    "kepler-cascades",
+    "lone-star-geyser",
+    "morning-glory-pool",
+    "old-faithful",
+    "wildlife-shallows"
   ]
 }

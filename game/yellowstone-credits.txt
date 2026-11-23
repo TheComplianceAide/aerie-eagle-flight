@@ -14,6 +14,14 @@ https://imagery.geoplatform.gov/iipp/rest/services/NAIP/NAIP2022_CONUS/ImageServ
 https://www.usgs.gov/national-hydrography/national-hydrography-dataset
 https://www.usgs.gov/us-board-on-geographic-names/download-gnis-data
 
+LANDFIRE 2025 Existing Vegetation Type and Existing Vegetation Cover, 30 m.
+USGS exports registered to UTM 12N supply stand classes and vegetation cover.
+Lidar still supplies crown shapes, positions and heights. An individual tree's
+species is inferred from its stand class.
+https://www.landfire.gov/vegetation/evt
+https://www.landfire.gov/vegetation/evc
+https://lfps.usgs.gov/arcgis/rest/services/Landfire_LF2025
+
 Four geyser photogrammetry surveys
 Yellowstone National Park / Yellowstone Volcano Observatory, Old Faithful, Castle, Giant and
 Lone Star, 2019 field capture. Original scan geometry is registered to the terrain. Castle and
@@ -29,6 +37,12 @@ Buildings, decks and trails
 Building footprints and path geometry © OpenStreetMap contributors, ODbL.
 Timber walls and roofs are models built from the mapped plans and park reference imagery.
 https://www.openstreetmap.org/copyright
+Fairy Falls rhyolite material uses a crop from NPS / Addy Falgoust. Old Faithful
+Inn cedar material uses a crop from NPS / Jacob W. Frank. The National Park
+Service Historic Structure Report informs the Inn's steep central roof and dormers.
+https://www.nps.gov/thingstodo/yell-trail-fairy-falls.htm
+https://www.nps.gov/places/000/old-faithful-inn.htm
+https://irma.nps.gov/DataStore/FileSource/Get/2244215
 
 Audio
 National Park Service, Yellowstone Sound Library. Credits include NPS / Peter Comley and
@@ -37,6 +51,7 @@ field clip comes from the NPS public-domain Video Library. Each file and origina
 listed in yellowstone-data/recordings.json. Firehole flow is the attenuated background of
 the Firehole Dipper & Canada Geese recording. Wildlife calls follow local habitat or visible
 animals. Shared engine wind and wing recordings retain their original credits.
+Fairy Falls and Kepler Cascades use the existing shared waterfall recording.
 https://www.nps.gov/yell/learn/photosmultimedia/soundlibrary.htm
 https://www.nps.gov/yell/learn/photosmultimedia/vl_grandprismatic.htm
 

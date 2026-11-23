@@ -14,7 +14,7 @@
     crater: {name:['Crater','Lake'],region:'Oregon, USA',description:'Fly from the golden caldera rim toward Wizard Island. A red-lit storm front advances across the far shore.',launches:{lake:'Caldera overlook',ridge:'Wizard Island'}},
     lofoten: {name:['Lofoten','Islands'],region:'Reinefjorden, Norway',paletteLaunch:'lake',description:'Follow the copper light down Reinefjorden beneath a low violet cloud bank. The fjord narrows between steep mountain walls.',launches:{lake:'Fjord overlook',ridge:'Reinefjorden channel'}},
     acadia: {name:['Acadia','National Park'],region:'Night · Maine, USA',paletteLaunch:'lake',description:'Fly south along Otter Cliff with the Milky Way over the Atlantic. Follow the breakers to Thunder Hole, or cross the pale crescent of Sand Beach.',launches:{lake:'Otter Cliff under the Milky Way',ridge:'Thunder Hole surf run',beach:'Sand Beach and Great Head'}},
-    yellowstone: {name:['Yellowstone','Firehole River'],region:'Wyoming, USA',description:'Start beside Old Faithful, skim the Firehole through lodgepole forest and geyser basins, then bank over Grand Prismatic Spring.',launches:{faithful:'Old Faithful eruption',river:'Firehole River skim',biscuit:'Biscuit Basin and Sapphire Pool',midway:'Grand Prismatic Spring',fairy:'Fairy Falls',lone:'Lone Star Geyser'}},
+    yellowstone: {name:['Yellowstone','Firehole River'],region:'Wyoming, USA',description:'Start beside Old Faithful, skim the Firehole through lodgepole forest and geyser basins, then bank over Grand Prismatic Spring.',launches:{faithful:'Old Faithful eruption',river:'Firehole River skim',biscuit:'Biscuit Basin and Sapphire Pool',midway:'Grand Prismatic Spring',steam:'Steam glory at Grand Prismatic',fairy:'Fairy Falls',lone:'Lone Star Geyser'}},
   });
   const grandViewDescriptions={
     alaska:'Glide high above the Juneau Icefield and trace Mendenhall Glacier down to the lake and the spruce shore.',
@@ -55,7 +55,7 @@
     return world.paletteLaunch||{alaska:'spruce',moosehead:'reeds',winnipesaukee:'game'}[id]||Object.keys(world.launches)[0];
   }
   function previewName(id,start){
-    if(id==='yellowstone')return 'menu-yellowstone.webp';
+    if(id==='yellowstone')return start==='faithful'?'menu-yellowstone.webp':'yellowstone-launch/'+start+'.webp';
     if(worlds[id].paletteLaunch)return 'departure-light/'+id+'-'+start+'.webp';
     if(['game','wildlife','wall','spur','reeds','spray','spruce'].includes(start))return id+'-'+start+'-view.webp';
     if(start==='lookout')return 'perch-'+id+'-view.jpg';
@@ -108,7 +108,8 @@
       river:'Skim the water between forested banks. The bends lead through the Upper Geyser Basin toward Midway.',
       midway:'Bank over the spring’s turquoise center and orange terraces, then follow Excelsior’s hot runoff down to the Firehole.',
       biscuit:'Cross the blue pools and sinter at Biscuit Basin as they appeared in the July 2022 aerial survey.',
-      fairy:'Glide past the volcanic ledge above Fairy Falls, west of Grand Prismatic Spring.',
+      fairy:'Cross the hollow below Fairy Falls. Look right to follow the 61 m cascade down the volcanic cliff.',
+      steam:'Keep the low sun behind you and look for colored rings where its light meets drifting steam.',
       lone:'Follow the upper Firehole through lodgepole pines toward the Lone Star cone.',
       wildlife:'Follow the river past meadow edges where American dippers and Canada geese forage.'
     });

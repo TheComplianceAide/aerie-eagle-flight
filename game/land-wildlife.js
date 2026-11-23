@@ -15,7 +15,7 @@ window.makeLandWildlife=function makeLandWildlife(T,scene,w){
   }
   function inside(x,z){return x>bounds.minX+10&&x<bounds.maxX-10&&z>bounds.minZ+10&&z<bounds.maxZ-10;}
   function dry(x,z){
-    if(!inside(x,z)||h.wet(x,z,ground(x,z)))return null;
+    if(!inside(x,z)||w.blocksWildlifeAt?.(x,z)||h.wet(x,z,ground(x,z)))return null;
     const y=h.surface(x,z);
     if(!Number.isFinite(y)||clear(x,z)>Math.max(ground(x,z),y)+1.25)return null;
     const obstacle=h.clearance(x,z)-y;
