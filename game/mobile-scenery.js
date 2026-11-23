@@ -1,4 +1,18 @@
 // Smaller color textures on touch-first devices; survey grids retain their native precision.
+// Three warns on every draw of a shader that needs more texture units than the GPU
+// has (terrain shaders in several worlds; tracked separately). Thousands of identical
+// warnings a second cost phones real CPU, so each distinct message is logged once.
+(() => {
+  const warn = console.warn.bind(console), seen = new Set();
+  console.warn = (...args) => {
+    const text = typeof args[0] === 'string' ? args[0] : '';
+    if (text.startsWith('THREE.WebGLTextures: Trying to use')) {
+      if (seen.has(text)) return;
+      seen.add(text);
+    }
+    warn(...args);
+  };
+})();
 (() => {
   // A planar lake mirror redraws the whole scene. On a phone it updates on every
   // other display frame at half resolution; the rippled water hides both.
