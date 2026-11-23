@@ -94,6 +94,29 @@
         }).catch(() => { ticketPriceRequest = null; });
     });
     let status = refreshPass();
+    const entry = new URL(location.href);
+    const targetWorld = new URLSearchParams(entry.hash.slice(1)).get('world');
+    if (entry.searchParams.get('fly') === '1' && targetWorld) {
+      status.then(() => {
+        const requested = targetWorld === 'lac-berte' ? 'labrador' : targetWorld;
+        if (!pass.fullAccess || !canFly(requested) || picker.value !== requested ||
+            app.dataset.mode !== 'title' || fly.disabled) return;
+        // Consume this one navigation so a later refresh still restores the usual pause menu.
+        const current = new URL(location.href);
+        current.searchParams.delete('fly');
+        history.replaceState(null, '', current.href);
+        app.dataset.ticketLaunch = 'true';
+        fly.click();
+      });
+    }
+    window.addEventListener('aerie:flight-started', () => {
+      if (picker.value === freeWorld || !pass.fullAccess) return;
+      try {
+        localStorage.setItem('aerie:last-paid-flight', JSON.stringify({
+          world: picker.value, launch: document.getElementById('launchPoint').value
+        }));
+      } catch {}
+    });
     window.addEventListener('pageshow', event => { if (event.persisted) status = refreshPass(); });
     document.addEventListener('visibilitychange', () => { if (!document.hidden) status = refreshPass(); });
 
