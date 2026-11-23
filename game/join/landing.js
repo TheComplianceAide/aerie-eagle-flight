@@ -430,7 +430,7 @@
   const pendingGiftKey = 'aerie.pendingGift';
   const checkoutVisitKey = 'aerie.checkoutVisit';
   const checkoutReturn = params.get('checkout');
-  const explicitCheckoutReturn = ['success', 'pending', 'cancel'].includes(checkoutReturn);
+  const explicitCheckoutReturn = ['success', 'pending', 'cancel', 'preview-ended'].includes(checkoutReturn);
   let checkoutState = explicitCheckoutReturn ? checkoutReturn : null;
   try {
     if (!checkoutState) {
@@ -444,7 +444,7 @@
   function rememberCheckout(state) {
     checkoutState = state;
     try {
-      if (state === 'cancel') sessionStorage.removeItem(checkoutVisitKey);
+      if (state === 'cancel' || state === 'preview-ended') sessionStorage.removeItem(checkoutVisitKey);
       else sessionStorage.setItem(checkoutVisitKey, JSON.stringify({state, until: Date.now() + 86400000}));
     } catch {}
   }
@@ -608,6 +608,7 @@
       cancel: ['Checkout canceled', 'You can try again or restore access if you bought a pass earlier.'],
       started: ['Checkout interrupted', 'If you paid, restore access with your checkout email. If you left before paying, you can try again.'],
       pending: ['Checkout status pending', 'If you paid, restore with the email you used at checkout.'],
+      'preview-ended': ['This preview checkout has ended', 'No payment was taken. You can still fly Lake Winnipesaukee free.'],
       success: ['Find your Founder Pass', 'Restore access with your checkout email if your worlds don’t appear here.']
     };
     const restoreTicket = ['Restore your ticket', 'Use your checkout email to pick up your ticket on this device.'];
@@ -633,7 +634,7 @@
     if (owned) byId('return-play').href = ticketFlightUrl(status);
     byId('return-retry').hidden = !retry || playRequested;
     byId('return-status-retry').hidden = !couldNotCheck && !(playRequested && !owned && !checking);
-    byId('return-free').hidden = !guestPlay;
+    byId('return-free').hidden = !guestPlay && (owned || checkoutState !== 'preview-ended');
     byId('return-restore').hidden = checking || owned;
     if (focus) notice.focus();
   }

@@ -119,7 +119,8 @@ export function expiryProbeKey(marker, signingSecret) {
   return 'preflight-expiry:' + createHmac('sha256', signingSecret).update('expiry-receipt:' + marker).digest('hex');
 }
 
-export function createCommerce(config, { store, stripe, sendEmail, purchaseEmailOperations, assetUrl, hasPreviewReward, now = Date.now }) {
+export function createCommerce(config, { store, stripe, sendEmail, purchaseEmailOperations, assetUrl,
+  hasPreviewReward, previewCheckoutId, now = Date.now }) {
   const restoreEnabled = Boolean(store && sendEmail && config.site);
   const canCheckout = Boolean(config.checkout && restoreEnabled && stripe && config.priceId && config.webhookSecret && assetUrl);
   const shareEnabled = Boolean(config.claims && restoreEnabled && assetUrl);
@@ -402,7 +403,7 @@ export function createCommerce(config, { store, stripe, sendEmail, purchaseEmail
   }
 
   async function verifiedCheckoutCookies(request, id) {
-    if (!stripe || !store || !/^cs_(test|live)_[\w]+$/.test(id || '')) return;
+    if (!stripe || !store || !/^cs_(test|live)_[\w]+$/.test(id || '') || !id.startsWith(`cs_${config.mode}_`)) return;
     const scopedCookie = checkoutCookieFor(id);
     const scopedToken = cookieValue(request, scopedCookie);
     // Sessions opened before this version still return with the original cookie.
@@ -417,7 +418,9 @@ export function createCommerce(config, { store, stripe, sendEmail, purchaseEmail
   }
 
   async function completeCheckout(request) {
-    const cookies = await verifiedCheckoutCookies(request, request.query.get('session_id'));
+    const id = request.query.get('session_id');
+    if (config.live && /^cs_test_[\w]+$/.test(id || '')) return joinRedirect('preview-ended');
+    const cookies = await verifiedCheckoutCookies(request, id);
     return joinRedirect(cookies ? 'success' : 'pending', cookies);
   }
 
@@ -426,7 +429,14 @@ export function createCommerce(config, { store, stripe, sendEmail, purchaseEmail
     if (typeof order !== 'string' || !/^[a-f0-9]{64}$/.test(order)) throw new HttpError(400, 'Invalid ticket reference.');
     if (!store || !stripe) throw new HttpError(503, 'Ticket confirmation is temporarily unavailable.');
     const pending = await store.get(`pending:${order}`);
-    if (!pending?.checkoutId) return { jsonBody: { state: 'pending' } };
+    if (!pending?.checkoutId) {
+      const previousId = config.live && await previewCheckoutId?.(order);
+      if (previousId) {
+        const token = cookieValue(request, checkoutCookieFor(previousId));
+        if (tokenPattern.test(token) && digest(token) === order) return { jsonBody: { state: 'preview-ended' } };
+      }
+      return { jsonBody: { state: 'pending' } };
+    }
     const cookies = await verifiedCheckoutCookies(request, pending.checkoutId);
     if (cookies) return { jsonBody: { state: 'success' }, cookies };
     // A response interrupted after Set-Cookie can leave the buyer signed in with the checkout cookie consumed.
