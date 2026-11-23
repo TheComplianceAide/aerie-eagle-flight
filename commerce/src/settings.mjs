@@ -136,7 +136,12 @@ export function configuredServices(config) {
       const access = await credential.getToken('https://storage.azure.com/.default', { abortSignal: signal });
       return fetch(weatherBlob.url, {
         signal, redirect: 'error',
-        headers: { Authorization: `Bearer ${access.token}`, 'x-ms-version': '2023-11-03', Accept: 'application/json' }
+        headers: {
+          Authorization: `Bearer ${access.token}`,
+          'x-ms-date': new Date().toUTCString(),
+          'x-ms-version': '2023-11-03',
+          Accept: 'application/json'
+        }
       });
     }),
     hasPreviewReward: preview && (async uid => (await preview.get(`account:${uid}`))?.reward === true),
