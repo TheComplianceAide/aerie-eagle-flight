@@ -19,7 +19,7 @@ const root = configuration({
   AERIE_SHARE_CLAIMS_ENABLED: 'true', AERIE_SIGNUP_ENABLED: 'true', AERIE_CHECKOUT_ENABLED: 'true'
 });
 
-function fixture({ config = {}, purchaseEmailOperations, hasPreviewReward, now = Date.now } = {}) {
+function fixture({ config = {}, purchaseEmailOperations, hasPreviewReward, previewCheckoutId, now = Date.now } = {}) {
   const settings = { ...root, ...config };
   const rows = new Map();
   const checkouts = new Map();
@@ -83,7 +83,7 @@ function fixture({ config = {}, purchaseEmailOperations, hasPreviewReward, now =
     }}
   };
   const app = createCommerce(settings, {
-    store, stripe, purchaseEmailOperations, hasPreviewReward, now,
+    store, stripe, purchaseEmailOperations, hasPreviewReward, previewCheckoutId, now,
     sendEmail: async (email, subject, content) => messages.push({ email, subject, ...content }),
     assetUrl: async (world, path) => `https://blob.example/private/${world}/${path}?fixture=read-only`
   });
@@ -360,6 +360,26 @@ test('a paid webhook is retried until its order can be verified without a browse
   assert.equal((await report()).jsonBody.ok, true); // Duplicate of a durable purchase.
   assert.equal([...rows.keys()].filter(k => k.startsWith('purchase:')).length, 1);
   assert.equal([...rows.keys()].filter(k => k.startsWith('gift:')).length, 1);
+});
+
+test('an open preview checkout returning after launch can exit to free play', async () => {
+  const preview = fixture();
+  const started = await preview.call('checkout', { body: {} });
+  const [checkout] = preview.checkouts.values();
+  const order = checkout.client_reference_id;
+  const live = fixture({
+    config: { mode: 'live', live: true },
+    previewCheckoutId: async reference => preview.rows.get('pending:' + reference)?.checkoutId ?? null
+  });
+  const owner = await live.call('checkout/confirm', { body: { order }, cookie: asCookie(started.cookies[0]) });
+  assert.deepEqual(owner.jsonBody, { state: 'preview-ended' });
+  assert.equal(owner.cookies, undefined);
+  assert.deepEqual((await live.call('checkout/confirm', { body: { order } })).jsonBody, { state: 'pending' });
+  const legacy = await live.call('checkout/complete', { query: '?session_id=' + checkout.id, cookie: asCookie(started.cookies[0]) });
+  assert.equal(legacy.status, 303);
+  assert.equal(legacy.headers.Location, '/join/?checkout=preview-ended');
+  assert.equal(legacy.cookies, undefined);
+  assert.equal(live.rows.size, 0);
 });
 
 test('static checkout returns recover only their own paid order, including after the checkout cookie is consumed', async () => {

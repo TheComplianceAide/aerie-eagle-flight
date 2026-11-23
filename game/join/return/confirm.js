@@ -35,8 +35,8 @@
         });
         if (response.ok) {
           const {state} = await response.json();
-          if (state === 'success') {
-            location.replace('../?checkout=success');
+          if (state === 'success' || state === 'preview-ended') {
+            location.replace('../?checkout=' + state);
             return;
           }
           if (state === 'pending') {

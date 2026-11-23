@@ -128,6 +128,10 @@ export function configuredServices(config) {
   return {
     store, stripe,
     hasPreviewReward: preview && (async uid => (await preview.get(`account:${uid}`))?.reward === true),
+    previewCheckoutId: preview && (async order => {
+      const id = (await preview.get(`pending:${order}`))?.checkoutId;
+      return /^cs_test_[\w]+$/.test(id || '') ? id : null;
+    }),
     purchaseEmailOperations: email && config.purchaseEmails ? emailOperations(config.emailUrl, credential) : null,
     sendEmail: email && (async (address, subject, { plainText, html }) => {
       const send = await email.beginSend({
