@@ -54,6 +54,7 @@ export function configuration(env = process.env) {
   const sandboxPurchaseEmail = configuredEmail(env.AERIE_SANDBOX_PURCHASE_EMAIL_RECIPIENT);
   const testPayer = configuredEmail(env.AERIE_SANDBOX_PURCHASE_TEST_PAYER);
   return {
+    forecastEndpoint: env.AERIE_OPEN_METEO_ENDPOINT || '', forecastKey: env.AERIE_OPEN_METEO_API_KEY || '',
     mode, live: mode === 'live', site: site?.origin || '', origins, rewards, secret,
     stripeKey, ticketPriceCents: cents ? Number(cents) : null, priceId: env.AERIE_STRIPE_PRICE_ID || '', webhookSecret: env.AERIE_STRIPE_WEBHOOK_SECRET || '',
     tableName, tableUrl: env.AERIE_TABLE_URL || '', storage, account, container,

@@ -74,6 +74,12 @@ Once a live customer link has been issued, pause new sales with **only** `AERIE_
 
 Azure Functions host settings such as `AzureWebJobsStorage` and `FUNCTIONS_WORKER_RUNTIME=node` are supplied separately by Azure. Use a low-cost Functions consumption plan and have an ingress rate-limit policy for email link requests before opening to the public. Set retention handling for old email-link, pending-checkout, session, and review records according to the business's data retention needs. Signups are stored as contact opt-ins; mailing campaigns are separate.
 
+## Regional acoustic forecasts
+
+`GET /api/aerie/air?region=winnipesaukee` accepts a world ID and returns the temperature, humidity, pressure and winds used for sound propagation. A successful response includes one hour of wind and temperature aloft. An empty 204 lets the game use its regional atmosphere. Each Function process shares one forecast per region for 30 minutes and can reuse an observation for up to two hours during an outage.
+
+In test mode the default is the public Open-Meteo forecast API. For commercial forecasts, set `AERIE_OPEN_METEO_API_KEY` using a server-side secret reference. To use a trusted self-hosted Open-Meteo-compatible service, set `AERIE_OPEN_METEO_ENDPOINT` to its full HTTPS forecast URL. The commercial key is sent only to the official customer endpoint. Live mode with neither provider uses regional fallback. [Open-Meteo commercial API](https://open-meteo.com/en/pricing)
+
 ## Application flow
 
 - Publish `/join/return/` and its `confirm.js` on each storefront host before deploying a backend that uses this return address. New Stripe sessions send the buyer there with an opaque order reference in the URL fragment. The page retries `POST /api/aerie/checkout/confirm` with the same browser cookie when the service is unavailable. Sessions opened before this release keep their original `GET /api/aerie/checkout/complete` return.

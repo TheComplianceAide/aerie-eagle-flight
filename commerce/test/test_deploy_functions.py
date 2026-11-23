@@ -129,6 +129,13 @@ class HealthTests(unittest.TestCase):
             with self.assertRaisesRegex(release.ReleaseError, 'aerie-checkout-confirm'):
                 release.verify_health(SHA, 'test')
 
+    def test_missing_forecast_http_trigger_does_not_pass(self):
+        without_forecast = [t for t in TRIGGERS if t['name'].split('/')[-1] != 'aerie-air']
+        with patch.object(release, 'public_json', side_effect=[OFFER, PLAYER, OFFER, PLAYER]), \
+             patch.object(release, 'run', return_value=json.dumps(without_forecast)):
+            with self.assertRaisesRegex(release.ReleaseError, 'aerie-air'):
+                release.verify_health(SHA, 'test')
+
     def test_missing_timer_and_persistent_503_do_not_pass(self):
         wrong = [dict(t, types=['httpTrigger']) for t in TRIGGERS]
         with patch.object(release, 'public_json', side_effect=[OFFER, PLAYER, OFFER, PLAYER]), \
