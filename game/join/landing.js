@@ -262,15 +262,18 @@
     else if (!available) friendShareStatus.textContent = 'Friend unlocks are temporarily unavailable.';
   }
 
-  function openShare(isClaim) {
+  function openShare(isClaim, channel = '') {
     sharingClaim = isClaim;
-    byId('share-title').textContent = isClaim ? 'Share Aerie. Unlock five worlds.' : 'Tell a friend';
+    byId('share-title').textContent = isClaim ? 'Unlock 5 worlds' : 'Tell a friend';
     byId('share-instructions').textContent = isClaim
-      ? 'Share the free Lake Winnipesaukee flight with friends, or post your own flight experience for review.'
-      : 'Send a friend a free flight at Lake Winnipesaukee.';
+      ? 'Invite five friends or submit an honest public post.'
+      : 'Share the free flight at Lake Winnipesaukee.';
     byId('friend-details').hidden = !isClaim;
     byId('post-instructions').hidden = !isClaim;
     byId('claim-submission').hidden = !isClaim;
+    byId('claim-details').open = Boolean(channel && channel !== 'messages');
+    byId('instagram-instructions').hidden = channel !== 'instagram';
+    byId('instagram-open').hidden = channel !== 'instagram';
     byId('post-share-summary').textContent = isClaim ? 'Post publicly for review' : 'Share on social media';
     suggestedPost.value = withShareLink(claimStarter);
     shareMessage.textContent = '';
@@ -311,6 +314,23 @@
   window.addEventListener('hashchange', () => {
     if (new URLSearchParams(location.hash.slice(1)).has('invite')) openShare(true);
   });
+
+  for (const button of document.querySelectorAll('[data-ticket-share]')) {
+    button.addEventListener('click', () => {
+      const channel = button.dataset.ticketShare;
+      openShare(true, channel);
+      if (channel === 'instagram') byId('instagram-image').focus();
+      else if (channel === 'messages') {
+        const action = nativeShare.hidden ? byId('copy-share') : nativeShare;
+        action.focus();
+        if (action === nativeShare) nativeShare.click();
+      } else {
+        const link = byId(`${channel}-share`);
+        link.focus();
+        link.click();
+      }
+    });
+  }
 
   friendConfirm.addEventListener('click', async () => {
     if (friendConfirm.disabled || friendRewardEarned) return;
@@ -705,18 +725,25 @@
     const unconfirmedReturn = returningFromPayment() && !status;
     checkoutLaunch.hidden = unconfirmedReturn;
     heroCheckout.hidden = unconfirmedReturn;
-    if (unconfirmedReturn) heroCheckoutStatus.hidden = true;
-    byId('hero-buy-label').textContent = owned ? 'Open your pass' : 'Buy Founder Pass';
-    byId('hero-buy-detail').textContent = owned ? 'Fly your unlocked worlds' : testCheckout
-      ? 'Test checkout · No real payment' : 'All worlds + a gift copy';
-    byId('checkout-label').textContent = owned ? 'Open your pass' : testCheckout ? 'Open test checkout' : 'Buy Founder Pass';
+    if (unconfirmedReturn || owned) heroCheckoutStatus.hidden = true;
+    const label = owned ? 'Open ticket' : 'Flight ticket';
+    byId('hero-buy-label').textContent = label;
+    byId('checkout-label').textContent = label;
+    byId('hero-buy-detail').textContent = owned ? 'Your worlds' : 'All worlds + a gift';
+    const price = !owned && available && typeof checkoutConfig.priceLabel === 'string'
+      ? checkoutConfig.priceLabel.replace(/\sUSD$/, '') : '↗';
+    byId('hero-ticket-price').textContent = price;
+    flightPrice.textContent = price;
     byId('pass-restore').hidden = owned || unconfirmedReturn;
-    checkoutMerchant.hidden = owned || unconfirmedReturn || !available;
-    flightPrice.hidden = owned || unconfirmedReturn;
+    const note = testCheckout ? 'Stripe test · The ComplianceAide · No charge' : 'Stripe checkout · The ComplianceAide';
+    for (const disclosure of [checkoutMerchant, byId('hero-ticket-note')]) {
+      disclosure.hidden = owned || unconfirmedReturn || !available;
+      disclosure.textContent = note;
+    }
     checkoutAvailability.hidden = unconfirmedReturn;
     if (!checkoutBusy) {
-      checkoutAvailability.textContent = owned ? 'All worlds are unlocked on this device.'
-        : checkoutConfig === undefined ? 'Checking Stripe checkout availability…' : checkoutNote(checkoutConfig);
+      checkoutAvailability.textContent = owned || available ? '' : checkoutConfig === undefined
+        ? 'Checking checkout availability…' : checkoutNote(checkoutConfig);
     }
   }
 
@@ -748,10 +775,6 @@
         updateRestore();
         const testCheckout = enabled(config, 'checkout') && config.checkoutMode === 'test';
         byId('purchase-mode-note').hidden = !testCheckout;
-        if (enabled(config, 'checkout')) {
-          flightPrice.textContent = typeof config.priceLabel === 'string' && config.priceLabel
-            ? config.priceLabel + ' for both passes' : 'One-time purchase';
-        }
         updateCheckoutOffer();
         friendShareStatus.textContent = '';
         updateFriendOffer();
