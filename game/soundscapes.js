@@ -336,7 +336,7 @@
         // Each downstroke drives air past the head: the rush swells with it
         // and falls back on the upstroke, in time with the wings on screen.
         const swell = clamp(s.effort || 0, 0, 1.2) * Math.max(0, Math.sin((s.phase || 0) - .25)) ** 1.5;
-        const turb = (1 + .3 * burst + .15 * (gust - .5)) * (1 + 1.5 * swell);
+        const turb = (1 + .3 * burst + .15 * (gust - .5)) * (1 + .6 * swell);
         ears.forEach((e, i) => {
           const side = i === 0 ? -slip : slip; // positive: this ear faces the airflow
           e.g.gain.setTargetAtTime(level * turb * (1 + .25 * side), now, .035);
@@ -1082,14 +1082,12 @@
         osc.onended = () => { try { osc.disconnect(); og.disconnect(); } catch (e) {} };
       }
     }
-    // The eagle's own wings. Each downstroke is heard twice over: the wind at
-    // the ears swells with it (see makeAirflow), and a recording of a bald
-    // eagle's wing stroke plays under it, clearest on a take-off or a slow
-    // climb where the wind does not cover it.
+    // A short recorded wingbeat follows the start of each powered downstroke.
+    // Airflow at the ears adds a softer swell in makeAirflow.
     const strokes = ['eagle-wing-a', 'eagle-wing-b', 'eagle-wing-c'];
     strokes.forEach(id => load(id));
     load('wind-at-ears');
-    let strokeAt = null, lastStroke = '';
+    let strokeAt = null, lastStroke = '', firstStrokeTime = 0, lastStrokeTime = -Infinity;
     function wingStroke(s, now) {
       // A stroke begins as the wingbeat passes a quarter radian. The phase
       // wraps every beat, so compare where it is with where it was: a frame
@@ -1098,12 +1096,16 @@
       strokeAt = at;
       const effort = clamp(s.effort || 0, 0, 1.2);
       if (!began || effort < .2) return;
+      if (now - lastStrokeTime > 1) firstStrokeTime = now;
+      lastStrokeTime = now;
+      const sustained = smooth(0, 2.5, now - firstStrokeTime);
       const ready = strokes.filter(id => id !== lastStroke && buffers.get(id)); if (!ready.length) return;
       const id = lastStroke = pick(ready), v = (s.indicatedAirspeed ?? s.airspeed) || 0;
       const src = context.createBufferSource(), g = context.createGain(), pan = context.createStereoPanner?.();
       src.buffer = buffers.get(id); src.playbackRate.value = rand(.9, 1.1) * (.92 + .16 * effort);
-      // Loud on a take-off, half covered by the wind at cruising speed.
-      g.gain.value = .7 * effort * clamp(1.3 - v / 45, .55, 1) * (id === 'eagle-wing-c' ? .6 : 1) * rand(.8, 1.1);
+      // The first powered strokes retain more attack. Repeated strokes settle
+      // below the surrounding air while remaining audible during a climb.
+      g.gain.value = (.39 - .17 * sustained) * effort * clamp(1.3 - v / 45, .55, 1) * rand(.88, 1.04);
       src.connect(g);
       if (pan) { pan.pan.value = rand(-.3, .3); g.connect(pan).connect(destination); } else g.connect(destination);
       src.start(now);
