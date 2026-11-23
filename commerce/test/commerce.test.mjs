@@ -101,7 +101,7 @@ function fixture() {
     const started = await call('restore', { body: { email, gift } });
     assert.equal(started.jsonBody.ok, true);
     const token = messages.at(-1).plainText.match(/#restore=([\w-]+)/)[1];
-    const ended = await call('restore/confirm', { body: { token } });
+    const ended = await call('restore/confirm', { body: { token }, cookie: asCookie(started.cookies[0]) });
     assert.equal(ended.jsonBody.ok, true);
     return { token, cookie: asCookie(ended.cookies[0]), result: ended.jsonBody };
   }
@@ -240,7 +240,7 @@ test('an alias keeps checkout, hosted email recovery, and its gift on the origin
   assert.equal(bought.fullAccess, true);
   assert.match(bought.giftUrl, /^\/join\/#gift=[\w-]+$/);
   assert.equal(new URL(bought.giftUrl, alias).origin, alias);
-  await call('restore', { origin: alias, body: { email: checkoutEmail } });
+  const restoreRequest = await call('restore', { origin: alias, body: { email: checkoutEmail } });
   assert.equal(messages[0].email, checkoutEmail);
   const link = messages[0].plainText.match(/https:\/\/\S+#restore=[\w-]+/)[0];
   assert.equal(new URL(link).origin, alias);
@@ -248,10 +248,66 @@ test('an alias keeps checkout, hosted email recovery, and its gift on the origin
   const token = new URL(link).hash.slice('#restore='.length);
   const wrapped = `${token.slice(0, 24)}\n${token.slice(24)}`;
   assert.equal((await call('restore/confirm', { origin: alias, body: { token: wrapped } })).status, 400);
-  const confirm = await call('restore/confirm', { origin: alias, body: { token } });
+  const confirm = await call('restore/confirm', { origin: alias, body: { token }, cookie: asCookie(restoreRequest.cookies[0]) });
   const restored = (await call('status', { origin: null, cookie: asCookie(confirm.cookies[0]) })).jsonBody;
   assert.equal(restored.emailVerified, true);
   assert.equal(restored.giftUrl, bought.giftUrl);
+});
+
+test('opening a recovery link outside its requesting browser needs the emailed code and scanner requests never consume it', async () => {
+  const { call, messages, rows } = fixture();
+  const started = await call('restore', { origin: alias, body: { email: 'new-browser@example.test' } });
+  const nonce = started.cookies[0];
+  assert.equal(nonce.name, '__Host-aerie_restore');
+  assert.equal(nonce.httpOnly, true);
+  assert.equal(nonce.secure, true);
+  assert.equal(nonce.sameSite, 'Lax');
+  const { plainText, html } = messages[0];
+  const token = plainText.match(/#restore=([\w-]+)/)[1];
+  const code = plainText.match(/enter this code: (\d{8})/)[1];
+  assert.ok(html.includes(`<strong>${code}</strong>`));
+  assert.equal(html.includes(`#restore=${token}&code=`), false);
+  const scanner = await Promise.all(Array.from({ length: 3 }, () => call('restore/confirm', { origin: alias, body: { token } })));
+  for (const response of scanner) {
+    assert.deepEqual(response.jsonBody, { ok: false, codeRequired: true });
+    assert.equal(response.cookies, undefined);
+  }
+  const wrongNonce = '__Host-aerie_restore=' + 'a'.repeat(43);
+  assert.deepEqual((await call('restore/confirm', { origin: alias, body: { token }, cookie: wrongNonce })).jsonBody,
+    { ok: false, codeRequired: true });
+  const row = [...rows.values()].find(entry => entry.rowKey.startsWith('restore:'));
+  assert.equal(row.used, undefined);
+  assert.equal(row.codeAttempts, 0);
+  assert.notEqual(row.codeProof, code);
+  const wrongCode = String((Number(code[0]) + 1) % 10) + code.slice(1);
+  const rejected = await call('restore/confirm', { origin: alias, body: { token, code: wrongCode } });
+  assert.equal(rejected.status, 400);
+  assert.equal(rejected.jsonBody.codeInvalid, true);
+  const newBrowser = await call('restore/confirm', { origin: alias, body: { token, code } });
+  assert.equal(newBrowser.jsonBody.ok, true);
+  const status = await call('status', { origin: alias, cookie: asCookie(newBrowser.cookies[0]) });
+  assert.equal(status.jsonBody.emailVerified, true);
+  assert.equal((await call('restore/confirm', { origin: alias, body: { token }, cookie: asCookie(nonce) })).status, 400);
+});
+
+test('concurrent wrong recovery codes have five durable attempts and do not lock the original browser out', async () => {
+  const { call, messages, rows } = fixture();
+  const opened = await call('restore', { body: { email: 'attempt-limit@example.test' } });
+  const token = messages[0].plainText.match(/#restore=([\w-]+)/)[1];
+  const code = messages[0].plainText.match(/enter this code: (\d{8})/)[1];
+  const wrong = String((Number(code[0]) + 1) % 10) + code.slice(1);
+  const attempts = await Promise.all(Array.from({ length: 6 }, () => call('restore/confirm', { body: { token, code: wrong } })));
+  assert.equal(attempts.filter(result => result.jsonBody.codeInvalid).length, 5);
+  assert.equal(attempts.filter(result => result.jsonBody.codeAttemptsExceeded).length, 1);
+  const row = [...rows.values()].find(entry => entry.rowKey.startsWith('restore:'));
+  assert.equal(row.codeAttempts, 5);
+  assert.equal(row.used, undefined);
+  const refused = await call('restore/confirm', { body: { token, code } });
+  assert.equal(refused.status, 429);
+  assert.equal(refused.jsonBody.codeAttemptsExceeded, true);
+  const original = await call('restore/confirm', { body: { token }, cookie: asCookie(opened.cookies[0]) });
+  assert.equal(original.jsonBody.ok, true);
+  assert.equal((await call('restore/confirm', { body: { token, code } })).status, 400);
 });
 
 test('verified email can restore access; checkout scoped cookies cannot see another purchase or consume a gift', async () => {
