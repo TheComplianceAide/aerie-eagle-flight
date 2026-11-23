@@ -1,4 +1,4 @@
-import { createHash, createHmac, randomBytes } from 'node:crypto';
+import { createHash, createHmac, randomBytes, randomInt, timingSafeEqual } from 'node:crypto';
 import { createPurchaseHelp } from './purchase-help.mjs';
 import { allWorlds, freeWorld } from './settings.mjs';
 
@@ -7,6 +7,8 @@ const day = 24 * 60 * minute;
 const disclosure = 'Aerie is giving me access to three extra worlds for sharing my experience.';
 const newToken = () => randomBytes(32).toString('base64url');
 const tokenPattern = /^[a-zA-Z0-9_-]{43}$/;
+const restoreCodePattern = /^[0-9]{8}$/;
+const restoreCodeLimit = 5;
 const digest = value => createHash('sha256').update(value).digest('hex');
 const conflict = error => error.statusCode === 409 || error.statusCode === 412;
 const clientErrorKinds = new Set(['startup', 'script', 'graphics', 'promise']);
@@ -102,6 +104,7 @@ export function createCommerce(config, { store, stripe, sendEmail, assetUrl, now
   const secureCookies = config.site.startsWith('https:');
   const sessionCookie = secureCookies ? '__Host-aerie_session' : 'aerie_session';
   const checkoutCookie = secureCookies ? '__Host-aerie_checkout' : 'aerie_checkout';
+  const restoreCookie = secureCookies ? '__Host-aerie_restore' : 'aerie_restore';
   const joinPath = '/join/';
   const hash = (purpose, value) => createHmac('sha256', config.secret).update(`${purpose}:${value}`).digest('base64url');
   const userId = email => hash('email', email);
@@ -325,12 +328,18 @@ export function createCommerce(config, { store, stripe, sendEmail, assetUrl, now
     const previous = await store.get(key);
     if (previous?.nextSend > now()) throw new HttpError(429, 'Please wait a minute before requesting another email.');
     const token = newToken();
+    const previousNonce = cookieValue(request, restoreCookie);
+    const browserNonce = tokenPattern.test(previousNonce) ? previousNonce : newToken();
+    const passcode = String(randomInt(100_000_000)).padStart(8, '0');
     const gift = typeof code === 'string' && tokenPattern.test(code) && await store.get(`gift:${digest(code)}`);
     try {
       await store.transaction([
         [previous ? 'replace' : 'create', row(key, { ...previous, nextSend: now() + minute })],
         ['create', row(`restore:${digest(token)}`, {
           uid, expiresAt: now() + 15 * minute,
+          browserProof: digest(browserNonce),
+          codeProof: hash('restore-code', `${token}:${passcode}`),
+          codeAttempts: 0,
           giftCheckoutId: gift && (!gift.redeemedBy || gift.redeemedBy === uid) ? gift.checkoutId : ''
         })]
       ]);
@@ -339,31 +348,61 @@ export function createCommerce(config, { store, stripe, sendEmail, assetUrl, now
       throw error;
     }
     const restoreUrl = `${browserOrigin}${joinPath}#restore=${token}`;
-    const instructions = 'Open this link to continue to Aerie on this device.';
+    const instructions = 'Open this link to continue to Aerie.';
+    const codeInstructions = 'If you open the link in another browser, enter this code:';
     const expiration = 'The link expires in 15 minutes and works once.';
     await sendEmail(email, 'Continue to Aerie', {
-      plainText: `${instructions}\n\n${restoreUrl}\n\n${expiration}`,
-      html: `<p>${instructions}</p><p><a href="${restoreUrl}">Continue to Aerie</a></p><p>${expiration}</p>`
+      plainText: `${instructions}\n\n${restoreUrl}\n\n${codeInstructions} ${passcode}\n\n${expiration}`,
+      html: `<p>${instructions}</p><p><a href="${restoreUrl}">Continue to Aerie</a></p><p>${codeInstructions} <strong>${passcode}</strong></p><p>${expiration}</p>`
     });
-    return { jsonBody: { ok: true } };
+    return { jsonBody: { ok: true }, cookies: [cookie(restoreCookie, browserNonce, 15 * 60)] };
   }
 
   async function confirmRestore(request) {
     if (!restoreEnabled) throw new HttpError(503, 'Email restoration is currently unavailable.');
-    const { token } = await readJson(request);
-    const link = typeof token === 'string' && tokenPattern.test(token) && await store.get(`restore:${digest(token)}`);
-    if (!link || link.used || link.expiresAt <= now()) throw new HttpError(400, 'This link has expired or already been used.');
-    const login = newToken();
-    try {
-      await store.transaction([['replace', { ...link, used: true }], ['create', session(login, link.uid)]]);
-    } catch (error) {
-      if (conflict(error) || error.statusCode === 404) throw new HttpError(400, 'This link has expired or already been used.');
-      throw error;
+    const { token, code } = await readJson(request);
+    const expired = 'This link is no longer valid. Request a new access email.';
+    if (typeof token !== 'string' || !tokenPattern.test(token)) throw new HttpError(400, expired);
+    const nonce = cookieValue(request, restoreCookie);
+    const browserProof = tokenPattern.test(nonce) ? digest(nonce) : '';
+    const codeProof = typeof code === 'string' && restoreCodePattern.test(code)
+      ? Buffer.from(hash('restore-code', `${token}:${code}`), 'base64url')
+      : null;
+    const key = `restore:${digest(token)}`;
+    for (let retry = 0; retry <= restoreCodeLimit; retry++) {
+      const link = await store.get(key);
+      if (!link || link.used || link.expiresAt <= now() || !link.browserProof || !tokenPattern.test(link.codeProof || '')) {
+        throw new HttpError(400, expired);
+      }
+      if (browserProof !== link.browserProof) {
+        if (link.codeAttempts >= restoreCodeLimit) {
+          return { status: 429, jsonBody: { error: 'Too many code attempts. Request a new access email.', codeAttemptsExceeded: true } };
+        }
+        if (code === undefined) return { jsonBody: { ok: false, codeRequired: true } };
+        if (!codeProof || !timingSafeEqual(codeProof, Buffer.from(link.codeProof, 'base64url'))) {
+          try {
+            await store.transaction([['replace', { ...link, codeAttempts: link.codeAttempts + 1 }]]);
+            return { status: 400, jsonBody: { error: 'Enter the eight-digit code from your email.', codeInvalid: true } };
+          } catch (error) {
+            if (conflict(error)) continue;
+            if (error.statusCode === 404) throw new HttpError(400, expired);
+            throw error;
+          }
+        }
+      }
+      const login = newToken();
+      try {
+        await store.transaction([['replace', { ...link, used: true }], ['create', session(login, link.uid)]]);
+        return {
+          cookies: [cookie(sessionCookie, login, 30 * 24 * 60 * 60)],
+          jsonBody: { ok: true, ...(link.giftCheckoutId ? { giftCode: giftCode(link.giftCheckoutId) } : {}) }
+        };
+      } catch (error) {
+        if (error.statusCode === 404) throw new HttpError(400, expired);
+        if (!conflict(error)) throw error;
+      }
     }
-    return {
-      cookies: [cookie(sessionCookie, login, 30 * 24 * 60 * 60)],
-      jsonBody: { ok: true, ...(link.giftCheckoutId ? { giftCode: giftCode(link.giftCheckoutId) } : {}) }
-    };
+    throw new HttpError(429, 'This link is busy. Try confirming it again.');
   }
 
   async function redeemGift(request) {
