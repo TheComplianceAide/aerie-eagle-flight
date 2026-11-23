@@ -507,7 +507,7 @@
     if (!giftUrl) giftLink.open = false;
     giftInput.value = giftLink.open ? giftUrl : '';
     playUnlocked.hidden = !hasAccess;
-    playUnlocked.href = status?.fullAccess === true ? paidFlightUrl() : '../?play=1';
+    playUnlocked.href = hasAccess ? ticketFlightUrl(status) : '../?play=1';
     byId('play-unlocked-label').textContent = status?.fullAccess === true ? 'Play now' : 'Play unlocked worlds';
     giftDetails.hidden = !pendingGift && !giftUrl && !receiptUrl && !hasAccess;
     giftMessage.textContent = pendingGift && emailVerified ? 'Your Founder Pass gift is ready to redeem.' :
@@ -520,18 +520,22 @@
     return checkoutState === 'success' || checkoutState === 'pending';
   }
 
-  function paidFlightUrl() {
-    let world = 'moosehead';
+  function ticketFlightUrl(current) {
+    const fullAccess = current?.fullAccess === true;
+    const entitled = Array.isArray(current?.worlds) ? current.worlds.filter(world => world !== 'winnipesaukee') : [];
+    const rewards = Array.isArray(checkoutConfig?.rewardWorlds) ? checkoutConfig.rewardWorlds : [];
+    let world = fullAccess ? 'moosehead' : rewards.find(id => entitled.includes(id)) || entitled[0];
+    if (!world) return '../?play=1';
     let launch = 'grand';
     try {
       const last = JSON.parse(localStorage.getItem('aerie:last-paid-flight') || 'null');
       const id = last?.world === 'lac-berte' ? 'labrador' : last?.world;
-      if (id && id !== 'winnipesaukee' && status?.worlds?.includes(id)) {
+      if (id && entitled.includes(id)) {
         world = id;
         if (typeof last.launch === 'string' && /^[a-z][a-z0-9-]{0,50}$/.test(last.launch)) launch = last.launch;
       }
     } catch {}
-    return `../?play=1&fly=1#${new URLSearchParams({world, launch})}`;
+    return `../?play=1${fullAccess ? '&fly=1' : ''}#${new URLSearchParams({world, launch})}`;
   }
 
   function updateCheckoutReturn(focus = false) {
@@ -563,7 +567,7 @@
     byId('return-title').textContent = title;
     byId('return-message').textContent = message;
     byId('returning-player-actions').hidden = !owned;
-    if (owned) byId('return-play').href = paidFlightUrl();
+    if (owned) byId('return-play').href = ticketFlightUrl(status);
     byId('return-retry').hidden = !retry || playRequested;
     byId('return-status-retry').hidden = !couldNotCheck && !(playRequested && !owned && !checking);
     byId('return-restore').hidden = checking || owned;
@@ -586,7 +590,7 @@
       updateCheckoutReturn();
       updateCheckoutOffer();
       updateFriendOffer();
-      if (playRequested && status?.fullAccess === true) location.replace(paidFlightUrl());
+      if (playRequested && status?.fullAccess === true) location.replace(ticketFlightUrl(status));
     }).finally(() => {
       if (version === statusVersion) statusRequest = null;
     });
@@ -766,7 +770,7 @@
     if (status?.fullAccess !== true) return false;
     if (checkoutBusy) setCheckoutBusy(false);
     if (purchaseDialog.open) purchaseDialog.close();
-    location.assign(paidFlightUrl());
+    location.assign(ticketFlightUrl(status));
     return true;
   }
 
