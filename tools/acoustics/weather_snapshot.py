@@ -53,6 +53,10 @@ def checked_endpoint(url):
     return url
 
 
+# Same physical bounds as commerce/src/air.mjs.
+LIMITS = {"°C": (-100, 70), "%": (0, 100), "hPa": (300, 1100), "m/s": (0, 150)}
+
+
 def read_fields(values, units, fields, hourly=False):
     result = {}
     for key, unit in fields.items():
@@ -66,9 +70,8 @@ def read_fields(values, units, fields, hourly=False):
         if not (hourly and value is None):
             if type(value) not in (int, float) or not math.isfinite(value):
                 raise ValueError(f"{key} must be a finite number")
-            if ((key == "relative_humidity_2m" and not 0 <= value <= 100)
-                    or (key == "surface_pressure" and value <= 0)
-                    or (key.startswith("wind_speed_") and value < 0)):
+            low, high = LIMITS[unit]
+            if not low <= value <= high:
                 raise ValueError(f"{key} is out of range")
         result[key] = [value] if hourly else value
     return result
@@ -79,7 +82,7 @@ def read_region(world, row, now):
     time = datetime.strptime(current["time"], "%Y-%m-%dT%H:%M").replace(tzinfo=timezone.utc)
     if row["utc_offset_seconds"] != 0 or hourly["time"] != [time.strftime("%Y-%m-%dT%H:00")]:
         raise ValueError("expected UTC current and hourly data for the same hour")
-    if not now - timedelta(hours=2) <= time <= now + timedelta(minutes=5):
+    if not now - timedelta(hours=2) < time <= now + timedelta(minutes=15):
         raise ValueError("current data is stale or in the future")
     low = read_fields(current, row["current_units"], CURRENT)
     high = read_fields(hourly, row["hourly_units"], HOURLY, hourly=True)

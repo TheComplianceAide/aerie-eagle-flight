@@ -91,6 +91,7 @@ class SnapshotTest(unittest.TestCase):
                 lambda rows: rows[:-1], lambda rows: rows[::-1],
                 change(("current", "relative_humidity_2m"), None),
                 change(("current_units", "wind_speed_10m"), "km/h"),
+                change(("current", "surface_pressure"), 100),
                 change(("hourly", "wind_speed_80m"), []),
                 change(("hourly", "temperature_120m"), [float("nan")]),
                 change(("hourly", "time"), ["2000-01-01T00:00"]),
