@@ -26,8 +26,11 @@
   <meta name="twitter:image" content="https://playaerie.com/join/media/share-card.jpg">
   <meta name="twitter:image:alt" content="An eagle above Mount Major and Lake Winnipesaukee in Aerie.">
   <link rel="preload" href="media/mount-major.webp" as="image">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="media/aerie-app-180.png">
   <link rel="stylesheet" href="landing.css?v=cinema-tickets">
   <script defer src="landing.js?v=cinema-tickets"></script>
+  <script defer src="save-aerie.js?v=1"></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -41,11 +44,14 @@
         </div>
       </div>
       <div class="return-actions">
-        <a class="button button-gold" id="return-play" href="../?play=1" hidden>Fly unlocked worlds <span aria-hidden="true">↗</span></a>
+        <div id="returning-player-actions" class="return-player-actions" hidden>
+          <a class="button button-gold" id="return-play" href="../?play=1&amp;fly=1#world=moosehead&amp;launch=grand">Play now <span aria-hidden="true">↗</span></a>
+          <a class="text-link" id="return-ticket" href="#restore-ticket" data-open="restore">My ticket</a>
+          <button class="text-link" type="button" data-install-aerie>Save Aerie</button>
+        </div>
         <a class="button button-gold" id="return-retry" href="#passes" hidden>See flight tickets</a>
         <button class="button button-gold" id="return-status-retry" type="button" hidden>Check again</button>
-        <button class="button button-outline" id="return-restore" type="button" data-open="restore" hidden>Restore access</button>
-        <a class="text-link" id="return-receipt" target="_blank" rel="noopener noreferrer" hidden>View Stripe receipt</a>
+        <button class="button button-outline" id="return-restore" type="button" data-open="restore" hidden>Restore ticket</button>
         <a class="text-link" href="help/">Purchase help</a>
       </div>
     </section>
@@ -62,6 +68,7 @@
           <a class="top-worlds" href="#worlds">Worlds</a>
           <a href="#passes">Tickets</a>
           <a class="top-share" href="#invite">Share</a>
+          <a class="top-restore" href="#restore-ticket" data-open="restore">Restore ticket</a>
           <a class="top-flight" href="../?access=free#world=winnipesaukee&amp;launch=mount-major">Fly free <span aria-hidden="true">↗</span></a>
         </nav>
       </header>
@@ -234,7 +241,7 @@
             </button>
             <p class="ticket-note" id="checkout-merchant" hidden></p>
             <span id="checkout-availability" class="availability" role="status">Checking Stripe checkout availability…</span>
-            <div class="pass-restore" id="pass-restore" hidden>Already have a pass? <button class="text-link" type="button" data-open="restore">Restore access</button></div>
+            <div class="pass-restore" id="pass-restore" hidden><button class="text-link" type="button" data-open="restore">Restore ticket</button></div>
           </div>
         </article>
       </div>
@@ -271,7 +278,7 @@
   <footer class="footer frame">
     <a class="wordmark" href="./" aria-label="Aerie home"><img src="../field-engraving.webp" alt="Aerie" width="768" height="512" loading="lazy"></a>
     <div class="footlinks">
-      <button type="button" data-open="restore">Restore purchase</button>
+      <button type="button" data-open="restore">Restore ticket</button>
       <a href="help/">Purchase help</a>
       <button type="button" data-open="share">Share Aerie</button>
       <a class="project-link" href="https://github.com/TheComplianceAide/aerie-eagle-flight" target="_blank" rel="noopener noreferrer"><img src="media/github-mark-white.svg" alt="" width="17" height="17"> Aerie on GitHub <span aria-hidden="true">↗</span></a>
@@ -349,7 +356,7 @@
 
   <dialog id="restore-dialog" class="dialog" aria-labelledby="restore-title">
     <button class="dialog-close" type="button" data-close aria-label="Close purchase recovery">×</button>
-    <h2 id="restore-title">Restore access</h2>
+    <h2 id="restore-title">Restore ticket</h2>
     <p id="restore-intro">Use the email address from your purchase or share claim. We’ll send a link to open your worlds on this device.</p>
     <form id="restore-confirm-form" hidden>
       <div id="restore-code-field" hidden>
@@ -375,7 +382,7 @@
       <button type="button" class="button button-gold" id="redeem-gift" hidden>Redeem gift</button>
       <button type="button" class="button button-outline" id="copy-gift" hidden>Copy your gift link</button>
       <button type="button" class="button button-outline" id="share-gift" hidden>Share gift privately</button>
-      <a class="button button-outline" id="play-unlocked" href="../?play=1" hidden>Play unlocked worlds <span aria-hidden="true">↗</span></a>
+      <a class="button button-outline" id="play-unlocked" href="../?play=1" hidden><span id="play-unlocked-label">Play unlocked worlds</span> <span aria-hidden="true">↗</span></a>
       <a class="button button-outline" id="pass-receipt" target="_blank" rel="noopener noreferrer" hidden>View Stripe receipt</a>
       <details id="gift-link" class="gift-link" hidden>
         <summary>Show gift link</summary>
