@@ -29,10 +29,14 @@
   };
   async function liveAir(region) {
     const [lat, lon, us] = site[region] || [];
-    if (lat === undefined || !navigator.onLine) return null;
+    if (lat === undefined) return null;
     const hosted = document.querySelector('meta[name="aerie-access"]')?.content === 'required';
     const key = (hosted ? 'aerie-air-hosted-v1-' : 'aerie-air-') + region;
-    try { const c = JSON.parse(localStorage.getItem(key) || 'null'); if (c && Date.now() - c.at < 30 * 60e3) return c.air; } catch (e) {}
+    try {
+      const cached = JSON.parse(localStorage.getItem(key) || 'null');
+      if (cached && Date.now() - cached.at < 30 * 60e3 && (!hosted || Date.now() < cached.usableUntil)) return cached.air;
+    } catch (e) {}
+    if (!navigator.onLine) return null;
     const url = hosted ? '/api/aerie/air?region=' + encodeURIComponent(region) :
       'https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon +
       '&current=temperature_2m,relative_humidity_2m,surface_pressure,wind_speed_10m&hourly=temperature_80m,temperature_120m,wind_speed_80m,wind_speed_120m' +
@@ -43,6 +47,9 @@
       if (!response.ok || response.status === 204) return null;
       const d = await response.json(), c = d.current, h = d.hourly || {};
       if (![c?.temperature_2m, c?.relative_humidity_2m, c?.surface_pressure, c?.wind_speed_10m].every(Number.isFinite)) return null;
+      const observedAt = typeof c.time === 'string' && Date.parse(c.time.endsWith('Z') ? c.time : c.time + 'Z');
+      const usableUntil = observedAt + 2 * 60 * 60e3;
+      if (hosted && (!Number.isFinite(observedAt) || Date.now() >= usableUntil)) return null;
       const t2 = c.temperature_2m, tHigh = h.temperature_120m?.[0] ?? h.temperature_80m?.[0], zHigh = h.temperature_120m?.[0] != null ? 120 : 80;
       const wHigh = h.wind_speed_120m?.[0] ?? h.wind_speed_80m?.[0];
       // Lapse rate: stable air (warmer aloft than the standard -6.5 K/km) bends sound down.
@@ -51,7 +58,7 @@
         inversion: clamp((lapse + .0065) / .015, 0, 1) * .6,
         windRefract: wHigh != null ? clamp((wHigh - c.wind_speed_10m) / (zHigh - 10) / .02, .3, 2.2) : 1,
         source: 'Open-Meteo ' + (us ? 'NOAA GFS/HRRR' : 'best match') + ' ' + c.time, lapse};
-      try { localStorage.setItem(key, JSON.stringify({at: Date.now(), air})); } catch (e) {}
+      try { localStorage.setItem(key, JSON.stringify({at: Date.now(), usableUntil, air})); } catch (e) {}
       return air;
     } catch (e) { return null; } finally { clearTimeout(timer); }
   }

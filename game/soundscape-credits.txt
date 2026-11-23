@@ -446,7 +446,8 @@ https://creativecommons.org/licenses/by/4.0/
 hrir-eagle: rigid-sphere head model (Duda & Martens 1998) with a 4 cm radius and ears at 100 degrees azimuth, -10 degrees elevation.
 Eagle Ears hearing curve follows diurnal raptor audiograms (Dooling 1980; Dooling, Lohr & Dent 2000): most sensitive near 1-4 kHz, falling above about 6 kHz.
 World reverberation: ir-*.m4a simulated with pyroomacoustics (MIT) by tools/acoustics/make_irs.py.
-Air absorption: ISO 9613-1. Live air: Open-Meteo forecast API (CC BY 4.0), NOAA GFS/HRRR for US worlds; https://open-meteo.com/
+Air absorption: ISO 9613-1. Live air uses Open-Meteo forecast data (CC BY 4.0), including NOAA GFS/HRRR for US worlds. The hosted game receives those forecast fields from Aerie and derives the acoustic values in the browser.
+https://open-meteo.com/ · https://creativecommons.org/licenses/by/4.0/
 
 ACADIA — OCEAN PATH AT NIGHT
 scape-acadia-cove.m4a — “Mt. Desert Island.wav,” be-steele, Freesound. Small waves breaking on a rocky beach near Southwest Harbor, Mount Desert Island, Maine, in midsummer. This nearby coast recording supplies the wash in Newport Cove and the smaller return flow outside Thunder Hole. Excerpt, spatial mono mix, high-pass and loop edit. CC0 1.0.
