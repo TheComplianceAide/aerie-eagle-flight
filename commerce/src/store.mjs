@@ -29,3 +29,27 @@ export function tableStore(endpoint, tableName, credential, partitionKey) {
     }
   };
 }
+
+export function trafficTableStore(endpoint, credential) {
+  const table = new TableClient(endpoint, 'AerieTraffic', credential, { retryOptions: { maxRetries: 1 } });
+  return {
+    async merge(row) {
+      await table.upsertEntity(row, 'Merge', { abortSignal: AbortSignal.timeout(4000) });
+    },
+    async prune(cutoff) {
+      const filter = `PartitionKey lt '${cutoff}'`;
+      const abortSignal = AbortSignal.timeout(45_000);
+      const pages = table.listEntities({ queryOptions: { filter, select: ['PartitionKey', 'RowKey'] }, abortSignal });
+      let batches = 0;
+      for await (const page of pages.byPage({ maxPageSize: 100 })) {
+        const partitions = new Map();
+        for (const row of page) {
+          if (!partitions.has(row.partitionKey)) partitions.set(row.partitionKey, []);
+          partitions.get(row.partitionKey).push(['delete', { partitionKey: row.partitionKey, rowKey: row.rowKey }]);
+        }
+        for (const actions of partitions.values()) await table.submitTransaction(actions, { abortSignal });
+        if (++batches >= 100) break;
+      }
+    }
+  };
+}

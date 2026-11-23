@@ -2,7 +2,7 @@ import { EmailClient } from '@azure/communication-email';
 import { DefaultAzureCredential } from '@azure/identity';
 import { BlobSASPermissions, BlobServiceClient, SASProtocol, generateBlobSASQueryParameters } from '@azure/storage-blob';
 import Stripe from 'stripe';
-import { tableStore } from './store.mjs';
+import { tableStore, trafficTableStore } from './store.mjs';
 
 export const freeWorld = 'winnipesaukee';
 export const allWorlds = [
@@ -64,6 +64,7 @@ export function configuration(env = process.env) {
     signup: env.AERIE_SIGNUP_ENABLED === 'true', checkout: env.AERIE_CHECKOUT_ENABLED === 'true',
     claims: env.AERIE_SHARE_CLAIMS_ENABLED === 'true',
     monitoring: env.AERIE_MONITORING_ENABLED === 'true',
+    traffic: env.AERIE_TRAFFIC_ENABLED === 'true',
     purchaseHelp: env.AERIE_PURCHASE_HELP_ENABLED === 'true',
     purchaseEmails: env.AERIE_PURCHASE_EMAILS_ENABLED === 'true',
     sandboxPurchaseEmail,
@@ -123,6 +124,8 @@ export function configuredServices(config) {
   const preview = store && config.live
     ? tableStore(config.tableUrl, config.tableName, credential, 'aerie-test')
     : null;
+  const trafficStore = config.traffic && config.tableUrl && config.secret
+    ? trafficTableStore(config.tableUrl, credential) : null;
   const stripe = config.stripeKey ? new Stripe(config.stripeKey) : null;
   const email = config.emailUrl && config.sender ? new EmailClient(config.emailUrl, credential) : null;
   const blobs = config.storage && config.container ? new BlobServiceClient(config.storage, credential) : null;
@@ -130,7 +133,7 @@ export function configuredServices(config) {
   let delegation;
   let keyExpires = 0;
   return {
-    store, stripe,
+    store, stripe, trafficStore,
     readWeatherBlob: weatherBlob && (async () => {
       const signal = AbortSignal.timeout(4000);
       const access = await credential.getToken('https://storage.azure.com/.default', { abortSignal: signal });
