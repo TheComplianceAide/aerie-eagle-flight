@@ -74,8 +74,8 @@
   const title = document.getElementById('dialogTitle');
   if (title) new MutationObserver(() => {
     if (title.textContent === 'Unable to start flight') {
-      const reason = String(window.aerieLaunchFailure || 'unknown').replace(/[^A-Za-z0-9-]/g, '').slice(0, 48) || 'unknown';
-      report('startup', 'startup.' + reason + '.js');
+      const reason = String(window.aerieLaunchFailure || 'unknown').replace(/[^A-Za-z0-9-]/g, '').slice(0, 44) || 'unknown';
+      report('startup', 'startup.' + platform + '.' + reason + '.js');
     }
   }).observe(title, {childList:true, characterData:true, subtree:true});
 })();
