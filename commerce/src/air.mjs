@@ -67,11 +67,14 @@ async function fetchForecast(endpoint, [lat, lon, us], fetcher, now) {
   url.searchParams.set('forecast_hours', '1');
   url.searchParams.set('wind_speed_unit', 'ms');
   if (us) url.searchParams.set('models', 'gfs_seamless');
-  return measurements(await forecastDocument(url, fetcher), now());
+  return measurements(await forecastDocument(await requestForecast(url, fetcher)), now());
 }
 
-async function forecastDocument(url, fetcher) {
-  const response = await fetcher(url, { headers: { Accept: 'application/json' }, redirect: 'error', signal: AbortSignal.timeout(4000) });
+function requestForecast(url, fetcher) {
+  return fetcher(url, { headers: { Accept: 'application/json' }, redirect: 'error', signal: AbortSignal.timeout(4000) });
+}
+
+async function forecastDocument(response) {
   if (!response.ok || !response.body || Number(response.headers.get('content-length')) > maxBytes) {
     await response.body?.cancel();
     throw new Error('Forecast unavailable.');
@@ -86,16 +89,22 @@ async function forecastDocument(url, fetcher) {
   return JSON.parse(Buffer.concat(chunks, bytes).toString('utf8'));
 }
 
-function snapshotReader(address, fetcher, now) {
+function snapshotFetcher(address, fetcher) {
   const url = URL.parse(address);
   if (!url || url.protocol !== 'https:' || url.username || url.password || url.search || url.hash || isOpenMeteo(url)) {
     return async () => null;
   }
+  return () => requestForecast(url, fetcher);
+}
+
+function snapshotReader(read, now) {
   let forecasts = new Map();
   let nextAttempt = 0;
   let pending;
   async function refresh() {
-    const snapshot = await forecastDocument(url, fetcher);
+    const response = await read();
+    if (!response) throw new Error('Snapshot unavailable.');
+    const snapshot = await forecastDocument(response);
     const checkedAt = now();
     const generatedAt = Date.parse(snapshot?.generatedAt);
     if (snapshot?.version !== 1 || !Number.isFinite(generatedAt) ||
@@ -116,8 +125,10 @@ function snapshotReader(address, fetcher, now) {
   };
 }
 
-export function createAirForecast(config, { fetcher = fetch, now = Date.now } = {}) {
-  const snapshot = config.forecastSnapshot && snapshotReader(config.forecastSnapshot, fetcher, now);
+export function createAirForecast(config, { fetcher = fetch, readWeatherBlob, now = Date.now } = {}) {
+  const readSnapshot = config.forecastSnapshotStorage ? readWeatherBlob || (async () => null) :
+    config.forecastSnapshot && snapshotFetcher(config.forecastSnapshot, fetcher);
+  const snapshot = readSnapshot && snapshotReader(readSnapshot, now);
   const endpoint = snapshot ? null : provider(config);
   const regions = new Map();
   return async function air(request) {

@@ -14,11 +14,11 @@ const sampleSnapshot = () => ({
   version: 1, generatedAt: new Date(start).toISOString(),
   regions: Object.fromEntries(allWorlds.map(world => [world, example()]))
 });
-function fixture(env = {}, upstream = () => Response.json(example())) {
+function fixture(env = {}, upstream = () => Response.json(example()), readWeatherBlob) {
   const config = configuration(env);
   const urls = [], errors = [];
   let time = start;
-  const app = createCommerce(config, { now: () => time, fetchForecast: (url, options) => {
+  const app = createCommerce(config, { now: () => time, readWeatherBlob, fetchForecast: (url, options) => {
     assert.equal(options.redirect, 'error');
     assert.ok(options.signal instanceof AbortSignal);
     urls.push(url);
@@ -29,6 +29,28 @@ function fixture(env = {}, upstream = () => Response.json(example())) {
   }, { error: value => errors.push(value) });
   return { urls, request, errors, at: minutes => { time = start + minutes * minute; } };
 }
+
+test('private Azure snapshot selection coalesces reads and never contacts the forecast provider on failure', async () => {
+  let reads = 0;
+  const settings = {
+    AERIE_STRIPE_MODE: 'live', AERIE_ACOUSTIC_SNAPSHOT_STORAGE_ENABLED: 'true',
+    AERIE_OPEN_METEO_API_KEY: secret, AERIE_ACOUSTIC_SNAPSHOT_URL: 'https://weather.aerie.example/snapshot.json'
+  };
+  const working = fixture(settings, undefined, async () => {
+    reads++;
+    return Response.json(sampleSnapshot());
+  });
+  const results = await Promise.all([working.request('alaska'), working.request('winnipesaukee')]);
+  assert.equal(reads, 1);
+  assert.ok(results.every(reply => reply.status === 200));
+  for (const reply of results) assert.deepEqual(reply.jsonBody, example());
+  assert.equal(working.urls.length, 0);
+  for (const read of [undefined, async () => new Response(null, { status: 403 })]) {
+    const broken = fixture(settings, undefined, read);
+    assert.equal((await broken.request()).status, 204);
+    assert.equal(broken.urls.length, 0);
+  }
+});
 
 test('a prepared live snapshot supplies all worlds in one fetch and an invalid refresh retains the previous forecast', async () => {
   let payload = sampleSnapshot();

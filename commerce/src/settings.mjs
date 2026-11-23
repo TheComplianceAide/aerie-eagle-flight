@@ -56,6 +56,7 @@ export function configuration(env = process.env) {
   return {
     forecastEndpoint: env.AERIE_OPEN_METEO_ENDPOINT || '', forecastKey: env.AERIE_OPEN_METEO_API_KEY || '',
     forecastSnapshot: env.AERIE_ACOUSTIC_SNAPSHOT_URL || '',
+    forecastSnapshotStorage: env.AERIE_ACOUSTIC_SNAPSHOT_STORAGE_ENABLED === 'true',
     mode, live: mode === 'live', site: site?.origin || '', origins, rewards, secret,
     stripeKey, ticketPriceCents: cents ? Number(cents) : null, priceId: env.AERIE_STRIPE_PRICE_ID || '', webhookSecret: env.AERIE_STRIPE_WEBHOOK_SECRET || '',
     tableName, tableUrl: env.AERIE_TABLE_URL || '', storage, account, container,
@@ -125,10 +126,19 @@ export function configuredServices(config) {
   const stripe = config.stripeKey ? new Stripe(config.stripeKey) : null;
   const email = config.emailUrl && config.sender ? new EmailClient(config.emailUrl, credential) : null;
   const blobs = config.storage && config.container ? new BlobServiceClient(config.storage, credential) : null;
+  const weatherBlob = config.forecastSnapshotStorage && blobs?.getContainerClient('aerie-weather').getBlobClient('air.json');
   let delegation;
   let keyExpires = 0;
   return {
     store, stripe,
+    readWeatherBlob: weatherBlob && (async () => {
+      const signal = AbortSignal.timeout(4000);
+      const access = await credential.getToken('https://storage.azure.com/.default', { abortSignal: signal });
+      return fetch(weatherBlob.url, {
+        signal, redirect: 'error',
+        headers: { Authorization: `Bearer ${access.token}`, 'x-ms-version': '2023-11-03', Accept: 'application/json' }
+      });
+    }),
     hasPreviewReward: preview && (async uid => (await preview.get(`account:${uid}`))?.reward === true),
     previewCheckoutId: preview && (async order => {
       const id = (await preview.get(`pending:${order}`))?.checkoutId;
