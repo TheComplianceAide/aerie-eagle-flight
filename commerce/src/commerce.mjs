@@ -332,6 +332,7 @@ export function createCommerce(config, { store, stripe, trafficStore, sendEmail,
       client_reference_id: reference,
       metadata: { product: 'aerie-founder-and-gift' },
       payment_intent_data: {
+        description: 'Aerie — all worlds plus one gift copy',
         statement_descriptor_suffix: 'AERIE',
         metadata: { product: 'aerie-founder-and-gift' }
       },
