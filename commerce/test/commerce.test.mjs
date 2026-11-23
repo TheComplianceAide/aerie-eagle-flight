@@ -128,6 +128,13 @@ function fixture({ config = {}, purchaseEmailOperations, now = Date.now } = {}) 
 
 const asCookie = cookie => `${cookie.name}=${cookie.value}`;
 
+test('checkout config identifies the packaged revision when present', async () => {
+  const releaseRevision = '0'.repeat(40);
+  const packaged = fixture({ config: { releaseRevision } });
+  assert.equal((await packaged.call('config')).jsonBody.releaseRevision, releaseRevision);
+  assert.ok(!('releaseRevision' in (await fixture().call('config')).jsonBody));
+});
+
 test('an unconfigured site exposes only free play and cannot start paid Checkout', async () => {
   const config = configuration();
   const app = createCommerce(config, {});

@@ -12,6 +12,12 @@ Run `npm ci` and `npm test` with Node.js 22 or later. The tests use the official
 4. Publish `commerce/` as a standalone Azure Functions v4 app with managed identity. Keep `/api/aerie/` on the same browser origin as the flight app. Azure Static Web Apps Standard can [link the Functions app](https://learn.microsoft.com/en-us/azure/static-web-apps/functions-bring-your-own). Managed Functions on the Free tier do not support managed identity for this backend. An existing first-party HTTPS reverse proxy can also route the API. For a local sandbox, serve the frontend and proxy the API under one localhost origin.
 5. Create the private Table Storage table, private paid asset container and sender. Assign the function identity Table Storage Data Contributor on the commerce table, permission to obtain a user-delegation key at storage-account scope and read access on the paid container, and Azure Communication Services permission to send email using the verified sender. Run `python3 tools/prepare_paid_worlds.py path/to/dist path/to/private-assets` against a generated Azure game build. It puts the paid flight entry files in `<private-assets>/<world>/<entry file>` and enables required access in the generated page. Upload the private tree before deploying that page. Configure Blob CORS for the game origin's reads and test the returned redirects from the actual origin. URLs contain a read-only token that expires after 15 minutes. Keep future paid entry files in private release storage. Previous public builds and repository assets remain accessible where they were published.
 
+## Publish the commerce Function
+
+After merging and signing in to Azure CLI, run `python3 commerce/tools/deploy_functions.py deploy <full-commit-sha> --mode test` from the repository. Select the mode already intended for the site. The command tests the merged source, packages Linux-readable files and directories, uploads to Aerie’s Flex Consumption app, and waits for both public hosts to serve that exact revision’s checkout offer and free-player access. It also verifies the indexed HTTP functions and receipt timer. A failed health check exits nonzero even after Azure accepts the ZIP. Check the deployment and trigger logs before retrying.
+
+For a local package, run `python3 commerce/tools/deploy_functions.py package <full-commit-sha> /tmp/aerie-commerce.zip`. To check an existing release without uploading, use `verify <full-commit-sha> --mode test` in place of `deploy`. The revision field appears on builds published with this packager.
+
 ## Check live payment readiness
 
 From `commerce/`, run `npm ci`, sign in to Azure CLI with access to the Aerie Function configuration and Key Vault, and supply the intended Stripe merchant account ID.
@@ -72,7 +78,7 @@ AppTraces
 | summarize Reports = count() by tostring(error.kind), tostring(error.world), tostring(error.version), bin(TimeGenerated, 15m)
 ```
 
-`rg-aerie-prod` uses two Azure Monitor scheduled query alerts. They evaluate every five minutes over a 15-minute window. `aerie-client-launch-and-webgl` fires at five reported startup or WebGL failures. `aerie-api-server-failures` fires at three API requests with HTTP 5xx responses. Both use the `ag-playaerie-prod` action group, which sends to the owner address configured in Azure.
+`rg-aerie-prod` uses two Azure Monitor scheduled query alerts. They evaluate every five minutes over a 15-minute window. `aerie-client-launch-and-webgl` fires at five reported startup or WebGL failures. `aerie-api-server-failures` fires when the combined count reaches three across API requests with HTTP 5xx responses and Functions host startup exceptions reporting access denied on `host.json`. Both use the `ag-playaerie-prod` action group, which sends to the owner address configured in Azure.
 
 ## Purchase help
 

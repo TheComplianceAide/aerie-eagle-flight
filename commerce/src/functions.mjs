@@ -1,8 +1,9 @@
 import { app } from '@azure/functions';
+import manifest from '../package.json' with { type: 'json' };
 import { createCommerce } from './commerce.mjs';
 import { configuration, configuredServices } from './settings.mjs';
 
-const config = configuration();
+const config = { ...configuration(), releaseRevision: manifest.aerieReleaseRevision };
 const commerce = createCommerce(config, configuredServices(config));
 if (commerce.purchaseMail.enabled) {
   app.timer('aerie-purchase-confirmations', {
