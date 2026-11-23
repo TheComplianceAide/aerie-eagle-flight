@@ -28,16 +28,21 @@
     yosemite: [37.723, -119.637, 'us'], crater: [42.944, -122.109, 'us'], lofoten: [67.932, 13.089], acadia: [44.321, -68.187, 'us']
   };
   async function liveAir(region) {
-    const key = 'aerie-air-' + region;
-    try { const c = JSON.parse(localStorage.getItem(key) || 'null'); if (c && Date.now() - c.at < 30 * 60e3) return c.air; } catch (e) {}
     const [lat, lon, us] = site[region] || [];
     if (lat === undefined || !navigator.onLine) return null;
-    const url = 'https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon +
+    const hosted = document.querySelector('meta[name="aerie-access"]')?.content === 'required';
+    const key = (hosted ? 'aerie-air-hosted-v1-' : 'aerie-air-') + region;
+    try { const c = JSON.parse(localStorage.getItem(key) || 'null'); if (c && Date.now() - c.at < 30 * 60e3) return c.air; } catch (e) {}
+    const url = hosted ? '/api/aerie/air?region=' + encodeURIComponent(region) :
+      'https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon +
       '&current=temperature_2m,relative_humidity_2m,surface_pressure,wind_speed_10m&hourly=temperature_80m,temperature_120m,wind_speed_80m,wind_speed_120m' +
       '&forecast_hours=1&wind_speed_unit=ms' + (us ? '&models=gfs_seamless' : '');
     const ctrl = new AbortController(), timer = setTimeout(() => ctrl.abort(), 5000);
     try {
-      const d = await (await fetch(url, {signal: ctrl.signal})).json(), c = d.current, h = d.hourly || {};
+      const response = await fetch(url, {signal: ctrl.signal, credentials: 'omit'});
+      if (!response.ok || response.status === 204) return null;
+      const d = await response.json(), c = d.current, h = d.hourly || {};
+      if (![c?.temperature_2m, c?.relative_humidity_2m, c?.surface_pressure, c?.wind_speed_10m].every(Number.isFinite)) return null;
       const t2 = c.temperature_2m, tHigh = h.temperature_120m?.[0] ?? h.temperature_80m?.[0], zHigh = h.temperature_120m?.[0] != null ? 120 : 80;
       const wHigh = h.wind_speed_120m?.[0] ?? h.wind_speed_80m?.[0];
       // Lapse rate: stable air (warmer aloft than the standard -6.5 K/km) bends sound down.
