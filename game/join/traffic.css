@@ -1,0 +1,54 @@
+.traffic-choice {
+  position: fixed;
+  z-index: 6;
+  right: max(12px, env(safe-area-inset-right));
+  bottom: max(12px, env(safe-area-inset-bottom));
+  width: min(22rem, calc(100vw - 24px));
+  padding: .65rem .8rem;
+  border: 1px solid #f4d9a966;
+  border-radius: 8px;
+  color: #fdf6e7;
+  background: #142b25;
+  box-shadow: 0 4px 22px #0005;
+  font: 13px/1.35 system-ui, sans-serif;
+}
+
+.traffic-choice[hidden],
+html[data-flight-intro="playing"] .traffic-choice,
+#app[data-mode="flight"] ~ .traffic-choice,
+#app:has(.modal:not([hidden])) ~ .traffic-choice {
+  display: none;
+}
+
+.traffic-choice p {
+  margin: 0;
+  font: inherit;
+}
+
+.traffic-choice div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .15rem .65rem;
+}
+
+.traffic-choice button, .traffic-choice a {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  padding: .15rem .35rem;
+  border: 0;
+  color: #f7d29b;
+  background: transparent;
+  font: inherit;
+  font-weight: 600;
+}
+
+.traffic-choice button {
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+@media (pointer: coarse) {
+  .traffic-choice button, .traffic-choice a { min-height: 44px; }
+}

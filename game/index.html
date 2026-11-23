@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#172323"><title>Aerie · Free Flight</title><meta name="application-version" content="0.34.0"><link rel="icon" type="image/png" sizes="64x64" href="aerie-icon-64.png"><link rel="stylesheet" href="style.css?v=0.34.0"><meta name="description" content="Fly free as an eagle from Mount Major over Lake Winnipesaukee, New Hampshire.">
 <link rel="canonical" href="https://playaerie.com/">
+<script src="join/traffic.js?v=1" data-traffic-page="game"></script>
 <script>
   (() => {
     const entry = new URL(location.href);
@@ -10,6 +11,7 @@
       const home = new URL('join/', entry);
       home.search = entry.search;
       home.hash = entry.hash;
+      window.aerieTraffic?.carryTo(home);
       location.replace(home);
     }
   })();
@@ -59,6 +61,7 @@
 <link rel="apple-touch-icon" href="join/media/aerie-app-180.png">
 <link rel="stylesheet" href="access-pass.css?v=return-flights">
 <link rel="stylesheet" href="join/return-flight.css?v=1">
+<link rel="stylesheet" href="join/traffic.css?v=1">
 <script defer src="join/save-aerie.js?v=return"></script>
 <script defer src="join/flight-reminder.js"></script>
 </head>
