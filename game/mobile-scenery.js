@@ -1,4 +1,7 @@
 // Smaller color textures on touch-first devices; survey grids retain their native precision.
+// Phone copies of at most 1024 px cover surface detail, aerial tiles and foliage atlases
+// (each mipmapped, linearly filtered and never read back on the CPU), so the page and
+// GPU processes fit in a phone tab. The eagle and wildlife keep full resolution.
 // Three warns on every draw of a shader that needs more texture units than the GPU
 // has (terrain shaders in several worlds; tracked separately). Thousands of identical
 // warnings a second cost phones real CPU, so each distinct message is logged once.
@@ -63,7 +66,62 @@
     'keene-downtown-ortho.webp',
     'sky.jpg',
     'winnipesaukee-alton-ortho.webp',
-    'winnipesaukee-weirs-ortho.webp'
+    'winnipesaukee-weirs-ortho.webp',
+    'acadia-egg-west-front.webp',
+    'alpine-0-0.jpg',
+    'alpine-0-1.jpg',
+    'alpine-0-2.jpg',
+    'alpine-0-3.jpg',
+    'alpine-1-0.jpg',
+    'alpine-1-1.jpg',
+    'alpine-1-2.jpg',
+    'alpine-1-3.jpg',
+    'alpine-2-0.jpg',
+    'alpine-2-1.jpg',
+    'alpine-2-3.jpg',
+    'alpine-3-0.jpg',
+    'alpine-3-1.jpg',
+    'alpine-3-2.jpg',
+    'alpine-3-3.jpg',
+    'alpine-tundra.webp',
+    'atlas-bedded-rock.webp',
+    'atlas-jointed-relief.webp',
+    'atlas-jointed-rock.webp',
+    'atlas-surry-shore.webp',
+    'building-comfy-cafe.webp',
+    'building-decor-shop.webp',
+    'canyon-overlook-strata.webp',
+    'canyon-river-banks.webp',
+    'canyon-scarp.webp',
+    'cliff-strata-normal.jpg',
+    'cliff-strata.jpg',
+    'crater-caldera-field.webp',
+    'dixville-ledge-surface.webp',
+    'field-ground-scans.webp',
+    'fir-distant.webp',
+    'keene-colony-mansards.webp',
+    'keene-colony-slate.webp',
+    'labrador-otter-skin.webp',
+    'landform-alaska-aerial.webp',
+    'landform-kineo-aerial.webp',
+    'landform-lily-aerial.webp',
+    'landform-meredith-aerial.webp',
+    'landform-spencer-aerial.webp',
+    'landform-yosemite-falls-aerial.webp',
+    'oeschinen-rowing-shore.webp',
+    'regional-crowns.webp',
+    'regional-growth-stands.webp',
+    'shore-bark.webp',
+    'shore-cobble.webp',
+    'shore-meadow.webp',
+    'shore-pebbles-normal.webp',
+    'shore-pebbles.webp',
+    'shore-sand.webp',
+    'survey-normals.jpg',
+    'swiss-karst-light.webp',
+    'understory-leaves.webp',
+    'understory-stands.webp',
+    'winnipesaukee-rattlesnake-bank.webp'
   ]);
   // A phone draws at most about 1500 device pixels across, so an image texture
   // larger than 2048 px is only ever sampled from its second mip level down.

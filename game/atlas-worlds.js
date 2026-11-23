@@ -1974,7 +1974,8 @@ class Water extends Mesh {
       // of every kept tree match the desktop forest; kept crowns widen to hold cover.
       if(phoneInfill){
         if(((Math.imul(Math.floor(tx*7.31)^Math.imul(Math.floor(tz*3.17),0x9E3779B1),0x85EBCA6B)>>>0)/4294967296)>=phoneInfill)continue;
-        tree.width*=phoneInfillWidth;
+        // Drawn wider to hold canopy cover; the crown's collision width stays the desktop one.
+        tree.crownScale=phoneInfillWidth;
       }
       if(repairedLanding?.edge(tx,tz)>0){
         tree.y=elevation(tx,tz);if(wetGround(tx,tz,tree.y,.8))continue;
