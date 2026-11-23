@@ -1,4 +1,5 @@
 import { createHash, createHmac, randomBytes, randomInt, timingSafeEqual } from 'node:crypto';
+import { createAirForecast } from './air.mjs';
 import { createPurchaseHelp } from './purchase-help.mjs';
 import { createPurchaseMail, stripeReceiptUrl } from './purchase-mail.mjs';
 import { allWorlds, freeWorld } from './settings.mjs';
@@ -120,7 +121,7 @@ export function expiryProbeKey(marker, signingSecret) {
 }
 
 export function createCommerce(config, { store, stripe, sendEmail, purchaseEmailOperations, assetUrl,
-  hasPreviewReward, previewCheckoutId, now = Date.now }) {
+  hasPreviewReward, previewCheckoutId, fetchForecast, now = Date.now }) {
   const restoreEnabled = Boolean(store && sendEmail && config.site);
   const canCheckout = Boolean(config.checkout && restoreEnabled && stripe && config.priceId && config.webhookSecret && assetUrl);
   const shareEnabled = Boolean(config.claims && restoreEnabled && assetUrl);
@@ -774,6 +775,7 @@ export function createCommerce(config, { store, stripe, sendEmail, purchaseEmail
 
   const routes = {
     config: ['GET', configResponse],
+    air: ['GET', createAirForecast(config, { fetcher: fetchForecast, now })],
     status: ['GET', async request => ({ jsonBody: await playerAccess(request, true) })],
     signup: ['POST', signup],
     checkout: ['POST', createCheckout],
