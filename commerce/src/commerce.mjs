@@ -4,7 +4,7 @@ import { allWorlds, freeWorld } from './settings.mjs';
 
 const minute = 60_000;
 const day = 24 * 60 * minute;
-const disclosure = 'Aerie is giving me access to three extra worlds for sharing my experience.';
+const disclosure = 'Aerie is giving me access to five extra worlds for sharing my experience.';
 const newToken = () => randomBytes(32).toString('base64url');
 const tokenPattern = /^[a-zA-Z0-9_-]{43}$/;
 const restoreCodePattern = /^[0-9]{8}$/;
@@ -105,6 +105,7 @@ export function createCommerce(config, { store, stripe, sendEmail, assetUrl, now
   const sessionCookie = secureCookies ? '__Host-aerie_session' : 'aerie_session';
   const checkoutCookie = secureCookies ? '__Host-aerie_checkout' : 'aerie_checkout';
   const restoreCookie = secureCookies ? '__Host-aerie_restore' : 'aerie_restore';
+  const friendsCookie = secureCookies ? '__Host-aerie_friends' : 'aerie_friends';
   const joinPath = '/join/';
   const hash = (purpose, value) => createHmac('sha256', config.secret).update(`${purpose}:${value}`).digest('base64url');
   const userId = email => hash('email', email);
@@ -176,6 +177,44 @@ export function createCommerce(config, { store, stripe, sendEmail, assetUrl, now
       }
     }
     return result;
+  }
+
+  function friendPass(request) {
+    const token = cookieValue(request, friendsCookie);
+    const match = /^(\d{1,13})\.([\w-]{43})\.([\w-]{43})$/.exec(token);
+    if (!match || Number(match[1]) <= now()) return false;
+    const expected = hash('share-friends:' + config.mode, match[1] + '.' + match[2]);
+    return timingSafeEqual(Buffer.from(match[3]), Buffer.from(expected));
+  }
+
+  async function playerAccess(request, includeGift = false) {
+    const result = await access(await identity(request), includeGift);
+    if (!result.fullAccess && friendPass(request)) result.worlds = [freeWorld, ...config.rewards];
+    return result;
+  }
+
+  async function sharedWithFriends(request) {
+    if (!shareEnabled) throw new HttpError(503, 'Sharing rewards are currently unavailable.');
+    const body = await readJson(request);
+    if (body.sharedWithFive !== true) throw new HttpError(400, 'Confirm that you shared Aerie with five friends.');
+    const login = await identity(request);
+    if (login && !login.checkoutId) {
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const account = await store.get(accountKey(login.uid));
+        if (account?.reward) break;
+        try {
+          await store.transaction([[account ? 'replace' : 'create', row(accountKey(login.uid), { ...account, reward: true })]]);
+          break;
+        } catch (error) {
+          if (!conflict(error) || attempt === 4) throw error;
+        }
+      }
+    }
+    const current = await access(login);
+    const worlds = current.fullAccess ? allWorlds : [freeWorld, ...config.rewards];
+    const value = (now() + 365 * day) + '.' + newToken();
+    const signature = hash('share-friends:' + config.mode, value);
+    return { jsonBody: { ok: true, worlds }, cookies: [cookie(friendsCookie, value + '.' + signature, 365 * day / 1000)] };
   }
 
   async function createCheckout(request, _context, browserOrigin) {
@@ -392,7 +431,12 @@ export function createCommerce(config, { store, stripe, sendEmail, assetUrl, now
       }
       const login = newToken();
       try {
-        await store.transaction([['replace', { ...link, used: true }], ['create', session(login, link.uid)]]);
+        const actions = [['replace', { ...link, used: true }], ['create', session(login, link.uid)]];
+        if (friendPass(request)) {
+          const account = await store.get(accountKey(link.uid));
+          if (!account?.reward) actions.push([account ? 'replace' : 'create', row(accountKey(link.uid), { ...account, reward: true })]);
+        }
+        await store.transaction(actions);
         return {
           cookies: [cookie(sessionCookie, login, 30 * 24 * 60 * 60)],
           jsonBody: { ok: true, ...(link.giftCheckoutId ? { giftCode: giftCode(link.giftCheckoutId) } : {}) }
@@ -538,7 +582,7 @@ export function createCommerce(config, { store, stripe, sendEmail, assetUrl, now
 
   const routes = {
     config: ['GET', configResponse],
-    status: ['GET', async request => ({ jsonBody: await access(await identity(request), true) })],
+    status: ['GET', async request => ({ jsonBody: await playerAccess(request, true) })],
     signup: ['POST', signup],
     checkout: ['POST', createCheckout],
     'checkout/complete': ['GET', completeCheckout],
@@ -546,6 +590,7 @@ export function createCommerce(config, { store, stripe, sendEmail, assetUrl, now
     'restore/confirm': ['POST', confirmRestore],
     'gift/redeem': ['POST', redeemGift],
     'share-claim': ['POST', submitClaim],
+    'share-friends': ['POST', sharedWithFriends],
     'purchase-help': ['POST', async (request, context) => {
       if (!config.purchaseHelp || !store) throw new HttpError(503, 'Purchase help is temporarily unavailable.');
       const body = await readJson(request, 4096);
@@ -556,7 +601,7 @@ export function createCommerce(config, { store, stripe, sendEmail, assetUrl, now
     asset: ['GET', async request => {
       const { world, path } = downloadTarget(request.query);
       if (!assetUrl) throw new HttpError(503, 'Private world downloads are not configured.');
-      if (!(await access(await identity(request))).worlds.includes(world)) {
+      if (!(await playerAccess(request)).worlds.includes(world)) {
         throw new HttpError(403, 'Unlock this world to download its assets.');
       }
       const url = await assetUrl(world, path);

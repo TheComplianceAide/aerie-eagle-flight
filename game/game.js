@@ -473,14 +473,18 @@
     paused=true;resetInput();modal.hidden=false;syncAudio();
     if(audio){wingRush.gain.setTargetAtTime(0,audio.currentTime,.08);windLevel.gain.setTargetAtTime(.25,audio.currentTime,.3);}
     const inFlight=started, controls=type==="controls";
+    const support=type==="support";
+    el("flightSupport").hidden=!(support || (type==="pause" && app.dataset.freePlayer==="true" && world?.region==="winnipesaukee"));
     el("placeList").hidden=type!=="places";
     if(type==="places")fillPlaces();
-    el("dialogTitle").textContent=type==="places"?"Explore landmarks":type==="contact"?"Terrain contact":controls?"Flight controls":"Flight paused";
+    el("dialogTitle").textContent=support?"Unlock 5 more worlds":type==="places"?"Explore landmarks":type==="contact"?"Terrain contact":controls?"Flight controls":"Flight paused";
     el("instructions").hidden=!controls;
     const progress=inFlight ? units.miles(distance)+" flown · "+found.size+" / "+world.landmarks.length+" landmarks discovered" : "";
     el("summary").textContent=type==="places"?"Choose a landmark to fly nearby. "+progress:progress;
     el("back").textContent=type==="launchError"?"Try again":inFlight?(dynamics?.state.contact?"Fly again":"Resume flight"):"Back";
-    el("end").hidden=!inFlight;
+    el("end").hidden=!inFlight || support;
+    el("summary").hidden=support;
+    if(support)el("back").textContent="Keep flying";
     if(type==="places"){
       const list=el("placeList");
       list.scrollTop=0;
@@ -1165,6 +1169,10 @@
     requestAnimationFrame(frame);
     const realDt=Math.max(0,(now-last)/1000);last=now;
     if(!started || paused || graphicsLost)return;
+    if(world.region==="winnipesaukee" && !document.hidden && window.aerieFirstFlightOffer?.(realDt)){
+      showDialog("support");
+      return;
+    }
     // Preserve input response on high-density displays. Wait for a sustained
     // sample before reducing the framebuffer, and recover resolution slowly.
     frameSeconds+=Math.min(realDt,.4);frameCount++;

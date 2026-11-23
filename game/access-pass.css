@@ -17,3 +17,22 @@
   font-size: .63rem;
   letter-spacing: .04em;
 }
+
+#flightSupport { margin: .6rem 0 1.35rem; }
+#flightSupport[hidden] { display: none; }
+#flightSupportCopy { color: #e5e6dc; max-width: 36ch; line-height: 1.5; }
+.flight-offers { display: flex; flex-wrap: wrap; gap: .65rem; margin-top: 1rem; }
+.flight-offers a {
+  min-height: 44px; display: inline-flex; align-items: center; justify-content: center;
+  gap: .65rem; padding: .55rem 1rem; border-radius: .45rem;
+  font: 600 .95rem/1.25 system-ui, sans-serif; text-decoration: none;
+}
+.flight-share { background: #efd092; color: #192321; }
+.flight-buy { color: #fff5df; border: 1px solid #b6a37c; background: #233630; }
+.flight-offers a:hover { filter: brightness(1.1); }
+.flight-offers a:focus-visible { outline: 2px solid white; outline-offset: 3px; }
+.modal[data-dialog="support"] section { overflow-y: auto; max-height: calc(100dvh - 22px); }
+@media (max-width: 480px) {
+  .flight-offers { flex-direction: column; }
+  .flight-offers a { justify-content: space-between; }
+}

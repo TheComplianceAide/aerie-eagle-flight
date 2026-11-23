@@ -34,15 +34,57 @@
     refreshMenu();
     window.addEventListener('worldchange', refreshMenu);
 
-    const signal = typeof AbortSignal.timeout === 'function' ? AbortSignal.timeout(4000) : undefined;
-    const status = fetch(new URL('status', endpoint), {credentials:'include', cache:'no-store', signal})
+    // Count rendered free-world play across launches. The renderer calls this only
+    // after pause, background, world and graphics-recovery checks.
+    const progressKey = 'aerie:firstFlightOffer:v1';
+    const threshold = 300;
+    let seconds = 0, saved = 0;
+    function readProgress(value) {
+      const stored = Number(value);
+      if (Number.isFinite(stored) && stored > seconds) seconds = Math.min(stored, threshold);
+      saved = seconds;
+    }
+    try { readProgress(localStorage.getItem(progressKey)); } catch {}
+    window.addEventListener('storage', event => {
+      if (event.key === progressKey && event.newValue !== null) readProgress(event.newValue);
+    });
+    function saveProgress() {
+      if (seconds <= saved) return;
+      try {
+        const previous = Number(localStorage.getItem(progressKey));
+        if (Number.isFinite(previous)) seconds = Math.max(seconds, Math.min(previous, threshold));
+        localStorage.setItem(progressKey, String(seconds));
+      } catch {}
+      saved = seconds;
+    }
+    window.addEventListener('pagehide', saveProgress);
+    document.addEventListener('visibilitychange', () => { if (document.hidden) saveProgress(); });
+    window.aerieFirstFlightOffer = delta => {
+      if (seconds >= threshold || app.dataset.freePlayer !== 'true') return false;
+      // Ignore a suspended tab's stale frame interval.
+      seconds = Math.min(threshold, seconds + Math.min(delta, 1));
+      const due = seconds >= threshold;
+      if (due || seconds - saved >= 10) saveProgress();
+      return due;
+    };
+
+    let passRequest = 0;
+    function refreshPass() {
+      const request = ++passRequest;
+      const signal = typeof AbortSignal.timeout === 'function' ? AbortSignal.timeout(4000) : undefined;
+      return fetch(new URL('status', endpoint), {credentials:'include', cache:'no-store', signal})
       .then(response => response.ok ? response.json() : null)
       .then(data => {
-        if (data && Array.isArray(data.worlds)) {
+        if (request === passRequest && data && Array.isArray(data.worlds)) {
           pass = {fullAccess:data.fullAccess === true, worlds:data.worlds};
+          app.dataset.freePlayer = String(!pass.fullAccess && pass.worlds.length === 1 && pass.worlds.includes(freeWorld));
           if (app.dataset.mode === 'title' && !fly.disabled) refreshMenu();
         }
       }).catch(() => {});
+    }
+    let status = refreshPass();
+    window.addEventListener('pageshow', event => { if (event.persisted) status = refreshPass(); });
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) status = refreshPass(); });
 
     fly.addEventListener('click', event => {
       if (canFly(picker.value)) return;

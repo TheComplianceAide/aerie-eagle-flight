@@ -97,11 +97,11 @@ function fixture() {
     assert.match(finish.headers.Location, /checkout=success$/);
     return { id, state, cookie: asCookie(finish.cookies[0]) };
   }
-  async function restore(email, gift) {
+  async function restore(email, gift, friendCookie = '') {
     const started = await call('restore', { body: { email, gift } });
     assert.equal(started.jsonBody.ok, true);
     const token = messages.at(-1).plainText.match(/#restore=([\w-]+)/)[1];
-    const ended = await call('restore/confirm', { body: { token }, cookie: asCookie(started.cookies[0]) });
+    const ended = await call('restore/confirm', { body: { token }, cookie: [asCookie(started.cookies[0]), friendCookie].filter(Boolean).join('; ') });
     assert.equal(ended.jsonBody.ok, true);
     return { token, cookie: asCookie(ended.cookies[0]), result: ended.jsonBody };
   }
@@ -360,7 +360,27 @@ test('signup persists and public links remain locked until a human approves a cl
   assert.deepEqual((await call('status', { cookie: verified.cookie })).jsonBody.worlds, ['winnipesaukee']);
   const claim = [...rows.values()].find(row => row.rowKey.startsWith('claim:'));
   await app.review(claim.uid, 'approved');
-  assert.deepEqual((await call('status', { cookie: verified.cookie })).jsonBody.worlds, ['winnipesaukee', 'moosehead', 'canyon', 'labrador']);
+  assert.deepEqual((await call('status', { cookie: verified.cookie })).jsonBody.worlds, ['winnipesaukee', 'moosehead', 'canyon', 'labrador', 'alaska', 'acadia']);
   assert.equal((await call('asset', { query: '?world=canyon&path=scene.bin', cookie: verified.cookie })).status, undefined);
-  assert.equal((await call('asset', { query: '?world=alaska&path=scene.bin', cookie: verified.cookie })).status, 403);
+  assert.equal((await call('asset', { query: '?world=yosemite&path=scene.bin', cookie: verified.cookie })).status, 403);
+});
+
+test('five-friend confirmation unlocks five worlds on this browser and survives email restore', async () => {
+  const { call, restore } = fixture();
+  const worlds = ['winnipesaukee', 'moosehead', 'canyon', 'labrador', 'alaska', 'acadia'];
+  assert.deepEqual((await call('config')).jsonBody.rewardWorlds, worlds.slice(1));
+  assert.equal((await call('share-friends', { body: { sharedWithFive: false } })).status, 400);
+  const result = await call('share-friends', { body: { sharedWithFive: true } });
+  assert.deepEqual(result.jsonBody.worlds, worlds);
+  const cookie = asCookie(result.cookies[0]);
+  assert.deepEqual((await call('status', { cookie })).jsonBody.worlds, worlds);
+  const tampered = cookie.slice(0, -1) + (cookie.endsWith('A') ? 'B' : 'A');
+  assert.deepEqual((await call('status', { cookie: tampered })).jsonBody.worlds, ['winnipesaukee']);
+  assert.equal((await call('asset', { query: '?world=acadia&path=scene.bin', cookie })).jsonBody.url.includes('/acadia/'), true);
+  assert.equal((await call('asset', { query: '?world=yellowstone&path=scene.bin', cookie })).status, 403);
+  const verified = await restore('friends@example.test', undefined, cookie);
+  assert.deepEqual((await call('status', { cookie: verified.cookie })).jsonBody.worlds, worlds);
+  const another = await restore('second@example.test');
+  await call('share-friends', { body: { sharedWithFive: true }, cookie: another.cookie });
+  assert.deepEqual((await call('status', { cookie: another.cookie })).jsonBody.worlds, worlds);
 });

@@ -9,15 +9,19 @@ export const allWorlds = [
   'alaska', 'canyon', 'swiss', freeWorld, 'surry', 'dixville', 'labrador',
   'moosehead', 'yosemite', 'crater', 'lofoten', 'acadia', 'yellowstone'
 ];
-const defaultRewards = ['moosehead', 'canyon', 'labrador'];
+const defaultRewards = ['moosehead', 'canyon', 'labrador', 'alaska', 'acadia'];
 
 export function configuration(env = process.env) {
   const mode = env.AERIE_STRIPE_MODE || 'test';
   if (!['test', 'live'].includes(mode)) throw new Error('AERIE_STRIPE_MODE must be test or live.');
-  const rewards = env.AERIE_REWARD_WORLDS?.split(',').map(value => value.trim()) || defaultRewards;
-  if (rewards.length !== 3 || new Set(rewards).size !== 3 ||
+  const configured = env.AERIE_REWARD_WORLDS?.split(',').map(value => value.trim()) || defaultRewards;
+  // Preserve all three previously promised worlds when upgrading an existing deployment.
+  const rewards = configured.length === 3 && new Set(configured).size === 3
+    ? [...configured, ...defaultRewards.filter(world => !configured.includes(world))].slice(0, 5)
+    : configured;
+  if (rewards.length !== 5 || new Set(rewards).size !== 5 ||
       rewards.some(world => world === freeWorld || !allWorlds.includes(world))) {
-    throw new Error('AERIE_REWARD_WORLDS must identify three distinct paid worlds.');
+    throw new Error('AERIE_REWARD_WORLDS must identify five distinct paid worlds.');
   }
   const site = env.AERIE_SITE_URL ? new URL(env.AERIE_SITE_URL) : null;
   if (site && site.protocol !== 'https:' && !(mode === 'test' && site.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(site.hostname))) {
