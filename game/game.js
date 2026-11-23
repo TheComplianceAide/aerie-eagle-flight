@@ -499,7 +499,7 @@
     closeDialog();
     if(retry)el("fly").click();
   };
-  el("end").onclick=()=>{started=false;app.dataset.mode="title";closeDialog();el("fly").focus();};
+  el("end").onclick=()=>{forgetFlight();started=false;app.dataset.mode="title";closeDialog();flyLabel();el("fly").focus();};
   graphicsRecovery.addEventListener("cancel",event=>event.preventDefault());
   el("reloadGraphics").onclick=()=>location.reload();
   function recoverGraphics(canvas){
@@ -659,13 +659,42 @@
     try{
       await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
       await init();startFlight();
+      const snapshot=savedFlight();
+      if(snapshot){resumeSaved(snapshot);showDialog("pause");}
     }catch(error){
       console.error(error);started=false;app.dataset.mode="title";showDialog("launchError");el("dialogTitle").textContent="Unable to start flight";
       el("summary").textContent=/webgl|graphics context/i.test(String(error))
         ?"Chrome could not start 3D graphics. Enable graphics acceleration in Chrome settings, then reopen the game."
         :"The range could not finish loading. Try again to reopen this flight.";
-    }finally{launchPending=false;button.disabled=false;button.lastChild.textContent="Take flight";}
+    }finally{launchPending=false;button.disabled=false;flyLabel();}
   };
+  // The access-pass script owns "Unlock this world"; otherwise offer a saved flight back.
+  window.aerieFlyText=()=>savedFlight()?"Resume flight":"Take flight";
+  function flyLabel(){
+    const label=el("fly").lastChild;
+    if(label.textContent!=="Unlock this world")label.textContent=window.aerieFlyText();
+  }
+
+  function resumeSaved(snapshot){
+    forgetFlight();
+    const saved=snapshot.state,settled=snapshot.stage==="free";
+    // A bird saved on a perch or mid-landing resumes in free flight just above that spot.
+    const spot={x:saved.x,y:saved.y+(settled?0:4),z:saved.z,yaw:saved.yaw||0,glance:0};
+    const core=world.windField.ensureLaunchCore(spot);
+    dynamics=makeFlight(spot,world);
+    const s=dynamics.state;
+    for(const key of resumeFields)if(Number.isFinite(saved[key]))s[key]=saved[key];
+    s.y=spot.y;
+    if(!settled){s.airspeed=s.indicatedAirspeed=Math.max(15,s.airspeed||0);s.path=0;s.verticalSpeed=0;}
+    elapsed=Number(snapshot.elapsed)||0;distance=Number(snapshot.distance)||0;
+    Object.assign(s,{elapsed,distance});
+    windSoarer.reset(s,core,0);
+    fieldAudio?.resetEncounters();
+    perching.reset(s,false);nextPerchHUD=0;perchNotice="";
+    resetCamera(s,0,0);
+    canopy?.prepareDeparture?.();
+    resetInput();advance(0);
+  }
   function choosePerch(){
     if(!started||paused||!perching)return;
     perching.choose(dynamics.state);
@@ -733,7 +762,37 @@
     if(started&&!paused&&flightCodes.includes(event.code)){event.preventDefault();keys.add(event.code);}
   });
   window.addEventListener("keyup",event=>keys.delete(event.code));
-  document.addEventListener("visibilitychange",()=>{if(document.hidden&&started&&!paused)showDialog("pause");});
+  // Phones may discard a locked or backgrounded tab and reload it on return.
+  // Keep the flight so the reload offers it back, paused where it was.
+  const resumeKey="aerie:resume",resumeFields=["x","y","z","yaw","airspeed","indicatedAirspeed","path","pitch","verticalSpeed","wingExtension"];
+  function saveFlight(){
+    if(!started||!dynamics||!world)return;
+    // A bird that has just hit terrain is not worth bringing back.
+    if(dynamics.state.contact){forgetFlight();return;}
+    const s=dynamics.state,snapshot={at:Date.now(),region:el("worldPicker").value,launch:launchPicker.value,
+      stage:perching?.stage||"free",elapsed,distance,state:{}};
+    for(const key of resumeFields)if(Number.isFinite(s[key]))snapshot.state[key]=s[key];
+    try{localStorage.setItem(resumeKey,JSON.stringify(snapshot));}catch{}
+  }
+  function forgetFlight(){try{localStorage.removeItem(resumeKey);}catch{}}
+  function savedFlight(){
+    try{
+      const snapshot=JSON.parse(localStorage.getItem(resumeKey)||"null");
+      if(snapshot&&Date.now()-snapshot.at<45*60*1000&&snapshot.region===el("worldPicker").value&&
+        snapshot.launch===launchPicker.value&&
+        resumeFields.slice(0,3).every(key=>Number.isFinite(snapshot.state?.[key])))return snapshot;
+    }catch{}
+    return null;
+  }
+  document.addEventListener("visibilitychange",()=>{
+    if(!document.hidden||!started)return;
+    if(!paused)showDialog("pause");
+    saveFlight();
+  });
+  window.addEventListener("pagehide",()=>{if(started)saveFlight();});
+  flyLabel();
+  el("worldPicker").addEventListener("change",flyLabel);
+  launchPicker.addEventListener("change",flyLabel);
   window.addEventListener("blur",resetInput);
   const viewport=el("viewport");
   function pickPerch(x,y){
@@ -1097,7 +1156,7 @@
       const fps=frameCount/frameSeconds, current=renderer.getPixelRatio();
       fastWindows=fps>54?fastWindows+1:0;
       let next=current;
-      if(fps<(touchFirst?30:28))next=Math.max(Math.min(devicePixelRatio,pixelRatioLimit,touchFirst?1:1.5),current-.12);
+      if(fps<(touchFirst?45:28))next=Math.max(Math.min(devicePixelRatio,pixelRatioLimit,touchFirst?1:1.5),current-.12);
       else if(fastWindows>=4){next=Math.min(devicePixelRatio,pixelRatioLimit,current+.12);fastWindows=0;}
       if(Math.abs(next-current)>.01)renderer.setPixelRatio(next);
       frameSeconds=0;frameCount=0;

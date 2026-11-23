@@ -58,8 +58,8 @@ class Water extends Mesh {
 
 		const scope = this;
 
-		const textureWidth = options.textureWidth !== undefined ? options.textureWidth : 512;
-		const textureHeight = options.textureHeight !== undefined ? options.textureHeight : 512;
+		const textureWidth = Math.round( ( options.textureWidth !== undefined ? options.textureWidth : 512 ) * ( window.aerieReflectionScale || 1 ) );
+		const textureHeight = Math.round( ( options.textureHeight !== undefined ? options.textureHeight : 512 ) * ( window.aerieReflectionScale || 1 ) );
 
 		const clipBias = options.clipBias !== undefined ? options.clipBias : 0.0;
 		const alpha = options.alpha !== undefined ? options.alpha : 1.0;
@@ -355,6 +355,7 @@ class Water extends Mesh {
         scope.material.polygonOffsetUnits=2+14*q*q*(3-2*q);
       }
       if(camera.userData.lakeReflection)return;
+      if(window.aerieSkipReflection?.(scope))return;
       if(!checkedReflectionType){
         if(!renderer.extensions.has('EXT_color_buffer_float')&&!renderer.extensions.has('EXT_color_buffer_half_float'))renderTarget.texture.type=THREE.UnsignedByteType;
         checkedReflectionType=true;

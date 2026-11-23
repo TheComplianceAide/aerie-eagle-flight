@@ -167,3 +167,6 @@ main:not([data-mode=flight]) #gameVision,main.clearView #gameVision,main:has(.mo
 #graphicsRecovery::backdrop{background:#091312b8}
 #graphicsRecovery h2{font-size:28px;margin:0}
 #graphicsRecovery p{margin:12px 0 20px;line-height:1.5}
+
+/* Narrow portrait phones: keep the wildlife list clear of the heading and landmark lines. */
+@media(max-width:620px) and (orientation:portrait){.gameReadout{top:calc(20% + 52px)}}
