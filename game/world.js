@@ -32,8 +32,8 @@ class Water extends Mesh {
 
 		const scope = this;
 
-		const textureWidth = options.textureWidth !== undefined ? options.textureWidth : 512;
-		const textureHeight = options.textureHeight !== undefined ? options.textureHeight : 512;
+		const textureWidth = Math.round( ( options.textureWidth !== undefined ? options.textureWidth : 512 ) * ( window.aerieReflectionScale || 1 ) );
+		const textureHeight = Math.round( ( options.textureHeight !== undefined ? options.textureHeight : 512 ) * ( window.aerieReflectionScale || 1 ) );
 
 		const clipBias = options.clipBias !== undefined ? options.clipBias : 0.0;
 		const alpha = options.alpha !== undefined ? options.alpha : 1.0;
@@ -239,6 +239,8 @@ class Water extends Mesh {
 		scope.material = material;
 
 		scope.onBeforeRender = function ( renderer, scene, camera ) {
+
+			if ( window.aerieSkipReflection?.( scope ) ) return;
 
 			mirrorWorldPosition.setFromMatrixPosition( scope.matrixWorld );
 			cameraWorldPosition.setFromMatrixPosition( camera.matrixWorld );
