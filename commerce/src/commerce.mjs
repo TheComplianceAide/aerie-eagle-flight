@@ -119,7 +119,7 @@ export function expiryProbeKey(marker, signingSecret) {
   return 'preflight-expiry:' + createHmac('sha256', signingSecret).update('expiry-receipt:' + marker).digest('hex');
 }
 
-export function createCommerce(config, { store, stripe, sendEmail, purchaseEmailOperations, assetUrl, now = Date.now }) {
+export function createCommerce(config, { store, stripe, sendEmail, purchaseEmailOperations, assetUrl, hasPreviewReward, now = Date.now }) {
   const restoreEnabled = Boolean(store && sendEmail && config.site);
   const canCheckout = Boolean(config.checkout && restoreEnabled && stripe && config.priceId && config.webhookSecret && assetUrl);
   const shareEnabled = Boolean(config.claims && restoreEnabled && assetUrl);
@@ -212,7 +212,9 @@ export function createCommerce(config, { store, stripe, sendEmail, purchaseEmail
     const records = (await Promise.all(ids.map(id => store.get(`purchase:${id}`)))).filter(Boolean);
     const payments = await Promise.all(records.map(activePayment));
     const active = records.filter((_purchase, index) => payments[index]);
-    const worlds = active.length ? allWorlds : account?.reward ? [freeWorld, ...config.rewards] : [freeWorld];
+    const reward = account?.reward === true ||
+      (config.live && !active.length && uid && !login.checkoutId && await hasPreviewReward?.(uid));
+    const worlds = active.length ? allWorlds : reward ? [freeWorld, ...config.rewards] : [freeWorld];
     const result = { authenticated: Boolean(uid), emailVerified: Boolean(uid && !login.checkoutId), fullAccess: active.length > 0, worlds };
     if (includePurchaseDetails) {
       const receipt = await receiptFor(records.findLast(purchase => purchase.buyer === uid));
@@ -233,8 +235,10 @@ export function createCommerce(config, { store, stripe, sendEmail, purchaseEmail
     const token = cookieValue(request, friendsCookie);
     const match = /^(\d{1,13})\.([\w-]{43})\.([\w-]{43})$/.exec(token);
     if (!match || Number(match[1]) <= now()) return false;
-    const expected = hash('share-friends:' + config.mode, match[1] + '.' + match[2]);
-    return timingSafeEqual(Buffer.from(match[3]), Buffer.from(expected));
+    const signed = Buffer.from(match[3]);
+    const value = match[1] + '.' + match[2];
+    // The sharing reward exists independently of Stripe. Accept its old signatures in either mode.
+    return ['test', 'live'].some(mode => timingSafeEqual(signed, Buffer.from(hash('share-friends:' + mode, value))));
   }
 
   async function playerAccess(request, includeGift = false) {

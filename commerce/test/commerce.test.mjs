@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHmac } from 'node:crypto';
 import test from 'node:test';
 import { readFile } from 'node:fs/promises';
 import Stripe from 'stripe';
@@ -18,7 +19,7 @@ const root = configuration({
   AERIE_SHARE_CLAIMS_ENABLED: 'true', AERIE_SIGNUP_ENABLED: 'true', AERIE_CHECKOUT_ENABLED: 'true'
 });
 
-function fixture({ config = {}, purchaseEmailOperations, now = Date.now } = {}) {
+function fixture({ config = {}, purchaseEmailOperations, hasPreviewReward, now = Date.now } = {}) {
   const settings = { ...root, ...config };
   const rows = new Map();
   const checkouts = new Map();
@@ -82,7 +83,7 @@ function fixture({ config = {}, purchaseEmailOperations, now = Date.now } = {}) 
     }}
   };
   const app = createCommerce(settings, {
-    store, stripe, purchaseEmailOperations, now,
+    store, stripe, purchaseEmailOperations, hasPreviewReward, now,
     sendEmail: async (email, subject, content) => messages.push({ email, subject, ...content }),
     assetUrl: async (world, path) => `https://blob.example/private/${world}/${path}?fixture=read-only`
   });
@@ -922,6 +923,46 @@ test('signup persists and public links remain locked until a human approves a cl
   assert.deepEqual((await call('status', { cookie: verified.cookie })).jsonBody.worlds, ['winnipesaukee', 'moosehead', 'canyon', 'labrador', 'alaska', 'acadia']);
   assert.equal((await call('asset', { query: '?world=canyon&path=scene.bin', cookie: verified.cookie })).status, undefined);
   assert.equal((await call('asset', { query: '?world=yosemite&path=scene.bin', cookie: verified.cookie })).status, 403);
+});
+
+test('launch honors existing sharing cookies and restored silver rewards while separating preview purchases', async () => {
+  let time = Date.now();
+  const preview = fixture({ now: () => time });
+  const email = 'silver-preview@example.test';
+  const buyer = await preview.buy(email);
+  const verified = await preview.restore(email);
+  await preview.call('share-friends', { body: { sharedWithFive: true }, cookie: verified.cookie });
+  await preview.buy('gold-only-preview@example.test');
+
+  const live = fixture({
+    config: { mode: 'live', live: true }, now: () => time,
+    hasPreviewReward: async uid => preview.rows.get('account:' + uid)?.reward === true
+  });
+  const worlds = ['winnipesaukee', ...live.settings.rewards];
+  const oldValue = (time + 60_000) + '.' + 'a'.repeat(43);
+  const legacySignature = createHmac('sha256', root.secret).update('share-friends:test:' + oldValue).digest('base64url');
+  const legacy = '__Host-aerie_friends=' + oldValue + '.' + legacySignature;
+  const guest = await live.call('status', { cookie: legacy });
+  assert.equal(guest.jsonBody.authenticated, false);
+  assert.deepEqual(guest.jsonBody.worlds, worlds);
+  assert.deepEqual((await live.call('status', { cookie: buyer.cookie })).jsonBody.worlds, ['winnipesaukee']);
+
+  const restored = await live.restore(email);
+  const status = (await live.call('status', { cookie: restored.cookie, query: '?gift=1' })).jsonBody;
+  assert.equal(status.emailVerified, true);
+  assert.deepEqual(status.worlds, worlds);
+  assert.equal(status.fullAccess, false);
+  assert.equal(status.giftUrl, undefined);
+  assert.equal(status.receiptUrl, undefined);
+  assert.equal((await live.call('asset', { cookie: restored.cookie, query: '?world=moosehead&path=scene.bin' })).status ?? 200, 200);
+  assert.equal((await live.call('asset', { cookie: restored.cookie, query: '?world=yellowstone&path=scene.bin' })).status, 403);
+  const goldOnly = await live.restore('gold-only-preview@example.test');
+  assert.deepEqual((await live.call('status', { cookie: goldOnly.cookie })).jsonBody.worlds, ['winnipesaukee']);
+
+  time += 60_001;
+  assert.deepEqual((await live.call('status', { cookie: legacy })).jsonBody.worlds, ['winnipesaukee']);
+  const claimed = await live.call('share-friends', { body: { sharedWithFive: true } });
+  assert.deepEqual((await preview.call('status', { cookie: asCookie(claimed.cookies[0]) })).jsonBody.worlds, worlds);
 });
 
 test('five-friend confirmation unlocks five worlds on this browser and survives email restore', async () => {

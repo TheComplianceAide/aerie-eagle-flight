@@ -117,6 +117,9 @@ export function configuredServices(config) {
   const store = config.tableUrl && config.secret
     ? tableStore(config.tableUrl, config.tableName, credential, `aerie-${config.mode}`)
     : null;
+  const preview = store && config.live
+    ? tableStore(config.tableUrl, config.tableName, credential, 'aerie-test')
+    : null;
   const stripe = config.stripeKey ? new Stripe(config.stripeKey) : null;
   const email = config.emailUrl && config.sender ? new EmailClient(config.emailUrl, credential) : null;
   const blobs = config.storage && config.container ? new BlobServiceClient(config.storage, credential) : null;
@@ -124,6 +127,7 @@ export function configuredServices(config) {
   let keyExpires = 0;
   return {
     store, stripe,
+    hasPreviewReward: preview && (async uid => (await preview.get(`account:${uid}`))?.reward === true),
     purchaseEmailOperations: email && config.purchaseEmails ? emailOperations(config.emailUrl, credential) : null,
     sendEmail: email && (async (address, subject, { plainText, html }) => {
       const send = await email.beginSend({
