@@ -2,6 +2,25 @@
 // Phone copies of at most 1024 px cover surface detail, aerial tiles and foliage atlases
 // (each mipmapped, linearly filtered and never read back on the CPU), so the page and
 // GPU processes fit in a phone tab. The eagle and wildlife keep full resolution.
+// A phone on a weak signal can drop one of the ~100 range downloads, and a single
+// network error ("Load failed" / "Failed to fetch") used to abort the whole launch.
+// Same-site GET requests retry twice, after 0.6 s and 1.8 s, unless they were aborted.
+(() => {
+  const fetch0 = window.fetch.bind(window);
+  window.fetch = async (input, init) => {
+    const url = new URL(typeof input === 'string' ? input : input?.url || String(input), location.href);
+    const method = (init?.method || (typeof input === 'object' && input?.method) || 'GET').toUpperCase();
+    const retry = method === 'GET' && url.origin === location.origin;
+    for (let attempt = 0; ; attempt++) {
+      try { return await fetch0(input, init); }
+      catch (error) {
+        const aborted = error?.name === 'AbortError' || init?.signal?.aborted;
+        if (!retry || aborted || attempt >= 2 || !(error instanceof TypeError)) throw error;
+        await new Promise(resolve => setTimeout(resolve, attempt ? 1800 : 600));
+      }
+    }
+  };
+})();
 // Three warns on every draw of a shader that needs more texture units than the GPU
 // has (terrain shaders in several worlds; tracked separately). Thousands of identical
 // warnings a second cost phones real CPU, so each distinct message is logged once.
