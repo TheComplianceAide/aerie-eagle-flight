@@ -1,10 +1,10 @@
 # Acoustic weather snapshots
 
-Generate a complete forecast for Aerie’s 13 world origins using a private Open-Meteo server. The tool needs Python 3.9+ and its standard library. The default upstream is `http://127.0.0.1:8080/v1/forecast`. Use `--endpoint https://your-private-host/v1/forecast` for a trusted remote deployment.
+Generate a complete forecast for Aerie’s 13 world origins using a private Open-Meteo server. The tool needs Python 3.9+ and its standard library. The default upstream is `http://127.0.0.1:8080/v1/forecast`. Use `--endpoint https://your-private-host/v1/forecast` for a trusted remote deployment. Commercial refresh jobs should use the self-hosted service or a licensed source. [Hosted API terms](https://open-meteo.com/en/terms)
 
 Start the upstream server with its official S3 remote data directory and a persistent block cache. Keep the upstream private. Cold model reads can exceed the game’s five-second fetch timeout. [Open-Meteo self-hosting instructions](https://github.com/open-meteo/open-meteo/blob/main/docs/getting-started.md)
 
-On a private host with an existing writable destination directory, run:
+Write to an existing destination directory on the private host.
 
 ```sh
 python3 tools/acoustics/weather_snapshot.py /srv/aerie-weather/air.json
