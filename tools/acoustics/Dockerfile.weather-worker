@@ -1,0 +1,5 @@
+# Open-Meteo 1.8.0, upstream linux/amd64 manifest.
+FROM ghcr.io/open-meteo/open-meteo@sha256:5f23284824917315514aa356acf4184961d9be19f72b3c74b119faccdacd527f
+COPY weather_snapshot.py weather_worker.py /app/
+ENTRYPOINT ["/usr/bin/python3", "/app/weather_worker.py"]
+CMD []
