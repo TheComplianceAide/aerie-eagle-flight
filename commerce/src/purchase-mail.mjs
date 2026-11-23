@@ -25,9 +25,12 @@ function confirmation(config, purchase, recipient, site) {
   const heading = 'Your Aerie Founder Pass';
   const total = `$${(purchase.amountTotal / 100).toFixed(2)} USD`;
   const amount = `Total paid including applicable tax was ${total}.`;
-  const restore = 'To restore access, open Aerie and use the email you entered at checkout. Your one gift link is available under your pass.';
+  const restore = 'On a new device, restore your ticket using the email you entered at checkout.';
+  const gift = 'Open My ticket in Aerie to copy your gift link.';
   const notice = config.live ? '' : 'This Stripe sandbox confirmation records a simulated payment.';
   const join = `${site}/join/`;
+  const play = `${join}#play`;
+  const restoreTicket = `${join}#restore-ticket`;
   const help = `${join}help/`;
   const receipt = stripeReceiptUrl(purchase.receiptUrl);
   return {
@@ -36,12 +39,14 @@ function confirmation(config, purchase, recipient, site) {
     disableUserEngagementTracking: true,
     content: {
       subject,
-      plainText: [heading, notice, amount, restore, `Open Aerie at ${join}`,
-        receipt && `View your Stripe receipt at ${receipt}`, `Purchase help at ${help}`].filter(Boolean).join('\n\n'),
-      html: `<h1>${heading}</h1>${notice ? `<p>${notice}</p>` : ''}<p>${amount}</p><p>${restore}</p>` +
-        `<p><a href="${join}">Open Aerie</a></p>` +
-        (receipt ? `<p><a href="${htmlAttribute(receipt)}">View your Stripe receipt</a></p>` : '') +
-        `<p><a href="${help}">Purchase help</a></p>`
+      plainText: [heading, notice, amount, `Play Aerie at ${play}`, restore,
+        `Restore ticket at ${restoreTicket}`, gift, `Purchase help at ${help}`,
+        receipt && `View your Stripe receipt at ${receipt}`].filter(Boolean).join('\n\n'),
+      html: `<h1>${heading}</h1>${notice ? `<p>${notice}</p>` : ''}<p>${amount}</p>` +
+        `<p><a href="${play}" style="display:inline-block;padding:12px 22px;background:#18342e;color:#f6e6b3;border-radius:6px;font-weight:bold;text-decoration:none">Play Aerie</a></p>` +
+        `<p>${restore} <a href="${restoreTicket}">Restore ticket</a></p><p>${gift}</p>` +
+        `<p><a href="${help}">Purchase help</a></p>` +
+        (receipt ? `<p><a href="${htmlAttribute(receipt)}">View your Stripe receipt</a></p>` : '')
     }
   };
 }
