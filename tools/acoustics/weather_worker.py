@@ -136,8 +136,19 @@ def main(output):
     with tempfile.TemporaryDirectory() as folder:
         path = Path(folder) / "air.json"
         generate(path)
-        token = storage_token(os.environ)
-        print(store(url, token, path.read_bytes(), build_opener(NoRedirects())))
+        try:
+            token = storage_token(os.environ)
+        except HTTPError as error:
+            error.close()
+            raise RuntimeError(f"Managed identity returned HTTP {error.code}.") from None
+        try:
+            result = store(url, token, path.read_bytes(), build_opener(NoRedirects()))
+        except HTTPError as error:
+            code = (error.headers or {}).get("x-ms-error-code", "")
+            detail = f" ({code})" if re.fullmatch(r"[A-Za-z0-9]{1,64}", code) else ""
+            error.close()
+            raise RuntimeError(f"Forecast storage returned HTTP {error.code}{detail}.") from None
+        print(result)
 
 
 def stop(signum, frame):
@@ -154,6 +165,6 @@ if __name__ == "__main__":
     try:
         main(args.output_only)
     except HTTPError as error:
-        parser.exit(1, f"Weather worker HTTP error {error.code}.\n")
+        parser.exit(1, f"Forecast request returned HTTP {error.code}.\n")
     except (OSError, HTTPException, KeyError, ValueError, RuntimeError) as error:
         parser.exit(1, f"Weather worker failed: {error}\n")

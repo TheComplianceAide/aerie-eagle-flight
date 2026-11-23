@@ -111,6 +111,23 @@ class WorkerTest(unittest.TestCase):
                         worker.main(None)
                 identity.assert_not_called()
 
+    def test_cloud_errors_report_the_stage_without_request_details(self):
+        with (patch.dict(worker.os.environ, {"AERIE_WEATHER_BLOB_URL": URL}),
+              patch.object(worker, "generate", side_effect=lambda path: path.write_bytes(self.body)),
+              patch.object(worker, "storage_token", side_effect=failure(403, TOKEN)) as identity,
+              patch.object(worker, "store") as storage):
+            with self.assertRaisesRegex(RuntimeError, r"^Managed identity returned HTTP 403\.$"):
+                worker.main(None)
+            storage.assert_not_called()
+            identity.side_effect = None
+            identity.return_value = TOKEN
+            storage.side_effect = failure(403, "AuthorizationPermissionMismatch")
+            with self.assertRaisesRegex(RuntimeError, r"^Forecast storage returned HTTP 403 \(AuthorizationPermissionMismatch\)\.$"):
+                worker.main(None)
+            storage.side_effect = failure(403, URL)
+            with self.assertRaisesRegex(RuntimeError, r"^Forecast storage returned HTTP 403\.$"):
+                worker.main(None)
+
 
 if __name__ == "__main__":
     unittest.main()
