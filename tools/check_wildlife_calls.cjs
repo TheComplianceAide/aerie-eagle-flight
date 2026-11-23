@@ -48,5 +48,23 @@ const world={
   tick(17.7);assert.equal(encounters().length,1,'the same animal should not repeatedly call the eagle');
   field.setEnabled(false);tick(62);assert.equal(encounters().length,1,'muting stops audio');
   field.setEnabled(true);tick(63);assert.equal(encounters().length,2,'sound resumes on a later eligible encounter');
+  field.setEnabled(false);
+
+  // A reusable regional recording is allowed to follow a new encounter,
+  // but the ordinary ambient-source fallback must not invent an osprey.
+  ctx.currentTime=100;
+  const patch=browser.window.makeFieldAudio(ctx,'moosehead');
+  world.wildlife.nearby=()=>[];
+  let ospreyVisible=false;
+  world.wildlife.nearest=id=>ospreyVisible&&id==='patch-osprey'?{x:22,y:6,z:-45}:null;
+  patch.setEnabled(true);
+  await new Promise(setImmediate);
+  const ospreyCalls=()=>clips.filter(c=>c.name==='voice-labrador-1147350.m4a');
+  for(let t=101;t<=250;t++){ctx.currentTime=t;patch.update(bird,world,.25,null,'free');}
+  assert.equal(ospreyCalls().length,0,'the patch must never call an absent osprey');
+  ospreyVisible=true;
+  for(let t=251;t<=450;t++){ctx.currentTime=t;patch.update(bird,world,.25,null,'free');}
+  assert.ok(ospreyCalls().length>0,'the nearby osprey uses the existing credited recording');
+  patch.setEnabled(false);
   console.log('Passed wildlife-triggered eagle voice, terrain, cooldown, mute and resume.');
 })().catch(e=>{console.error(e);process.exitCode=1;});
