@@ -12,6 +12,18 @@ Run `npm ci` and `npm test` with Node.js 22 or later. The tests use the official
 4. Publish `commerce/` as a standalone Azure Functions v4 app with managed identity. Keep `/api/aerie/` on the same browser origin as the flight app. Azure Static Web Apps Standard can [link the Functions app](https://learn.microsoft.com/en-us/azure/static-web-apps/functions-bring-your-own). Managed Functions on the Free tier do not support managed identity for this backend. An existing first-party HTTPS reverse proxy can also route the API. For a local sandbox, serve the frontend and proxy the API under one localhost origin.
 5. Create the private Table Storage table, private paid asset container and sender. Assign the function identity Table Storage Data Contributor on the commerce table, permission to obtain a user-delegation key at storage-account scope and read access on the paid container, and Azure Communication Services permission to send email using the verified sender. Run `python3 tools/prepare_paid_worlds.py path/to/dist path/to/private-assets` against a generated Azure game build. It puts the paid flight entry files in `<private-assets>/<world>/<entry file>` and enables required access in the generated page. Upload the private tree before deploying that page. Configure Blob CORS for the game origin's reads and test the returned redirects from the actual origin. URLs contain a read-only token that expires after 15 minutes. Keep future paid entry files in private release storage. Previous public builds and repository assets remain accessible where they were published.
 
+## Check live payment readiness
+
+From `commerce/`, run `npm ci`, sign in to Azure CLI with access to the Aerie Function configuration and Key Vault, and supply the intended Stripe merchant account ID.
+
+```sh
+npm run preflight -- --mode live --account "$AERIE_SELLER_ACCOUNT"
+```
+
+The command reads the selected mode’s Aerie API key and webhook secret from `kv-playaerie-prod`. It reads the running Function’s price settings and finds the matching Aerie product when preparing a different mode. If multiple prices match, add `--price price_…`. The report shows the effective $1.99 ticket, seller capabilities, webhook events and Stripe Tax setup. Confirm the expected active registration locations with `--registrations US-ME,CA-QC` (example) or `--registrations none` if the seller expects none. An omitted confirmation or unavailable check produces a nonzero exit status.
+
+If the checkout key has limited permissions, `--audit` uses the optional `stripe-live-preflight-read-key` or `stripe-sandbox-preflight-read-key` in the same vault for account, product, price, webhook and tax reads. To exercise the production Checkout builder in the sandbox, select `--mode test --smoke`. In live mode `--smoke` requires passing preliminary checks and explicit invocation. It creates one unopened hosted session, verifies its amount and immediately expires it unpaid. A successful report verifies configuration. A genuine signed delivery to the deployed receiver verifies that its signing secret matches the endpoint.
+
 ## Settings
 
 | Function app setting | Purpose |
