@@ -7,6 +7,9 @@ const errorMessage = document.querySelector('#help-error');
 const receipt = document.querySelector('#help-receipt');
 const receiptPattern = /^AER-[A-Za-z0-9_-]{22}$/;
 let submissionId;
+if (new URLSearchParams(location.search).get('issue') === 'charge') {
+  form.elements.issue.value = 'charge';
+}
 
 form.addEventListener('input', () => { submissionId = undefined; });
 form.addEventListener('submit', async event => {

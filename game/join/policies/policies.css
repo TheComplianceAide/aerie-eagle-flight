@@ -1,0 +1,8 @@
+.policy { width: min(88%, 44rem); margin: 0 auto; padding-block: clamp(2rem, 6vw, 5rem); }
+.policy h1 { font-size: clamp(2.7rem, 6vw, 5rem); }
+.policy nav { display: flex; flex-wrap: wrap; gap: 0 1.3rem; margin-top: 1.2rem; }
+.policy nav a { display: inline-flex; align-items: center; min-height: 44px; }
+.policy section { padding-block: 2rem; border-top: 1px solid var(--line); scroll-margin-top: 1rem; }
+.policy h2 { font-size: clamp(2rem, 5vw, 3rem); margin-bottom: 1rem; }
+.policy p { color: #f1eee6; line-height: 1.65; margin: .8rem 0 0; }
+.policy a { color: var(--gold-strong); text-underline-offset: .18em; overflow-wrap: anywhere; }
