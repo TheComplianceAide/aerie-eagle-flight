@@ -3,6 +3,18 @@ import { createPurchaseHelp } from './purchase-help.mjs';
 import { createPurchaseMail, stripeReceiptUrl } from './purchase-mail.mjs';
 import { allWorlds, freeWorld } from './settings.mjs';
 
+// Stripe Checkout's ShippingAddressCollection.AllowedCountry values, excluding unknown region ZZ.
+const checkoutAddressCountries = `
+AC AD AE AF AG AI AL AM AO AQ AR AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ
+BR BS BT BV BW BY BZ CA CD CF CG CH CI CK CL CM CN CO CR CV CW CY CZ DE DJ DK DM DO DZ EC
+EE EG EH ER ES ET FI FJ FK FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY
+HK HN HR HT HU ID IE IL IM IN IO IQ IS IT JE JM JO JP KE KG KH KI KM KN KR KW KY KZ LA LB
+LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MK ML MM MN MO MQ MR MS MT MU MV MW MX MY MZ
+NA NC NE NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PY QA RE RO RS RU
+RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SZ TA TC TD TF TG TH TJ TK TL
+TM TN TO TR TT TV TW TZ UA UG US UY UZ VA VC VE VG VN VU WF WS XK YE YT ZA ZM ZW
+`.trim().split(/\s+/);
+
 const minute = 60_000;
 const day = 24 * 60 * minute;
 const disclosure = 'Aerie is giving me access to five extra worlds for sharing my experience.';
@@ -240,7 +252,9 @@ export function createCommerce(config, { store, stripe, sendEmail, purchaseEmail
   async function createCheckout(request, _context, browserOrigin) {
     const price = await offer();
     if (!price) throw new HttpError(503, 'Checkout is currently unavailable.');
-    const { email: suppliedEmail } = await readJson(request);
+    const { email: suppliedEmail, wallet } = await readJson(request);
+    if (wallet !== undefined && wallet !== 'google_pay') throw new HttpError(400, 'Unsupported checkout wallet.');
+    const googlePay = wallet === 'google_pay';
     const customerEmail = suppliedEmail === undefined ? {} : { customer_email: emailAddress(suppliedEmail) };
     const token = newToken();
     const reference = digest(token);
@@ -253,7 +267,11 @@ export function createCommerce(config, { store, stripe, sendEmail, purchaseEmail
       automatic_tax: { enabled: true },
       adaptive_pricing: { enabled: false },
       billing_address_collection: 'auto',
+      ...(googlePay && { shipping_address_collection: { allowed_countries: checkoutAddressCountries } }),
       custom_text: {
+        ...(googlePay && { shipping_address: {
+          message: 'Your ticket is digital. Stripe uses this address to calculate tax for Google Pay.'
+        } }),
         submit: {
           message: [
             '[Terms](https://playaerie.com/join/policies/#terms)',
@@ -595,7 +613,7 @@ export function createCommerce(config, { store, stripe, sendEmail, purchaseEmail
     return { jsonBody: {
       ...features, shareClaims: features.shareClaim, features, freeWorld, rewardWorlds: config.rewards,
       ...(price ? { priceLabel: `$${(price.unit_amount / 100).toFixed(2)} USD`, priceAmount: price.unit_amount, priceCurrency: price.currency } : {}),
-      checkoutMode: config.mode, checkoutCollectsEmail: true, disclosure, monitoring: Boolean(config.monitoring)
+      checkoutMode: config.mode, checkoutCollectsEmail: true, googlePayCheckout: features.checkout, disclosure, monitoring: Boolean(config.monitoring)
     }};
   }
 

@@ -593,11 +593,11 @@
     const retry = !owned && ['cancel', 'started'].includes(checkoutState);
     const messages = {
       cancel: ['Checkout canceled', 'You can try again or restore access if you bought a pass earlier.'],
-      started: ['Checkout interrupted', 'If you paid on Stripe, restore access with your checkout email. If you left before paying, you can try again.'],
-      pending: ['Checkout status pending', 'If you paid on Stripe, restore with the email you used at checkout.'],
-      success: ['Find your Founder Pass', 'Restore access with your Stripe checkout email if your worlds don’t appear here.']
+      started: ['Checkout interrupted', 'If you paid, restore access with your checkout email. If you left before paying, you can try again.'],
+      pending: ['Checkout status pending', 'If you paid, restore with the email you used at checkout.'],
+      success: ['Find your Founder Pass', 'Restore access with your checkout email if your worlds don’t appear here.']
     };
-    const restoreTicket = ['Restore your ticket', 'Use your Stripe checkout email to pick up your ticket on this device.'];
+    const restoreTicket = ['Restore your ticket', 'Use your checkout email to pick up your ticket on this device.'];
     let [title, message] = playRequested ? restoreTicket : messages[checkoutState] || restoreTicket;
     if (owned) {
       title = returningFromPayment() ? 'Your worlds are ready' : 'Welcome back';
@@ -607,7 +607,7 @@
       message = 'We’re checking access to your Aerie worlds.';
     } else if (couldNotCheck) {
       title = 'We couldn’t check your pass';
-      message = 'If you paid on Stripe, you can still restore your pass with your checkout email.';
+      message = 'If you paid, you can still restore your pass with your checkout email.';
     }
     byId('return-title').textContent = title;
     byId('return-message').textContent = message;
@@ -762,7 +762,7 @@
   const checkoutButtons = [checkoutLaunch, heroCheckout, ...document.querySelectorAll('[data-wallet-checkout]')];
   const heroCheckoutStatus = byId('hero-checkout-status');
   const checkoutAvailability = byId('checkout-availability');
-  const checkoutMerchant = byId('checkout-merchant');
+  const walletOptions = document.querySelectorAll('.wallet-option');
   const flightPrice = byId('flight-price');
   const purchaseDialog = byId('purchase-dialog');
   const purchaseFields = byId('purchase-form').querySelector('fieldset');
@@ -777,16 +777,14 @@
   }
 
   function checkoutNote(config) {
-    if (!config) return 'Could not check Stripe checkout. Try again.';
+    if (!config) return 'Could not check checkout. Try again.';
     if (!enabled(config, 'checkout')) return fields.checkout.unavailable;
-    return config.checkoutMode === 'test' ? 'Test checkout. No real payment will be collected.' :
-      'One-time payment. Applicable tax shown at checkout.';
+    return 'One-time payment. Applicable tax shown at checkout.';
   }
 
   function updateCheckoutOffer() {
     const owned = status?.fullAccess === true;
     const available = enabled(checkoutConfig, 'checkout');
-    const testCheckout = available && checkoutConfig.checkoutMode === 'test';
     const unconfirmedReturn = playRequested || (returningFromPayment() && !status);
     checkoutLaunch.hidden = unconfirmedReturn;
     heroCheckout.hidden = unconfirmedReturn;
@@ -800,13 +798,8 @@
     byId('hero-ticket-price').textContent = price;
     flightPrice.textContent = price;
     byId('pass-restore').hidden = owned || unconfirmedReturn;
-    const note = testCheckout ? 'Stripe test · The ComplianceAide · No charge' : 'Stripe checkout · The ComplianceAide';
-    const walletAvailable = enabled(checkoutConfig, 'googlePayCheckout') && enabled(checkoutConfig, 'checkoutCollectsEmail');
-    for (const disclosure of [checkoutMerchant, byId('hero-ticket-note')]) {
-      disclosure.hidden = owned || unconfirmedReturn || !available;
-      disclosure.querySelector('[data-merchant-note]').textContent = note;
-      disclosure.querySelector('.wallet-option').hidden = !walletAvailable;
-    }
+    const walletAvailable = available && enabled(checkoutConfig, 'googlePayCheckout') && enabled(checkoutConfig, 'checkoutCollectsEmail');
+    for (const option of walletOptions) option.hidden = owned || unconfirmedReturn || !walletAvailable;
     checkoutAvailability.hidden = unconfirmedReturn;
     if (!checkoutBusy) {
       checkoutAvailability.textContent = owned || available ? '' : checkoutConfig === undefined
@@ -838,8 +831,7 @@
         }
         restoreAvailable = enabled(config, 'restore');
         updateRestore();
-        const testCheckout = enabled(config, 'checkout') && config.checkoutMode === 'test';
-        byId('purchase-mode-note').hidden = !testCheckout;
+        byId('purchase-mode-note').hidden = true;
         updateCheckoutOffer();
         friendShareStatus.textContent = '';
         updateFriendOffer();
@@ -860,18 +852,18 @@
   }
 
   async function openStripeCheckout(payload, output, attempt) {
-    output.textContent = 'Opening Stripe Checkout…';
+    output.textContent = 'Opening checkout…';
     try {
       const {url} = await request('/checkout', payload, 15000);
       if (attempt !== checkoutAttempt) return;
       const destination = new URL(url);
-      if (destination.origin !== 'https://checkout.stripe.com') throw new Error('A verified Stripe Checkout address was unavailable.');
+      if (destination.origin !== 'https://checkout.stripe.com') throw new Error('Checkout is unavailable right now.');
       location.assign(destination.href);
       rememberCheckout('started');
     } catch (error) {
       if (attempt !== checkoutAttempt) return;
       output.textContent = error.name === 'AbortError' || error instanceof TypeError
-        ? 'Stripe Checkout could not open. Try again.' : error.message;
+        ? 'Checkout could not open. Try again.' : error.message;
       setCheckoutBusy(false);
     }
   }

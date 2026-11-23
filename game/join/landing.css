@@ -381,3 +381,8 @@ fieldset:disabled input, fieldset:disabled button, .button:disabled { opacity: .
 @media (max-width: 740px) {
   .hero h1 { font-size: clamp(3.65rem, 12.9vw, 5.5rem); }
 }
+
+/* Narrow phones: the price stub is about 28 px wide; keep "$4.99" whole. */
+@media (max-width: 480px) and (min-width: 361px) {
+  .hero-tickets .flight-ticket-gold .ticket-stub { font-size: .58rem; letter-spacing: -.04em; }
+}

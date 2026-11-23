@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFile } from 'node:fs/promises';
 import Stripe from 'stripe';
 import { createCommerce } from '../src/commerce.mjs';
 import { allWorlds, configuration } from '../src/settings.mjs';
@@ -131,6 +132,7 @@ test('an unconfigured site exposes only free play and cannot start paid Checkout
   const flags = await app.handle('config', req);
   assert.deepEqual(flags.jsonBody.features, { signup: false, checkout: false, shareClaim: false, restore: false });
   assert.equal(flags.jsonBody.freeWorld, 'winnipesaukee');
+  assert.equal(flags.jsonBody.googlePayCheckout, false);
   const status = await app.handle('status', req);
   assert.deepEqual(status.jsonBody.worlds, ['winnipesaukee']);
 });
@@ -145,6 +147,33 @@ test('origin, email and offer are checked server-side before granting assets', a
   const publicFile = await call('asset', { query: '?world=winnipesaukee&path=scene.bin&redirect=1' });
   assert.equal(publicFile.status, 302);
   assert.match(publicFile.headers.Location, /\/winnipesaukee\/scene.bin\?/);
+});
+
+test('only a Google Pay opt-in collects a Stripe tax address for the digital ticket', async () => {
+  const { call, sessions, rows } = fixture();
+  assert.equal((await call('config')).jsonBody.googlePayCheckout, true);
+  for (const wallet of ['apple_pay', null, true, ['google_pay']]) {
+    assert.equal((await call('checkout', { body: { wallet } })).status, 400);
+  }
+  assert.equal(sessions.length, 0);
+  assert.equal(rows.size, 0);
+  for (const body of [{}, { email: 'player@example.com' }]) {
+    assert.ok((await call('checkout', { body })).jsonBody.url);
+    assert.equal(sessions.at(-1).shipping_address_collection, undefined);
+    assert.equal(sessions.at(-1).custom_text.shipping_address, undefined);
+  }
+  const walletCheckout = await call('checkout', { body: { wallet: 'google_pay' } });
+  assert.ok(walletCheckout.jsonBody.url);
+  const hosted = sessions.at(-1);
+  assert.equal(hosted.automatic_tax.enabled, true);
+  assert.equal(hosted.customer_email, undefined);
+  assert.match(hosted.custom_text.shipping_address.message, /digital.*tax/i);
+  assert.equal(hosted.custom_text.submit.message, sessions[0].custom_text.submit.message);
+  const sdkTypes = new URL('resources/Checkout/Sessions.d.ts', import.meta.resolve('stripe'));
+  const declarations = await readFile(sdkTypes, 'utf8');
+  const allowed = declarations.match(/namespace ShippingAddressCollection\s*\{\s*type AllowedCountry = ([^;]+);/)[1];
+  const expected = [...allowed.matchAll(/'([A-Z]{2})'/g)].map(match => match[1]).filter(code => code !== 'ZZ');
+  assert.deepEqual(hosted.shipping_address_collection.allowed_countries, expected);
 });
 
 test('client monitoring strips private content, deduplicates errors and limits each app instance', async () => {
