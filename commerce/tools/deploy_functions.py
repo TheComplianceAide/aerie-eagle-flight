@@ -21,7 +21,7 @@ AZURE = ['--subscription', 'Azure subscription 1', '--resource-group', 'rg-aerie
 ORIGINS = ('https://playaerie.com', 'https://www.playaerie.com')
 REQUIRED = {'host.json', 'package.json', 'package-lock.json', 'src/functions.mjs'}
 TRIGGERS = {'aerie-' + name: 'httpTrigger' for name in (
-    'config', 'status', 'checkout', 'checkout-complete', 'stripe-webhook', 'gift-redeem',
+    'config', 'status', 'checkout', 'checkout-complete', 'checkout-confirm', 'stripe-webhook', 'gift-redeem',
     'signup', 'restore', 'restore-confirm', 'share-claim', 'share-friends', 'asset', 'purchase-help', 'telemetry')}
 TRIGGERS['aerie-purchase-confirmations'] = 'timerTrigger'
 

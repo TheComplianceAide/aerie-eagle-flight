@@ -306,7 +306,7 @@ export function createCommerce(config, { store, stripe, sendEmail, purchaseEmail
         statement_descriptor_suffix: 'AERIE',
         metadata: { product: 'aerie-founder-and-gift' }
       },
-      success_url: `${browserOrigin}/api/aerie/checkout/complete?session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${browserOrigin}${joinPath}return/#order=${reference}`,
       cancel_url: `${browserOrigin}${joinPath}?checkout=cancel`
     });
     if (!checkout.url || new URL(checkout.url).origin !== 'https://checkout.stripe.com') throw new Error('Unexpected hosted Checkout URL.');
@@ -324,7 +324,7 @@ export function createCommerce(config, { store, stripe, sendEmail, purchaseEmail
       priceId = generated.id;
     }
     await store.transaction([['create', row(`pending:${reference}`, {
-      priceId, amount: price.amount, currency: price.currency, checkoutOrigin: browserOrigin, createdAt: now()
+      checkoutId: checkout.id, priceId, amount: price.amount, currency: price.currency, checkoutOrigin: browserOrigin, createdAt: now()
     })]]);
     return { jsonBody: { url: checkout.url }, cookies: [cookie(checkoutCookieFor(checkout.id), token, 24 * 60 * 60)] };
   }
@@ -386,22 +386,40 @@ export function createCommerce(config, { store, stripe, sendEmail, purchaseEmail
     return { status: 303, headers: { Location: `${joinPath}?checkout=${state}` }, cookies };
   }
 
-  async function completeCheckout(request) {
-    const id = request.query.get('session_id');
-    if (!stripe || !store || !/^cs_(test|live)_[\w]+$/.test(id || '')) {
-      return joinRedirect('pending');
-    }
+  async function verifiedCheckoutCookies(request, id) {
+    if (!stripe || !store || !/^cs_(test|live)_[\w]+$/.test(id || '')) return;
     const scopedCookie = checkoutCookieFor(id);
     const scopedToken = cookieValue(request, scopedCookie);
     // Sessions opened before this version still return with the original cookie.
     const token = scopedToken || cookieValue(request, legacyCheckoutCookie);
-    if (!tokenPattern.test(token)) return joinRedirect('pending');
+    if (!tokenPattern.test(token)) return;
     const result = await fulfill(id, digest(token));
-    if (!result?.paid) return joinRedirect('pending');
+    if (!result?.paid) return;
     const sessionToken = newToken();
     await store.transaction([['create', session(sessionToken, result.uid, id)]]);
     const usedCookie = scopedToken ? scopedCookie : legacyCheckoutCookie;
-    return joinRedirect('success', [cookie(sessionCookie, sessionToken, 30 * 24 * 60 * 60), cookie(usedCookie, '', 0)]);
+    return [cookie(sessionCookie, sessionToken, 30 * 24 * 60 * 60), cookie(usedCookie, '', 0)];
+  }
+
+  async function completeCheckout(request) {
+    const cookies = await verifiedCheckoutCookies(request, request.query.get('session_id'));
+    return joinRedirect(cookies ? 'success' : 'pending', cookies);
+  }
+
+  async function confirmCheckout(request) {
+    const { order } = await readJson(request);
+    if (typeof order !== 'string' || !/^[a-f0-9]{64}$/.test(order)) throw new HttpError(400, 'Invalid ticket reference.');
+    if (!store || !stripe) throw new HttpError(503, 'Ticket confirmation is temporarily unavailable.');
+    const pending = await store.get(`pending:${order}`);
+    if (!pending?.checkoutId) return { jsonBody: { state: 'pending' } };
+    const cookies = await verifiedCheckoutCookies(request, pending.checkoutId);
+    if (cookies) return { jsonBody: { state: 'success' }, cookies };
+    // A response interrupted after Set-Cookie can leave the buyer signed in with the checkout cookie consumed.
+    const login = await identity(request);
+    if (login?.checkoutId === pending.checkoutId && await activePayment(await store.get(`purchase:${pending.checkoutId}`))) {
+      return { jsonBody: { state: 'success' } };
+    }
+    return { jsonBody: { state: 'pending' } };
   }
 
   async function changePayment(event) {
@@ -683,6 +701,7 @@ export function createCommerce(config, { store, stripe, sendEmail, purchaseEmail
     signup: ['POST', signup],
     checkout: ['POST', createCheckout],
     'checkout/complete': ['GET', completeCheckout],
+    'checkout/confirm': ['POST', confirmCheckout],
     restore: ['POST', requestRestore],
     'restore/confirm': ['POST', confirmRestore],
     'gift/redeem': ['POST', redeemGift],
