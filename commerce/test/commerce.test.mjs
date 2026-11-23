@@ -47,16 +47,19 @@ function fixture({ config = {}, purchaseEmailOperations, now = Date.now } = {}) 
   };
   const stripe = {
     webhooks: new Stripe('sk_test_synthetic_fixture').webhooks,
-    prices: { retrieve: async () => ({ id: priceId, active: true, type: 'one_time', currency: 'usd', unit_amount: 499, livemode: settings.live }) },
+    prices: { retrieve: async () => ({ id: priceId, active: true, type: 'one_time', product: 'prod_aerie', tax_behavior: 'exclusive', currency: 'usd', unit_amount: 499, livemode: settings.live }) },
     paymentIntents: { retrieve: async () => ({ metadata: { product: 'aerie-founder-and-gift' } }) },
     checkout: { sessions: {
       async create(input) {
         sessions.push(input);
         const id = `cs_${settings.mode}_fixture${sessions.length}`;
+        const data = input.line_items[0].price_data;
+        const price = data ? { id: `price_inline${sessions.length}`, ...data } : { id: priceId };
+        const subtotal = data?.unit_amount ?? 499;
         const checkout = {
           ...input, id, url: `https://checkout.stripe.com/c/pay/${id}`, currency: 'usd', livemode: settings.live,
-          amount_subtotal: 499, amount_total: 531, payment_intent: `pi_fixture${sessions.length}`, payment_status: 'unpaid',
-          line_items: { data: [{ quantity: 1, price: { id: priceId } }] }, customer_details: { email: input.customer_email }
+          amount_subtotal: subtotal, amount_total: subtotal + Math.round(subtotal * 0.064), payment_intent: `pi_fixture${sessions.length}`, payment_status: 'unpaid',
+          line_items: { data: [{ quantity: 1, price }] }, customer_details: { email: input.customer_email }
         };
         checkouts.set(id, checkout);
         return checkout;
@@ -120,7 +123,7 @@ function fixture({ config = {}, purchaseEmailOperations, now = Date.now } = {}) 
     assert.equal(ended.jsonBody.ok, true);
     return { token, cookie: asCookie(ended.cookies[0]), result: ended.jsonBody };
   }
-  return { app, call, buy, restore, dispatch, sessions, messages, rows, checkouts };
+  return { app, call, buy, restore, dispatch, sessions, messages, rows, checkouts, settings };
 }
 
 const asCookie = cookie => `${cookie.name}=${cookie.value}`;
@@ -174,6 +177,52 @@ test('only a Google Pay opt-in collects a Stripe tax address for the digital tic
   const allowed = declarations.match(/namespace ShippingAddressCollection\s*\{\s*type AllowedCountry = ([^;]+);/)[1];
   const expected = [...allowed.matchAll(/'([A-Z]{2})'/g)].map(match => match[1]).filter(code => code !== 'ZZ');
   assert.deepEqual(hosted.shipping_address_collection.allowed_countries, expected);
+});
+
+test('changing the ticket to 99 cents preserves pending $4.99 payments, old receipts and the gift', async () => {
+  let time = Date.now();
+  const { call, buy, rows, checkouts, settings, sessions } = fixture({ now: () => time });
+  const original = await buy('early@example.test');
+  const opened = await call('checkout', { body: { email: 'opened@example.test' } });
+  const openId = [...checkouts.keys()].at(-1);
+  settings.ticketPriceCents = 99;
+  time += 6 * 60_000;
+  assert.equal((await call('config')).jsonBody.priceLabel, '$0.99 USD');
+  const earlier = (await call('status', { cookie: original.cookie })).jsonBody;
+  assert.equal(earlier.receiptUrl, receiptFixture);
+  assert.ok(earlier.fullAccess && earlier.giftUrl);
+  checkouts.get(openId).payment_status = 'paid';
+  const returned = await call('checkout/complete', { query: '?session_id=' + openId, cookie: asCookie(opened.cookies[0]) });
+  assert.match(returned.headers.Location, /checkout=success$/);
+  assert.equal(rows.get('purchase:' + openId).amountTotal, 531);
+  for (const wallet of [undefined, 'google_pay']) {
+    const start = await call('checkout', { body: { email: 'current@example.test', wallet, amount: 1, priceId: 'price_untrusted' } });
+    const input = sessions.at(-1);
+    assert.deepEqual(input.line_items, [{ quantity: 1, price_data: { product: 'prod_aerie', currency: 'usd', unit_amount: 99, tax_behavior: 'exclusive' } }]);
+    assert.deepEqual(input.expand, ['line_items']);
+    const current = [...checkouts.values()].at(-1);
+    const pending = rows.get('pending:' + current.client_reference_id);
+    const generatedId = current.line_items.data[0].price.id;
+    assert.equal(pending.priceId, generatedId);
+    assert.equal(pending.amount, 99);
+    current.payment_status = 'paid';
+    current.line_items.data[0].price.id = priceId;
+    const request = { query: '?session_id=' + current.id, cookie: asCookie(start.cookies[0]) };
+    assert.match((await call('checkout/complete', request)).headers.Location, /checkout=pending$/);
+    current.line_items.data[0].price.id = generatedId;
+    const confirmed = await call('checkout/complete', request);
+    assert.match(confirmed.headers.Location, /checkout=success$/);
+    const status = (await call('status', { cookie: asCookie(confirmed.cookies[0]) })).jsonBody;
+    assert.ok(status.fullAccess && status.giftUrl);
+    assert.equal(status.receiptUrl, receiptFixture);
+  }
+});
+
+test('invalid USD ticket amounts fail closed at configuration time', () => {
+  assert.equal(configuration({ AERIE_TICKET_PRICE_CENTS: '99' }).ticketPriceCents, 99);
+  for (const cents of ['0', '-99', '0.99', 'NaN', '499999999', '49']) {
+    assert.throws(() => configuration({ AERIE_TICKET_PRICE_CENTS: cents }), /AERIE_TICKET_PRICE_CENTS/);
+  }
 });
 
 test('client monitoring strips private content, deduplicates errors and limits each app instance', async () => {
