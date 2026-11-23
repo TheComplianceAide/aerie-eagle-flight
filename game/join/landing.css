@@ -52,7 +52,7 @@ fieldset { padding: 0; border: 0; margin: 0; min-width: 0; }
 .wordmark { display: inline-flex; align-items: center; text-decoration: none; line-height: 0; flex: 0 0 auto; }
 .wordmark img { display: block; width: 94px; height: auto; filter: brightness(0) saturate(100%) invert(87%) sepia(44%) saturate(575%) hue-rotate(335deg) brightness(106%) contrast(95%); }
 .toplinks { display: flex; align-items: center; gap: clamp(1.2rem, 3vw, 3rem); }
-.toplinks a { text-decoration: none; font-size: .875rem; font-weight: 600; padding-block: 10px; text-shadow: 0 1px 8px #0008; }
+.toplinks a { text-decoration: none; font-size: .875rem; font-weight: 600; padding-block: 10px; white-space: nowrap; text-shadow: 0 1px 8px #0008; }
 .toplinks a:hover, .footlinks :is(a,button):hover { color: var(--gold-strong); }
 .toplinks .top-restore { color: var(--gold-strong); text-decoration: underline; text-underline-offset: .18em; }
 .toplinks .top-flight { padding: 10px 14px; border: 1px solid #f7ead76a; border-radius: 4px; }
@@ -355,9 +355,12 @@ fieldset:disabled input, fieldset:disabled button, .button:disabled { opacity: .
   .signup .input-row input { flex-basis: 100%; }
 }
 @media (max-width: 355px) {
-  .toplinks .top-worlds { display: none; }
+  .topbar .wordmark img { width: 66px; }
+  .toplinks { gap: .55rem; }
+  .toplinks a { font-size: .74rem; }
+  .toplinks .top-flight span { display: none; }
   .hero h1 { font-size: 4.5rem; }
-  .hero-content { padding-block: 1.65rem 2rem; }
+  .hero-content { padding-block: 1.05rem 1.7rem; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
