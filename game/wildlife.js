@@ -4,6 +4,7 @@ window.addRegionalWildlife=function(T,scene,w){
   const region=w.region,{birds,sizes,species,scenes}=window.aerieFauna,profile=scenes[region];
   const ground=w.elevation||w.height,h=w.habitat,models=window.makeWildlifeModels(T,scene,region);
   const land=window.makeLandWildlife(T,scene,w);
+  const patchWildlife=profile.patchWildlife||[];
   const feedingFish={dixville:'brook-trout',moosehead:'atlantic-salmon',labrador:'brook-trout'}[region];
   const stations={yellowstone:[-748,-443],alaska:[-424,-476],swiss:[-613,437],canyon:[-322,-32],yosemite:[-728,1256],
     crater:[-3209,1679],lofoten:[923,2104],acadia:[636,-789],
@@ -33,11 +34,11 @@ window.addRegionalWildlife=function(T,scene,w){
     }
     return null;
   }
-  function findDry(x,z,radius,gentle=false){
+  function findDry(x,z,radius,gentle=false,patch=false){
     for(let i=0;i<96;i++){
       const r=radius*Math.sqrt(i/95),a=i*2.39996;
       const px=x+r*Math.cos(a),pz=z+r*Math.sin(a);
-      if(Number.isFinite(waterAt(px,pz)))continue;
+      if(Number.isFinite(waterAt(px,pz))||patch&&w.yellowstone?.river?.poolAt(px,pz))continue;
       const y=h.surface(px,pz);
       if(gentle&&Math.hypot(h.surface(px+2,pz)-y,h.surface(px,pz+2)-y)>1.45)continue;
       if((w.clearance||w.height)(px,pz)>y+2)continue;
@@ -94,16 +95,18 @@ window.addRegionalWildlife=function(T,scene,w){
     merganser:[2,7],eider:[5,22],shelduck:[2,4],heron:[1,1],kingfisher:[1,1],dipper:[1,2],
     kittiwake:[4,18],'common-gull':[2,9],tern:[2,8],oystercatcher:[2,5],shearwater:[2,9],
     raven:[1,3],peregrine:[1,1],kea:[2,6],chough:[4,16],chickadee:[3,8],'mountain-chickadee':[3,8],
+    osprey:[1,1],'double-crested-cormorant':[2,3],killdeer:[1,2],'golden-mantled-squirrel':[1,2],
     kinglet:[2,6],nuthatch:[2,7],junco:[3,10],nutcracker:[2,6],'acorn-woodpecker':[3,8],
     'norwegian-sheep':[4,10],'nz-fur-seal':[2,7],'hawaiian-monk-seal':[1,2],'alpine-marmot':[2,5]
   };
   const bodySizes={'harbor-seal':1.51,'juneau-red-squirrel':.32,'douglas-squirrel':.31,'golden-mantled-squirrel':.27,'american-pika':.18,
     'alpine-marmot':.57,'norwegian-sheep':1.25,'nz-fur-seal':1.57,'hawaiian-monk-seal':2.1,
     'maine-green-frog':.084,'nh-bullfrog':.15,'nh-spring-peeper':.032,'canyon-treefrog':.049};
-  function placeGroup(site,id,random,groundGeese=false){
+  function placeGroup(site,id,random,groundGeese=false,patch=false){
     const isBird=!!birds[id],skin=isBird?birds[id][0]:id,hab=species[id][0];
-    const aquatic=hab==='water',onTree=/tree/i.test(hab),coast=['coast','beach','bank'].includes(hab);
-    const goose=skin==='goose'||skin==='nene',seabird=['shearwater','kittiwake','tern','common-gull'].includes(skin);
+    const aquatic=hab==='water',coast=['coast','beach','bank'].includes(hab);
+    let onTree=/tree/i.test(hab);
+    const goose=skin==='goose'||skin==='nene',seabird=['shearwater','kittiwake','tern','common-gull','osprey','double-crested-cormorant'].includes(skin);
     const origin=site.water||site,angle=random()*tau;
     const distance=aquatic?(skin==='loon'?27:2.5+random()*3):20+random()*36;
     const x=site.anchor?.x??origin.x+Math.cos(angle)*distance,z=site.anchor?.z??origin.z+Math.sin(angle)*distance;
@@ -115,15 +118,23 @@ window.addRegionalWildlife=function(T,scene,w){
       base={x:tree.x+tree.width*.30,y:tree.y+tree.height*(hab==='lowTree'?.29:.63),z:tree.z};
     }else if(coast){
       if(!site.water)return;
-      base=findDry(x,z,105)||((seabird||skin==='heron')?site.water:null);
-    }else base=findDry(x,z,site.curated?150:65,goose||hab==='meadow');
+      base=findDry(x,z,105,skin==='killdeer'||skin==='double-crested-cormorant',patch);
+      if(!base&&!patch&&(seabird||skin==='heron'))base=site.water;
+      if(skin==='osprey'&&base){
+        const perch=h.nearestTree(base.x,base.z,38);
+        if(perch&&perch.height>5){
+          base={x:perch.x,y:perch.y+perch.height*.86,z:perch.z};onTree=true;
+        }
+      }
+    }else base=findDry(x,z,site.curated?150:65,goose||hab==='meadow',patch);
     if(!base)return;
     if(skin==='harbor-seal'&&eggRock?.contains(base.x,base.z))return;
     if(skin==='harbor-seal'&&(base.y>w.waterLevel+3.5||Math.hypot(base.x-site.water.x,base.z-site.water.z)>40))return;
     if(skin==='norwegian-sheep'&&(base.y<.4||base.y>330))return;
     if(skin==='alpine-marmot'&&base.y+(w.altitudeOffset||0)<1550)return;
     if(skin==='hawaiian-monk-seal'&&!w.landmarks.some(p=>/beach/i.test(p.name)&&Math.hypot(p.x-base.x,p.z-base.z)<700))return;
-    const [lo,hi]=groundGeese?[3,8]:(social[skin]||[1,2]),count=lo+Math.floor(random()**1.35*(hi-lo+1));
+    const [lo,hi]=groundGeese?[3,8]:(social[skin]||[1,2]);
+    const count=Math.min(patch?4:Infinity,lo+Math.floor(random()**1.35*(hi-lo+1)));
     const bearing=random()*tau,flock={id,skin,base,group:[],aquatic,onTree,goose:goose&&!groundGeese,seabird,isBird,
       groundGeese,angle:bearing,clock:random()*20,period:goose?67:seabird?48:24+random()*17,
       radius:goose?73:seabird?62:skin==='peregrine'?65:Math.max(5,(sizes[skin]?.[1]||.5)*25),salt:random()*tau};
@@ -134,7 +145,8 @@ window.addRegionalWildlife=function(T,scene,w){
       const r=spread*Math.sqrt(k+.25),dir=k*2.4+flock.salt;
       let px=base.x+Math.cos(dir)*r,pz=base.z+Math.sin(dir)*r,level=waterAt(px,pz);
       if(aquatic&&!Number.isFinite(level)){const near=findWater(px,pz,4);if(!near)continue;px=near.x;pz=near.z;level=near.y;}
-      if(!aquatic&&!onTree&&!seabird&&Number.isFinite(level))continue;
+      if(!aquatic&&!onTree&&(!seabird||patch)&&Number.isFinite(level))continue;
+      if(patch&&w.yellowstone?.river?.poolAt(px,pz))continue;
       const variant=k%2===1&&['mallard','shelduck','eider'].includes(skin)?skin+'-hen':skin;
       const a={id,residentId:region+'/'+site.key+'/'+site.flocks.length+'/'+id+'/'+k,skin:variant,length,homeX:px,homeZ:pz,homeY:onTree?base.y:
         aquatic?level:h.surface(px,pz),x:px,y:base.y,z:pz,heading:bearing,phase:random()*tau,seed:random()*tau,
@@ -151,6 +163,17 @@ window.addRegionalWildlife=function(T,scene,w){
       if(!curated&&random()<.52)continue;
       placeGroup(site,id,random);
       if(birds[id]?.[0]==='goose'&&(curated||random()<.37))placeGroup(site,id,random,true);
+    }
+    // One extra species per streamed site keeps the local instancing and
+    // swimming-separation work bounded. The habitat departure can show more.
+    if(patchWildlife.length){
+      const patchRandom=randomAt(x+379,z-571);
+      if(curated){
+        for(const id of patchWildlife)placeGroup(site,id,patchRandom,false,true);
+      }else if(patchRandom()<.64){
+        const id=patchWildlife[Math.floor(patchRandom()*patchWildlife.length)];
+        placeGroup(site,id,patchRandom,false,true);
+      }
     }
     if(water)site.schools=fish.populate({...water,findWater},random,curated);
     sites.set(key,site);return site;
@@ -201,6 +224,15 @@ window.addRegionalWildlife=function(T,scene,w){
       }
     }
     resident=makeSite('shallows',pick.x,pick.z,true);
+    if(region==='winnipesaukee'){
+      const weirs=w.landmarks.find(p=>p.name==='Weirs Beach');
+      const water=weirs&&findWater(weirs.x,weirs.z,235);
+      if(water){
+        const site={key:'weirs-cormorant',x:water.x,z:water.z,water,curated:true,flocks:[],schools:[]};
+        placeGroup(site,'patch-cormorant',randomAt(site.x,site.z),false,true);
+        if(site.flocks.length)sites.set(site.key,site);
+      }
+    }
     // Adult sockeye hold in Steep Creek's tributary current and can be seen
     // from the elevated salmon platforms. The lake's resident site remains alive.
     if(w.steepCreek)for(const [x,z] of w.steepCreek.fish){
@@ -402,6 +434,7 @@ window.addRegionalWildlife=function(T,scene,w){
   const names={
     'barred-owl':'Barred owl','harbor-seal':'Harbor seal',goose:'Canada goose',mallard:'Mallard',raven:'Common raven',dipper:'American dipper',accentor:'Alpine accentor',
     wagtail:'White wagtail',peregrine:'Peregrine falcon','rock-wren':'Rock wren',merganser:'Common merganser',
+    osprey:'Osprey','double-crested-cormorant':'Double-crested cormorant',killdeer:'Killdeer',
     'mountain-chickadee':'Mountain chickadee','acorn-woodpecker':'Acorn woodpecker',bluebird:'Mountain bluebird',junco:'Dark-eyed junco',
     robin:'American robin',eider:'Common eider','common-gull':'Common gull',tern:'Arctic tern',tui:'Tūī',tomtit:'Tomtit',
     fantail:'New Zealand fantail',shelduck:'Paradise shelduck','black-duck':'American black duck',chickadee:'Black-capped chickadee',
@@ -409,7 +442,7 @@ window.addRegionalWildlife=function(T,scene,w){
     chough:'Alpine chough',dunnock:'Dunnock','canyon-wren':'Canyon wren',poorwill:'Common poorwill',kittiwake:'Black-legged kittiwake',
     oystercatcher:'Eurasian oystercatcher',pipit:'Meadow pipit',bellbird:'New Zealand bellbird',kea:'Kea',loon:'Common loon',
     vireo:'Red-eyed vireo',kingfisher:'Belted kingfisher',kinglet:'Golden-crowned kinglet','juneau-red-squirrel':'American red squirrel',
-    'douglas-squirrel':'Douglas squirrel','alpine-marmot':'Alpine marmot','american-pika':'American pika','norwegian-sheep':'Domestic sheep',
+    'douglas-squirrel':'Douglas squirrel','golden-mantled-squirrel':'Golden-mantled ground squirrel','alpine-marmot':'Alpine marmot','american-pika':'American pika','norwegian-sheep':'Domestic sheep',
     'nz-fur-seal':'New Zealand fur seal','nh-bullfrog':'American bullfrog','maine-green-frog':'Green frog','nh-spring-peeper':'Spring peeper',
     'canyon-treefrog':'Canyon treefrog',sockeye:'Sockeye salmon','dolly-varden':'Dolly Varden','lake-trout':'Lake trout',
     rainbow:'Rainbow trout','brown-trout':'Brown trout',carp:'Common carp',kokanee:'Kokanee salmon',spotty:'Spotty wrasse',

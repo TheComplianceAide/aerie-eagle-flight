@@ -62,8 +62,9 @@ window.makeWildlifeTracks = function makeWildlifeTracks(T, scene, world) {
   let nextRefresh=-1, nextPrune=-1, lastX=Infinity, lastZ=Infinity, serial=0;
   function key(x,z){return Math.floor(x/tileWidth)+','+Math.floor(z/tileWidth);}
   function step(a,t) {
+    if(['beaver','muskrat','raccoon'].includes(a.family))return;
     if(a.trackX===undefined) {a.trackX=a.x;a.trackZ=a.z;return;}
-    const hare=a.family==='hare', paw=a.family==='bear'||a.family==='otter';
+    const hare=a.family==='hare', paw=['bear','otter','canid'].includes(a.family);
     const stride=Math.max(.24,a.height*(hare?1.65:.65));
     if(Math.hypot(a.x-a.trackX,a.z-a.trackZ)<stride)return;
     a.trackX=a.x;a.trackZ=a.z;a.trackSide=-(a.trackSide||1);
