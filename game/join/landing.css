@@ -157,12 +157,13 @@ fieldset { padding: 0; border: 0; margin: 0; min-width: 0; }
 .pass::before { position: absolute; inset: 0; z-index: -1; content: ""; background: linear-gradient(0deg, #0a1717 0%, #0a1717bc 50%, #0a171712 100%); }
 .pass-body { display: block; padding: clamp(1.35rem, 3.5vw, 2.7rem); width: 100%; }
 .pass h3 { font-size: clamp(2.45rem, 5vw, 5rem); margin: .65rem 0 .8rem; }
-.pass-body > p:not(.kicker):not(.price) { max-width: 39ch; font-size: .93rem; color: #e3e6da; }
+.pass-body > p:not(.kicker):not(.price):not(.checkout-merchant) { max-width: 39ch; font-size: .93rem; color: #e3e6da; }
 .pass-body .button { margin-top: .8rem; }
 .inline-action { display: inline-flex; align-items: center; gap: 9px; margin-top: 1rem; font-weight: 700; color: var(--gold-strong); text-decoration: none; }
 .inline-action:hover { text-decoration: underline; }
 .price { margin-top: .85rem; font-size: .78rem; color: #e6dbc5; }
 .price strong { color: var(--gold); font-size: 1.2rem; margin-right: .25rem; }
+.checkout-merchant { margin-top: .65rem; font-size: .8rem; line-height: 1.35; }
 .availability { display: block; margin-top: .6rem; min-height: 1.1rem; font-size: .76rem; color: #dedfd4; }
 
 .community-section { background: #142522; border-block: 1px solid #e4e8d21c; }
@@ -188,8 +189,13 @@ fieldset:disabled input, fieldset:disabled button, .button:disabled { opacity: .
 .footer .wordmark img { width: 75px; }
 .footlinks { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem 1.5rem; font-size: .85rem; color: var(--muted); }
 .footlinks :is(a,button) { text-decoration: none; min-height: 40px; display: inline-flex; align-items: center; }
-.return-notice { background: var(--pine); border: 1px solid var(--line); border-radius: 5px; margin-top: 1rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: .75rem 1rem; }
+.return-notice { background: var(--pine); border: 1px solid var(--line); border-radius: 5px; margin-block: 1rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: .85rem 1rem; }
+.return-summary, .return-actions { display: flex; align-items: center; gap: .75rem; }
+.return-summary img, .purchase-logo { object-fit: contain; flex: 0 0 auto; }
+.return-summary h2 { font-size: clamp(1.55rem, 3vw, 2rem); margin: 0 0 .2rem; }
+.return-actions { flex-wrap: wrap; flex-shrink: 0; }
 .return-notice p { font-size: .91rem; }
+.purchase-logo { display: block; margin-bottom: .55rem; }
 
 .dialog {
   width: min(calc(100% - 28px), 39rem); max-height: calc(100dvh - 28px); overflow-y: auto;
@@ -206,9 +212,13 @@ fieldset:disabled input, fieldset:disabled button, .button:disabled { opacity: .
 .film-dialog video { width: 100%; display: block; aspect-ratio: 16 / 9; margin-top: 1rem; background: #0c1716; }
 .social-links { margin-top: 1rem; display: flex; gap: 7px; flex-wrap: wrap; }
 .social-links .button { font-size: .79rem; padding-inline: .7rem; }
-.text-link { color: var(--gold); font-size: .82rem; margin-top: .25rem; min-height: 38px; }
+.text-link { display: inline-flex; align-items: center; color: var(--gold); font-size: .82rem; margin-top: .25rem; min-height: 38px; }
 #claim-details { border-top: 1px solid var(--line); padding-top: .15rem; }
 #gift-details { border-top: 1px solid var(--line); margin-top: 1rem; padding-top: .55rem; }
+.gift-link { margin-top: .85rem; }
+.gift-link summary { width: fit-content; padding-block: .75rem; color: var(--gold); font-size: .88rem; font-weight: 650; cursor: pointer; }
+.gift-link label { display: block; margin-bottom: .35rem; font-size: .82rem; }
+.gift-link p { margin-top: .3rem; font-size: .8rem; }
 
 @media (max-width: 900px) {
   .preview-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
@@ -245,6 +255,7 @@ fieldset:disabled input, fieldset:disabled button, .button:disabled { opacity: .
   .footer { padding-block: 1.4rem; }
   .footlinks { margin-top: .6rem; }
   .return-notice { align-items: flex-start; flex-direction: column; }
+  .return-actions { width: 100%; }
 }
 @media (max-width: 410px) {
   .toplinks { gap: .65rem; }
