@@ -1,0 +1,64 @@
+name: Validate unmodified forecast image at job limits
+on:
+  push:
+    branches: [qa/self-hosted-forecast-parity]
+    paths: [.github/workflows/stock-weather-probe.yml]
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 9
+    env:
+      IMAGE: ghcr.io/open-meteo/open-meteo@sha256:5f23284824917315514aa356acf4184961d9be19f72b3c74b119faccdacd527f
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 1fbc2fd182b45e4b317fcc19282bb8bbe1863aa5
+          persist-credentials: false
+          sparse-checkout: /tools/acoustics/
+          sparse-checkout-cone-mode: false
+      - name: Inspect TLS and exercise full embedded worker on the stock image
+        run: |
+          set -eu
+          time docker pull "$IMAGE"
+          python3 - <<'PY'
+          import os,pathlib,subprocess
+          source=pathlib.Path("tools/acoustics")
+          env=dict(os.environ)
+          env["AERIE_WEATHER_WORKER_PY"]=(source/"weather_worker.py").read_text()
+          env["AERIE_WEATHER_SNAPSHOT_PY"]=(source/"weather_snapshot.py").read_text()
+          bootstrap="""import os,pathlib,runpy,sys,tempfile
+          with tempfile.TemporaryDirectory() as folder:
+              package=pathlib.Path(folder)
+              (package/'weather_snapshot.py').write_text(os.environ.pop('AERIE_WEATHER_SNAPSHOT_PY'))
+              worker=package/'weather_worker.py'
+              worker.write_text(os.environ.pop('AERIE_WEATHER_WORKER_PY'))
+              sys.path.insert(0,folder)
+              runpy.run_path(str(worker),run_name='__main__')
+          """
+          inspect="""import os, ssl, sys, urllib.request as u
+          print('STOCK_ENV', sys.version, ssl.OPENSSL_VERSION, 'CAs', ssl.create_default_context().cert_store_stats(), 'uid',os.getuid(),'cwd',os.getcwd(),'upstream executable',os.access('/app/openmeteo-api',os.X_OK),'data writable',os.access('/app/data/',os.W_OK),'ICU',os.getenv('ICU_TIMEZONE_FILES_DIR'))
+          with u.urlopen('https://registry.opendata.aws/open-meteo/',timeout=10) as r: print('STOCK_HTTPS',r.status)
+          """
+          subprocess.run(["docker","run","--rm","--entrypoint","/usr/bin/python3",env["IMAGE"],"-c",inspect],check=True)
+          subprocess.run(["docker","create","--name","stock","--cpus=1","--memory=2g","--pids-limit=400","--entrypoint","/usr/bin/python3","-e","AERIE_WEATHER_SNAPSHOT_PY","-e","AERIE_WEATHER_WORKER_PY",env["IMAGE"],"-c",bootstrap,"--output-only","/tmp/air.json"],env=env,check=True)
+          PY
+          start=$(date +%s%3N)
+          docker start stock
+          while [ "$(docker inspect --format '{{.State.Running}}' stock)" = "true" ]; do
+            docker exec stock cat /sys/fs/cgroup/memory.peak > peak.tmp 2>/dev/null && mv peak.tmp peak.txt || true
+            sleep 1
+          done
+          end=$(date +%s%3N)
+          docker logs stock | tail -6
+          echo "Worker including startup and 1-second sampling finished in $((end-start)) ms"
+          echo "Peak cgroup bytes sampled: $(cat peak.txt)"
+          test "$(docker inspect --format '{{.State.ExitCode}}' stock)" = 0
+          docker cp stock:/tmp/air.json ./air.json
+          jq -e '.version == 1 and (.regions|length)==13' air.json
+          sha256sum air.json
+          cat air.json | sed 's/^/STOCK_WORKER_SNAPSHOT=/'
+      - name: Release temporary server and cache
+        if: always()
+        run: docker rm -fv stock || true
