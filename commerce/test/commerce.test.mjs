@@ -60,7 +60,7 @@ function fixture() {
   };
   const app = createCommerce(root, {
     store, stripe,
-    sendEmail: async (email, subject, body) => messages.push({ email, subject, body }),
+    sendEmail: async (email, subject, content) => messages.push({ email, subject, ...content }),
     assetUrl: async (world, path) => `https://blob.example/private/${world}/${path}?fixture=read-only`
   });
   const call = (route, { body, cookie, query = '', origin = site, method, webhook, requestBase = functionsHost } = {}) => {
@@ -98,7 +98,7 @@ function fixture() {
   async function restore(email, gift) {
     const started = await call('restore', { body: { email, gift } });
     assert.equal(started.jsonBody.ok, true);
-    const token = messages.at(-1).body.match(/#restore=([\w-]+)/)[1];
+    const token = messages.at(-1).plainText.match(/#restore=([\w-]+)/)[1];
     const ended = await call('restore/confirm', { body: { token } });
     assert.equal(ended.jsonBody.ok, true);
     return { token, cookie: asCookie(ended.cookies[0]), result: ended.jsonBody };
@@ -151,7 +151,7 @@ test('client monitoring strips private content, deduplicates errors and limits e
 });
 
 test('checkout return verifies exact purchase and single fulfillment survives webhook retries', async () => {
-  const { call, buy, dispatch, checkouts, rows } = fixture();
+  const { call, buy, dispatch, rows } = fixture();
   const bought = await buy('buyer@example.test');
   const unrelated = await call('checkout/complete', { query: `?session_id=${bought.id}` });
   assert.match(unrelated.headers.Location, /checkout=pending$/);
@@ -162,8 +162,48 @@ test('checkout return verifies exact purchase and single fulfillment survives we
   assert.equal([...rows.keys()].filter(key => key.startsWith('purchase:')).length, 1);
   assert.equal([...rows.keys()].filter(key => key.startsWith('gift:')).length, 1);
   assert.deepEqual((await call('status', { cookie: bought.cookie })).jsonBody.worlds, allWorlds);
-  await dispatch('charge.refunded', { payment_intent: checkouts.get(bought.id).payment_intent, refunded: true });
-  assert.deepEqual((await call('status', { cookie: bought.cookie })).jsonBody.worlds, ['winnipesaukee']);
+});
+
+test('signed full refunds revoke the buyer and redeemed gift without revoking access on partial refunds', async () => {
+  const { call, buy, restore, dispatch, checkouts } = fixture();
+  const buyer = await buy('refund-buyer@example.test');
+  const buyerStatus = await call('status', { cookie: buyer.cookie });
+  const code = new URL(buyerStatus.jsonBody.giftUrl, site).hash.slice('#gift='.length);
+  const friend = await restore('refund-friend@example.test', code);
+  assert.equal((await call('gift/redeem', { body: { code }, cookie: friend.cookie })).jsonBody.ok, true);
+  const charge = { payment_intent: checkouts.get(buyer.id).payment_intent };
+  assert.equal((await dispatch('charge.refunded', { ...charge, refunded: true }, false)).status, 400);
+  assert.equal((await dispatch('charge.refunded', { ...charge, refunded: false })).jsonBody.ok, true);
+  for (const actor of [buyer, friend]) {
+    assert.equal((await call('status', { cookie: actor.cookie })).jsonBody.fullAccess, true);
+  }
+
+  const refunded = await Promise.all(Array.from({ length: 2 }, () => dispatch('charge.refunded', { ...charge, refunded: true })));
+  assert.ok(refunded.every(response => response.jsonBody.ok));
+  assert.equal((await dispatch('checkout.session.completed', { id: buyer.id })).jsonBody.ok, true);
+  for (const actor of [buyer, friend]) {
+    const { jsonBody } = await call('status', { cookie: actor.cookie });
+    assert.equal(jsonBody.authenticated, true);
+    assert.equal(jsonBody.fullAccess, false);
+    assert.deepEqual(jsonBody.worlds, ['winnipesaukee']);
+    assert.equal(jsonBody.giftUrl, undefined);
+    assert.equal((await call('asset', { query: '?world=moosehead&path=scene.bin', cookie: actor.cookie })).status, 403);
+  }
+  assert.equal((await call('gift/redeem', { body: { code }, cookie: friend.cookie })).status, 404);
+});
+
+test('a signed refund received before Checkout fulfillment prevents both purchase and gift grants', async () => {
+  const { call, dispatch, checkouts, rows } = fixture();
+  const start = await call('checkout', { body: { email: 'refund-first@example.test' } });
+  const checkout = [...checkouts.values()][0];
+  checkout.payment_status = 'paid';
+  const payment = { payment_intent: checkout.payment_intent, refunded: true };
+  assert.equal((await dispatch('charge.refunded', payment)).jsonBody.ok, true);
+  assert.equal((await dispatch('checkout.session.completed', { id: checkout.id })).jsonBody.ok, true);
+  const result = await call('checkout/complete', { query: `?session_id=${checkout.id}`, cookie: asCookie(start.cookies[0]) });
+  assert.equal(result.headers.Location, '/join/?checkout=pending');
+  assert.equal(result.cookies, undefined);
+  assert.equal([...rows.keys()].some(key => key.startsWith('purchase:') || key.startsWith('gift:')), false);
 });
 
 test('an alias keeps checkout, hosted email recovery, and its gift on the originating host', async () => {
@@ -200,9 +240,12 @@ test('an alias keeps checkout, hosted email recovery, and its gift on the origin
   assert.equal(new URL(bought.giftUrl, alias).origin, alias);
   await call('restore', { origin: alias, body: { email: checkoutEmail } });
   assert.equal(messages[0].email, checkoutEmail);
-  const link = messages[0].body.match(/https:\/\/\S+#restore=[\w-]+/)[0];
+  const link = messages[0].plainText.match(/https:\/\/\S+#restore=[\w-]+/)[0];
   assert.equal(new URL(link).origin, alias);
+  assert.ok(messages[0].html.includes(`<a href="${link}">Continue to Aerie</a>`));
   const token = new URL(link).hash.slice('#restore='.length);
+  const wrapped = `${token.slice(0, 24)}\n${token.slice(24)}`;
+  assert.equal((await call('restore/confirm', { origin: alias, body: { token: wrapped } })).status, 400);
   const confirm = await call('restore/confirm', { origin: alias, body: { token } });
   const restored = (await call('status', { origin: null, cookie: asCookie(confirm.cookies[0]) })).jsonBody;
   assert.equal(restored.emailVerified, true);

@@ -332,7 +332,13 @@ export function createCommerce(config, { store, stripe, sendEmail, assetUrl, now
       if (conflict(error)) throw new HttpError(429, 'Please wait a minute before requesting another email.');
       throw error;
     }
-    await sendEmail(email, 'Continue to Aerie', `Open this link to continue to Aerie on this device:\n\n${browserOrigin}${joinPath}#restore=${token}\n\nThe link expires in 15 minutes and works once.`);
+    const restoreUrl = `${browserOrigin}${joinPath}#restore=${token}`;
+    const instructions = 'Open this link to continue to Aerie on this device.';
+    const expiration = 'The link expires in 15 minutes and works once.';
+    await sendEmail(email, 'Continue to Aerie', {
+      plainText: `${instructions}\n\n${restoreUrl}\n\n${expiration}`,
+      html: `<p>${instructions}</p><p><a href="${restoreUrl}">Continue to Aerie</a></p><p>${expiration}</p>`
+    });
     return { jsonBody: { ok: true } };
   }
 

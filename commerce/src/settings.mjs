@@ -61,11 +61,11 @@ export function configuredServices(config) {
   let keyExpires = 0;
   return {
     store, stripe,
-    sendEmail: email && (async (address, subject, plainText) => {
+    sendEmail: email && (async (address, subject, { plainText, html }) => {
       const send = await email.beginSend({
         senderAddress: config.sender,
         recipients: { to: [{ address }] },
-        content: { subject, plainText }
+        content: { subject, plainText, html }
       });
       const result = await send.pollUntilDone();
       if (result.status !== 'Succeeded') throw new Error('The email provider did not accept the message.');
