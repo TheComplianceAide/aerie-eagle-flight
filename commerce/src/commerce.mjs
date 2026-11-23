@@ -305,7 +305,8 @@ export function createCommerce(config, { store, stripe, trafficStore, sendEmail,
   async function sharedWithFriends(request) {
     if (!shareEnabled) throw new HttpError(503, 'Sharing rewards are currently unavailable.');
     const body = await readJson(request);
-    if (body.sharedWithFive !== true) throw new HttpError(400, 'Confirm that you shared Aerie with five friends.');
+    const confirmed = Object.hasOwn(body, 'sharedWithFriends') ? body.sharedWithFriends : body.sharedWithFive;
+    if (confirmed !== true) throw new HttpError(400, 'Confirm that you shared Aerie.');
     const login = await identity(request);
     if (login && !login.checkoutId) {
       for (let attempt = 0; attempt < 5; attempt++) {

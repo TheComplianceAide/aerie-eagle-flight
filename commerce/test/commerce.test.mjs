@@ -986,12 +986,20 @@ test('launch honors existing sharing cookies and restored silver rewards while s
   assert.deepEqual((await preview.call('status', { cookie: asCookie(claimed.cookies[0]) })).jsonBody.worlds, worlds);
 });
 
-test('five-friend confirmation unlocks five worlds on this browser and survives email restore', async () => {
+test('confirming a share unlocks five worlds on this browser and survives email restore', async () => {
   const { call, restore } = fixture();
   const worlds = ['winnipesaukee', 'moosehead', 'canyon', 'labrador', 'alaska', 'acadia'];
   assert.deepEqual((await call('config')).jsonBody.rewardWorlds, worlds.slice(1));
-  assert.equal((await call('share-friends', { body: { sharedWithFive: false } })).status, 400);
-  const result = await call('share-friends', { body: { sharedWithFive: true } });
+  for (const payload of [{}, { sharedWithFriends: false }, { sharedWithFriends: 'true' },
+    { sharedWithFive: false }, { sharedWithFriends: false, sharedWithFive: true }]) {
+    const declined = await call('share-friends', { body: payload });
+    assert.equal(declined.status, 400);
+    assert.equal(declined.cookies, undefined);
+  }
+  const result = await call('share-friends', { body: { sharedWithFriends: true } });
+  assert.equal(result.cookies[0].httpOnly, true);
+  assert.equal(result.cookies[0].secure, true);
+  assert.equal(result.cookies[0].sameSite, 'Lax');
   assert.deepEqual(result.jsonBody.worlds, worlds);
   const cookie = asCookie(result.cookies[0]);
   assert.deepEqual((await call('status', { cookie })).jsonBody.worlds, worlds);
@@ -1002,8 +1010,27 @@ test('five-friend confirmation unlocks five worlds on this browser and survives 
   const verified = await restore('friends@example.test', undefined, cookie);
   assert.deepEqual((await call('status', { cookie: verified.cookie })).jsonBody.worlds, worlds);
   const another = await restore('second@example.test');
-  await call('share-friends', { body: { sharedWithFive: true }, cookie: another.cookie });
+  await call('share-friends', { body: { sharedWithFriends: true }, cookie: another.cookie });
   assert.deepEqual((await call('status', { cookie: another.cookie })).jsonBody.worlds, worlds);
+});
+
+test('sharing keeps a purchased or gifted all-world ticket intact', async () => {
+  const { call, buy, restore } = fixture();
+  const buyer = await buy('buyer@example.test');
+  const status = async cookie => (await call('status', { cookie })).jsonBody;
+  const originalGift = (await status(buyer.cookie)).giftUrl;
+  const share = async cookie => {
+    const result = await call('share-friends', { cookie, body: { sharedWithFriends: true } });
+    assert.deepEqual(result.jsonBody.worlds, allWorlds);
+    assert.equal((await status(cookie + '; ' + asCookie(result.cookies[0]))).fullAccess, true);
+  };
+  await share(buyer.cookie);
+  assert.equal((await status(buyer.cookie)).giftUrl, originalGift);
+  const code = new URL(originalGift, site).hash.split('=')[1];
+  const recipient = await restore('friend@example.test', code);
+  assert.equal((await call('gift/redeem', { cookie: recipient.cookie, body: { code } })).jsonBody.ok, true);
+  await share(recipient.cookie);
+  assert.equal((await status(recipient.cookie)).giftUrl, undefined);
 });
 
 const paymentLinkSettings = {
