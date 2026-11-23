@@ -360,6 +360,19 @@ fieldset:disabled input, fieldset:disabled button, .button:disabled { opacity: .
     background: transparent;
     touch-action: none;
   }
+  .flight-intro-skip span {
+    position: absolute;
+    right: max(16px, env(safe-area-inset-right));
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    padding: .42rem .7rem;
+    border: 1px solid #f8f1e247;
+    border-radius: 100px;
+    background: #0d1919de;
+    color: var(--warm);
+    font-size: .78rem;
+    font-weight: 650;
+    line-height: 1.35;
+  }
   [data-flight-intro="playing"] .flight-intro-skip:focus-visible { outline-offset: -6px; }
 }
 [data-flight-intro]:not([data-flight-intro="playing"]) .flight-intro-skip { display: none; }
