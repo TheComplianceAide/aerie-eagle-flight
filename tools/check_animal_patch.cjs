@@ -12,10 +12,10 @@ for(const file of ['game-ranges','field-audio','fauna-shapes','land-models',
 window.makeFishSchools=()=>({populate:()=>[],roster:[]});
 
 const expected={
-  moosehead:[4,648,-662],winnipesaukee:[5,1210,1854],dixville:[3,-320,-243],
-  surry:[4,-1142,-3101],acadia:[2,636,-789],alaska:[3,-424,-476],
-  yellowstone:[5,-748,-443],canyon:[4,-322,-32],yosemite:[4,-728,1256],
-  crater:[4,-3209,1679],swiss:[1,-613,437],labrador:[2,384,1849],lofoten:[1,923,2104]
+  moosehead:[5,648,-662],winnipesaukee:[5,1210,1854],dixville:[5,-320,-243],
+  surry:[6,-1142,-3101],acadia:[2,636,-789],alaska:[3,-424,-476],
+  yellowstone:[6,-748,-443],canyon:[6,-322,-32],yosemite:[5,-728,1256],
+  crater:[5,-3209,1679],swiss:[3,-613,437],labrador:[4,384,1849],lofoten:[6,923,2104]
 };
 assert.equal(Object.keys(expected).length,13);
 for(const key of ['osprey','double-crested-cormorant','killdeer']){
@@ -39,8 +39,9 @@ for(const [region,[total,sx,sz]] of Object.entries(expected)){
   // A repeatable transect through a cold bank, wooded dry ground, and
   // an uphill strip. The geothermal pond overlaps one shore of the river.
   const elevation=region==='alaska'||region==='swiss'?1840:region==='lofoten'?55:185;
-  const wet=(x,z)=>z>=sz-28&&z<=sz+7;
-  const height=(x,z)=>wet(x,z)?elevation:elevation+.26*Math.min(30,Math.max(0,z-(sz+9)));
+  let exposedSea=region==='lofoten';
+  const wet=(x,z)=>(exposedSea||z>=sz-28)&&z<=sz+7;
+  const height=(x,z)=>wet(x,z)?elevation:elevation+.26*Math.min(170,Math.max(0,z-(sz+9)));
   const poolAt=(x,z)=>region==='yellowstone'&&x>sx+110&&x<sx+160&&z>sz-27&&z<sz+15;
   const tree=(x,z,range)=>!wet(x,z)&&range>=16?{x:x+8,z,y:height(x+8,z),width:6,height:13}:null;
   const world={region,elevation:height,height,clearance:height,waterLevel:elevation,
@@ -63,17 +64,29 @@ for(const [region,[total,sx,sz]] of Object.entries(expected)){
       assert.ok(!poolAt(o.x,o.z),region+' animal in geothermal pool '+o.id);
       if(o.kind==='Mammal'&&o.actor.family)assert.ok(!wet(o.x,o.z),region+' grounded mammal in water '+o.id);
       if(o.id==='patch-cormorant')assert.ok(Math.abs(o.x-(sx-1400))<240,'cormorant escaped Weirs');
+      if(o.id==='gray-seal')assert.ok(o.actor.homeY<=elevation+3.2,'seal above the haul-out zone');
       seen.add(o.id);
     }
   }
-  for(let i=-24;i<=24;i++){
-    inspect(sx+i*210,sz+13,100+i*2);
-    if(i%4===0)inspect(sx+i*210,sz+36,100.2+i*2);
+  for(let i=-64;i<=64;i++){
+    const t=150+(i+64)*4;
+    inspect(sx+i*211,sz+13,t);
+    inspect(sx+i*211,sz+111,t+2);
   }
   const unresolved=names.filter(id=>!seen.has(id));
   assert.deepEqual(unresolved,[],region+' additions missing through the regular update and nearby entry points');
   if(region==='acadia')assert.ok(!profile.patchWildlife?.length,'default Acadia night contains daytime additions');
+  if(region==='alaska')assert.ok(!land.additions.includes('brown-bear'),'a resident salmon school is not a run signal');
+  if(region==='lofoten'){
+    exposedSea=false;
+    const inlet={...world,launches:{},landmarks:[]};
+    const sheltered=window.addRegionalWildlife(T,new T.Scene(),inlet);
+    const fixture={x:sx,z:sz+14,y:elevation+14};
+    for(let i=0;i<20;i++)sheltered({...fixture,x:sx+i*311},i*2);
+    for(const site of inlet.wildlife.sites.values())
+      assert.ok(!site.flocks.some(f=>f.id==='gray-seal'),'gray seal found shelter instead of exposed sea');
+  }
   console.log(region,[...seen].sort().join(', '));
 }
-assert.equal(additions,42);
-console.log('Verified 42 patch placements across the 13 real region profiles on controlled habitat transects.');
+assert.equal(additions,61);
+console.log('Verified 61 patch placements across the 13 real region profiles on controlled habitat transects.');

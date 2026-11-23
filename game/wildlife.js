@@ -34,14 +34,16 @@ window.addRegionalWildlife=function(T,scene,w){
     }
     return null;
   }
-  function findDry(x,z,radius,gentle=false,patch=false){
+  function findDry(x,z,radius,gentle=false,patch=false,accept){
     for(let i=0;i<96;i++){
       const r=radius*Math.sqrt(i/95),a=i*2.39996;
       const px=x+r*Math.cos(a),pz=z+r*Math.sin(a);
-      if(Number.isFinite(waterAt(px,pz))||patch&&w.yellowstone?.river?.poolAt(px,pz))continue;
+      if(Number.isFinite(waterAt(px,pz))||
+         patch&&(w.yellowstone?.river?.poolAt(px,pz)||w.blocksWildlifeAt?.(px,pz)))continue;
       const y=h.surface(px,pz);
       if(gentle&&Math.hypot(h.surface(px+2,pz)-y,h.surface(px,pz+2)-y)>1.45)continue;
       if((w.clearance||w.height)(px,pz)>y+2)continue;
+      if(accept&&!accept(px,y,pz))continue;
       return {x:px,y,z:pz};
     }
     return null;
@@ -96,17 +98,55 @@ window.addRegionalWildlife=function(T,scene,w){
     kittiwake:[4,18],'common-gull':[2,9],tern:[2,8],oystercatcher:[2,5],shearwater:[2,9],
     raven:[1,3],peregrine:[1,1],kea:[2,6],chough:[4,16],chickadee:[3,8],'mountain-chickadee':[3,8],
     osprey:[1,1],'double-crested-cormorant':[2,3],killdeer:[1,2],'golden-mantled-squirrel':[1,2],
+    'ruffed-grouse':[1,2],'spruce-grouse':[1,2],'rock-ptarmigan':[1,3],'wild-turkey':[2,4],
+    'cliff-swallow':[2,4],'black-backed-woodpecker':[1,1],'broad-winged-hawk':[1,1],
+    'california-condor':[1,1],'griffon-vulture':[1,1],'bearded-vulture':[1,1],
+    'california-gull':[2,4],'great-black-backed-gull':[1,3],'black-guillemot':[1,3],'european-shag':[1,3],'gray-seal':[1,2],
     kinglet:[2,6],nuthatch:[2,7],junco:[3,10],nutcracker:[2,6],'acorn-woodpecker':[3,8],
     'norwegian-sheep':[4,10],'nz-fur-seal':[2,7],'hawaiian-monk-seal':[1,2],'alpine-marmot':[2,5]
   };
   const bodySizes={'harbor-seal':1.51,'juneau-red-squirrel':.32,'douglas-squirrel':.31,'golden-mantled-squirrel':.27,'american-pika':.18,
+    'gray-seal':2.05,
     'alpine-marmot':.57,'norwegian-sheep':1.25,'nz-fur-seal':1.57,'hawaiian-monk-seal':2.1,
     'maine-green-frog':.084,'nh-bullfrog':.15,'nh-spring-peeper':.032,'canyon-treefrog':.049};
+  const rareBirds={'patch-california-condor':.18,'patch-bearded-vulture':.44,'patch-griffon-vulture':.30};
+  const foragers=new Set(['ruffed-grouse','spruce-grouse','rock-ptarmigan','wild-turkey']);
+  const soaringScavengers=new Set(['california-condor','bearded-vulture','griffon-vulture']);
+  const marine=new Set(['black-guillemot','european-shag','great-black-backed-gull','gray-seal']);
+  function sea(x,z){
+    return Number.isFinite(w.waterLevel)&&Math.abs(waterAt(x,z)-w.waterLevel)<.8;
+  }
+  function exposed(water){
+    // An open sector excludes a long and narrow fjord even if its two
+    // opposing bearings both remain wet throughout the survey.
+    let consecutive=0;
+    for(let i=0;i<14;i++){
+      const a=i*tau/12,dx=Math.cos(a),dz=Math.sin(a);
+      if([45,180,490,1050,1950].every(d=>sea(water.x+dx*d,water.z+dz*d))){
+        if(++consecutive>=3)return true;
+      }else consecutive=0;
+    }
+    return false;
+  }
+  function patchGround(hab,skin){
+    if(!['cliff','alpine','upland','understory'].includes(hab))return undefined;
+    return (x,y,z)=>{
+      const slope=Math.hypot(h.surface(x+3,z)-y,h.surface(x,z+3)-y)/3;
+      if(hab==='cliff')return slope>.14&&(skin!=='california-condor'||y>58);
+      if(hab==='alpine')return y+(w.altitudeOffset||0)>1820&&slope>.12;
+      if(hab==='upland')return y>80&&slope<.56;
+      return slope<.51&&!!h.nearestTree(x,z,skin==='wild-turkey'?78:42);
+    };
+  }
   function placeGroup(site,id,random,groundGeese=false,patch=false){
     const isBird=!!birds[id],skin=isBird?birds[id][0]:id,hab=species[id][0];
-    const aquatic=hab==='water',coast=['coast','beach','bank'].includes(hab);
+    const aquatic=hab==='water',coast=['coast','beach','bank','exposed'].includes(hab);
+    const groundBird=foragers.has(skin),soar=soaringScavengers.has(skin);
     let onTree=/tree/i.test(hab);
-    const goose=skin==='goose'||skin==='nene',seabird=['shearwater','kittiwake','tern','common-gull','osprey','double-crested-cormorant'].includes(skin);
+    const goose=skin==='goose'||skin==='nene',seabird=['shearwater','kittiwake','tern','common-gull','osprey',
+      'double-crested-cormorant','california-gull','great-black-backed-gull','european-shag','cliff-swallow'].includes(skin);
+    if(marine.has(skin)&&(!site.water||!sea(site.water.x,site.water.z)))return;
+    if(hab==='exposed'&&!exposed(site.water))return;
     const origin=site.water||site,angle=random()*tau;
     const distance=aquatic?(skin==='loon'?27:2.5+random()*3):20+random()*36;
     const x=site.anchor?.x??origin.x+Math.cos(angle)*distance,z=site.anchor?.z??origin.z+Math.sin(angle)*distance;
@@ -114,11 +154,11 @@ window.addRegionalWildlife=function(T,scene,w){
     if(aquatic){if(!site.water)return;base=findWater(x,z,12)||site.water;}
     else if(onTree){
       tree=h.nearestTree(x,z,site.curated?230:86);
-      if(!tree||hab==='highTree'&&tree.y<800)return;
+      if(!tree||hab==='highTree'&&tree.y<800||hab==='coniferTree'&&tree.height<8)return;
       base={x:tree.x+tree.width*.30,y:tree.y+tree.height*(hab==='lowTree'?.29:.63),z:tree.z};
     }else if(coast){
       if(!site.water)return;
-      base=findDry(x,z,105,skin==='killdeer'||skin==='double-crested-cormorant',patch);
+      base=findDry(x,z,105,skin==='killdeer'||skin==='double-crested-cormorant'||hab==='exposed',patch);
       if(!base&&!patch&&(seabird||skin==='heron'))base=site.water;
       if(skin==='osprey'&&base){
         const perch=h.nearestTree(base.x,base.z,38);
@@ -126,25 +166,27 @@ window.addRegionalWildlife=function(T,scene,w){
           base={x:perch.x,y:perch.y+perch.height*.86,z:perch.z};onTree=true;
         }
       }
-    }else base=findDry(x,z,site.curated?150:65,goose||hab==='meadow',patch);
+    }else base=findDry(x,z,site.curated?150:65,goose||hab==='meadow',patch,patchGround(hab,skin));
     if(!base)return;
     if(skin==='harbor-seal'&&eggRock?.contains(base.x,base.z))return;
     if(skin==='harbor-seal'&&(base.y>w.waterLevel+3.5||Math.hypot(base.x-site.water.x,base.z-site.water.z)>40))return;
+    if(hab==='exposed'&&(base.y>w.waterLevel+3.2||Math.hypot(base.x-site.water.x,base.z-site.water.z)>60))return;
     if(skin==='norwegian-sheep'&&(base.y<.4||base.y>330))return;
     if(skin==='alpine-marmot'&&base.y+(w.altitudeOffset||0)<1550)return;
     if(skin==='hawaiian-monk-seal'&&!w.landmarks.some(p=>/beach/i.test(p.name)&&Math.hypot(p.x-base.x,p.z-base.z)<700))return;
     const [lo,hi]=groundGeese?[3,8]:(social[skin]||[1,2]);
     const count=Math.min(patch?4:Infinity,lo+Math.floor(random()**1.35*(hi-lo+1)));
-    const bearing=random()*tau,flock={id,skin,base,group:[],aquatic,onTree,goose:goose&&!groundGeese,seabird,isBird,
+    const bearing=random()*tau,flock={id,skin,base,group:[],aquatic,onTree,goose:goose&&!groundGeese,seabird,isBird,groundBird,soar,
       groundGeese,angle:bearing,clock:random()*20,period:goose?67:seabird?48:24+random()*17,
-      radius:goose?73:seabird?62:skin==='peregrine'?65:Math.max(5,(sizes[skin]?.[1]||.5)*25),salt:random()*tau};
-    if(flock.goose||seabird)flock.clock=flock.period*.52;
+      radius:soar?126:goose?73:seabird?62:skin==='peregrine'?65:Math.max(5,(sizes[skin]?.[1]||.5)*25),salt:random()*tau};
+    if(flock.goose||seabird||soar)flock.clock=flock.period*.52;
     if(groundGeese)flock.clock=0;
     for(let k=0;k<count;k++){
       const length=(sizes[skin]?.[0]||bodySizes[skin])*(.9+.2*random()),spread=goose?2.4:aquatic?1.25:onTree?.57:length*1.9;
       const r=spread*Math.sqrt(k+.25),dir=k*2.4+flock.salt;
       let px=base.x+Math.cos(dir)*r,pz=base.z+Math.sin(dir)*r,level=waterAt(px,pz);
       if(aquatic&&!Number.isFinite(level)){const near=findWater(px,pz,4);if(!near)continue;px=near.x;pz=near.z;level=near.y;}
+      if(aquatic&&marine.has(skin)&&!sea(px,pz))continue;
       if(!aquatic&&!onTree&&(!seabird||patch)&&Number.isFinite(level))continue;
       if(patch&&w.yellowstone?.river?.poolAt(px,pz))continue;
       const variant=k%2===1&&['mallard','shelduck','eider'].includes(skin)?skin+'-hen':skin;
@@ -169,10 +211,10 @@ window.addRegionalWildlife=function(T,scene,w){
     if(patchWildlife.length){
       const patchRandom=randomAt(x+379,z-571);
       if(curated){
-        for(const id of patchWildlife)placeGroup(site,id,patchRandom,false,true);
+        for(const id of patchWildlife)if(!rareBirds[id])placeGroup(site,id,patchRandom,false,true);
       }else if(patchRandom()<.64){
         const id=patchWildlife[Math.floor(patchRandom()*patchWildlife.length)];
-        placeGroup(site,id,patchRandom,false,true);
+        if(patchRandom()<(rareBirds[id]??1))placeGroup(site,id,patchRandom,false,true);
       }
     }
     if(water)site.schools=fish.populate({...water,findWater},random,curated);
@@ -341,13 +383,13 @@ window.addRegionalWildlife=function(T,scene,w){
   }
   Object.defineProperty(w.launches,'wildlife',{enumerable:true,get(){prepare();return launch;}});
   function birdPose(a,f,t,dt,player){
-    const k=a.rank,L=a.length,seed=a.seed,sky=f.isBird;
+    const k=a.rank,L=a.length,seed=a.seed,sky=f.isBird&&!f.groundBird;
     const approach=Math.hypot(player.x-a.x,player.z-a.z)<(f.groundGeese?8:4)&&player.y-a.y<7;
     const c=(f.clock+t+(f.goose?0:k*.13))%f.period/f.period;
-    const swim=f.aquatic,loon=f.skin==='loon',grassGoose=f.groundGeese;
+    const swim=f.aquatic,loon=f.skin==='loon',auk=f.skin==='black-guillemot',grassGoose=f.groundGeese;
     let mix=0,theta=0,behavior='rest';
     if(sky){
-      const start=grassGoose?.67:swim?.80:f.goose?.08:f.seabird?.02:.46,end=.985;
+      const start=grassGoose?.67:swim?.80:f.goose?.08:f.seabird||f.soar?.02:.46,end=.985;
       const p=clamp((c-start)/(end-start),0,1);
       if(p>0&&p<1&&(!swim||!loon)){
         mix=sCurve(p/.12)*sCurve((1-p)/.13);theta=p*tau;
@@ -371,7 +413,7 @@ window.addRegionalWildlife=function(T,scene,w){
       const zz=z+radius*.65*(Math.sin(ph*.67+seed)-Math.sin(seed*1.67))+paddle*Math.sin(a.awayAngle||0);
       if(Number.isFinite(waterAt(xx,zz))){x=xx;z=zz;}
       a.level=waterAt(x,z);y=a.level+L*.15+.014*Math.sin(t*2.5+seed);
-      if(loon){const dive=Math.max(escape,Math.max(0,Math.sin(t*.14+seed)-.77)/.23);y-=dive*2.7;behavior=dive>.2?'diving':'paddling';}
+      if(loon||auk){const dive=Math.max(escape,Math.max(0,Math.sin(t*.14+seed)-.77)/.23);y-=dive*(loon?2.7:1.5);behavior=dive>.2?'diving':'paddling';}
       else if(!mix)behavior='paddling';
     }else if(!sky||grassGoose){
       const walking=Math.sin(t*.23+seed)>.15||approach;
@@ -396,7 +438,7 @@ window.addRegionalWildlife=function(T,scene,w){
       const hx=ca*vx-sa*vz,hz=sa*vx+ca*vz;heading=Math.atan2(hz,hx);
       const rank=Math.ceil(k/2),span=sizes[f.skin][1],trail=f.goose?-rank*span*1.1:0,side=f.goose?(k%2?1:-1)*rank*span*.94:0;
       x+=ca*forward-sa*lat+mix*(trail*hx-side*hz);z+=sa*forward+ca*lat+mix*(trail*hz+side*hx);
-      const peak=f.goose?20:f.seabird?12:swim?7:5+L*8;
+      const peak=f.soar?39:f.goose?20:f.seabird?12:swim?7:5+L*8;
       const floor=(w.clearance||w.height)(x,z);
       y+=peak*mix*(.65+.35*Math.sin(theta*.5));
       y=Math.max(y,floor+mix*(.7+L));bank=-mix*Math.atan2(.58*R*(tau/f.period)**2,9.81);
@@ -405,8 +447,8 @@ window.addRegionalWildlife=function(T,scene,w){
     }
     a.x=x;a.y=y;a.z=z;a.heading=heading;a.bank=bank;a.pitch=pitch;
     a.mode=mix>.025?1:swim?-1:0;a.behavior=behavior;
-    const soaring=f.seabird||['raven','chough','peregrine'].includes(f.skin);
-    const glide=mix>.6&&(soaring?Math.sin(t*.74+seed*.19)>-.46:Math.sin(t*1.4+seed)>.76);
+    const soaring=f.soar||f.seabird||['raven','chough','peregrine','broad-winged-hawk'].includes(f.skin);
+    const glide=mix>.6&&(f.soar|| (soaring?Math.sin(t*.74+seed*.19)>-.46:Math.sin(t*1.4+seed)>.76));
     a.effort=mix>.025?(glide?.045:1):0;
     const hz=sky?clamp(2.4/Math.sqrt(L),2.1,8.2):2;
     a.phase+=dt*(a.mode===1?(glide?.70:hz*tau):2.3);
@@ -435,6 +477,11 @@ window.addRegionalWildlife=function(T,scene,w){
     'barred-owl':'Barred owl','harbor-seal':'Harbor seal',goose:'Canada goose',mallard:'Mallard',raven:'Common raven',dipper:'American dipper',accentor:'Alpine accentor',
     wagtail:'White wagtail',peregrine:'Peregrine falcon','rock-wren':'Rock wren',merganser:'Common merganser',
     osprey:'Osprey','double-crested-cormorant':'Double-crested cormorant',killdeer:'Killdeer',
+    'ruffed-grouse':'Ruffed grouse','spruce-grouse':'Spruce grouse','rock-ptarmigan':'Rock ptarmigan','wild-turkey':'Wild turkey',
+    'cliff-swallow':'Cliff swallow','black-backed-woodpecker':'Black-backed woodpecker','broad-winged-hawk':'Broad-winged hawk',
+    'california-condor':'California condor','griffon-vulture':'Griffon vulture','bearded-vulture':'Bearded vulture',
+    'california-gull':'California gull','great-black-backed-gull':'Great black-backed gull','black-guillemot':'Black guillemot',
+    'european-shag':'European shag','gray-seal':'Gray seal',
     'mountain-chickadee':'Mountain chickadee','acorn-woodpecker':'Acorn woodpecker',bluebird:'Mountain bluebird',junco:'Dark-eyed junco',
     robin:'American robin',eider:'Common eider','common-gull':'Common gull',tern:'Arctic tern',tui:'Tūī',tomtit:'Tomtit',
     fantail:'New Zealand fantail',shelduck:'Paradise shelduck','black-duck':'American black duck',chickadee:'Black-capped chickadee',

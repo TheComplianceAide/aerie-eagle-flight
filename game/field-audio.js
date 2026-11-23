@@ -20,17 +20,23 @@
   // These are encounter additions, separate from the existing ambient mix.
   // Weirs cormorants use a named local shore instead of lake-wide streaming.
   const patchBirds={
-    moosehead:['az-peregrine','patch-osprey'],
-    dixville:['az-peregrine','loon-winnipesaukee'],
-    surry:['patch-osprey'],
+    moosehead:['az-peregrine','patch-osprey','patch-ruffed-grouse'],
+    dixville:['az-peregrine','loon-winnipesaukee','patch-cliff-swallow','patch-black-backed-woodpecker'],
+    surry:['patch-osprey','patch-broad-winged-hawk','patch-wild-turkey'],
     alaska:['no-tern'],
     yellowstone:['patch-osprey','nh-heron','patch-killdeer'],
-    canyon:['nh-heron','patch-osprey','nh-mallard'],
+    canyon:['nh-heron','patch-osprey','nh-mallard','patch-california-condor'],
     yosemite:['nh-mallard','nh-kingfisher'],
-    crater:['patch-osprey','az-merganser','nutcracker','golden-mantled-squirrel']
+    crater:['patch-osprey','az-merganser','nutcracker','golden-mantled-squirrel','patch-california-gull'],
+    swiss:['patch-bearded-vulture','patch-griffon-vulture'],
+    labrador:['patch-spruce-grouse'],
+    lofoten:['patch-black-guillemot','patch-european-shag','patch-great-black-backed-gull','patch-rock-ptarmigan','gray-seal']
   };
   for(const [region,ids] of Object.entries(patchBirds))scenes[region].patchWildlife=ids;
-  const patchRecording={ 'patch-osprey':'voice-labrador-1147350.m4a' };
+  const patchRecording={
+    'patch-osprey':'voice-labrador-1147350.m4a',
+    'patch-broad-winged-hawk':'voice-dixville-2107726.m4a'
+  };
   // Sound source, useful audible range in metres, and source gain.
   const birds={
     'yellowstone-dipper':['dipper','bank',0],
@@ -39,6 +45,20 @@
     'patch-osprey':['osprey','bank',175],
     'patch-cormorant':['double-crested-cormorant','coast',0],
     'patch-killdeer':['killdeer','bank',0],
+    'patch-ruffed-grouse':['ruffed-grouse','understory',0],
+    'patch-cliff-swallow':['cliff-swallow','cliff',0],
+    'patch-black-backed-woodpecker':['black-backed-woodpecker','coniferTree',0],
+    'patch-broad-winged-hawk':['broad-winged-hawk','tree',160],
+    'patch-wild-turkey':['wild-turkey','understory',0],
+    'patch-california-condor':['california-condor','cliff',0],
+    'patch-california-gull':['california-gull','bank',0],
+    'patch-bearded-vulture':['bearded-vulture','alpine',0],
+    'patch-griffon-vulture':['griffon-vulture','alpine',0],
+    'patch-spruce-grouse':['spruce-grouse','understory',0],
+    'patch-black-guillemot':['black-guillemot','water',0],
+    'patch-european-shag':['european-shag','coast',0],
+    'patch-great-black-backed-gull':['great-black-backed-gull','coast',0],
+    'patch-rock-ptarmigan':['rock-ptarmigan','upland',0],
     "ak-goose":["goose","grazing",370],
     "ne-goose":["goose","grazing",370],
     "ak-mallard":["mallard","water",220],
@@ -94,6 +114,11 @@
     osprey:[.57,1.65],
     'double-crested-cormorant':[.80,1.27],
     killdeer:[.25,.47],
+    'ruffed-grouse':[.45,.63], 'cliff-swallow':[.145,.30], 'black-backed-woodpecker':[.235,.43],
+    'broad-winged-hawk':[.39,.90], 'wild-turkey':[1.04,1.39], 'california-condor':[1.22,2.88],
+    'california-gull':[.56,1.34], 'bearded-vulture':[1.10,2.63], 'griffon-vulture':[1.05,2.55],
+    'spruce-grouse':[.40,.58], 'black-guillemot':[.34,.55], 'european-shag':[.76,.99],
+    'great-black-backed-gull':[.71,1.61], 'rock-ptarmigan':[.35,.55],
     "goose":[0.95,1.72],
     "mallard":[0.58,0.88],
     "raven":[0.65,1.31],
@@ -147,6 +172,7 @@
   };
   const species=Object.fromEntries(Object.entries(birds).map(([id,[,habitat,reach]])=>[id,[habitat,reach,habitat==='water'?.96:.82]]));
   Object.assign(species,{
+    'gray-seal':['exposed',0,0],
     'harbor-seal':['coast',120,0],'nh-bullfrog':['bank',125,.64],'maine-green-frog':['bank',100,.63],'nh-spring-peeper':['bank',140,.63],
     'canyon-treefrog':['bank',95,.64],'hawaiian-monk-seal':['beach',135,.73],'nz-fur-seal':['coast',180,.78],
     'american-pika':['rock',115,.62],'alpine-marmot':['meadow',230,.77],'norwegian-sheep':['meadow',145,.66],

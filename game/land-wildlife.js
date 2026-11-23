@@ -50,6 +50,10 @@ window.makeLandWildlife=function makeLandWildlife(T,scene,w){
     const elevation=p.y+(w.altitudeOffset||0);
     if(habitat==='alpine')return elevation>=(id==='mountain-goat'?420:1580)&&p.steep>.13;
     if(habitat==='upland')return p.y>40;
+    if(habitat==='boreal')return p.steep<.44&&(land===1||!!h.nearestTree(p.x,p.z,42));
+    if(habitat==='ledge')return p.steep>.14&&p.y>8;
+    if(habitat==='rocky-meadow')return p.steep>.06&&p.steep<.48&&(land===0||land==null||land===2||land===3||land===6);
+    if(habitat==='meadow')return p.steep<.31&&(land===0||land==null||land===2||land===3||land===6);
     if(id==='black-bear')return !!(h.nearestTree(p.x,p.z,80)||land===1||land===2);
     return habitat!=='edge'||p.steep<.44;
   }
@@ -83,14 +87,15 @@ window.makeLandWildlife=function makeLandWildlife(T,scene,w){
   }
   function addGroup(key,p,id,curated,random){
     const family=catalog.species[id].family;
-    const solitary=['bear','otter','beaver','muskrat','canid','raccoon'].includes(family)||id==='moose';
+    const solitary=['bear','otter','beaver','muskrat','canid','raccoon','rodent'].includes(family)||id==='moose'||id==='woodland-caribou';
     const count=solitary?1:family==='hare'?2:family==='bison'?5+Math.floor(random()*3):2+Math.floor(random()*3);
     const heading=random()*tau,animals=[];
     for(let i=0;i<count;i++){
       const dir=heading+i*2.4,spread=family==='hare'?2.5:3.5;
       const base=i===0?p:bed(p.x+spread*Math.sqrt(i)*Math.cos(dir),p.z+spread*Math.sqrt(i)*Math.sin(dir),true,id);
       if(!base)continue;
-      const a=animal(id,base,random,i,['goat','chamois'].includes(family)||i===0&&!solitary&&family!=='hare',heading+(random()-.5)*.85);
+      const horns=['goat','chamois'].includes(family)||id==='woodland-caribou'||i===0&&!solitary&&family!=='hare';
+      const a=animal(id,base,random,i,horns,heading+(random()-.5)*.85);
       a.residentId=w.region+'/'+key+'/'+id+'/'+i;
       animals.push(a);
     }
@@ -265,7 +270,7 @@ window.makeLandWildlife=function makeLandWildlife(T,scene,w){
           if(random()>.68||landmark&&Math.hypot(landmark.x-x,landmark.z-z)<114)continue;
           const patchRandom=rng(ix+739,iz-429);
           const id=additions[Math.floor(patchRandom()*additions.length)];
-          if(id&&patchRandom()<.61){
+          if(id&&patchRandom()<.61*(catalog.species[id].rarity??1)){
             const r=catalog.species[id].habitat==='fresh-bank'?72:45;
             const extra=siteNear(x,z,r,false,id,true);
             if(extra){addGroup(key,extra,id,false,patchRandom);continue;}

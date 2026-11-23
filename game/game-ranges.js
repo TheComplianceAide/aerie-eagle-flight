@@ -39,6 +39,10 @@
     'mountain-goat':{name:'Mountain goat',family:'goat',height:.96,coat:'#dedbd3',belly:'#bdb5a5',face:'#dfd9c5',habitat:'alpine'},
     'chamois':{name:'Chamois',family:'chamois',height:.76,coat:'#9c683c',belly:'#aa8c65',face:'#e0d1b6',habitat:'alpine'},
     'mountain-hare':{name:'Mountain hare',family:'hare',height:.28,coat:'#8e8374',belly:'#ccc3ad',face:'#9b8d7f',habitat:'upland'},
+    'woodland-caribou':{name:'Woodland caribou',family:'deer',height:1.15,coat:'#786657',belly:'#c8bba5',face:'#948878',habitat:'boreal',rarity:.17},
+    'yellow-bellied-marmot':{name:'Yellow-bellied marmot',family:'rodent',height:.29,coat:'#7e654e',belly:'#b35027',face:'#8b7a6c',habitat:'rocky-meadow'},
+    'rock-squirrel':{name:'Rock squirrel',family:'rodent',height:.16,coat:'#77756b',belly:'#baaa91',face:'#8c7e6a',habitat:'ledge'},
+    'california-ground-squirrel':{name:'California ground squirrel',family:'rodent',height:.15,coat:'#827970',belly:'#b5aa95',face:'#9c9487',habitat:'meadow'},
     'eurasian-otter': {name:'Eurasian otter', family:'otter', height:.29, coat:'#655343', belly:'#a29780', face:'#736352'},
     'snowshoe-hare': {name:'Snowshoe hare', family:'hare', height:.275, coat:'#9f8b70', belly:'#d5c7ad', face:'#867967'},
     'desert-cottontail': {name:'Desert cottontail', family:'hare', height:.24, coat:'#bcab8d', belly:'#e4d6c0', face:'#a3947d'}
@@ -46,17 +50,17 @@
   // Additional naturally streamed groups. Keep the first animal and the
   // established encounter launch in each world unchanged.
   const additions={
-    yellowstone:['black-bear','coyote'],
+    yellowstone:['black-bear','coyote','yellow-bellied-marmot'],
     alaska:['mountain-goat','american-beaver'],
-    canyon:['american-beaver'],
+    canyon:['american-beaver','rock-squirrel'],
     swiss:['chamois'],
     crater:[],
-    yosemite:['black-bear','coyote'],
+    yosemite:['black-bear','coyote','california-ground-squirrel'],
     lofoten:['mountain-hare'],
     acadia:['red-fox','raccoon'],
     moosehead:['black-bear','american-beaver'],
     dixville:['black-bear'],
-    labrador:['black-bear','american-beaver'],
+    labrador:['black-bear','american-beaver','woodland-caribou'],
     surry:['black-bear','american-beaver','north-american-river-otter'],
     winnipesaukee:['black-bear','american-beaver','north-american-river-otter','muskrat']
   };

@@ -185,3 +185,21 @@ credited raptor, waterfowl, heron, kingfisher, tern, nutcracker and squirrel
 recordings use the existing field-audio credits. New call positions require
 the matching runtime actor. The Yellowstone killdeer recording remains on its
 existing Geyser Hill soundscape. The cormorants do not emit a new recording.
+
+Follow-up animal patch
+
+The additional grouse, swallow, woodpecker, hawk, turkey, condor, gulls,
+vultures, guillemot, shag, ptarmigan, and gray seal use original illustrated
+profiles built by the same generator. The woodland caribou, marmot, and
+ground squirrels use variants of the articulated mammal rig. Their homes
+are simulated habitat placements. They do not mark documented individuals,
+nests, or haul-outs.
+
+The condor silhouette and cliff-roost association refer to the National Park
+Service's California condor species description and Glen Canyon account.
+https://www.nps.gov/glca/learn/nature/condors.htm
+https://home.nps.gov/articles/california-condor.htm
+
+The Broad-winged Hawk uses the existing edited CC0 excerpt credited as
+voice-dixville-2107726.m4a in regional-recording-credits.txt. No recording
+was imported for the other follow-up species.
