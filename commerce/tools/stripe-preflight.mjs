@@ -148,7 +148,12 @@ export async function preflight(opts, { runtime, inspector = runtime, signingSec
   const live = opts.mode === 'live';
   let selected, cents;
   const priceOk = await check('ticket and gift', async () => {
-    selected = await selectPrice(inspector, opts.price || priceId, 199);
+    const targetId = opts.price || priceId;
+    if (live && (opts.smoke || opts['verify-delivery'])) {
+      requireCheck(priceId && targetId === priceId,
+        'Use the exact AERIE_STRIPE_PRICE_ID staged on the live Function for the smoke or its receipt recheck.');
+    }
+    selected = await selectPrice(inspector, targetId, 199);
     const product = selected.product;
     requireCheck(product?.active && product.livemode === live && (product.name === productName || product.metadata?.product === 'aerie-founder-and-gift'),
       'Price does not identify an active Aerie ticket-and-gift product in this mode.');
@@ -195,7 +200,7 @@ export async function preflight(opts, { runtime, inspector = runtime, signingSec
     let safe = priceOk && secretOk && !checks.some(c => c.name === 'webhook endpoint' && c.status === 'fail');
     if (live) {
       safe = safe && configurationVerified && await check('staged live receiver', async () => {
-        requireCheck(await stagedLiveReceiver(), 'Stage the same public receiver in live mode with customer checkout disabled.');
+        requireCheck(await stagedLiveReceiver(selected.id), 'Stage the same public receiver in live mode with customer checkout disabled.');
         return 'Live receiver staged; customer checkout disabled.';
       });
     }
@@ -252,6 +257,12 @@ async function readExpiryReceipt(tableUrl, table, mode, rowKey, wait) {
   }
 }
 
+function functionSettings() {
+  const values = azure(['functionapp', 'config', 'appsettings', 'list', '-g', 'rg-aerie-prod', '-n', 'func-playaerie-prod',
+    '--query', "[?contains(['AERIE_STRIPE_MODE','AERIE_CHECKOUT_ENABLED','AERIE_STRIPE_PRICE_ID','AERIE_TICKET_PRICE_CENTS','AERIE_TABLE_URL','AERIE_TABLE_NAME'], name)].[name,value]"]);
+  return Object.fromEntries(values.split('\n').filter(Boolean).map(row => row.split('\t')));
+}
+
 async function main() {
   const opts = options(process.argv.slice(2));
   const prefix = 'stripe-' + (opts.mode === 'test' ? 'sandbox' : 'live') + '-';
@@ -264,12 +275,13 @@ async function main() {
   const inspector = opts.audit ? client(vault('preflight-read-key')) : runtime;
   let signingSecret;
   try { signingSecret = vault('webhook-secret'); } catch { /* The independent checks can still run. */ }
-  const values = azure(['functionapp', 'config', 'appsettings', 'list', '-g', 'rg-aerie-prod', '-n', 'func-playaerie-prod',
-    '--query', "[?contains(['AERIE_STRIPE_MODE','AERIE_CHECKOUT_ENABLED','AERIE_STRIPE_PRICE_ID','AERIE_TICKET_PRICE_CENTS','AERIE_TABLE_URL','AERIE_TABLE_NAME'], name)].[name,value]"]);
-  const config = Object.fromEntries(values.split('\n').filter(Boolean).map(row => row.split('\t')));
+  const config = functionSettings();
   const report = await preflight(opts, { runtime, inspector, signingSecret,
-    stagedLiveReceiver: async () => {
-      if (config.AERIE_STRIPE_MODE !== 'live' || config.AERIE_CHECKOUT_ENABLED === 'true') return false;
+    stagedLiveReceiver: async price => {
+      const staged = functionSettings();
+      if (staged.AERIE_STRIPE_MODE !== 'live' || staged.AERIE_CHECKOUT_ENABLED === 'true') return false;
+      requireCheck(staged.AERIE_STRIPE_PRICE_ID === price && staged.AERIE_TICKET_PRICE_CENTS === config.AERIE_TICKET_PRICE_CENTS,
+        'The Function ticket price changed during preflight. Rerun against the current offer.');
       const response = await fetch(site + '/api/aerie/config', { cache: 'no-store', redirect: 'error', signal: AbortSignal.timeout(8000) });
       if (!response.ok) return false;
       const publicConfig = await response.json();

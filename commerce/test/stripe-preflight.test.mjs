@@ -50,7 +50,7 @@ function fixture(livemode = false) {
     }
   };
   return { product, price, account, webhook, registrations, expired, sessions, runtime,
-    configuredCents: 199, signingSecret: 'whsec_fixture', readReceipt: async () => null };
+    configuredCents: 199, priceId: livemode ? price.id : undefined, signingSecret: 'whsec_fixture', readReceipt: async () => null };
 }
 
 test('operator has to select mode and seller; no registrations is a valid explicit confirmation', () => {
@@ -265,4 +265,34 @@ test('table read restrictions remain distinct from a signed delivery', async () 
   assert.equal(result.signedDeliveryVerified, false);
   assert.equal(status(result, 'signed expiry delivery'), 'unverified');
   assert.doesNotMatch(JSON.stringify(result), /private provider error/);
+});
+
+
+test('live smoke and receipt recheck must use the exact staged Azure price, even for an equivalent offer', async () => {
+  for (const operation of [{ smoke: true }, { 'verify-delivery': 'a'.repeat(64) }]) {
+    for (const stagedPrice of ['price_Staged', undefined]) {
+      const f = fixture(true);
+      // Both price IDs resolve to active $1.99 offers for the same Aerie product.
+      f.runtime.prices.retrieve = async id => ({ ...f.price, id, unit_amount: 199 });
+      f.priceId = stagedPrice;
+      f.stagedLiveReceiver = async () => true;
+      const report = await preflight({ ...opts, mode: 'live', price: 'price_Other', ...operation }, f);
+      assert.equal(status(report, 'ticket and gift'), 'fail');
+      assert.equal(report.configurationVerified, false);
+      assert.equal(report.ready, false);
+      assert.equal(f.sessions.opened, undefined);
+    }
+  }
+});
+
+test('a matching explicit staged price can be used in the live smoke', async () => {
+  const f = fixture(true);
+  f.stagedLiveReceiver = async selectedPrice => {
+    assert.equal(selectedPrice, f.priceId);
+    return true;
+  };
+  const report = await preflight({ ...opts, mode: 'live', price: f.priceId, smoke: true }, f);
+  assert.equal(report.configurationVerified, true);
+  assert.equal(status(report, 'unopened Checkout'), 'pass');
+  assert.deepEqual(f.expired, ['cs_live_fixture']);
 });
