@@ -50,6 +50,12 @@ Once a live customer link has been issued, pause new sales with **only** `AERIE_
 - If an existing authorized live buyer is available, open their signed-in landing page. Verify **Play now** opens a paid world and **My ticket** still shows their access. An eligible existing receipt or unused gift should still be available. This check uses the existing ticket and does not require another purchase. Record the coverage gap if there is no existing buyer to test.
 - Re-enable only new checkout creation after the fix and confirm the live $1.99 offer on both origins again.
 
+## Read Aerie traffic
+
+Sign in to Azure CLI with Storage Table Data Reader scoped to `AerieTraffic`. From `commerce/`, run `npm ci` and `node tools/traffic-report.mjs`. The default report covers seven UTC dates through today. Use `--from YYYY-MM-DD --through YYYY-MM-DD --json` for an explicit range and machine-readable output. The range may include up to 90 dates.
+
+Reports count consenting browsers and visits by source. The landing funnel counts visits in which a tracked landing view preceded the first flight start or the handoff to Stripe. Unknown or unavailable sources appear as direct. A browser may appear under more than one source, while the total deduplicates across every source. The report omits reserved QA traffic and exports only counts.
+
 ## Settings
 
 | Function app setting | Purpose |
@@ -57,6 +63,7 @@ Once a live customer link has been issued, pause new sales with **only** `AERIE_
 | `AERIE_SITE_URL` | Canonical first-party origin with both game and API routes, such as `https://playaerie.com`. |
 | `AERIE_ALLOWED_ORIGINS` | Optional comma-separated exact origins for CORS. Checkout and restore links use the allowed origin that starts the request. Session cookies remain first-party to that hostname. |
 | `AERIE_IDENTITY_SECRET` | Stable randomly generated server secret of at least 32 bytes for email/account lookup and gift codes. Store privately. Rotation requires migrating the stored identities and redeemed gift records. |
+| `AERIE_TRAFFIC_ENABLED` | `true` enables first-party funnel collection. Create the private `AerieTraffic` table on the existing Table endpoint and grant the Function identity Storage Table Data Contributor scoped to that table. |
 | `AERIE_TABLE_URL` | Azure Table service HTTPS endpoint. |
 | `AERIE_TABLE_NAME` | Existing table. Default `AerieCommerce`. Each mode has a separate transaction partition. |
 | `AERIE_EMAIL_ENDPOINT`, `AERIE_EMAIL_SENDER` | Azure Communication Services endpoint and verified email sender. |
