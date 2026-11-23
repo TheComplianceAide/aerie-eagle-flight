@@ -65,6 +65,5 @@
 
   try { sessionStorage.setItem('aerie.flightIntroSeen', '1'); } catch {}
   armWatchdog();
-  video.src = video.dataset.src;
-  video.play().catch(() => finish());
+  window.setAerieHeroPlaying(true);
 })();
