@@ -218,8 +218,35 @@ test('changing the ticket to 99 cents preserves pending $4.99 payments, old rece
   }
 });
 
+test('new $1.99 tickets leave an already-open 99-cent ticket and its receipt at the original price', async () => {
+  let time = Date.now();
+  const { call, rows, checkouts, settings } = fixture({ now: () => time, config: { ticketPriceCents: 99 } });
+  const earlier = await call('checkout', { body: { email: 'old-price@example.test' } });
+  const original = [...checkouts.values()].at(-1);
+  settings.ticketPriceCents = 199;
+  time += 6 * 60_000;
+  assert.equal((await call('config')).jsonBody.priceLabel, '$1.99 USD');
+  for (const wallet of [undefined, 'google_pay']) {
+    await call('checkout', { body: { wallet, amount: 99 } });
+    const latest = [...checkouts.values()].at(-1);
+    assert.equal(latest.amount_subtotal, 199);
+    assert.equal(rows.get('pending:' + latest.client_reference_id).amount, 199);
+  }
+  assert.equal(original.amount_subtotal, 99);
+  original.payment_status = 'paid';
+  const returned = await call('checkout/complete', {
+    query: '?session_id=' + original.id, cookie: asCookie(earlier.cookies[0])
+  });
+  assert.match(returned.headers.Location, /checkout=success$/);
+  const purchase = rows.get('purchase:' + original.id);
+  assert.equal(purchase.amountTotal, original.amount_total);
+  const access = (await call('status', { cookie: asCookie(returned.cookies[0]) })).jsonBody;
+  assert.equal(access.receiptUrl, receiptFixture);
+  assert.ok(access.fullAccess && access.giftUrl);
+});
+
 test('invalid USD ticket amounts fail closed at configuration time', () => {
-  assert.equal(configuration({ AERIE_TICKET_PRICE_CENTS: '99' }).ticketPriceCents, 99);
+  assert.equal(configuration({ AERIE_TICKET_PRICE_CENTS: '199' }).ticketPriceCents, 199);
   for (const cents of ['0', '-99', '0.99', 'NaN', '499999999', '49']) {
     assert.throws(() => configuration({ AERIE_TICKET_PRICE_CENTS: cents }), /AERIE_TICKET_PRICE_CENTS/);
   }
