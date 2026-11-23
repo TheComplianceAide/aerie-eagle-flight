@@ -22,6 +22,7 @@
   // Real coordinates for live air from Open-Meteo (CC BY 4.0). US worlds ask
   // for NOAA GFS/HRRR; others use the provider's best regional model.
   const site = {
+    yellowstone: [44.461, -110.829, 'us'],
     alaska: [58.418, -134.565, 'us'], canyon: [36.879, -111.510, 'us'], swiss: [46.498, 7.727], winnipesaukee: [43.585, -71.330, 'us'],
     surry: [43.006, -72.311, 'us'], dixville: [44.867, -71.305, 'us'], labrador: [50.747, -68.500], moosehead: [45.700, -69.730, 'us'],
     yosemite: [37.723, -119.637, 'us'], crater: [42.944, -122.109, 'us'], lofoten: [67.932, 13.089], acadia: [44.321, -68.187, 'us']
@@ -738,7 +739,22 @@
 
   window.makeSoundscape = function makeSoundscape(context, world, region, destination) {
     const spec = scapes[region] || {}, air = climate[region] || {};
-    const banks = (window.aerieRegionalRecordings?.[region] || []).map(bank => ({...regionalHabitats[bank.habitat], ...bank}));
+    const park=region==='yellowstone';
+    const recordings=park?window.aerieYellowstoneHabitatRecordings:window.aerieRegionalRecordings?.[region];
+    const banks=(recordings||[]).map(bank=>{
+      const entry={...regionalHabitats[bank.habitat],...bank};
+      if(!park)return entry;
+      const locate=entry.where;
+      entry.where=stable(ctx=>{
+        const pos=locate(ctx);
+        if(!pos||world.blocksWildlifeAt?.(pos.x,pos.z))return null;
+        if((bank.habitat==='water'||bank.habitat==='shore')&&!world.yellowstone.river.nearest(pos.x,pos.z))return null;
+        const water=world.channelWater?.(pos.x,pos.z);
+        if(bank.habitat==='water'&&Number.isFinite(water))pos.y=water+.8;
+        return pos;
+      });
+      return entry;
+    });
     const engine = window.makeSpatialAudio(context, world, {climate: air});
     engine.setSurveyPath(window.aerieSoundPath);
     // The 3D field carries the world; the head-locked wind layers step back ~4 dB.

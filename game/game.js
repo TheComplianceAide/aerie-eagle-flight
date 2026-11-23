@@ -545,7 +545,8 @@
     try {
       scene.userData.geodata=await window.prepareAerieGeodata(THREE,region,renderer.capabilities.maxTextureSize);
       const factory={swiss:window.makeWorld,alaska:window.makeAlaska,canyon:window.makeCanyon,yellowstone:window.makeYellowstone}[region];
-      world=factory?await factory(THREE,scene):await window.makeAtlasWorld(THREE,scene,region);
+      world=region==='yellowstone'?await factory(THREE,scene,launchPicker.value):
+        factory?await factory(THREE,scene):await window.makeAtlasWorld(THREE,scene,region);
       world.region=region;
       world.geodata=scene.userData.geodata;
       const hydrography=world.hydrography||window.ATLAS_SURVEYS?.[region];

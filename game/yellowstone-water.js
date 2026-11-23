@@ -39,19 +39,25 @@
       reach[i].left=Math.max(4, median(row.map(q=>q.left)));
       reach[i].right=Math.max(4, median(row.map(q=>q.right)));
     }
-    const bins=new Map(),GRID=64,key=(a,b)=>a+':'+b;
-    for(let i=0;i<reach.length-1;i++){
-      const a=reach[i],b=reach[i+1];
-      if(Math.hypot(a.x-b.x,a.z-b.z)>55)continue;
-      for(let gx=Math.floor((Math.min(a.x,b.x)-180)/GRID);gx<=Math.floor((Math.max(a.x,b.x)+180)/GRID);gx++){
-        for(let gz=Math.floor((Math.min(a.z,b.z)-180)/GRID);gz<=Math.floor((Math.max(a.z,b.z)+180)/GRID);gz++){
-          const k=key(gx,gz);if(!bins.has(k))bins.set(k,[]);bins.get(k).push(i);
+    const bins=new Map(),bedBins=new Map(),GRID=64,key=(a,b)=>a+':'+b;
+    function addSegment(index,a,b,margin,grid){
+      for(let gx=Math.floor((Math.min(a.x,b.x)-margin)/GRID);gx<=Math.floor((Math.max(a.x,b.x)+margin)/GRID);gx++){
+        for(let gz=Math.floor((Math.min(a.z,b.z)-margin)/GRID);gz<=Math.floor((Math.max(a.z,b.z)+margin)/GRID);gz++){
+          const k=key(gx,gz);
+          if(!grid.has(k))grid.set(k,[]);
+          grid.get(k).push(index);
         }
       }
     }
-    function nearest(x,z) {
+    for(let i=0;i<reach.length-1;i++){
+      const a=reach[i],b=reach[i+1];
+      if(Math.hypot(a.x-b.x,a.z-b.z)>55)continue;
+      addSegment(i,a,b,180,bins);
+      addSegment(i,a,b,Math.max(a.left,a.right,b.left,b.right)*1.12,bedBins);
+    }
+    function nearest(x,z,grid=bins) {
       let best,bestD=Infinity;
-      for(const i of bins.get(key(Math.floor(x/GRID),Math.floor(z/GRID)))||[]){
+      for(const i of grid.get(key(Math.floor(x/GRID),Math.floor(z/GRID)))||[]){
         const a=reach[i],b=reach[i+1],dx=b.x-a.x,dz=b.z-a.z,len=dx*dx+dz*dz;
         if(len<.01)continue;
         const t=clamp(((x-a.x)*dx+(z-a.z)*dz)/len,0,1);
@@ -63,7 +69,9 @@
       return best;
     }
     const bankMasks=window.aerieWaterOpacity?.bind(T,['river_bank']);
-    const uniforms={time:{value:0},sun:{value:sun},haze:{value:fog},panorama:{value:panorama},...bankMasks?.uniforms};
+    const mirror=!window.matchMedia('(pointer: coarse)').matches&&window.attachLocalWaterReflection;
+    const clock={value:0};
+    const uniforms={t:clock,time:clock,sun:{value:sun},haze:{value:fog},panorama:{value:panorama},...bankMasks?.uniforms};
     const material=new T.ShaderMaterial({
       uniforms,side:T.DoubleSide,transparent:true,depthWrite:false,
       vertexShader:`
@@ -76,6 +84,7 @@
         }`,
       fragmentShader:`
         ${bankMasks?.shader||''}
+        ${mirror?'uniform sampler2D sceneReflection;uniform mat4 reflectProjection;uniform float reflectionWeight;uniform vec3 reflectCentre;':''}
         uniform float time;uniform sampler2D panorama;uniform vec3 sun,haze;varying vec4 vWater;varying vec3 wp;
         float hash(vec2 x){return fract(sin(dot(x,vec2(127.1,311.7)))*43758.5453);}
         float noise(vec2 x){
@@ -130,6 +139,15 @@
           vec2 skyUV=vec2(fract(.5+atan(bounce.z,bounce.x)*.15915494+.565),clamp(.474+asin(bounce.y)*.31830989,.012,.995));
           vec3 sky=mix(vec3(.34,.37,.31),texture2D(panorama,skyUV).rgb,.28+.72*blue);
           sky=mix(sky,vec3(.12,.19,.12),stream*.63*(1.-smoothstep(.035,.42,bounce.y)));
+          ${mirror?`
+          if(stream>.5&&reflectionWeight>.001&&d<300.){
+            vec4 reflected=reflectProjection*vec4(wp,1.);
+            vec2 st=reflected.xy/max(.001,reflected.w)+curl*.033;
+            vec2 edgeRange=min(st,1.-st);
+            float frame=smoothstep(.005,.06,min(edgeRange.x,edgeRange.y));
+            float local=(1.-smoothstep(65.,265.,d))*(1.-smoothstep(.35,1.15,abs(wp.y-reflectCentre.y)));
+            if(reflected.w>0.&&frame*local>.002)sky=mix(sky,texture2D(sceneReflection,st).rgb,reflectionWeight*local*frame*.83);
+          }`:''}
           float visibility=1. /* direct terrain visibility */;
           float optic=pow(max(0.,dot(bounce,sun)),92.);
           float broad=pow(max(0.,dot(bounce,sun)),13.);
@@ -168,10 +186,13 @@
       geom.setIndex(indices);geom.computeBoundingSphere();
       const mesh=new T.Mesh(geom,material);mesh.name=label;
       mesh.userData.terrainReceiver=true;mesh.userData.prepareFlightMaterial=true;
+      mesh.userData.fireholeSurface=true;
       mesh.layers.set(1);
       mesh.renderOrder=2;
       scene.add(mesh);
+      return mesh;
     }
+    const riverMeshes=[];
     for(let tile=0;tile<reach.length-1;tile+=30){
       const vertices=[],attrib=[],indices=[],ends=Math.min(tile+31,reach.length),sides=10;
       for(let i=tile;i<ends;i++){
@@ -187,7 +208,20 @@
           }
         }
       }
-      if(indices.length)addMesh('Firehole River · surveyed channel',vertices,attrib,indices);
+      if(indices.length)riverMeshes.push(addMesh('Firehole River · surveyed channel',vertices,attrib,indices));
+    }
+    if(mirror&&riverMeshes.length){
+      const driver=riverMeshes[0];
+      mirror(T,driver,(eye,centre,normal)=>{
+        const station=nearest(eye.x,eye.z);
+        if(!station)return 0;
+        const altitude=eye.y-station.y;
+        if(altitude<=0||altitude>52)return 0;
+        centre.set(station.x,station.y,station.z);
+        normal.set(0,1,0);
+        return (1-smooth(28,52,altitude))*(1-smooth(32,135,station.distance));
+      });
+      for(const mesh of riverMeshes)mesh.onBeforeRender=driver.onBeforeRender;
     }
     const pools=[];
     function ellipse(x,z,a,b,ang,collar,name){
@@ -215,19 +249,51 @@
         }
       }
       addMesh(name==='prismatic'?'Grand Prismatic · thermal optics':name+' · thermal water',vertices,attrib,indices);
-      pools.push({name,x,z,a,b,level,ring});
+      const limit=Math.max(...ring.map(([px,pz])=>Math.hypot(px-x,pz-z)))*1.1;
+      const angles=ring.map(([px,pz])=>({x:px-x,z:pz-z,angle:Math.atan2(pz-z,px-x)})).sort((a,b)=>a.angle-b.angle);
+      pools.push({name,x,z,level,ring,angles,limit});
+    }
+    // Aerial survey supplies the rim, while the modeled submerged bed removes
+    // dry-ground survey returns that would otherwise pierce the water surface.
+    function radial(p,x,z){
+      const dx=x-p.x,dz=z-p.z;
+      if(Math.abs(dx)>p.limit||Math.abs(dz)>p.limit)return Infinity;
+      const angle=Math.atan2(dz,dx),points=p.angles;
+      let lo=0,hi=points.length;
+      while(lo<hi){const m=(lo+hi)>>1;if(points[m].angle<angle)lo=m+1;else hi=m;}
+      const a=points[(lo+points.length-1)%points.length],b=points[lo%points.length];
+      return ((b.z-a.z)*dx-(b.x-a.x)*dz)/(a.x*b.z-a.z*b.x);
     }
     function at(x,z) {
       const r=nearest(x,z);
-      if(r&&r.distance<r.width&&ground(x,z)<r.y+.36)return r.y;
+      if(r&&r.distance<r.width&&terrainAt(x,z,r)<r.y+.36)return r.y;
       return poolAt(x,z)?.level??null;
     }
     function poolAt(x,z){
       for(const p of pools){
-        if(((x-p.x)/p.a)**2+((z-p.z)/p.b)**2<.86)return p;
+        if(radial(p,x,z)<1)return p;
       }
       return null;
     }
-    return {at,poolAt,nearest,reach,pools,update(time){uniforms.time.value=time;}};
+    function terrainAt(x,z,channel){
+      const source=ground(x,z);
+      let bed=source;
+      for(const p of pools){
+        const edge=radial(p,x,z);
+        if(edge>=1.08)continue;
+        const floor=p.level-.31-1.15*(1-smooth(.45,1,edge));
+        bed=Math.min(bed,lerp(source,Math.min(source,floor),1-smooth(.985,1.08,edge)));
+      }
+      const r=channel||nearest(x,z,bedBins);
+      if(r){
+        const edge=r.distance/r.width;
+        if(edge<1.08){
+          const floor=r.y-.25-1.2*(1-smooth(.38,1,edge));
+          bed=Math.min(bed,lerp(source,Math.min(source,floor),1-smooth(.96,1.08,edge)));
+        }
+      }
+      return bed;
+    }
+    return {at,poolAt,terrainAt,nearest,reach,pools,update(time){uniforms.time.value=time;}};
   };
 })();

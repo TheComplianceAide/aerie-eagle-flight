@@ -4,6 +4,7 @@
   'use strict';
   const DIR = 'yellowstone-data/';
   const SPAN = 2000, DATUM = 2100;
+  const fairyApproach=[-3558,-7350,-3718,-7298,48,34,4];
   const clamp = (v, a, b) => Math.max(a, Math.min(v, b));
   const lerp = (a, b, t) => a + (b - a) * t;
   const smooth = (a, b, v) => { const t = clamp((v - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
@@ -55,6 +56,27 @@
     };
   }
 
+  async function loadElevations(meta){
+    const keys=[...meta.tiles.map(([x,z,step])=>[x+'_'+z,(Math.round(SPAN/step)+1)**2]),
+      ...meta.details.map(([name])=>[name,501**2])];
+    if(typeof DecompressionStream==='function'){
+      try{
+        const packed=await data('heights-v1.bin','arrayBuffer');
+        const stream=new Blob([packed]).stream().pipeThrough(new DecompressionStream('gzip'));
+        const bytes=await new Response(stream).arrayBuffer();
+        const expected=keys.reduce((total,[,length])=>total+2*length,0);
+        if(bytes.byteLength!==expected)throw Error('Incorrect Yellowstone height pack size');
+        let cursor=0;
+        return new Map(keys.map(([name,count])=>{
+          const grid=new Uint16Array(bytes,cursor,count);
+          cursor+=2*count;
+          return [name,grid];
+        }));
+      }catch(error){console.warn('Loading Yellowstone heights tile by tile.',error);}
+    }
+    return new Map(await Promise.all(keys.map(async([name])=>[name,new Uint16Array(await data(name+'.bin','arrayBuffer'))])));
+  }
+
   function configureSky(T, scene, loader, sun) {
     const skyMap = loader.load(path('evening-sky.webp'));
     skyMap.colorSpace = T.SRGBColorSpace;
@@ -86,22 +108,43 @@
     return skyMap;
   }
 
-  function terrainMaterial(T, photo, details, rock, soil, sinter, rect, sun, fog, poolBounds) {
+  function terrainMaterial(T, photo, details, rock, soil, sinter, rect, sun, fog, poolBounds, cliffPhoto) {
     const uniforms = {
-      photo: {value: photo}, frame: {value: new T.Vector4(...rect)},
+      photo: {value: photo.image}, frame: {value: new T.Vector4(...rect)},
       stone: {value: rock}, soil: {value: soil}, deposit: {value: sinter},
       sun: {value: sun}, haze: {value: fog}
     };
     let declarations = '', sampler = '';
+    if(cliffPhoto){
+      uniforms.fairyStone={value:cliffPhoto};
+      declarations+='uniform sampler2D fairyStone;\n';
+    }
+    if(photo.upgrade){
+      uniforms.finePhoto=photo.upgrade.texture;
+      uniforms.fineBlend=photo.upgrade.mix;
+      declarations+='uniform sampler2D finePhoto;uniform float fineBlend;\n';
+      sampler+='if(fineBlend>0.)rgb=mix(rgb,texture2D(finePhoto,vec2(uv.x,1.-uv.y)).rgb,fineBlend);\n';
+    }
     for (const [i, detail] of details.entries()) {
-      uniforms['localMap' + i] = {value: detail.image};
+      uniforms['localMap' + i] = {value: detail.photo.image};
       uniforms['localRect' + i] = {value: new T.Vector4(detail.x, detail.z, 1000, 0)};
       declarations += 'uniform sampler2D localMap' + i + ';uniform vec4 localRect' + i + ';';
+      const upgrade=detail.photo.upgrade;
+      if(upgrade){
+        uniforms['localFine'+i]=upgrade.texture;
+        uniforms['localFineBlend'+i]=upgrade.mix;
+        declarations+=`uniform sampler2D localFine${i};uniform float localFineBlend${i};\n`;
+      }
       sampler += `{
         vec2 sub=(xz-localRect${i}.xy)/1000.;
         vec2 edge=min(sub,1.-sub);
         float weight=smoothstep(.003,.028,min(edge.x,edge.y));
-        if(weight>0.) rgb=mix(rgb,texture2D(localMap${i},vec2(sub.x,1.-sub.y)).rgb,weight);
+        if(weight>0.){
+          vec2 localUV=vec2(sub.x,1.-sub.y);
+          vec3 localColor=texture2D(localMap${i},localUV).rgb;
+          ${upgrade?`if(localFineBlend${i}>0.)localColor=mix(localColor,texture2D(localFine${i},localUV).rgb,localFineBlend${i});`:''}
+          rgb=mix(rgb,localColor,weight);
+        }
       }`;
     }
     const poolGuard=poolBounds.filter(([x,z,radius])=>x>=rect[0]-radius&&z>=rect[1]-radius&&
@@ -159,8 +202,29 @@
           vec3 rgbWarm=rgb*vec3(1.13,1.04,.87);
           rgb=mix(rgb,rgbWarm,.62*chalk+.27*plant);
           rgb*=1.+(micro-.37)*1.02*near+(ledges-.38)*.45*chalk*mid;
+          if(steep>.06&&mid>0.){
+            // Project mineral grain onto the wall along its actual slope.
+            // An aerial projection stretches across nearly vertical faces.
+            vec2 walls=abs(normal.xz);
+            walls/=max(.01,walls.x+walls.y);
+            vec3 rockFace=texture2D(stone,wp.zy*.53).rgb*walls.x
+              +texture2D(stone,wp.xy*.53+vec2(.31,.57)).rgb*walls.y;
+            mineral=mix(mineral,rockFace,steep*mid);
+          }
           vec3 weathered=mix(vec3(.23,.20,.17),vec3(.49,.411,.318),chalk);
           rgb=mix(rgb,weathered*(.51+mineral*1.41),steep*(.41+.34*near));
+          ${cliffPhoto?`
+          float face=steep*(1.-smoothstep(82.,162.,length(xz-vec2(-3686.,-7178.))));
+          if(face>.012){
+            vec2 weights=abs(normal.xz);weights/=max(.001,weights.x+weights.y);
+            vec2 vz=wp.zy*.116+vec2(.071*sin(wp.y*.47+wp.z*.056),.19*sin(wp.z*.105));
+            vec2 vx=wp.xy*.117+vec2(.33+.14*sin(wp.y*.52+wp.x*.049),.51+.14*sin(wp.x*.082));
+            vec3 rhyolite=texture2D(fairyStone,vz).rgb*weights.x+texture2D(fairyStone,vx).rgb*weights.y;
+            vec3 coarse=texture2D(fairyStone,vz*.39+vec2(.47,.31)).rgb*weights.x
+              +texture2D(fairyStone,vx*.41+vec2(.25,.41)).rgb*weights.y;
+            vec3 weatheredRock=mix(rhyolite,coarse,.49);
+            rgb=mix(rgb,vec3(.075,.052,.042)+weatheredRock*.71,face*.86);
+          }`:''}
           float gradeLight=clamp(dot(normal,sun)/max(.25,sun.y),.0,1.);
           float visible=1. /* direct terrain visibility */;
           rgb*=vec3(.70,.74,.85)+vec3(.46,.34,.205)*gradeLight*visible;
@@ -173,7 +237,7 @@
     });
   }
 
-  function terrainPatch(T, height, x, z, span, cells, material, summary) {
+  function terrainPatch(T, height, x, z, span, cells, material, summary, seams) {
     const v = (cells + 1) * (cells + 1);
     const points = new Float32Array(v * 3), normals = new Float32Array(v * 3);
     const indices = new (v > 65535 ? Uint32Array : Uint16Array)(cells * cells * 6);
@@ -184,18 +248,21 @@
         const a = x + i * step, b = z + j * step;
         const e = height(a, b);
         let y = e;
-        // The outer seams share a 40 m lattice at both terrain densities.
-        if (a % SPAN === 0 || b % SPAN === 0) {
-          const vertical = a % SPAN === 0 && b % SPAN !== 0;
+        // Match the coarser neighbor so denser survey meshes do not crack
+        // where two levels of detail meet.
+        const vertical=(i===0||i===cells)&&j!==0&&j!==cells;
+        const edge=vertical?seams[i===0?0:1]:j===0?seams[2]:j===cells?seams[3]:0;
+        if(edge){
           const line = vertical ? b : a;
-          const m = Math.floor(line / 40) * 40, f = (line - m) / 40;
-          if (f) y = vertical ? lerp(height(a, m), height(a, m + 40), f) : lerp(height(m, b), height(m + 40, b), f);
+          const m=Math.floor(line/edge)*edge,f=(line-m)/edge;
+          if(f)y=vertical?lerp(height(a,m),height(a,m+edge),f):lerp(height(m,b),height(m+edge,b),f);
         }
-        const dx = height(a - 3, b) - height(a + 3, b);
-        const dz = height(a, b - 3) - height(a, b + 3);
-        const length = Math.hypot(dx, 6, dz);
+        const radius=Math.min(3,step*.68),rise=radius*2;
+        const dx=height(a-radius,b)-height(a+radius,b);
+        const dz=height(a,b-radius)-height(a,b+radius);
+        const length=Math.hypot(dx,rise,dz);
         points[p] = a; normals[p++] = dx / length;
-        points[p] = y; normals[p++] = 6 / length;
+        points[p] = y; normals[p++] = rise / length;
         points[p] = b; normals[p++] = dz / length;
         if (i < cells && j < cells) {
           const at = j * (cells + 1) + i, row = at + cells + 1;
@@ -222,16 +289,35 @@
     return ((seed ^ seed >>> 16) >>> 0) / 4294967296;
   }
 
-  function growForest(T, scene, packed, elevation, sun, river, thermal) {
+  function mappedHabitat(buffer){
+    const bytes=buffer?new Uint8Array(buffer):null;
+    const valid=bytes?.length===400*600*3;
+    const at=(x,z)=>{
+      const i=Math.floor((x+6000)/30),j=Math.floor((z+12000)/30);
+      return valid&&i>=0&&i<400&&j>=0&&j<600?3*(i+400*j):-1;
+    };
+    const read=(x,z,field)=>{const i=at(x,z);return i<0?0:bytes[i+field];};
+    return {sample:(x,z)=>read(x,z,0),form:(x,z)=>read(x,z,1),
+      cover:(x,z)=>read(x,z,2)/100,source:valid?'USGS LANDFIRE 2025 EVT and EVC':null};
+  }
+
+  function growForest(T, scene, packed, elevation, sun, river, thermal, habitat) {
     const trees = [];
-    const pine = {name:'Lodgepole pine', family:'needle', shape:[.84,1,.92,.66,.29], aspect:.86, tint:[.76,.85,.67], stature:1};
-    const spruce = {name:'Engelmann spruce', family:'needle', shape:[.91,1,.84,.59,.24], aspect:1, tint:[.69,.82,.74], stature:1};
+    const types=[null,
+      {name:'Lodgepole pine',family:'needle',shape:[.39,.76,1,.78,.17],aspect:.86,tint:[.88,1.04,.76],stature:1},
+      {name:'Engelmann spruce',family:'needle',shape:[.96,1,.84,.55,.10],aspect:1,tint:[.76,.94,.83],stature:1},
+      {name:'Quaking aspen',family:'broad',shape:[.46,.82,1,.79,.24],aspect:1.05,tint:[1.06,1.15,.71],stature:1},
+      {name:'Rocky Mountain Douglas-fir',family:'needle',shape:[.85,1,.81,.53,.18],aspect:1.04,tint:[.81,.97,.72],stature:1},
+      {name:'Riparian cottonwood',family:'broad',shape:[.36,.71,1,.86,.27],aspect:1.10,tint:[1.04,1.1,.77],stature:1},
+      {name:'Limber pine',family:'needle',shape:[.57,.93,1,.72,.22],aspect:1.14,tint:[.83,.98,.76],stature:1}
+    ];
     const data = packed ? new Int16Array(packed) : new Int16Array();
     for (let i = 0; i < data.length; i += 4) {
       const x = data[i] * .5, z = data[i + 1] * .5, height = data[i + 2] * .1;
       if (thermal(x, z) || Number.isFinite(river.at(x, z))) continue;
-      const seed = positionSeed(x, z), aerieSpecies = seed > .85 ? spruce : pine;
-      trees.push({x, z, y:elevation(x,z), height, width: data[i+3] * .1, conifer:true, aerieSpecies});
+      const seed=positionSeed(x,z),type=habitat.form(x,z);
+      const aerieSpecies=types[type]||types[seed>.87?2:1];
+      trees.push({x,z,y:elevation(x,z),height,width:data[i+3]*.1,conifer:aerieSpecies.family==='needle',aerieSpecies});
     }
     const treeGrid = {cells:new Map(), size:50, cell:(x,z)=>Math.floor(x/50)+':'+Math.floor(z/50)};
     for (const tree of trees) {
@@ -253,12 +339,14 @@
     const meshList = [];
     const groundHaze = scene.fog.color;
     const radius=window.matchMedia('(pointer: coarse)').matches ? 2850 : 4650;
+    const wind={value:new T.Vector2()},clock={value:0};
     const material = new T.ShaderMaterial({
-      uniforms:{photo:{value:image},haze:{value:groundHaze},sun:{value:sun}},
+      uniforms:{photo:{value:image},haze:{value:groundHaze},sun:{value:sun},wind,clock},
       side:T.DoubleSide,
       vertexShader:`
         attribute vec4 root;
         attribute vec3 tree;
+        uniform vec2 wind;uniform float clock;
         varying vec2 canopyUV;
         varying float angle,variant,distanceFromEye, projected;
         void main(){
@@ -269,6 +357,8 @@
           float raised=max(view.y,0.);
           float silhouette=sqrt(max(.03,1.-raised*raised))+raised*tree.x/root.w;
           vec3 point=center+1.2*(right*position.x*tree.x+up*position.y*root.w*silhouette);
+          float gust=sin(clock*1.24+dot(root.xz,vec2(.025,.032)));
+          point.xz+=wind*root.w*.013*(.63+.37*gust)*pow(max(0.,position.y+.5),1.8);
           canopyUV=uv;angle=cos(atan(view.x,view.z)-tree.y);
           variant=tree.z; projected=raised;distanceFromEye=length(cameraPosition-center);
           gl_Position=projectionMatrix*viewMatrix*vec4(point,1.);
@@ -286,7 +376,8 @@
           vec4 crownColor=mix(a,b,smoothstep(.28,.81,projected));
           float stipple=fract(52.9829189*fract(dot(floor(gl_FragCoord.xy),vec2(.06711056,.00583715))));
           if(crownColor.a<(.34+.50*(1.-nearby*distant)*stipple)||stipple>nearby*distant)discard;
-          vec3 treeColor=crownColor.rgb*vec3(.73,.80,.65)*(1.02+.19*angle*sun.y);
+          vec3 palette=mix(vec3(.94,1.04,.71),vec3(.75,.88,.69),step(2.5,variant));
+          vec3 treeColor=crownColor.rgb*palette*(1.02+.27*angle*sun.y);
           gl_FragColor=vec4(mix(treeColor,haze,1.-exp(-distanceFromEye*.000069)),1.);
           #include <colorspace_fragment>
         }`
@@ -298,7 +389,7 @@
       for (const [i,t] of values.entries()) {
         roots.set([t.x,t.y,t.z,t.height],i*4);
         const seed=positionSeed(t.x,t.z);
-        form.set([t.width,seed*6.283,3+Math.floor(seed*3)],i*3);
+        form.set([t.width,seed*6.283,(t.conifer?3:0)+Math.floor(seed*3)],i*3);
       }
       g.setAttribute('root',new T.InstancedBufferAttribute(roots,4));
       g.setAttribute('tree',new T.InstancedBufferAttribute(form,3));
@@ -310,7 +401,11 @@
       mesh.name='Yellowstone · surveyed lodgepole and spruce stands';
       scene.add(mesh);meshList.push(mesh);
     }
-    return {trees, treeGrid, update(player){
+    const air={};
+    return {trees,treeGrid,update(player,field,t){
+      clock.value=t;
+      const breeze=field?.sample(player.x,player.y,player.z,t,air);
+      if(breeze)wind.value.set(clamp(breeze.windX,-10,10),clamp(breeze.windZ,-10,10));
       for(const mesh of meshList)mesh.visible=mesh.geometry.boundingSphere.center.distanceToSquared(player)<radius*radius;
     }};
   }
@@ -319,10 +414,16 @@
     return {x,z,y:elevation(x,z)+lift,yaw:Math.atan2(x-tx,z-tz),lookDown:down,glance};
   }
 
-  window.makeYellowstone = async function makeYellowstone(T, scene) {
-    const [meta, crowns] = await Promise.all([data('terrain.json','json'),data('crowns.bin','arrayBuffer').catch(()=>null)]);
-    const heightKeys=[...meta.tiles.map(([x,z])=>x+'_'+z),...meta.details.map(([key])=>key)];
-    const heights=new Map(await Promise.all(heightKeys.map(async key=>[key,new Uint16Array(await data(key+'.bin','arrayBuffer'))])));
+  window.makeYellowstone = async function makeYellowstone(T, scene, departure='faithful') {
+    const [meta,crowns,vegetation] = await Promise.all([
+      data('terrain.json','json'),data('crowns.bin','arrayBuffer').catch(()=>null),data('landfire-cover.bin','arrayBuffer').catch(()=>null)
+    ]);
+    const habitat=mappedHabitat(vegetation);
+    if(habitat.source){
+      scene.userData.geodata??={};
+      scene.userData.geodata.landCover=habitat;
+    }
+    const heights=await loadElevations(meta);
     const elevation=elevationReader(meta,heights);
     const fog=new T.Color(0xaab9c2);
     const sun=new T.Vector3(-.931,.183,-.315).normalize();
@@ -338,24 +439,80 @@
       return map;
     }
     const skyTexture=configureSky(T,scene,loader,sun);
+    const river=window.makeYellowstoneWater(T,scene,meta,elevation,sun,fog,skyTexture);
     const rock=texture('atlas-jointed-rock.webp',false), soil=texture('field-ground-scans.webp',false);
     const sinter=texture('geyser-sinter.webp');
-    for(const t of [rock,soil,sinter])t.wrapS=t.wrapT=T.RepeatWrapping;
-    const surfacePhoto=name=>texture((isTouch?'touch/':'')+name+'.webp');
-    const details=meta.details.map(([key,x,z])=>({x,z,image:surfacePhoto(key)}));
+    const fairyStone=texture('fairy-rhyolite.webp');
+    for(const t of [rock,soil,sinter,fairyStone])t.wrapS=t.wrapT=T.RepeatWrapping;
+    // The compact registered imagery establishes the entire watershed. Start
+    // with the departure's best photo and stream the rest along the flight.
+    const launchAnchors={faithful:meta.landmarks.faithful,river:[-832,-471],biscuit:meta.landmarks.sapphire,
+      midway:meta.landmarks.prismatic,steam:meta.landmarks.prismatic,lone:meta.landmarks['Lone Star Geyser'],
+      fairy:fairyApproach,game:[-2390,-3240],grand:[-2250,-6200],lookout:[-1450,-6860],wildlife:[-748,-443]};
+    const [anchorX,anchorZ]=launchAnchors[departure]||meta.landmarks.faithful;
+    const contains=(x,z,size)=>anchorX>=x&&anchorX<x+size&&anchorZ>=z&&anchorZ<z+size;
+    const streaming=new T.TextureLoader(new T.LoadingManager());
+    const queue=[];
+    let pendingPhotos=0,photoClock=0,nextPhoto=0;
+    function surfacePhoto(name,x,z,size){
+      const eager=!isTouch&&contains(x,z,size);
+      const image=texture((eager?'':'touch/')+name+'.webp');
+      if(isTouch||eager)return {image};
+      const upgrade={name,x,z,size,image,mix:{value:0},texture:{value:image},status:'low',retry:0};
+      queue.push(upgrade);
+      return {image,upgrade};
+    }
+    function focusPhotos(dt,player){
+      if(!queue.length)return;
+      photoClock+=dt;
+      function distance(p){
+        return Math.hypot(Math.max(0,p.x-player.x,player.x-p.x-p.size),Math.max(0,p.z-player.z,player.z-p.z-p.size));
+      }
+      for(const p of queue){
+        if(p.status!=='high')continue;
+        const goal=1-smooth(p.size*.40,p.size*.69,distance(p));
+        p.mix.value+=(goal-p.mix.value)*Math.min(1,Math.max(0,dt)*2.55);
+        if(goal===0&&p.mix.value<.003){
+          p.texture.value.dispose();p.texture.value=p.image;p.mix.value=0;p.status='low';
+        }
+      }
+      if(photoClock<nextPhoto||pendingPhotos>=2)return;
+      nextPhoto=photoClock+.38;
+      const available=queue.filter(p=>p.status==='low'&&p.retry<=photoClock&&distance(p)<p.size*.36);
+      available.sort((a,b)=>distance(a)-distance(b)||a.size-b.size);
+      for(const p of available.slice(0,2-pendingPhotos)){
+        pendingPhotos++;p.status='loading';
+        streaming.load(path(p.name+'.webp'),fine=>{
+          pendingPhotos--;p.status='high';fine.colorSpace=T.SRGBColorSpace;fine.anisotropy=8;p.texture.value=fine;
+        },undefined,()=>{pendingPhotos--;p.status='low';p.retry=photoClock+28;});
+      }
+    }
+    const details=meta.details.map(([key,x,z])=>({x,z,photo:surfacePhoto(key,x,z,1000)}));
     // Preserve the distinctive submerged colors and mineral bands around the pools.
     const poolBounds=Object.entries({prismatic:84,excelsior:66,morning:20,sapphire:27,'black-sand':23,fountain:19})
       .map(([name,radius])=>[...meta.landmarks[name],radius]);
+    const focus=[...['faithful','prismatic','sapphire','morning','excelsior','Lone Star Geyser','Kepler Cascades']
+      .map(name=>meta.landmarks[name]).filter(Boolean),[-3690,-7182],[-693,-441],[-1110,-1720],[-2415,-3020]];
     for(const [x,z,step] of meta.tiles){
       const targets=details.filter(d=>d.x<x+SPAN&&d.x+1000>x&&d.z<z+SPAN&&d.z+1000>z);
-      const mat=terrainMaterial(T,surfacePhoto(x+'_'+z),targets,rock,soil,sinter,[x,z,SPAN,0],sun,fog,poolBounds);
+      const stone=x===-4000&&z===-8000?fairyStone:null;
+      const mat=terrainMaterial(T,surfacePhoto(x+'_'+z,x,z,SPAN),targets,rock,soil,sinter,[x,z,SPAN,0],sun,fog,poolBounds,stone);
       // Split the route tiles for visibility while using the same ortho and sample grid.
       const chunks=step===8?4:2;
-      for(let j=0;j<chunks;j++)for(let i=0;i<chunks;i++){
-        const size=SPAN/chunks;
-        const close=targets.some(d=>d.x<x+(i+1)*size&&d.x+1000>x+i*size&&d.z<z+(j+1)*size&&d.z+1000>z+j*size);
-        const cells=step===8&&!isTouch&&close?80:40;
-        const mesh=terrainPatch(T,elevation,x+i*size,z+j*size,size,cells,mat,close?'geyser terrace':'Firehole relief');
+      const size=SPAN/chunks;
+      const grid=Array.from({length:chunks*chunks},(_,i)=>{
+        const west=x+(i%chunks)*size,north=z+Math.floor(i/chunks)*size;
+        const close=targets.some(d=>d.x<west+size&&d.x+1000>west&&d.z<north+size&&d.z+1000>north);
+        const fine=step===8&&close&&focus.some(([u,v])=>u>=west&&u<west+size&&v>=north&&v<north+size);
+        const cells=fine?(isTouch?80:160):step===8&&!isTouch&&close?80:40;
+        return {west,north,cells,close};
+      });
+      for(const [n,p] of grid.entries()){
+        const {west,north,cells,close}=p;
+        const seam=index=>size/Math.min(cells,grid[index].cells);
+        const seams=[n%chunks===0?25:seam(n-1),n%chunks===chunks-1?25:seam(n+1),
+          n<chunks?25:seam(n-chunks),n>=grid.length-chunks?25:seam(n+chunks)];
+        const mesh=terrainPatch(T,river.terrainAt,west,north,size,cells,mat,close?'geyser terrace':'Firehole relief',seams);
         scene.add(mesh);
       }
     }
@@ -366,8 +523,7 @@
     const poolKeys=['prismatic','excelsior','morning','sapphire','black-sand','fountain'];
     const poolMarks=poolKeys.map(key=>[key,...meta.landmarks[key]]);
     const dry=(x,z) => Math.hypot(x-faithful[0],z-faithful[1])<155 || Math.hypot(x-hill[0],z-hill[1])<97 || poolMarks.some(([key,a,b])=>Math.hypot(x-a,z-b)<(key==='prismatic'?125:key==='excelsior'?55:20));
-    const river=window.makeYellowstoneWater(T,scene,meta,elevation,sun,fog,skyTexture);
-    const forest=growForest(T,scene,crowns,elevation,sun,river,dry);
+    const forest=growForest(T,scene,crowns,elevation,sun,river,dry,habitat);
     const features=await window.makeYellowstoneFeatures(T,scene,meta,elevation,river,sun,fog,loader);
     const fallsClock={value:0};
     const waterfalls=window.makeWaterfallSystem(T,scene,{
@@ -377,7 +533,9 @@
     waterfalls.chute('Fairy Falls',[
       [-3697,-7110],[-3693,-7138],[-3686,-7158],[-3685,-7166],
       [-3689,-7189],[-3692,-7204],[-3688,-7218],[-3673,-7240]
-    ],2.7,{foamRunout:23});
+    ],2.7,{foamRunout:15,pool:false,freeDrop:{
+      lipZ:-7164.6,toeZ:-7191.7,lipWidth:2.55,footWidth:3.6,cloudWidth:6,wallClearance:6.5,make:window.makeWaterfallPlunge
+    }});
     waterfalls.chute('Kepler Cascades',[
       [1475,1676],[1462,1652],[1451,1617],[1435,1607],[1419,1597],
       [1408,1584],[1399,1574],[1392,1559],[1388,1530],[1385,1518]
@@ -385,33 +543,49 @@
     const landmarks=names.flatMap(([name,key,description])=>{
       const point=meta.landmarks[key];
       if(!point)return [];
-      const [x,z]=point;
-      return [{name,x,z,y:elevation(x,z),description}];
+      const [x,z]=key==='fairy'?[-3689,-7189]:point;
+      const place={name,x,z,y:elevation(x,z),description};
+      if(key==='fairy')place.approach=fairyApproach;
+      return [place];
     });
     const spawn=launchAt(elevation,[faithful[0]+74,faithful[1]+111],[faithful[0]-40,faithful[1]-73],29,10);
+    const steamTarget=[mid[0]+24,mid[1]-17];
+    const steamStart=[steamTarget[0]+sun.x*154,steamTarget[1]+sun.z*154];
+    const steamSight=elevation(...steamTarget)+13;
+    const steamY=Math.max(elevation(...steamStart)+22,steamSight+sun.y*154);
+    const steam=launchAt(elevation,steamStart,steamTarget,steamY-elevation(...steamStart),
+      Math.atan2(steamY-steamSight,154)*180/Math.PI);
     const launches={
       faithful:spawn,
-      river:launchAt(elevation,[-546,-382],[-870,-531],14,8),
+      river:launchAt((x,z)=>river.at(x,z)??elevation(x,z),[-832,-471],[-952,-487],13,11),
       biscuit:launchAt(elevation,[meta.landmarks.sapphire[0]+84,meta.landmarks.sapphire[1]+137],meta.landmarks.sapphire,24,9),
       midway:launchAt(elevation,[mid[0]+124,mid[1]+205],mid,67,19),
       lone:launchAt(elevation,[lone[0]-93,lone[1]+75],lone,21,12),
-      fairy: launchAt(elevation,[meta.landmarks.fairy[0]+208,meta.landmarks.fairy[1]-68],[-3689,-7182],39,16),
+      fairy: launchAt(elevation,fairyApproach.slice(0,2),fairyApproach.slice(2,4),fairyApproach[4],fairyApproach[6],fairyApproach[5]),
+      steam,
       wildlife:launchAt(elevation,[hill[0]+187,hill[1]-178],castle,20,10)
     };
-    const height=(x,z)=>Math.max(elevation(x,z),river.at(x,z)??-Infinity);
+    const height=(x,z)=>Math.max(river.terrainAt(x,z),river.at(x,z)??-Infinity);
     const world={
       region:'yellowstone',altitudeOffset:DATUM,waterfalls,
       bounds:{minX:-5400,maxX:5450,minZ:-11350,maxZ:5730},
-      spawn,launches,landmarks,height,elevation,clearance:height,riverSurfaceAt:river.at,channelWater:river.at,
+      spawn,launches,landmarks,height,elevation:river.terrainAt,
+      clearance:(x,z)=>Math.max(height(x,z),features.clearance(x,z)),riverSurfaceAt:river.at,channelWater:river.at,
       trees:forest.trees,treeGrid:forest.treeGrid,skyTexture,sunDirection:sun,forestLightSpan:16000,
-      groundCover(x,z){return dry(x,z)||Number.isFinite(river.at(x,z))||features.managed(x,z)?-.8:.48;},
+      atmosphericOptics:{phenomenon:'Steam glory at Grand Prismatic Spring',setEnabled:features.setGlory},
+      groundCover(x,z){
+        if(dry(x,z)||Number.isFinite(river.at(x,z))||features.managed(x,z))return -.8;
+        const land=habitat.sample(x,z),cover=habitat.cover(x,z);
+        return land===3||land===9?.53+.39*cover:land===6?.04:land===5||land===8?-.8:land===1?.59-.42*cover:.45;
+      },
       blocksInfillTree(x,z){return dry(x,z)||Number.isFinite(river.at(x,z))||features.managed(x,z);},
+      blocksWildlifeAt(x,z){return dry(x,z)||features.managed(x,z);},
       blockVegetationAt(x,z){return dry(x,z)||Number.isFinite(river.at(x,z))||features.managed(x,z);},
       openRoadAt:features.managed,blocksLooseStone:dry,visibleRelief:'USGS Yellowstone National Park 2020 lidar',
       yellowstone:{survey:meta,river,thermal:features},
       update(dt,t,player){
         fallsClock.value=t;waterfalls.update(world.windField,t,player);
-        forest.update(player);river.update(t,player);features.update(dt,t,player,world.windField);
+        focusPhotos(dt,player);forest.update(player,world.windField,t);river.update(t,player);features.update(dt,t,player,world.windField);
       }
     };
     return world;
