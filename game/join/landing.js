@@ -253,14 +253,19 @@
     return enabled(config, 'shareClaims') && Array.isArray(config.rewardWorlds) && config.rewardWorlds.length === 5;
   }
 
+  function hasFriendReward() {
+    return friendRewardEarned || (shareOfferAvailable(checkoutConfig) &&
+      checkoutConfig.rewardWorlds.every(world => status?.worlds?.includes(world)));
+  }
+
   function updateFriendOffer() {
     const available = shareOfferAvailable(checkoutConfig);
-    const earned = friendRewardEarned || status?.fullAccess === true ||
-      (available && checkoutConfig.rewardWorlds.every(world => status?.worlds?.includes(world)));
+    const earned = status?.fullAccess === true || hasFriendReward();
     friendConfirm.hidden = earned;
     friendConfirm.disabled = !available || friendShareBusy;
     const play = byId('friend-play');
     play.hidden = !earned;
+    byId('friend-save').hidden = !earned || status?.authenticated === true || !enabled(checkoutConfig, 'restore');
     if (earned) {
       const flight = new URLSearchParams({ world: checkoutConfig?.rewardWorlds?.[0] || 'moosehead', launch: 'grand' });
       play.href = `../?play=1&fly=1#${flight}`;
@@ -543,6 +548,7 @@
         'Verify your email to claim the pass a friend sent you.') :
       emailVerified ? 'Your email is verified on this device.' :
       authenticated ? 'Your Aerie access is open here. Use your checkout email to restore it on another device.' :
+      hasFriendReward() ? 'Verify your email to keep your five worlds on other devices.' :
       'Use your purchase or claim email to restore access on this device.';
 
     giftUrl = readGift(status?.giftUrl);
@@ -550,7 +556,8 @@
     updateReceiptLink(byId('pass-receipt'));
     const extraWorlds = Array.isArray(status?.worlds) && status.worlds.some(world => world !== 'winnipesaukee');
     const hasAccess = authenticated && (status.fullAccess === true || extraWorlds);
-    byId('restore-title').textContent = hasAccess || receiptUrl ? 'My ticket' : 'Restore ticket';
+    byId('restore-title').textContent = hasAccess || receiptUrl ? 'My ticket' :
+      !pendingGift && !needsConfirmation && hasFriendReward() ? 'Save your five worlds' : 'Restore ticket';
     redeemGift.hidden = !pendingGift || !emailVerified || needsConfirmation;
     copyGift.hidden = !giftUrl;
     shareGift.hidden = !giftUrl || typeof navigator.share !== 'function';
@@ -956,8 +963,9 @@
   for (const button of document.querySelectorAll('[data-open]')) {
     button.addEventListener('click', event => {
       const action = button.dataset.open;
-      if (action === 'restore') {
+      if (action === 'restore' || action === 'save-worlds') {
         event.preventDefault();
+        if (action === 'save-worlds') shareDialog.close();
         updateRestore();
         show(restoreDialog);
         if ((!returningFromPayment() && !playRequested) || status !== null) refreshStatus();

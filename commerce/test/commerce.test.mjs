@@ -768,6 +768,28 @@ test('verified email can restore access; checkout scoped cookies cannot see anot
   assert.equal((await call('restore/confirm', { body: { token } })).status, 400);
 });
 
+test('a guest can save the five earned worlds by confirming their email on a different device', async () => {
+  let time = Date.now();
+  const { call, restore, messages } = fixture({ now: () => time });
+  const reward = await call('share-friends', { body: { sharedWithFive: true } });
+  const friendCookie = asCookie(reward.cookies[0]);
+  const email = 'travelling-friend@example.test';
+  await call('restore', { body: { email }, cookie: friendCookie });
+  const { plainText } = messages.at(-1);
+  const token = plainText.match(/#restore=([\w-]+)/)[1];
+  const code = plainText.match(/enter this code: (\d{8})/)[1];
+  const unverified = await call('restore/confirm', { body: { token } });
+  assert.equal(unverified.jsonBody.codeRequired, true);
+  assert.equal(unverified.cookies, undefined);
+  const verified = await call('restore/confirm', { body: { token, code } });
+  const secondary = (await call('status', { cookie: asCookie(verified.cookies[0]) })).jsonBody;
+  assert.deepEqual(secondary.worlds, reward.jsonBody.worlds);
+  assert.equal(secondary.fullAccess, false);
+  time += 61_000;
+  const nextDevice = await restore(email);
+  assert.deepEqual((await call('status', { cookie: nextDevice.cookie })).jsonBody.worlds, reward.jsonBody.worlds);
+});
+
 test('two verified friends cannot redeem the same gift', async () => {
   const { call, buy, restore, rows } = fixture();
   const buyer = await buy('buyer@example.test');
