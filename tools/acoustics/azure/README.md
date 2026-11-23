@@ -6,7 +6,7 @@ The template creates one Consumption environment, one job and the private `aerie
 
 ## Validate the first run
 
-Use the tested worker image pinned to an immutable digest. Run the Bicep what-if in the intended Aerie resource group. The plan should create five resources, including the two container-scoped role assignments. The Container Apps provider and a managed-environment quota of at least one are required.
+The pinned public Open-Meteo image includes Python. Bicep embeds the two versioned worker scripts from this repository and launches them with that runtime. Run the Bicep what-if in the intended Aerie resource group. The plan should create five resources, including the two container-scoped role assignments. The Container Apps provider and a managed-environment quota of at least one are required.
 
 Deploy initially with `scheduleEnabled=false`. Start a manual execution after the new role assignment has propagated. Confirm that the job succeeds and its private `air.json` includes all 13 regions and current observations. Enable the Functions app’s `AERIE_ACOUSTIC_SNAPSHOT_STORAGE_ENABLED` setting after this check. Verify live readings on both domains and confirm that the checkout mode and price stayed as configured.
 

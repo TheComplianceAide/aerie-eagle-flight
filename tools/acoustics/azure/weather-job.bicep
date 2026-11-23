@@ -1,5 +1,5 @@
-@description('Public Aerie weather worker image pinned by an immutable registry digest.')
-param workerImage string
+@description('Public upstream Open-Meteo image pinned by its Linux amd64 registry digest.')
+param workerImage string = 'ghcr.io/open-meteo/open-meteo@sha256:5f23284824917315514aa356acf4184961d9be19f72b3c74b119faccdacd527f'
 
 @description('Use manual mode for the first run. Enable hourly refresh after the private snapshot passes Aerie API QA.')
 param scheduleEnabled bool = false
@@ -50,6 +50,22 @@ var oneReplica = {
   parallelism: 1
   replicaCompletionCount: 1
 }
+var bootstrap = '''
+import os
+from pathlib import Path
+import runpy
+import sys
+from tempfile import TemporaryDirectory
+
+with TemporaryDirectory() as folder:
+    root = Path(folder)
+    snapshot = root / "weather_snapshot.py"
+    worker = root / "weather_worker.py"
+    snapshot.write_text(os.environ.pop("AERIE_WEATHER_SNAPSHOT_CODE"), encoding="utf-8")
+    worker.write_text(os.environ.pop("AERIE_WEATHER_WORKER_CODE"), encoding="utf-8")
+    sys.path.insert(0, folder)
+    runpy.run_path(str(worker), run_name="__main__")
+'''
 
 resource job 'Microsoft.App/jobs@2024-03-01' = {
   name: 'job-aerie-weather'
@@ -77,10 +93,25 @@ resource job 'Microsoft.App/jobs@2024-03-01' = {
         {
           name: 'refresh'
           image: workerImage
+          command: [
+            '/usr/bin/python3'
+          ]
+          args: [
+            '-c'
+            bootstrap
+          ]
           env: [
             {
               name: 'AERIE_WEATHER_BLOB_URL'
               value: blobUrl
+            }
+            {
+              name: 'AERIE_WEATHER_SNAPSHOT_CODE'
+              value: loadTextContent('../weather_snapshot.py')
+            }
+            {
+              name: 'AERIE_WEATHER_WORKER_CODE'
+              value: loadTextContent('../weather_worker.py')
             }
           ]
           resources: {
