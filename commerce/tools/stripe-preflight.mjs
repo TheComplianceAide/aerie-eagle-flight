@@ -2,14 +2,14 @@ import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 import Stripe from 'stripe';
-import { createCommerce } from '../src/commerce.mjs';
+import { createCommerce, expiryProbeKey, expiryProbeMarker, expiryProbeTag } from '../src/commerce.mjs';
 import { configuration } from '../src/settings.mjs';
 
 const site = 'https://playaerie.com';
 const webhookUrl = site + '/api/aerie/stripe/webhook';
 const productName = 'Support the Founder — Aerie + one gift copy';
 const events = [
-  'checkout.session.completed', 'checkout.session.async_payment_succeeded',
+  'checkout.session.completed', 'checkout.session.async_payment_succeeded', 'checkout.session.expired',
   'charge.refunded', 'charge.dispute.created', 'charge.dispute.updated', 'charge.dispute.funds_withdrawn', 'charge.dispute.closed'
 ];
 
@@ -21,11 +21,16 @@ function requireCheck(ok, message) {
 export function options(args) {
   const { values } = parseArgs({ args, options: {
     mode: { type: 'string' }, account: { type: 'string' }, price: { type: 'string' },
-    registrations: { type: 'string' }, smoke: { type: 'boolean' }, audit: { type: 'boolean' }
+    registrations: { type: 'string' }, smoke: { type: 'boolean' }, audit: { type: 'boolean' },
+    'verify-delivery': { type: 'string' }
   } });
   requireCheck(['test', 'live'].includes(values.mode), 'Choose --mode test or --mode live.');
   requireCheck(/^acct_[a-zA-Z0-9]+$/.test(values.account || ''), 'Supply the intended Stripe --account acct_….');
   requireCheck(!values.price || /^price_[a-zA-Z0-9]+$/.test(values.price), 'Invalid --price.');
+  if (values['verify-delivery'] !== undefined) {
+    requireCheck(!values.smoke && /^[a-f0-9]{64}$/.test(values['verify-delivery']),
+      'Use --verify-delivery with one 64-character probe digest and omit --smoke.');
+  }
   const inputs = values.registrations?.toUpperCase().split(',').map(s => s.trim());
   if (inputs && values.registrations !== 'none') {
     requireCheck(inputs.every(s => /^[A-Z]{2}(-[A-Z0-9]{1,3})?$/.test(s)), 'Use registration locations such as US-ME,CA-QC,GB or none.');
@@ -66,7 +71,10 @@ async function smokeCheckout(runtime, opts, target, cents, signingSecret) {
   const stripe = {
     prices: runtime.prices,
     checkout: { sessions: { create: async input => {
-      created = await runtime.checkout.sessions.create({ ...input, expires_at: Math.floor(Date.now() / 1000) + 35 * 60 });
+      created = await runtime.checkout.sessions.create({
+        ...input, metadata: { ...input.metadata, aerie_preflight: expiryProbeTag },
+        expires_at: Math.floor(Date.now() / 1000) + 35 * 60
+      });
       return created;
     } } }
   };
@@ -89,7 +97,7 @@ async function smokeCheckout(runtime, opts, target, cents, signingSecret) {
     const item = session.line_items?.data?.[0];
     requireCheck(session.status === 'open' && session.payment_status === 'unpaid' && session.mode === 'payment' &&
       session.livemode === created.livemode && session.currency === 'usd' && session.amount_subtotal === cents &&
-      session.automatic_tax?.enabled && session.metadata?.product === 'aerie-founder-and-gift' && item?.quantity === 1 &&
+      session.automatic_tax?.enabled && session.metadata?.aerie_preflight === expiryProbeTag && session.metadata?.product === 'aerie-founder-and-gift' && item?.quantity === 1 &&
       item.price?.product === target.product.id && item.price.id === pending?.priceId &&
       !session.line_items.has_more && session.line_items.data.length === 1, 'Hosted Checkout did not confirm the expected ticket.');
   } finally {
@@ -98,10 +106,11 @@ async function smokeCheckout(runtime, opts, target, cents, signingSecret) {
       requireCheck(expired.status === 'expired' && expired.payment_status === 'unpaid', 'Could not confirm that the unopened session expired unpaid.');
     }
   }
-  return 'Unopened $1.99 Checkout Session expired unpaid.';
+  return expiryProbeMarker(created.id);
 }
 
-export async function preflight(opts, { runtime, inspector = runtime, signingSecret, priceId, configuredCents }) {
+export async function preflight(opts, { runtime, inspector = runtime, signingSecret, priceId, configuredCents,
+  stagedLiveReceiver, readReceipt }) {
   const checks = [];
   async function check(name, fn) {
     try {
@@ -117,7 +126,11 @@ export async function preflight(opts, { runtime, inspector = runtime, signingSec
       return false;
     }
   }
-  const result = () => ({ mode: opts.mode, ready: checks.every(c => c.status === 'pass'), signedDeliveryVerified: false, checks });
+  let configurationVerified = false;
+  let signedDeliveryVerified = false;
+  let deliveryMarker = opts['verify-delivery'];
+  const result = () => ({ mode: opts.mode, ready: checks.every(c => c.status === 'pass'),
+    configurationVerified, signedDeliveryVerified, ...(deliveryMarker && { deliveryMarker }), checks });
   let account;
   const matched = await check('seller account', async () => {
     account = await inspector.accounts.retrieve();
@@ -177,21 +190,65 @@ export async function preflight(opts, { runtime, inspector = runtime, signingSec
     requireCheck(expected.join(',') === locations.join(','), 'Owner-confirmed and active Stripe registration locations differ. Stripe: ' + (locations.join(', ') || 'none') + '.');
     return locations.length ? locations : 'Owner confirmed none; no active registrations.';
   });
+  configurationVerified = checks.every(c => c.status === 'pass');
   if (opts.smoke) {
-    if (priceOk && secretOk && (!live || result().ready)) {
-      await check('unopened Checkout', () => smokeCheckout(runtime, opts, selected, cents, signingSecret));
+    let safe = priceOk && secretOk && !checks.some(c => c.name === 'webhook endpoint' && c.status === 'fail');
+    if (live) {
+      safe = safe && configurationVerified && await check('staged live receiver', async () => {
+        requireCheck(await stagedLiveReceiver(), 'Stage the same public receiver in live mode with customer checkout disabled.');
+        return 'Live receiver staged; customer checkout disabled.';
+      });
+    }
+    if (safe) {
+      await check('unopened Checkout', async () => {
+        deliveryMarker = await smokeCheckout(runtime, opts, selected, cents, signingSecret);
+        return 'Unopened $1.99 Checkout Session expired unpaid.';
+      });
     } else checks.push({ name: 'unopened Checkout', status: 'skipped', detail: 'Prerequisites incomplete; no session created.' });
+  }
+  if (deliveryMarker) {
+    let receipt;
+    if (secretOk) {
+      try {
+        receipt = await readReceipt(opts.mode, expiryProbeKey(deliveryMarker, signingSecret), Boolean(opts.smoke));
+      } catch { /* An unreadable receipt stays unverified. */ }
+    }
+    if (receipt?.verifiedAt && Number.isFinite(Date.parse(receipt.verifiedAt))) {
+      signedDeliveryVerified = true;
+      checks.push({ name: 'signed expiry delivery', status: 'pass', detail: {
+        verifiedAt: receipt.verifiedAt, ...(receipt.releaseRevision && { releaseRevision: receipt.releaseRevision })
+      } });
+    } else {
+      checks.push({ name: 'signed expiry delivery', status: 'unverified', detail: receipt === null
+        ? 'Exact receipt not seen yet. Retry --verify-delivery with this digest.'
+        : 'Private receipt read unavailable. Verify the mode-specific secret and Azure Table data read access.' });
+    }
   }
   return result();
 }
 
-function azure(args) {
+function azure(args, output = 'tsv') {
   try {
-    return execFileSync('az', [...args, '--subscription', 'Azure subscription 1', '--only-show-errors', '--output', 'tsv'], {
+    return execFileSync('az', [...args, '--subscription', 'Azure subscription 1', '--only-show-errors', '--output', output], {
       encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 30000
     }).trim();
   } catch {
     throw new CheckError('Azure read failed for ' + (args.includes('--vault-name') ? args[args.indexOf('--name') + 1] : 'Aerie Function settings') + '. Check the named resource and identity permissions.');
+  }
+}
+
+// Query the deployed commerce store directly with the operator's Azure identity.
+async function readExpiryReceipt(tableUrl, table, mode, rowKey, wait) {
+  const account = new URL(tableUrl).hostname.split('.')[0];
+  const filter = `PartitionKey eq 'aerie-${mode}' and RowKey eq '${rowKey}'`;
+  const deadline = Date.now() + (wait ? 60000 : 0);
+  for (;;) {
+    const value = azure(['storage', 'entity', 'query', '--auth-mode', 'login', '--account-name', account,
+      '--table-name', table, '--filter', filter, '--select', 'verifiedAt', 'releaseRevision',
+      '--query', 'items[0]'], 'json');
+    const receipt = value ? JSON.parse(value) : null;
+    if (receipt || Date.now() >= deadline) return receipt;
+    await new Promise(resolve => setTimeout(resolve, 3000));
   }
 }
 
@@ -208,9 +265,17 @@ async function main() {
   let signingSecret;
   try { signingSecret = vault('webhook-secret'); } catch { /* The independent checks can still run. */ }
   const values = azure(['functionapp', 'config', 'appsettings', 'list', '-g', 'rg-aerie-prod', '-n', 'func-playaerie-prod',
-    '--query', "[?name=='AERIE_STRIPE_MODE'||name=='AERIE_STRIPE_PRICE_ID'||name=='AERIE_TICKET_PRICE_CENTS'].[name,value]"]);
+    '--query', "[?contains(['AERIE_STRIPE_MODE','AERIE_CHECKOUT_ENABLED','AERIE_STRIPE_PRICE_ID','AERIE_TICKET_PRICE_CENTS','AERIE_TABLE_URL','AERIE_TABLE_NAME'], name)].[name,value]"]);
   const config = Object.fromEntries(values.split('\n').filter(Boolean).map(row => row.split('\t')));
   const report = await preflight(opts, { runtime, inspector, signingSecret,
+    stagedLiveReceiver: async () => {
+      if (config.AERIE_STRIPE_MODE !== 'live' || config.AERIE_CHECKOUT_ENABLED === 'true') return false;
+      const response = await fetch(site + '/api/aerie/config', { cache: 'no-store', redirect: 'error', signal: AbortSignal.timeout(8000) });
+      if (!response.ok) return false;
+      const publicConfig = await response.json();
+      return publicConfig.checkoutMode === 'live' && publicConfig.checkout === false;
+    },
+    readReceipt: (mode, rowKey, wait) => readExpiryReceipt(config.AERIE_TABLE_URL, config.AERIE_TABLE_NAME || 'AerieCommerce', mode, rowKey, wait),
     priceId: config.AERIE_STRIPE_MODE === opts.mode ? config.AERIE_STRIPE_PRICE_ID : undefined,
     configuredCents: config.AERIE_TICKET_PRICE_CENTS ? Number(config.AERIE_TICKET_PRICE_CENTS) : undefined
   });
