@@ -6,7 +6,7 @@
   const sessionId = fragment ? fragment.get('session') : history.state?.sessionId;
   let ticket;
   if (typeof order === 'string' && /^[0-9a-f]{64}$/.test(order) && !sessionId) ticket = {order};
-  if (typeof sessionId === 'string' && /^cs_(?:test|live)_[A-Za-z0-9]{1,200}$/.test(sessionId) && !order) ticket = {sessionId};
+  if (typeof sessionId === 'string' && /^cs_(?:test|live)_[A-Za-z0-9_]{1,240}$/.test(sessionId) && !order) ticket = {sessionId};
   if (fragment) {
     // Keep the reference for reloads while removing it from the address bar.
     try { history.replaceState(ticket || null, '', location.pathname); } catch {}

@@ -18,6 +18,14 @@ After merging and signing in to Azure CLI, run `python3 commerce/tools/deploy_fu
 
 For a local package, run `python3 commerce/tools/deploy_functions.py package <full-commit-sha> /tmp/aerie-commerce.zip`. To check an existing release without uploading, use `verify <full-commit-sha> --mode test` in place of `deploy`. Both commands accept `--checkout-paused` to verify a release while sales are intentionally closed. This flag changes the expected health result only.
 
+## Sell with a Stripe Dashboard Payment Link
+
+The Function can fulfill a fixed $1.99 Payment Link without a Stripe API credential. Configure the live Aerie price with quantity one, automatic tax, and the post-payment redirect `https://playaerie.com/join/return/#session={CHECKOUT_SESSION_ID}`. Use the merchant's own-account snapshot webhook at `https://playaerie.com/api/aerie/stripe/webhook`. Subscribe it to the checkout and reversal events below plus `payment_link.updated` (and optionally `payment_link.created`).
+
+Stage the Function with checkout paused. Set `AERIE_STRIPE_MODE=live`, `AERIE_TICKET_PRICE_CENTS=199`, the live `AERIE_STRIPE_PRICE_ID`, `AERIE_STRIPE_PAYMENT_LINK_ID`, `AERIE_STRIPE_PAYMENT_LINK_URL`, and the Aerie destination's own `AERIE_STRIPE_WEBHOOK_SECRET` Key Vault reference. Clear the sandbox API-key reference when switching to live.
+
+Inspect the hosted buyer page for the ticket, amount and merchant branding. Check the live seller and expected tax registrations in the Dashboard. Save the verified link or resend its signed configuration event. Both public hosts should report `checkoutProvider: "payment_link"` and `checkoutLinkVerified: true` at `/api/aerie/config`. The latter confirms delivery of a matching signed link configuration. Stripe normally omits line items from this event, so verify the exact price on the saved link. Enable checkout and run the deployment health verifier for the merged revision. An actual paid event grants the purchaser's worlds and one gift. Signed refunds and disputes continue to apply when checkout is paused.
+
 ## Check live payment readiness
 
 From `commerce/`, run `npm ci`, sign in to Azure CLI with access to the Aerie Function configuration and Key Vault, and supply the intended Stripe merchant account ID.

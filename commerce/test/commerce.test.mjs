@@ -100,8 +100,8 @@ function fixture({ config = {}, noStripeKey = false, purchaseEmailOperations, ha
     req.query = new URL(req.url).searchParams;
     return app.handle(route, req);
   };
-  async function dispatch(type, value, signatureValid = true) {
-    const payload = JSON.stringify({ type, data: { object: value }, livemode: settings.live, created: Math.floor(now() / 1000) });
+  async function dispatch(type, value, signatureValid = true, envelope = {}) {
+    const payload = JSON.stringify({ type, data: { object: value }, livemode: settings.live, created: Math.floor(now() / 1000), ...envelope });
     const webhook = stripe.webhooks.generateTestHeaderString({ payload, secret: signingSecret });
     return call('stripe/webhook', { body: payload, origin: null, webhook: signatureValid ? webhook : 'not-a-signature' });
   }
@@ -368,7 +368,7 @@ test('an open preview checkout returning after launch can exit to free play', as
   const [checkout] = preview.checkouts.values();
   const order = checkout.client_reference_id;
   const live = fixture({
-    config: { mode: 'live', live: true },
+    config: { mode: 'live', live: true }, noStripeKey: true,
     previewCheckoutId: async reference => preview.rows.get('pending:' + reference)?.checkoutId ?? null
   });
   const owner = await live.call('checkout/confirm', { body: { order }, cookie: asCookie(started.cookies[0]) });
@@ -1124,7 +1124,8 @@ test('foreign, unpaid, discounted or incorrectly priced sessions cannot grant Ae
   for (const extra of [
     { payment_link: 'plink_Other' }, { payment_status: 'unpaid' }, { amount_subtotal: 99 }, { amount_total: 100 },
     { total_details: { amount_discount: 100 } }, { currency: 'eur' }, { mode: 'subscription' },
-    { automatic_tax: { status: 'failed' } }, { livemode: false }, { id: 'cs_test_wrongMode' }
+    { automatic_tax: { status: 'failed' } }, { livemode: false }, { id: 'cs_test_wrongMode' },
+    { line_items: { has_more: false, data: [{ quantity: 1, price: { id: 'price_wrong' } }] } }
   ]) {
     await dispatch('checkout.session.completed', { ...linkSession, ...extra });
   }
@@ -1146,4 +1147,49 @@ test('a signed reversal arriving before the paid event blocks the buyer and gift
   await dispatch('charge.dispute.closed', { ...change, status: 'won' });
   assert.equal((await status()).fullAccess, true);
   assert.ok((await status()).giftUrl);
+});
+
+test('connected-account events cannot authorize this link, grant an order or record a reversal', async () => {
+  const { rows, call, dispatch } = linkFixture();
+  for (const envelope of [{ account: 'acct_other' }, { context: 'acct_other' }]) {
+    await dispatch('payment_link.updated', liveLink, true, envelope);
+    await dispatch('checkout.session.completed', linkSession, true, envelope);
+    await dispatch('charge.refunded', { payment_intent: linkSession.payment_intent, refunded: true }, true, envelope);
+  }
+  assert.equal(rows.size, 0);
+  assert.equal((await call('config')).jsonBody.checkout, false);
+});
+
+test('a paused link verifies delivery while keeping new tickets closed on both origins', async () => {
+  const { call, dispatch } = linkFixture({ config: { ...paymentLinkSettings, checkout: false } });
+  await dispatch('payment_link.updated', liveLink);
+  for (const origin of [site, alias]) {
+    const config = (await call('config', { origin })).jsonBody;
+    assert.equal(config.checkoutLinkVerified, true);
+    assert.equal(config.checkout, false);
+    assert.equal(config.priceAmount, undefined);
+    assert.equal((await call('checkout', { origin, body: {} })).status, 503);
+  }
+  await dispatch('checkout.session.completed', linkSession);
+  assert.equal((await call('checkout/confirm', { body: { sessionId: linkSession.id } })).jsonBody.state, 'restore');
+});
+
+test('a link with additional products or an explicitly different price cannot open the store', async () => {
+  for (const properties of [{ optional_items: [{ quantity: 1 }] },
+    { line_items: { has_more: false, data: [{ quantity: 1, price: { id: 'price_Other' } }] } },
+    { line_items: { has_more: true, data: [{ quantity: 1, price: { id: paymentLinkSettings.priceId } }] } }]) {
+    const { call, dispatch } = linkFixture();
+    await dispatch('payment_link.updated', { ...liveLink, ...properties });
+    assert.equal((await call('config')).jsonBody.checkout, false);
+  }
+});
+
+test('link refunds received before Checkout use the same hold when a legacy API credential is present', async () => {
+  const { call, dispatch, checkouts, rows, restore } = fixture({ config: paymentLinkSettings });
+  checkouts.set('old-session', { payment_intent: linkSession.payment_intent, metadata: { product: 'aerie-founder-and-gift' } });
+  await dispatch('charge.refunded', { payment_intent: linkSession.payment_intent, refunded: true });
+  assert.ok(!rows.has('payment:' + linkSession.payment_intent));
+  await dispatch('checkout.session.completed', linkSession);
+  const buyer = await restore(linkSession.customer_details.email);
+  assert.equal((await call('status', { cookie: buyer.cookie })).jsonBody.fullAccess, false);
 });

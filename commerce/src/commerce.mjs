@@ -165,11 +165,18 @@ export function createCommerce(config, { store, stripe, trafficStore, sendEmail,
   const linkProofKey = paymentLink ? 'payment-link:' + createHmac('sha256', config.webhookSecret || '')
     .update([config.paymentLinkId, config.paymentLinkUrl, config.site, config.priceId].join('|')).digest('hex') : '';
 
+  function correctLinkItems(items) {
+    // Stripe normally omits this expandable list from a snapshot event.
+    return !items || (items.has_more === false && items.data?.length === 1 &&
+      items.data[0].quantity === 1 && items.data[0].price?.id === config.priceId &&
+      !items.data[0].adjustable_quantity?.enabled);
+  }
+
   async function recordLinkConfiguration(event) {
     const link = event.data.object;
     if (!paymentLink || link.id !== config.paymentLinkId || link.livemode !== config.live) return;
     const expectedRedirect = config.site + joinPath + 'return/#session={CHECKOUT_SESSION_ID}';
-    const ready = link.active === true && link.url === config.paymentLinkUrl && link.currency === 'usd' &&
+    const ready = correctLinkItems(link.line_items) && !link.optional_items?.length && link.active === true && link.url === config.paymentLinkUrl && link.currency === 'usd' &&
       link.automatic_tax?.enabled === true && link.allow_promotion_codes === false &&
       link.after_completion?.type === 'redirect' && link.after_completion.redirect?.url === expectedRedirect;
     for (let attempt = 0; attempt < 5; attempt++) {
@@ -423,9 +430,14 @@ export function createCommerce(config, { store, stripe, trafficStore, sendEmail,
     return recordPurchase(checkout, pending.checkoutOrigin);
   }
 
-  function linkPaymentKey(intent) {
-    // Reversals can precede Checkout on a shared merchant account. Keep their IDs opaque.
-    return 'link-' + hash('stripe-payment', intent);
+  async function paymentState(intent) {
+    // Previously fulfilled API sessions use the raw Stripe ID. Unmatched reversals in
+    // link mode use an opaque ID because the seller also processes unrelated sales.
+    const previous = await store.get('payment:' + intent);
+    if (previous) return { reference: intent, current: previous };
+    const opaque = 'link-' + hash('stripe-payment', intent);
+    const current = await store.get('payment:' + opaque);
+    return { reference: current || paymentLink ? opaque : intent, current };
   }
 
   async function fulfillLink(checkout) {
@@ -434,7 +446,8 @@ export function createCommerce(config, { store, stripe, trafficStore, sendEmail,
     if (checkout.livemode !== config.live || !validSessionId(checkout.id) || checkout.mode !== 'payment' ||
         checkout.status !== 'complete' || checkout.currency !== 'usd' || checkout.amount_subtotal !== 199 ||
         !Number.isSafeInteger(checkout.amount_total) || checkout.amount_total < checkout.amount_subtotal ||
-        checkout.total_details?.amount_discount !== 0 || checkout.automatic_tax?.status !== 'complete') {
+        checkout.total_details?.amount_discount !== 0 || checkout.automatic_tax?.status !== 'complete' ||
+        !correctLinkItems(checkout.line_items)) {
       throw new HttpError(503, 'The paid session does not match the configured Aerie ticket.');
     }
     // A link shared directly still delivers the purchase and gift to the verified checkout email.
@@ -444,9 +457,9 @@ export function createCommerce(config, { store, stripe, trafficStore, sendEmail,
   }
 
   async function recordPurchase(checkout, checkoutOrigin, fromLink = false) {
-    let paymentIntent = typeof checkout.payment_intent === 'string' ? checkout.payment_intent : checkout.payment_intent?.id;
-    if (typeof paymentIntent !== 'string' || !paymentIntent.startsWith('pi_')) throw new Error('Missing Stripe payment reference.');
-    if (fromLink) paymentIntent = linkPaymentKey(paymentIntent);
+    const intent = typeof checkout.payment_intent === 'string' ? checkout.payment_intent : checkout.payment_intent?.id;
+    if (typeof intent !== 'string' || !intent.startsWith('pi_')) throw new Error('Missing Stripe payment reference.');
+    const { reference: paymentIntent } = await paymentState(intent);
     const buyerEmail = emailAddress(checkout.customer_details?.email);
     const uid = userId(buyerEmail);
     const receiptUrl = stripeReceiptUrl(checkout.payment_intent?.latest_charge?.receipt_url);
@@ -466,8 +479,9 @@ export function createCommerce(config, { store, stripe, trafficStore, sendEmail,
       ]);
       // Record link purchases even during a hold. Access checks consult the payment record
       // on every request, so a later dispute release can restore the original buyer and gift.
-      if (!fromLink && (payment?.refunded || payment?.disputed)) return { paid: false };
-      if (existing) return { paid: true, uid: existing.buyer };
+      const active = !payment?.refunded && !payment?.disputed;
+      if (!active && !fromLink && paymentIntent === intent) return { paid: false };
+      if (existing) return { paid: active, uid: existing.buyer };
       try {
         await store.transaction([
           ['create', purchase],
@@ -476,7 +490,7 @@ export function createCommerce(config, { store, stripe, trafficStore, sendEmail,
           addPurchase(account, uid, checkout.id),
           ...(confirmation ? [['create', confirmation]] : [])
         ]);
-        return { paid: true, uid };
+        return { paid: active, uid };
       } catch (error) {
         if (!conflict(error)) throw error;
       }
@@ -542,7 +556,7 @@ export function createCommerce(config, { store, stripe, trafficStore, sendEmail,
       return confirmLink(request, sessionId, browserOrigin);
     }
     if (typeof order !== 'string' || !/^[a-f0-9]{64}$/.test(order)) throw new HttpError(400, 'Invalid ticket reference.');
-    if (!store || !stripe) throw new HttpError(503, 'Ticket confirmation is temporarily unavailable.');
+    if (!store) throw new HttpError(503, 'Ticket confirmation is temporarily unavailable.');
     const pending = await store.get(`pending:${order}`);
     if (!pending?.checkoutId) {
       const previousId = config.live && await previewCheckoutId?.(order);
@@ -565,35 +579,27 @@ export function createCommerce(config, { store, stripe, trafficStore, sendEmail,
   async function changePayment(event) {
     const paymentIntent = event.data.object.payment_intent;
     if (typeof paymentIntent !== 'string' || !paymentIntent.startsWith('pi_')) return;
-    const rawKey = `payment:${paymentIntent}`;
-    const linkedKey = `payment:${linkPaymentKey(paymentIntent)}`;
     for (let attempt = 0; attempt < 5; attempt++) {
-      let key = rawKey;
-      let current = await store.get(rawKey);
-      if (!current) {
-        current = await store.get(linkedKey);
-        if (current) key = linkedKey;
-        else {
-          const intent = stripe && await stripe.paymentIntents.retrieve(paymentIntent);
-          if (intent?.metadata?.product !== 'aerie-founder-and-gift') {
-            if (!paymentLink) return;
-            key = linkedKey;
-          }
-        }
+      const { reference, current } = await paymentState(paymentIntent);
+      const opaque = reference !== paymentIntent;
+      if (!current && !opaque) {
+        const intent = stripe && await stripe.paymentIntents.retrieve(paymentIntent);
+        if (intent?.metadata?.product !== 'aerie-founder-and-gift') return;
       }
+      const key = 'payment:' + reference;
       const payment = row(key, current || {});
       if (event.type === 'charge.refunded') {
         if (!event.data.object.refunded) return;
         payment.refunded = true;
       }
-      const changed = event.type === 'charge.refunded' || recordDispute(payment, event, key === linkedKey);
+      const changed = event.type === 'charge.refunded' || recordDispute(payment, event, opaque);
       try {
         if (changed) await store.transaction([[current ? 'replace' : 'create', payment]]);
       } catch (error) {
         if (!conflict(error)) throw error;
         continue;
       }
-      if (key === rawKey && releasedDisputeStatuses.has(event.data.object.status) && !payment.refunded && !payment.disputed && !payment.checkoutId) {
+      if (!opaque && stripe && releasedDisputeStatuses.has(event.data.object.status) && !payment.refunded && !payment.disputed && !payment.checkoutId) {
         // A hold before first fulfillment leaves no purchase. A duplicate release must retry a failed recovery.
         const sessions = await stripe.checkout.sessions.list({ payment_intent: paymentIntent, limit: 1 });
         if (!sessions.data[0]) throw new HttpError(503, 'The payment is awaiting its checkout.');
@@ -663,6 +669,8 @@ export function createCommerce(config, { store, stripe, trafficStore, sendEmail,
       throw new HttpError(400, 'Invalid webhook signature.');
     }
     if (event.livemode !== config.live) throw new HttpError(400, 'Stripe event mode does not match.');
+    // This store sells directly on its own account. Ignore Connect/organization events.
+    if (event.account || event.context) return { jsonBody: { ok: true } };
     if (['payment_link.created', 'payment_link.updated'].includes(event.type)) {
       await recordLinkConfiguration(event);
     } else if (event.type === 'checkout.session.expired') {
