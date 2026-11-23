@@ -22,8 +22,9 @@ ORIGINS = ('https://playaerie.com', 'https://www.playaerie.com')
 REQUIRED = {'host.json', 'package.json', 'package-lock.json', 'src/functions.mjs'}
 TRIGGERS = {'aerie-' + name: 'httpTrigger' for name in (
     'config', 'status', 'air', 'checkout', 'checkout-complete', 'checkout-confirm', 'stripe-webhook', 'gift-redeem',
-    'signup', 'restore', 'restore-confirm', 'share-claim', 'share-friends', 'asset', 'purchase-help', 'telemetry')}
+    'signup', 'restore', 'restore-confirm', 'share-claim', 'share-friends', 'asset', 'purchase-help', 'telemetry', 'traffic')}
 TRIGGERS['aerie-purchase-confirmations'] = 'timerTrigger'
+TRIGGERS['aerie-traffic-retention'] = 'timerTrigger'
 
 
 class ReleaseError(Exception):

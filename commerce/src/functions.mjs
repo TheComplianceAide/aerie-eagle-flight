@@ -11,6 +11,16 @@ if (commerce.purchaseMail.enabled) {
     handler: (_timer, context) => commerce.purchaseMail.deliver(context)
   });
 }
+app.timer('aerie-traffic-retention', {
+  schedule: '0 23 2 * * *',
+  handler: async (_timer, context) => {
+    try {
+      await commerce.traffic.retain();
+    } catch {
+      context.error('Aerie traffic retention failed.');
+    }
+  }
+});
 for (const [name, [method]] of Object.entries(commerce.routes)) {
   app.http(`aerie-${name.replaceAll('/', '-')}`, {
     route: `aerie/${name}`,

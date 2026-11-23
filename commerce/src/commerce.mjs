@@ -3,6 +3,7 @@ import { createAirForecast } from './air.mjs';
 import { createPurchaseHelp } from './purchase-help.mjs';
 import { createPurchaseMail, stripeReceiptUrl } from './purchase-mail.mjs';
 import { allWorlds, freeWorld } from './settings.mjs';
+import { createTrafficCollector } from './traffic.mjs';
 
 // Stripe Checkout's ShippingAddressCollection.AllowedCountry values, excluding unknown region ZZ.
 const checkoutAddressCountries = `
@@ -92,12 +93,23 @@ function downloadTarget(query) {
   return { world, path };
 }
 
-async function readJson(request, limit = 8192) {
+async function boundedText(request, limit) {
+  const chunks = [];
+  let size = 0;
+  for await (const chunk of request.body ?? []) {
+    size += chunk.byteLength;
+    if (size > limit) throw new HttpError(413, 'Request is too large.');
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks, size).toString('utf8');
+}
+
+async function readJson(request, limit = 8192, { bounded = false } = {}) {
   if (!/^application\/json(?:;|$)/i.test(request.headers.get('content-type') || '')) {
     throw new HttpError(415, 'Send JSON to this endpoint.');
   }
   if (Number(request.headers.get('content-length')) > limit) throw new HttpError(413, 'Request is too large.');
-  const raw = await request.text();
+  const raw = bounded ? await boundedText(request, limit) : await request.text();
   if (Buffer.byteLength(raw) > limit) throw new HttpError(413, 'Request is too large.');
   try {
     const body = JSON.parse(raw);
@@ -120,7 +132,7 @@ export function expiryProbeKey(marker, signingSecret) {
   return 'preflight-expiry:' + createHmac('sha256', signingSecret).update('expiry-receipt:' + marker).digest('hex');
 }
 
-export function createCommerce(config, { store, stripe, sendEmail, purchaseEmailOperations, assetUrl,
+export function createCommerce(config, { store, stripe, trafficStore, sendEmail, purchaseEmailOperations, assetUrl,
   hasPreviewReward, previewCheckoutId, fetchForecast, readWeatherBlob, now = Date.now }) {
   const restoreEnabled = Boolean(store && sendEmail && config.site);
   const canCheckout = Boolean(config.checkout && restoreEnabled && stripe && config.priceId && config.webhookSecret && assetUrl);
@@ -135,6 +147,7 @@ export function createCommerce(config, { store, stripe, sendEmail, purchaseEmail
   const joinPath = '/join/';
   const purchaseMail = createPurchaseMail(config, { store, operations: purchaseEmailOperations, now });
   const hash = (purpose, value) => createHmac('sha256', config.secret).update(`${purpose}:${value}`).digest('base64url');
+  const traffic = createTrafficCollector({ store: trafficStore, enabled: config.traffic && config.secret, hash, now });
   const userId = email => hash('email', email);
   const submitPurchaseHelp = createPurchaseHelp({ store, now, hash });
   const accountKey = uid => `account:${uid}`;
@@ -743,7 +756,8 @@ export function createCommerce(config, { store, stripe, sendEmail, purchaseEmail
       ...features, shareClaims: features.shareClaim, features, freeWorld, rewardWorlds: config.rewards,
       ...(price ? { priceLabel: `$${(price.amount / 100).toFixed(2)} USD`, priceAmount: price.amount, priceCurrency: price.currency } : {}),
       ...(config.releaseRevision && { releaseRevision: config.releaseRevision }),
-      checkoutMode: config.mode, checkoutCollectsEmail: true, googlePayCheckout: features.checkout, disclosure, monitoring: Boolean(config.monitoring)
+      checkoutMode: config.mode, checkoutCollectsEmail: true, googlePayCheckout: features.checkout, disclosure,
+      monitoring: Boolean(config.monitoring), traffic: traffic.available
     }};
   }
 
@@ -792,6 +806,13 @@ export function createCommerce(config, { store, stripe, sendEmail, purchaseEmail
       return submitPurchaseHelp({ ...body, email: emailAddress(body.email) }, context);
     }],
     telemetry: ['POST', telemetry],
+    traffic: ['POST', async request => {
+      const site = request.headers.get('sec-fetch-site');
+      if (site && site !== 'same-origin') throw new HttpError(403, 'Request did not come from this Aerie site.');
+      if (request.headers.get('sec-gpc') === '1' || request.headers.get('dnt') === '1') return { status: 204 };
+      if (!traffic.available) throw new HttpError(503, 'Traffic collection is unavailable.');
+      return traffic.collect(await readJson(request, 512, { bounded: true }));
+    }],
     'stripe/webhook': ['POST', webhook],
     asset: ['GET', async request => {
       const { world, path } = downloadTarget(request.query);
@@ -835,5 +856,5 @@ export function createCommerce(config, { store, stripe, sendEmail, purchaseEmail
     }
   }
 
-  return { handle, review, routes, purchaseMail };
+  return { handle, review, routes, purchaseMail, traffic };
 }
