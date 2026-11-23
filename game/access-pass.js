@@ -82,6 +82,17 @@
         }
       }).catch(() => {});
     }
+    let ticketPriceRequest;
+    window.addEventListener('aerie:show-flight-offers', () => {
+      if (ticketPriceRequest) return;
+      ticketPriceRequest = fetch(new URL('config', endpoint), { credentials:'omit' })
+        .then(response => response.ok ? response.json() : null)
+        .then(offer => {
+          if (offer?.checkout === true && offer.priceCurrency === 'usd' && Number.isSafeInteger(offer.priceAmount)) {
+            document.getElementById('flightTicketPrice').textContent = '$' + (offer.priceAmount / 100).toFixed(2);
+          } else ticketPriceRequest = null;
+        }).catch(() => { ticketPriceRequest = null; });
+    });
     let status = refreshPass();
     window.addEventListener('pageshow', event => { if (event.persisted) status = refreshPass(); });
     document.addEventListener('visibilitychange', () => { if (!document.hidden) status = refreshPass(); });

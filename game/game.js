@@ -475,6 +475,7 @@
     const inFlight=started, controls=type==="controls";
     const support=type==="support";
     el("flightSupport").hidden=!(support || (type==="pause" && app.dataset.freePlayer==="true" && world?.region==="winnipesaukee"));
+    if(!el("flightSupport").hidden)window.dispatchEvent(new Event("aerie:show-flight-offers"));
     el("placeList").hidden=type!=="places";
     if(type==="places")fillPlaces();
     el("dialogTitle").textContent=support?"Unlock 5 more worlds":type==="places"?"Explore landmarks":type==="contact"?"Terrain contact":controls?"Flight controls":"Flight paused";
