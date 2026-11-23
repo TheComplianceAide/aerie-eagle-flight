@@ -745,10 +745,10 @@
     checkoutLaunch.hidden = unconfirmedReturn;
     heroCheckout.hidden = unconfirmedReturn;
     if (unconfirmedReturn || owned) heroCheckoutStatus.hidden = true;
-    const label = owned ? 'Play now' : 'Flight ticket';
+    const label = owned ? 'Play now' : 'All worlds';
     byId('hero-buy-label').textContent = label;
     byId('checkout-label').textContent = label;
-    byId('hero-buy-detail').textContent = owned ? 'Your worlds' : 'All worlds + a gift';
+    byId('hero-buy-detail').textContent = owned ? 'Your ticket' : '+ a gift';
     const price = !owned && available && typeof checkoutConfig.priceLabel === 'string'
       ? checkoutConfig.priceLabel.replace(/\sUSD$/, '') : '↗';
     byId('hero-ticket-price').textContent = price;

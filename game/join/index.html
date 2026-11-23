@@ -28,8 +28,8 @@
   <link rel="preload" href="media/mount-major.webp" as="image">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="media/aerie-app-180.png">
-  <link rel="stylesheet" href="landing.css?v=gone-flying">
-  <script defer src="landing.js?v=cinema-tickets"></script>
+  <link rel="stylesheet" href="landing.css?v=miniature-tickets">
+  <script defer src="landing.js?v=miniature-tickets"></script>
   <script defer src="save-aerie.js?v=1"></script>
 </head>
 <body>
@@ -77,35 +77,33 @@
         <p class="kicker"><i aria-hidden="true"></i> Eagle flight simulator</p>
         <h1 id="hero-title">Gone flying.<br><em>Back eventually.</em></h1>
         <p class="hero-intro">Leave Mount Major on a rising breeze. Follow the islands across Lake Winnipesaukee, or settle in the pines and listen for loons.</p>
-        <div class="hero-tickets" aria-label="Flight tickets">
-          <div>
-            <button class="flight-ticket flight-ticket-gold" id="hero-buy" type="button" aria-describedby="hero-ticket-note hero-checkout-status" hidden>
-              <span class="ticket-face"><strong id="hero-buy-label">Flight ticket</strong><span id="hero-buy-detail">All worlds + a gift</span></span>
-              <span class="ticket-stub" id="hero-ticket-price">↗</span>
-            </button>
-            <p class="ticket-note" id="hero-ticket-note" hidden></p>
-          </div>
-          <div class="flight-ticket flight-ticket-silver">
-            <a class="ticket-face ticket-share" href="#invite"><strong>Unlock 5 worlds</strong><span>Share with 5 friends</span></a>
-            <div class="ticket-social" role="group" aria-label="Share options">
-              <button class="ticket-icon" type="button" data-ticket-share="x" title="X" aria-label="Share on X">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.9 2H22l-6.8 7.8L23.2 22h-6.3L12 14.6 5.5 22H2.4l7.3-8.4L2 2h6.5l4.4 6.8L18.9 2Zm-1.1 18h1.7L7.6 4H5.7l12.1 16Z"/></svg>
-              </button>
-              <button class="ticket-icon" type="button" data-ticket-share="instagram" title="Instagram" aria-label="Share on Instagram">
-                <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.4" cy="6.8" r=".8" fill="currentColor" stroke="none"/></svg>
-              </button>
-              <button class="ticket-icon" type="button" data-ticket-share="linkedin" title="LinkedIn" aria-label="Share on LinkedIn">
-                <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M6.5 8.4V21H2.2V8.4h4.3ZM4.4 2.2A2.4 2.4 0 1 1 4.4 7a2.4 2.4 0 0 1 0-4.8ZM21.8 13.8V21h-4.2v-6.6c0-1.6-.6-2.6-1.9-2.6-1.1 0-1.8.8-2.1 1.5-.1.3-.1.6-.1 1V21H9.3V8.4h4.2v1.8c.6-.9 1.6-2.1 3.8-2.1 2.7 0 4.5 1.7 4.5 5.7Z"/></svg>
-              </button>
-              <button class="ticket-icon" type="button" data-ticket-share="messages" title="Messages" aria-label="Share in Messages">
-                <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M12 3c-5.5 0-10 3.7-10 8.3 0 2.5 1.3 4.8 3.5 6.4-.1 1-.5 2.2-1.2 3.3 1.7-.1 3.3-.6 4.5-1.6 1 .3 2.1.4 3.2.4 5.5 0 10-3.8 10-8.5S17.5 3 12 3Z"/></svg>
-              </button>
-            </div>
-          </div>
-          <a class="flight-ticket flight-ticket-paper hero-free" href="../?access=free#world=winnipesaukee&amp;launch=mount-major">
-            <span class="ticket-face"><strong>Mount Major</strong></span><span class="ticket-stub">FREE</span>
+        <div class="hero-tickets" role="group" aria-label="Flight tickets">
+          <button class="flight-ticket flight-ticket-gold" id="hero-buy" type="button" aria-describedby="hero-ticket-note hero-checkout-status" hidden>
+            <span class="ticket-face"><strong id="hero-buy-label">All worlds</strong><span id="hero-buy-detail">+ a gift</span></span>
+            <span class="ticket-stub" id="hero-ticket-price">↗</span>
+          </button>
+          <a class="flight-ticket flight-ticket-silver ticket-share" href="#invite" aria-label="Share with five friends to unlock five worlds">
+            <span class="ticket-face"><strong>Share</strong><span>5 friends</span></span><span class="ticket-stub" aria-hidden="true">+5</span>
           </a>
+          <a class="flight-ticket flight-ticket-paper hero-free" href="../?access=free#world=winnipesaukee&amp;launch=mount-major" aria-label="Fly free from Mount Major">
+            <span class="ticket-face"><strong>Fly free</strong></span><span class="ticket-stub" aria-hidden="true">↗</span>
+          </a>
+          <div class="ticket-social" role="group" aria-label="Share options">
+            <button class="ticket-icon" type="button" data-ticket-share="x" title="X" aria-label="Share on X">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.9 2H22l-6.8 7.8L23.2 22h-6.3L12 14.6 5.5 22H2.4l7.3-8.4L2 2h6.5l4.4 6.8L18.9 2Zm-1.1 18h1.7L7.6 4H5.7l12.1 16Z"/></svg>
+            </button>
+            <button class="ticket-icon" type="button" data-ticket-share="instagram" title="Instagram" aria-label="Share on Instagram">
+              <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.4" cy="6.8" r=".8" fill="currentColor" stroke="none"/></svg>
+            </button>
+            <button class="ticket-icon" type="button" data-ticket-share="linkedin" title="LinkedIn" aria-label="Share on LinkedIn">
+              <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M6.5 8.4V21H2.2V8.4h4.3ZM4.4 2.2A2.4 2.4 0 1 1 4.4 7a2.4 2.4 0 0 1 0-4.8ZM21.8 13.8V21h-4.2v-6.6c0-1.6-.6-2.6-1.9-2.6-1.1 0-1.8.8-2.1 1.5-.1.3-.1.6-.1 1V21H9.3V8.4h4.2v1.8c.6-.9 1.6-2.1 3.8-2.1 2.7 0 4.5 1.7 4.5 5.7Z"/></svg>
+            </button>
+            <button class="ticket-icon" type="button" data-ticket-share="messages" title="Messages" aria-label="Share in Messages">
+              <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M12 3c-5.5 0-10 3.7-10 8.3 0 2.5 1.3 4.8 3.5 6.4-.1 1-.5 2.2-1.2 3.3 1.7-.1 3.3-.6 4.5-1.6 1 .3 2.1.4 3.2.4 5.5 0 10-3.8 10-8.5S17.5 3 12 3Z"/></svg>
+            </button>
+          </div>
         </div>
+        <p class="ticket-note" id="hero-ticket-note" hidden></p>
         <p id="hero-checkout-status" class="hero-checkout-status" role="status" hidden></p>
         <div class="actions hero-explore">
           <button class="button button-glass" id="watch-film" type="button"><span class="play-symbol" aria-hidden="true"></span> Watch gameplay · 1:00</button>
@@ -228,7 +226,7 @@
             <h3>Lake Winnipesaukee</h3>
             <p>Start above the lake and follow the shore at your own pace. Free to play, no email needed.</p>
             <a class="flight-ticket flight-ticket-paper" href="../?access=free#world=winnipesaukee&amp;launch=mount-major">
-              <span class="ticket-face"><strong>Mount Major</strong></span><span class="ticket-stub">FREE</span>
+              <span class="ticket-face"><strong>Fly free</strong></span><span class="ticket-stub" aria-hidden="true">↗</span>
             </a>
           </div>
         </article>
@@ -237,7 +235,7 @@
             <h3>Full game</h3>
             <p>One ticket opens all 13 worlds. A second copy is yours to give away.</p>
             <button class="flight-ticket flight-ticket-gold" id="checkout-launch" type="button" hidden aria-describedby="checkout-merchant checkout-availability">
-              <span class="ticket-face"><strong id="checkout-label">Flight ticket</strong></span>
+              <span class="ticket-face"><strong id="checkout-label">All worlds</strong></span>
               <span class="ticket-stub" id="flight-price">↗</span>
             </button>
             <p class="ticket-note" id="checkout-merchant" hidden></p>
