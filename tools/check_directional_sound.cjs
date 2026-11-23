@@ -51,8 +51,19 @@ function page() {
 }
 function makeContext() {
   const started = [];          // every recording or generated buffer as it starts
-  const source = () => { const n = node(); n.start = () => started.push(n.buffer?.name || 'generated'); return n; };
-  const ctx = {sampleRate: 8000, currentTime: 0, destination: node(), state: 'running', started, createBufferSource: source,
+  const wingGains = [];
+  const source = () => {
+    const n = node();
+    let output;
+    n.connect = next => { output = next; return next; };
+    n.start = () => {
+      const name = n.buffer?.name || 'generated';
+      started.push(name);
+      if (/^eagle-wing-[abc]\.m4a$/.test(name)) wingGains.push({name, gain: output.gain.value});
+    };
+    return n;
+  };
+  const ctx = {sampleRate: 8000, currentTime: 0, destination: node(), state: 'running', started, wingGains, createBufferSource: source,
     createBuffer: (channels, length, rate) => ({numberOfChannels: channels, length, sampleRate: rate, duration: length / rate, getChannelData: () => new Float32Array(length)}),
     decodeAudioData: async data => ({name: data.name, duration: 5, length: 40000, sampleRate: 8000, numberOfChannels: /wind-at-ears/.test(data.name) ? 2 : 1, getChannelData: () => new Float32Array(40000).fill(.1)})};
   return new Proxy(ctx, {get: (t, k) => k in t ? t[k] : typeof k === 'string' && k.startsWith('create') ? node : undefined});
@@ -163,6 +174,34 @@ if (require.main === module) (async () => {
       pending.update(flight, camera, 1 / 30, {gust: .5, open: 1, exposure: 1});
       assert.doesNotThrow(() => pending.setEnabled(false), 'pause with an active lake and a pending stream');
     }
+  }
+
+  // Drive downstroke phase crossings through a sustained climb and a glide.
+  {
+    const context = makeContext(), world = makeWorld();
+    const scape = first.box.makeSoundscape(context, world, 'moosehead', node());
+    await new Promise(resolve => setImmediate(resolve));
+    scape.setEnabled(true);
+    const camera = {position: new first.box.THREE.Vector3(-230, 75, 0), quaternion: new first.box.THREE.Quaternion()};
+    const state = {x: -230, y: 75, z: 0, airspeed: 12, elapsed: 0, phase: 0};
+    function advance(frames, effort) {
+      for (let i = 0; i < frames; i++) {
+        context.currentTime += 1 / 30;
+        state.elapsed = context.currentTime;
+        state.phase += Math.PI * 2 / 15;
+        state.effort = effort;
+        scape.update(state, camera, 1 / 30, {gust: .5, open: 1, exposure: 1});
+      }
+    }
+    advance(150, .85);
+    const climb = context.wingGains.slice();
+    assert.ok(climb.length >= 9 && climb.length <= 10, 'one recorded sound per downstroke');
+    assert.ok(climb.every((beat, i) => i === 0 || beat.name !== climb[i - 1].name), 'avoid repeating the same take');
+    assert.ok(climb.at(-1).gain < .72 * climb[0].gain, 'sustained climb gets quieter');
+    advance(60, 0);
+    assert.equal(context.wingGains.length, climb.length, 'no recorded flaps while gliding');
+    advance(15, .85);
+    assert.ok(context.wingGains.at(-1).gain > 1.35 * climb.at(-1).gain, 'a new climb regains the initial attack');
   }
 
   // One source, one place: follow every sounding source by identity.
