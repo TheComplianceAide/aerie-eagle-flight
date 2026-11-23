@@ -26,8 +26,8 @@
   <meta name="twitter:image" content="https://playaerie.com/join/media/share-card.jpg">
   <meta name="twitter:image:alt" content="An eagle above Mount Major and Lake Winnipesaukee in Aerie.">
   <link rel="preload" href="media/mount-major.webp" as="image">
-  <link rel="stylesheet" href="landing.css?v=restore-code">
-  <script defer src="landing.js?v=checkout-return-check"></script>
+  <link rel="stylesheet" href="landing.css?v=five-worlds">
+  <script defer src="landing.js?v=five-worlds"></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -61,7 +61,7 @@
         <nav class="toplinks" aria-label="Main navigation">
           <a class="top-worlds" href="#worlds">Worlds</a>
           <a href="#passes">Founder Pass</a>
-          <a class="top-share" href="#share">Tell a friend</a>
+          <a class="top-share" href="#invite">Unlock five worlds</a>
           <a class="top-flight" href="../?access=free#world=winnipesaukee&amp;launch=mount-major">Play free <span aria-hidden="true">↗</span></a>
         </nav>
       </header>
@@ -70,8 +70,15 @@
         <p class="kicker"><i aria-hidden="true"></i> Eagle flight simulator</p>
         <h1 id="hero-title">The sky<br><em>is yours.</em></h1>
         <p class="hero-intro">Fly as an eagle from Mount Major over the wooded islands of Lake Winnipesaukee, New Hampshire.</p>
-        <div class="actions">
-          <a class="button button-gold" href="../?access=free#world=winnipesaukee&amp;launch=mount-major">Fly Mount Major free <span aria-hidden="true">↗</span></a>
+        <div class="actions hero-offers">
+          <button class="button button-gold hero-offer" id="hero-buy" type="button" aria-describedby="hero-checkout-status" hidden>
+            <span id="hero-buy-label">Buy Founder Pass</span><small id="hero-buy-detail">All worlds + a gift copy</small>
+          </button>
+          <a class="button button-glass hero-offer" href="#invite"><span>Share with 5 friends</span><small>Unlock 5 more worlds</small></a>
+        </div>
+        <p id="hero-checkout-status" class="hero-checkout-status" role="status" hidden></p>
+        <div class="actions hero-explore">
+          <a class="button button-outline" href="../?access=free#world=winnipesaukee&amp;launch=mount-major">Fly Mount Major free <span aria-hidden="true">↗</span></a>
           <button class="button button-glass" id="watch-film" type="button"><span class="play-symbol" aria-hidden="true"></span> Watch gameplay</button>
         </div>
         <div class="device-guide">
@@ -210,12 +217,12 @@
 
     <section class="community-section" id="share" aria-labelledby="community-title">
       <div class="frame community-grid">
-        <div class="social-offer">
+        <div class="social-offer" id="invite">
           <p class="kicker"><i aria-hidden="true"></i> Tell a friend</p>
-          <h2 id="community-title">Share a flight.<br><em>Open three worlds.</em></h2>
-          <p>After flying Aerie, share your honest experience in a public post. Include that Aerie offered you three additional worlds for sharing, then submit the post for review.</p>
+          <h2 id="community-title">Share a flight.<br><em>Unlock five worlds.</em></h2>
+          <p>Send the free flight to five friends and confirm here, or share your honest experience publicly and submit your post for review.</p>
           <div class="actions">
-            <button class="button button-gold" type="button" data-open="claim">Share and claim worlds</button>
+            <a class="button button-gold" href="#invite">Share with 5 friends</a>
             <button class="button button-outline" id="send-free-flight" type="button">Send the free flight</button>
           </div>
         </div>
@@ -259,29 +266,42 @@
     <div id="share-details">
       <p id="share-instructions">Send a friend a free flight at Lake Winnipesaukee.</p>
       <div class="social-links" aria-label="Share options">
-        <button class="button button-outline" type="button" id="native-share" hidden>Share…</button>
+        <button class="button button-outline" type="button" id="native-share" hidden>Share link</button>
         <button class="button button-outline" type="button" id="copy-share">Copy link</button>
+      </div>
+      <p class="form-status" id="share-message" role="status" aria-live="polite"></p>
+    </div>
+    <section id="friend-details" class="share-method" aria-labelledby="friend-title" hidden>
+      <h3 id="friend-title">Send it to five friends</h3>
+      <p>Send the link through Messages, another app, or by pasting it where you chat. Confirm once you’ve shared it with five people.</p>
+      <button class="button button-gold" id="confirm-friend-share" type="button" disabled>I shared with 5 friends</button>
+      <p class="form-status" id="friend-share-status" role="status" aria-live="polite"></p>
+      <a class="button button-gold" id="friend-play" href="../?play=1" hidden>Fly my unlocked worlds <span aria-hidden="true">↗</span></a>
+    </section>
+    <details id="claim-details" class="share-method">
+      <summary id="post-share-summary">Share on social media</summary>
+      <p id="post-instructions" hidden>After flying, post what you honestly thought and disclose that Aerie offers five additional worlds for sharing. Submit the public link for review.</p>
+      <div class="social-links" aria-label="Social media">
         <a class="button button-outline" id="linkedin-share" target="_blank" rel="noopener noreferrer">LinkedIn</a>
         <a class="button button-outline" id="x-share" target="_blank" rel="noopener noreferrer">X</a>
         <a class="button button-outline" href="media/instagram.jpg" download="aerie-instagram.jpg">Save Instagram card</a>
       </div>
-      <p class="form-status" id="share-message" role="status" aria-live="polite"></p>
-    </div>
-    <div id="claim-details" hidden>
-      <label for="suggested-post">Suggested post</label>
-      <textarea id="suggested-post" rows="3" readonly></textarea>
-      <button class="text-link" type="button" id="copy-post">Copy post</button>
-      <form id="claim-form" data-form="share-claim">
-        <fieldset disabled>
-          <label for="claim-email">Email for your unlock</label>
-          <input id="claim-email" name="email" type="email" autocomplete="email" required maxlength="254">
-          <label for="claim-post">Link to your public post</label>
-          <input id="claim-post" name="postUrl" type="url" inputmode="url" required maxlength="1000" placeholder="https://">
-          <button class="button button-gold" type="submit">Submit my post</button>
-        </fieldset>
-        <p class="form-status" role="status" aria-live="polite">Claims are currently unavailable.</p>
-      </form>
-    </div>
+      <div id="claim-submission" hidden>
+        <label for="suggested-post">Suggested disclosure</label>
+        <textarea id="suggested-post" rows="3" readonly></textarea>
+        <button class="text-link" type="button" id="copy-post">Copy disclosure</button>
+        <form id="claim-form" data-form="share-claim">
+          <fieldset disabled>
+            <label for="claim-email">Email for your unlock</label>
+            <input id="claim-email" name="email" type="email" autocomplete="email" required maxlength="254">
+            <label for="claim-post">Link to your public post</label>
+            <input id="claim-post" name="postUrl" type="url" inputmode="url" required maxlength="500" placeholder="https://">
+            <button class="button button-gold" type="submit">Submit my post</button>
+          </fieldset>
+          <p class="form-status" role="status" aria-live="polite">Claims are currently unavailable.</p>
+        </form>
+      </div>
+    </details>
   </dialog>
 
   <dialog id="purchase-dialog" class="dialog" aria-labelledby="purchase-title">

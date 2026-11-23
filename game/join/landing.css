@@ -85,6 +85,11 @@ fieldset { padding: 0; border: 0; margin: 0; min-width: 0; }
 .button-gold:hover { background: #fbe6b9; }
 .button-glass { background: #12252371; border-color: #fbf2dd5c; backdrop-filter: blur(10px); }
 .button-outline:hover, .button-glass:hover { background: #f6e8c51a; border-color: #f6e8c595; }
+.hero-offers { align-items: stretch; }
+.hero-offer { align-items: flex-start; flex-direction: column; gap: .13rem; min-height: 57px; text-align: left; }
+.hero-offer small { font-size: .73rem; font-weight: 550; }
+.hero-checkout-status { margin-top: .45rem; font-size: .8rem; color: var(--gold-strong); }
+.hero-explore { margin-top: .85rem; }
 .play-symbol { border-block: 5px solid transparent; border-left: 8px solid var(--gold); }
 .device-guide {
   display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .9rem;
@@ -215,7 +220,11 @@ fieldset:disabled input, fieldset:disabled button, .button:disabled { opacity: .
 .social-links { margin-top: 1rem; display: flex; gap: 7px; flex-wrap: wrap; }
 .social-links .button { font-size: .79rem; padding-inline: .7rem; }
 .text-link { display: inline-flex; align-items: center; color: var(--gold); font-size: .82rem; margin-top: .25rem; min-height: 38px; }
-#claim-details { border-top: 1px solid var(--line); padding-top: .15rem; }
+.share-method { border-top: 1px solid var(--line); margin-top: .85rem; padding-top: .9rem; }
+.share-method h3 { font-size: 1.45rem; margin-bottom: .4rem; }
+.share-method button { margin-top: .7rem; }
+.share-method summary { color: var(--gold-strong); cursor: pointer; font-weight: 650; min-height: 42px; padding-block: .25rem; }
+.share-method summary + p { margin-top: .38rem; }
 #gift-details { border-top: 1px solid var(--line); margin-top: 1rem; padding-top: .55rem; }
 .gift-link { margin-top: .85rem; }
 .gift-link summary { width: fit-content; padding-block: .75rem; color: var(--gold); font-size: .88rem; font-weight: 650; cursor: pointer; }
@@ -266,6 +275,7 @@ fieldset:disabled input, fieldset:disabled button, .button:disabled { opacity: .
   .preview-caption small { font-size: .66rem; }
   .hero-content .button { width: fit-content; }
   .hero-content .actions { gap: 8px; }
+  .hero-offers .hero-offer { padding-inline: 12px; }
   .device-guide { align-items: flex-start; flex-direction: column; }
   .signup .input-row { flex-wrap: wrap; }
   .signup .input-row input { flex-basis: 100%; }

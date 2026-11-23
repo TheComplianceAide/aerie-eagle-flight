@@ -7,7 +7,7 @@
   const fields = {
     signup: { unavailable: 'Email signup is currently unavailable.', accepted: 'You’re on the flight list.' },
     checkout: { unavailable: 'Checkout is currently unavailable.' },
-    'share-claim': { unavailable: 'Claims are currently unavailable.', accepted: 'Your post is queued for review. Use Restore access to check whether your worlds are unlocked.' },
+    'share-claim': { unavailable: 'Claims are currently unavailable.', accepted: 'Your post is queued for review. Use Restore access to check whether your five worlds are unlocked.' },
     restore: { unavailable: 'Access recovery is currently unavailable.', accepted: 'If we can send an access link to that address, it will arrive by email.' }
   };
   const configKeys = { signup: 'signup', checkout: 'checkout', 'share-claim': 'shareClaims', restore: 'restore' };
@@ -230,20 +230,44 @@
 
   const shareMessage = byId('share-message');
   const shareDialog = byId('share-dialog');
-  const shareIntro = 'Hey, I like this game. I hope you do too!';
-  const claimStarter = 'Aerie offered me three additional worlds for sharing my experience. I flew as an eagle over Lake Winnipesaukee.';
+  const shareIntro = 'Come fly with me in Aerie. Lake Winnipesaukee is free.';
+  const friendInvite = `${shareIntro} Aerie offers me five more worlds for sharing with five friends.`;
+  const claimStarter = 'Aerie offers me five additional worlds for sharing my experience.';
   const suggestedPost = byId('suggested-post');
   const nativeShare = byId('native-share');
+  const friendConfirm = byId('confirm-friend-share');
+  const friendShareStatus = byId('friend-share-status');
   let sharingClaim = false;
+  let friendShareBusy = false;
+  let friendRewardEarned = false;
+
+  function shareOfferAvailable(config) {
+    return enabled(config, 'shareClaims') && Array.isArray(config.rewardWorlds) && config.rewardWorlds.length === 5;
+  }
+
+  function updateFriendOffer() {
+    const available = shareOfferAvailable(checkoutConfig);
+    const earned = friendRewardEarned || status?.fullAccess === true ||
+      (available && checkoutConfig.rewardWorlds.every(world => status?.worlds?.includes(world)));
+    friendConfirm.hidden = earned;
+    friendConfirm.disabled = !available || friendShareBusy;
+    byId('friend-play').hidden = !earned;
+    if (earned) friendShareStatus.textContent = 'Your five worlds are ready to fly.';
+    else if (checkoutConfig === undefined) friendShareStatus.textContent = 'Checking unlock availability…';
+    else if (!available) friendShareStatus.textContent = 'Friend unlocks are temporarily unavailable.';
+  }
 
   function openShare(isClaim) {
     sharingClaim = isClaim;
-    byId('share-title').textContent = isClaim ? 'Share a flight' : 'Tell a friend';
+    byId('share-title').textContent = isClaim ? 'Share Aerie. Unlock five worlds.' : 'Tell a friend';
     byId('share-instructions').textContent = isClaim
-      ? 'After flying Aerie, share your experience and mention the three-world reward.'
+      ? 'Share the free Lake Winnipesaukee flight with friends, or post your own flight experience for review.'
       : 'Send a friend a free flight at Lake Winnipesaukee.';
-    byId('claim-details').hidden = !isClaim;
-    suggestedPost.value = claimStarter + ' ' + canonicalUrl;
+    byId('friend-details').hidden = !isClaim;
+    byId('post-instructions').hidden = !isClaim;
+    byId('claim-submission').hidden = !isClaim;
+    byId('post-share-summary').textContent = isClaim ? 'Post publicly for review' : 'Share on social media';
+    suggestedPost.value = claimStarter + '\n' + canonicalUrl;
     shareMessage.textContent = '';
     nativeShare.hidden = typeof navigator.share !== 'function';
     byId('linkedin-share').href = 'https://www.linkedin.com/sharing/share-offsite/?' + new URLSearchParams({ url: canonicalUrl });
@@ -251,14 +275,48 @@
       url: canonicalUrl,
       text: isClaim ? claimStarter : shareIntro
     });
+    if (isClaim) updateFriendOffer();
     show(shareDialog);
   }
 
   byId('copy-share').addEventListener('click', () => copy(canonicalUrl, shareMessage, 'Aerie link copied.'));
-  byId('copy-post').addEventListener('click', () => copy(suggestedPost.value, shareMessage, 'Post copied.'));
+  byId('copy-post').addEventListener('click', () => copy(suggestedPost.value, shareMessage, 'Disclosure copied.'));
   function shareAerie(isClaim) {
-    return navigator.share({ title: 'Aerie · Take Flight', text: isClaim ? claimStarter : shareIntro, url: canonicalUrl });
+    return navigator.share({ title: 'Aerie · Take Flight', text: isClaim ? friendInvite : shareIntro, url: canonicalUrl });
   }
+
+  for (const link of document.querySelectorAll('a[href="#invite"]')) {
+    link.addEventListener('click', event => {
+      event.preventDefault();
+      openShare(true);
+    });
+  }
+  window.addEventListener('hashchange', () => {
+    if (new URLSearchParams(location.hash.slice(1)).has('invite')) openShare(true);
+  });
+
+  friendConfirm.addEventListener('click', async () => {
+    if (friendConfirm.disabled || friendRewardEarned) return;
+    friendShareBusy = true;
+    friendShareStatus.textContent = 'Unlocking your worlds…';
+    updateFriendOffer();
+    try {
+      const result = await request('/share-friends', { sharedWithFive: true }, 12000);
+      if (result.ok !== true || !Array.isArray(result.worlds) || !checkoutConfig.rewardWorlds.every(world => result.worlds.includes(world))) {
+        throw new Error('Your worlds could not be unlocked. Try again.');
+      }
+      friendRewardEarned = true;
+      updateFriendOffer();
+      byId('friend-play').focus();
+      await refreshStatus(true);
+    } catch (error) {
+      friendShareStatus.textContent = error.name === 'AbortError' || error instanceof TypeError
+        ? 'Your unlock could not be checked. Try again.' : error.message;
+    } finally {
+      friendShareBusy = false;
+      updateFriendOffer();
+    }
+  });
 
   nativeShare.addEventListener('click', async () => {
     try {
@@ -476,6 +534,7 @@
       updateRestore();
       updateCheckoutReturn();
       updateCheckoutOffer();
+      updateFriendOffer();
     }).finally(() => {
       if (version === statusVersion) statusRequest = null;
     });
@@ -598,6 +657,8 @@
   });
 
   const checkoutLaunch = byId('checkout-launch');
+  const heroCheckout = byId('hero-buy');
+  const heroCheckoutStatus = byId('hero-checkout-status');
   const checkoutAvailability = byId('checkout-availability');
   const checkoutMerchant = byId('checkout-merchant');
   const flightPrice = byId('flight-price');
@@ -626,6 +687,11 @@
     const testCheckout = available && checkoutConfig.checkoutMode === 'test';
     const unconfirmedReturn = returningFromPayment() && !status;
     checkoutLaunch.hidden = unconfirmedReturn;
+    heroCheckout.hidden = unconfirmedReturn;
+    if (unconfirmedReturn) heroCheckoutStatus.hidden = true;
+    byId('hero-buy-label').textContent = owned ? 'Open your pass' : 'Buy Founder Pass';
+    byId('hero-buy-detail').textContent = owned ? 'Fly your unlocked worlds' : testCheckout
+      ? 'Test checkout · No real payment' : 'All worlds + a gift copy';
     byId('checkout-label').textContent = owned ? 'Open your pass' : testCheckout ? 'Open test checkout' : 'Buy Founder Pass';
     byId('pass-restore').hidden = owned || unconfirmedReturn;
     checkoutMerchant.hidden = owned || unconfirmedReturn || !available;
@@ -657,7 +723,7 @@
         checkoutConfig = config;
         for (const form of forms) {
           const name = form.dataset.form;
-          const available = enabled(config, configKeys[name]);
+          const available = name === 'share-claim' ? shareOfferAvailable(config) : enabled(config, configKeys[name]);
           form.querySelector('fieldset').disabled = !available || (name === 'checkout' && checkoutBusy);
           form.querySelector('.form-status').textContent = available ? '' : fields[name].unavailable;
         }
@@ -670,6 +736,8 @@
             ? config.priceLabel + ' for both passes' : 'One-time purchase';
         }
         updateCheckoutOffer();
+        friendShareStatus.textContent = '';
+        updateFriendOffer();
         return config;
       }).finally(() => { configRequest = null; });
     }
@@ -678,8 +746,10 @@
 
   function setCheckoutBusy(busy) {
     checkoutBusy = busy;
-    checkoutLaunch.disabled = busy;
-    checkoutLaunch.setAttribute('aria-busy', String(busy));
+    for (const button of [checkoutLaunch, heroCheckout]) {
+      button.disabled = busy;
+      button.setAttribute('aria-busy', String(busy));
+    }
     purchaseFields.disabled = busy || !enabled(checkoutConfig, 'checkout');
     return ++checkoutAttempt;
   }
@@ -701,10 +771,13 @@
     }
   }
 
-  checkoutLaunch.addEventListener('click', async () => {
+  async function launchCheckout(event) {
     if (checkoutBusy || openOwnedPass()) return;
+    const fromHero = event.currentTarget === heroCheckout;
+    const output = fromHero ? heroCheckoutStatus : checkoutAvailability;
+    if (fromHero) output.hidden = false;
     const attempt = setCheckoutBusy(true);
-    checkoutAvailability.textContent = 'Checking your Aerie access…';
+    output.textContent = 'Checking your Aerie access…';
     const [config] = await Promise.all([
       enabled(checkoutConfig, 'checkout') ? checkoutConfig : loadConfig(), checkCheckoutAccess()
     ]);
@@ -712,16 +785,19 @@
     if (!enabled(config, 'checkout')) {
       setCheckoutBusy(false);
       updateCheckoutOffer();
+      if (fromHero) output.textContent = checkoutNote(config);
       return;
     }
     if (!enabled(config, 'checkoutCollectsEmail')) {
-      checkoutAvailability.textContent = checkoutNote(config);
+      output.textContent = checkoutNote(config);
       setCheckoutBusy(false);
       show(purchaseDialog);
       return;
     }
-    await openStripeCheckout({}, checkoutAvailability, attempt);
-  });
+    await openStripeCheckout({}, output, attempt);
+  }
+
+  for (const button of [checkoutLaunch, heroCheckout]) button.addEventListener('click', launchCheckout);
 
   purchaseDialog.addEventListener('close', () => {
     if (checkoutBusy) setCheckoutBusy(false);
@@ -730,6 +806,7 @@
 
   window.addEventListener('pageshow', event => {
     if (!event.persisted || !checkoutBusy) return;
+    heroCheckoutStatus.hidden = true;
     setCheckoutBusy(false);
     updateCheckoutOffer();
     if (purchaseDialog.open) purchaseDialog.close();
@@ -798,4 +875,5 @@
   loadConfig();
   refreshStatus();
   if (pendingGift || restoreToken) show(restoreDialog);
+  else if (fragment.has('invite')) openShare(true);
 })();
