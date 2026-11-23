@@ -646,6 +646,7 @@ export function createCommerce(config, { store, stripe, sendEmail, purchaseEmail
     return { jsonBody: {
       ...features, shareClaims: features.shareClaim, features, freeWorld, rewardWorlds: config.rewards,
       ...(price ? { priceLabel: `$${(price.amount / 100).toFixed(2)} USD`, priceAmount: price.amount, priceCurrency: price.currency } : {}),
+      ...(config.releaseRevision && { releaseRevision: config.releaseRevision }),
       checkoutMode: config.mode, checkoutCollectsEmail: true, googlePayCheckout: features.checkout, disclosure, monitoring: Boolean(config.monitoring)
     }};
   }
