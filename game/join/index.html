@@ -57,7 +57,7 @@
       }
     } catch {}
   </script>
-  <link rel="stylesheet" href="landing.css?v=flight-intro">
+  <link rel="stylesheet" href="landing.css?v=flight-intro-menu">
   <script defer src="flight-intro.js?v=1"></script>
   <link rel="stylesheet" href="return-flight.css?v=1">
   <link rel="stylesheet" href="traffic.css?v=1">
@@ -96,7 +96,9 @@
       <div class="hero-picture" aria-hidden="true">
         <video id="mount-major-flight" muted playsinline loop preload="none" poster="media/mount-major.webp" data-src="media/world-tour-background.mp4?v=tour-loop"></video>
       </div>
-      <button id="flight-intro-skip" class="flight-intro-skip" type="button" aria-label="Skip the opening flight" hidden></button>
+      <button id="flight-intro-skip" class="flight-intro-skip" type="button" hidden>
+        <span>Tap for menu</span>
+      </button>
       <header class="topbar frame">
         <a class="wordmark" href="./" aria-label="Aerie home">
           <img src="../field-engraving.webp" alt="Aerie" width="768" height="512">
