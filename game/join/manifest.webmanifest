@@ -2,7 +2,7 @@
   "id": "/join/",
   "name": "Aerie · Eagle Flight",
   "short_name": "Aerie",
-  "start_url": "/join/#play",
+  "start_url": "/join/?return=1",
   "scope": "/",
   "display": "standalone",
   "background_color": "#142b25",

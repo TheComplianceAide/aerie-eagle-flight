@@ -16,8 +16,8 @@
     const join = new URL('join/', location.href);
     const link = document.createElement('a');
     link.className = 'aerie-pass-link';
-    link.href = join.href;
-    link.textContent = 'Aerie home';
+    link.href = new URL('?return=1', join).href;
+    link.textContent = 'Your flights';
     fly.after(link);
     if (!limited) return;
 
@@ -110,9 +110,9 @@
     const entry = new URL(location.href);
     const targetWorld = new URLSearchParams(entry.hash.slice(1)).get('world');
     if (entry.searchParams.get('fly') === '1' && targetWorld) {
-      status.then(() => {
+      (targetWorld === freeWorld ? Promise.resolve() : status).then(() => {
         const requested = targetWorld === 'lac-berte' ? 'labrador' : targetWorld;
-        if (!pass.fullAccess || !canFly(requested) || picker.value !== requested ||
+        if (!canFly(requested) || picker.value !== requested ||
             app.dataset.mode !== 'title' || fly.disabled) return;
         // Consume this one navigation so a later refresh still restores the usual pause menu.
         const current = new URL(location.href);
@@ -123,11 +123,19 @@
       });
     }
     window.addEventListener('aerie:flight-started', () => {
-      if (picker.value === freeWorld || !pass.fullAccess) return;
+      const launches = document.getElementById('launchPoint');
+      const last = { world: picker.value, launch: launches.value,
+        title: launches.selectedOptions[0]?.textContent, region: picker.selectedOptions[0]?.textContent };
+      // Home-screen web apps on iOS can import site cookies on installation.
+      // This preference identifies a departure. Access is checked by the server.
       try {
-        localStorage.setItem('aerie:last-paid-flight', JSON.stringify({
-          world: picker.value, launch: document.getElementById('launchPoint').value
-        }));
+        const departure = [last.world, last.launch, (last.title || '').slice(0, 120)].join('/');
+        document.cookie = 'aerie_departure=' + encodeURIComponent(departure) +
+          '; Path=/; Max-Age=31536000; SameSite=Lax' + (location.protocol === 'https:' ? '; Secure' : '');
+      } catch {}
+      try {
+        localStorage.setItem('aerie:last-flight', JSON.stringify(last));
+        if (last.world !== freeWorld && pass.fullAccess) localStorage.setItem('aerie:last-paid-flight', JSON.stringify(last));
       } catch {}
     });
     window.addEventListener('pageshow', event => { if (event.persisted) status = refreshPass(); });

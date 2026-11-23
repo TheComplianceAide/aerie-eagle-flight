@@ -756,7 +756,7 @@
   }
   const flightCodes=["KeyW","KeyA","KeyS","KeyD","KeyQ","KeyE","KeyB","ArrowLeft","ArrowRight","ArrowUp","ArrowDown","Space"];
   window.addEventListener("keydown",event=>{
-    if(graphicsLost)return;
+    if(graphicsLost || (paused && document.querySelector("dialog[open]")))return;
     if(started&&!paused&&!event.repeat){
       if(event.code==="KeyV"){event.preventDefault();gameVision.toggle();return;}
       if(event.code==="KeyP"){event.preventDefault();choosePerch();return;}

@@ -259,7 +259,7 @@
     play.hidden = !earned;
     if (earned) {
       const flight = new URLSearchParams({ world: checkoutConfig?.rewardWorlds?.[0] || 'moosehead', launch: 'grand' });
-      play.href = `../?play=1#${flight}`;
+      play.href = `../?play=1&fly=1#${flight}`;
       friendShareStatus.textContent = 'Your five worlds are ready to fly.';
     }
     else if (checkoutConfig === undefined) friendShareStatus.textContent = 'Checking unlock availability…';
@@ -440,7 +440,9 @@
     } catch {}
   }
 
-  let playRequested = fragment.has('play');
+  // Older home-screen icons and buyer email links both used #play.
+  const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  let playRequested = fragment.has('play') && !standalone;
   const restoreRequested = fragment.has('restore-ticket');
   let restoreToken = fragment.get('restore');
   let pendingGift = fragment.get('gift') || params.get('gift');
@@ -598,7 +600,8 @@
       success: ['Find your Founder Pass', 'Restore access with your checkout email if your worlds don’t appear here.']
     };
     const restoreTicket = ['Restore your ticket', 'Use your checkout email to pick up your ticket on this device.'];
-    let [title, message] = playRequested ? restoreTicket : messages[checkoutState] || restoreTicket;
+    const guestPlay = playRequested && status && !owned;
+    let [title, message] = guestPlay ? ['Your flights', 'Fly Lake Winnipesaukee free, or restore a ticket you already own.'] : playRequested ? restoreTicket : messages[checkoutState] || restoreTicket;
     if (owned) {
       title = returningFromPayment() ? 'Your worlds are ready' : 'Welcome back';
       message = 'Fly all worlds with your ticket.';
@@ -615,6 +618,7 @@
     if (owned) byId('return-play').href = ticketFlightUrl(status);
     byId('return-retry').hidden = !retry || playRequested;
     byId('return-status-retry').hidden = !couldNotCheck && !(playRequested && !owned && !checking);
+    byId('return-free').hidden = !guestPlay;
     byId('return-restore').hidden = checking || owned;
     if (focus) notice.focus();
   }
@@ -630,6 +634,7 @@
     statusRequest = request('/status', undefined, 8000).catch(() => null).then(current => {
       if (version !== statusVersion) return;
       status = typeof current?.fullAccess === 'boolean' ? current : null;
+      window.dispatchEvent(new CustomEvent('aerie:ticket-status', { detail: status }));
       statusCheckedAt = Date.now();
       updateRestore();
       updateCheckoutReturn();
@@ -971,7 +976,7 @@
   window.addEventListener('hashchange', () => {
     const route = new URLSearchParams(location.hash.slice(1));
     const wasPlaying = playRequested;
-    playRequested = route.has('play');
+    playRequested = route.has('play') && !standalone;
     if (playRequested && !wasPlaying) {
       for (const dialog of [shareDialog, restoreDialog, purchaseDialog]) {
         if (dialog.open) dialog.close();
