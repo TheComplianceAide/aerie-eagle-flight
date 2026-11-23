@@ -60,12 +60,7 @@
   let heroInView = true;
 
   function updateHeroFlight() {
-    if (backgroundEnabled && heroInView && !document.hidden && !filmDialog.open && !reducedMotion.matches && !saveData) {
-      if (!heroFlight.getAttribute('src')) heroFlight.src = heroFlight.dataset.src;
-      heroFlight.play().catch(() => {});
-    } else {
-      heroFlight.pause();
-    }
+    window.setAerieHeroPlaying(backgroundEnabled && heroInView && !document.hidden && !filmDialog.open && !reducedMotion.matches && !saveData);
   }
 
   heroFlight.addEventListener('playing', () => {
