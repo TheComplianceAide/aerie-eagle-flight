@@ -1,4 +1,14 @@
 {
+  "routes": [
+    {
+      "route": "/aerie-cache/*",
+      "headers": { "Cache-Control": "public, max-age=31536000, immutable" }
+    },
+    {
+      "route": "/join/media/hero-v1/*",
+      "headers": { "Cache-Control": "public, max-age=31536000, immutable" }
+    }
+  ],
   "mimeTypes": {
     ".mp4": "video/mp4",
     ".webmanifest": "application/manifest+json"
