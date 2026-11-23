@@ -86,7 +86,13 @@ window.addShoreContact=function addShoreContact(T,renderer,scene,world,camera){
   }
   const previous=world.update.bind(world);
   world.update=(dt,t,player)=>{previous(dt,t,player);update();};
-  material.addEventListener('dispose',()=>{record.dispose();heightMaterial.dispose();});
+  // A restored graphics context comes back with an empty record, and a perched
+  // eagle would never cross a step to redraw it.
+  const invalidate=()=>{centre.set(Infinity,Infinity);capture.w=0;};
+  renderer.domElement.addEventListener('webglcontextrestored',invalidate);
+  material.addEventListener('dispose',()=>{
+    renderer.domElement.removeEventListener('webglcontextrestored',invalidate);record.dispose();heightMaterial.dispose();
+  });
 
   material.fragmentShader=`${borrowed?'#define shoreHeight foamCells':'uniform sampler2D shoreHeight;'}
     uniform vec4 shoreCapture;
@@ -151,7 +157,7 @@ window.addShoreContact=function addShoreContact(T,renderer,scene,world,camera){
   function depthAt(x,z){
     const u=Math.floor(((x-centre.x)/span+.5)*size),w=Math.floor(((centre.y-z)/span+.5)*size);
     if(!(u>=0&&w>=0&&u<size&&w<size)||!capture.w)return NaN;
-    renderer.readRenderTargetPixels(record,u,w,1,1,probe);return 3-4*T.DataUtils.fromHalfFloat(probe[0]);
+    probe[0]=0;renderer.readRenderTargetPixels(record,u,w,1,1,probe);return 3-4*T.DataUtils.fromHalfFloat(probe[0]);
   }
   return world.shoreContact={update,depthAt,span,size};
 };
