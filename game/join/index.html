@@ -32,7 +32,7 @@
   <link rel="stylesheet" href="return-flight.css?v=1">
   <script defer src="daily-flight.js"></script>
   <script defer src="return-flights.js"></script>
-  <script defer src="landing.js?v=ticket-mode"></script>
+  <script defer src="landing.js?v=share-destinations"></script>
   <script defer src="save-aerie.js?v=return"></script>
   <script defer src="flight-reminder.js"></script>
 </head>
@@ -340,6 +340,8 @@
       <div class="social-links" aria-label="Share options">
         <button class="button button-outline" type="button" id="native-share" hidden>Share link</button>
         <button class="button button-outline" type="button" id="copy-share">Copy link</button>
+        <a class="button button-outline" id="whatsapp-share" target="_blank" rel="noopener noreferrer">WhatsApp</a>
+        <a class="button button-outline" id="telegram-share" target="_blank" rel="noopener noreferrer">Telegram</a>
       </div>
       <p class="form-status" id="share-message" role="status" aria-live="polite"></p>
     </div>
@@ -358,6 +360,8 @@
       <div class="social-links" aria-label="Social media">
         <a class="button button-outline" id="linkedin-share" target="_blank" rel="noopener noreferrer">LinkedIn</a>
         <a class="button button-outline" id="x-share" target="_blank" rel="noopener noreferrer">X</a>
+        <a class="button button-outline" id="facebook-share" target="_blank" rel="noopener noreferrer" hidden>Facebook</a>
+        <a class="button button-outline" id="bluesky-share" target="_blank" rel="noopener noreferrer" hidden>Bluesky</a>
         <button class="button button-gold" id="share-photo" type="button" hidden>Share flight photo</button>
         <a class="button button-outline" id="instagram-image" href="media/instagram.jpg" download="aerie-instagram.jpg">Save Instagram image</a>
         <a class="button button-outline" id="instagram-open" href="https://www.instagram.com/" target="_blank" rel="noopener noreferrer" hidden>Open Instagram</a>

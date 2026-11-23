@@ -284,7 +284,7 @@
     byId('friend-details').hidden = !isClaim;
     byId('post-instructions').hidden = !isClaim;
     byId('claim-submission').hidden = !isClaim;
-    byId('claim-details').open = Boolean(channel && channel !== 'messages');
+    byId('claim-details').open = !isClaim || Boolean(channel && channel !== 'messages');
     byId('instagram-instructions').hidden = channel !== 'instagram';
     byId('instagram-open').hidden = channel !== 'instagram';
     byId('post-share-summary').textContent = isClaim ? 'Post publicly for review' : 'Share on social media';
@@ -293,6 +293,16 @@
     byId('copy-share').textContent = isClaim ? 'Copy invitation' : 'Copy link';
     nativeShare.hidden = typeof navigator.share !== 'function';
     byId('linkedin-share').href = 'https://www.linkedin.com/sharing/share-offsite/?' + new URLSearchParams({ url: canonicalUrl });
+    const whatsapp = byId('whatsapp-share');
+    if (whatsapp) {
+      const message = isClaim ? friendInvite : shareIntro;
+      whatsapp.href = 'https://wa.me/?' + new URLSearchParams({ text: withShareLink(message) });
+      byId('telegram-share').href = 'https://t.me/share/url?' + new URLSearchParams({ url: canonicalUrl, text: message });
+      byId('facebook-share').hidden = isClaim;
+      byId('facebook-share').href = 'https://www.facebook.com/sharer/sharer.php?' + new URLSearchParams({ u: canonicalUrl });
+      byId('bluesky-share').hidden = isClaim;
+      byId('bluesky-share').href = 'https://bsky.app/intent/compose?' + new URLSearchParams({ text: withShareLink(shareIntro) });
+    }
     updatePostLink();
     if (isClaim) updateFriendOffer();
     show(shareDialog);
@@ -373,7 +383,7 @@
       } else if (channel === 'messages') {
         const action = nativeShare.hidden ? byId('copy-share') : nativeShare;
         action.focus();
-        if (action === nativeShare) nativeShare.click();
+        action.click();
       } else {
         const link = byId(`${channel}-share`);
         link.focus();
@@ -413,16 +423,9 @@
     }
   });
 
-  byId('send-free-flight').addEventListener('click', async () => {
-    if (typeof navigator.share !== 'function') {
-      openShare(false);
-      return;
-    }
-    try {
-      await shareAerie(false);
-    } catch (error) {
-      if (error.name !== 'AbortError') openShare(false);
-    }
+  byId('send-free-flight').addEventListener('click', () => {
+    openShare(false);
+    if (!nativeShare.hidden) nativeShare.click();
   });
 
   const params = new URLSearchParams(location.search);
