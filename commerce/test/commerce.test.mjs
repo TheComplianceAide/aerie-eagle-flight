@@ -578,6 +578,7 @@ test('an alias keeps checkout, hosted email recovery, and its gift on the origin
   assert.equal(start.cookies[0].domain, undefined);
   assert.equal(start.cookies[0].secure, true);
   assert.equal(Object.hasOwn(sessions[0], 'customer_email'), false);
+  assert.match(sessions[0].custom_text.submit.message, /bank may show Aerie’s publisher, The ComplianceAide, during verification/);
   const checkoutLinks = [...sessions[0].custom_text.submit.message.matchAll(/\[([^\]]+)\]\(([^)]+)\)/g)];
   assert.deepEqual(checkoutLinks.map(([, label, url]) => [label, url]), [
     ['Terms', 'https://playaerie.com/join/policies/#terms'],

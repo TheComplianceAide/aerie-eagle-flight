@@ -285,7 +285,7 @@ export function createCommerce(config, { store, stripe, sendEmail, purchaseEmail
           message: 'Your ticket is digital. Stripe uses this address to calculate tax for Google Pay.'
         } }),
         submit: {
-          message: [
+          message: 'Your bank may show Aerie’s publisher, The ComplianceAide, during verification.\n\n' + [
             '[Terms](https://playaerie.com/join/policies/#terms)',
             '[Refund policy](https://playaerie.com/join/policies/#refunds)',
             '[Privacy](https://playaerie.com/join/policies/#privacy)',
