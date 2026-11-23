@@ -21,8 +21,8 @@
     } catch {}
     const saved = localRecord('aerie:last-flight');
     if (cookieIds) {
-      const [world, launch] = cookieIds;
-      return saved?.world === world && saved.launch === launch ? saved : { world, launch };
+      const [world, launch, ...label] = cookieIds;
+      return saved?.world === world && saved.launch === launch ? saved : { world, launch, title: label.join('/').slice(0, 120) };
     }
     if (saved) return saved;
     const snapshot = localRecord('aerie:resume');

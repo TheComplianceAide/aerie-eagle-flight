@@ -129,7 +129,8 @@
       // Home-screen web apps on iOS can import site cookies on installation.
       // This preference identifies a departure. Access is checked by the server.
       try {
-        document.cookie = 'aerie_departure=' + encodeURIComponent(last.world + '/' + last.launch) +
+        const departure = [last.world, last.launch, (last.title || '').slice(0, 120)].join('/');
+        document.cookie = 'aerie_departure=' + encodeURIComponent(departure) +
           '; Path=/; Max-Age=31536000; SameSite=Lax' + (location.protocol === 'https:' ? '; Secure' : '');
       } catch {}
       try {
