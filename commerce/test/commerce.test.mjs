@@ -48,8 +48,13 @@ function fixture({ config = {}, purchaseEmailOperations, now = Date.now } = {}) 
   const stripe = {
     webhooks: new Stripe('sk_test_synthetic_fixture').webhooks,
     prices: { retrieve: async () => ({ id: priceId, active: true, type: 'one_time', product: 'prod_aerie', tax_behavior: 'exclusive', currency: 'usd', unit_amount: 499, livemode: settings.live }) },
-    paymentIntents: { retrieve: async () => ({ metadata: { product: 'aerie-founder-and-gift' } }) },
+    paymentIntents: { retrieve: async id => ({
+      metadata: [...checkouts.values()].find(session => session.payment_intent === id)?.metadata || {}
+    }) },
     checkout: { sessions: {
+      async list({ payment_intent }) {
+        return { data: [...checkouts.values()].filter(session => session.payment_intent === payment_intent) };
+      },
       async create(input) {
         sessions.push(input);
         const id = `cs_${settings.mode}_fixture${sessions.length}`;
@@ -627,6 +632,96 @@ test('signed full refunds revoke the buyer and redeemed gift without revoking ac
   assert.equal((await call('gift/redeem', { body: { code }, cookie: friend.cookie })).status, 404);
 });
 
+test('signed dispute outcomes suspend and restore the correct buyer and redeemed gift independently per case', async () => {
+  let time = 1_800_000_000_000;
+  const { call, buy, restore, dispatch, checkouts, rows } = fixture({ now: () => time });
+  const buyer = await buy('dispute-buyer@example.test');
+  const other = await buy('unrelated@example.test');
+  const { giftUrl } = (await call('status', { cookie: buyer.cookie })).jsonBody;
+  const code = new URL(giftUrl, site).hash.slice('#gift='.length);
+  const friend = await restore('gift-recipient@example.test', code);
+  assert.equal((await call('gift/redeem', { body: { code }, cookie: friend.cookie })).jsonBody.ok, true);
+  const pi = checkouts.get(buyer.id).payment_intent;
+  const dispute = async (type, id, status) => {
+    const result = await dispatch('charge.dispute.' + type, { id, status, payment_intent: pi });
+    assert.equal(result.jsonBody.ok, true);
+  };
+  const access = async expected => {
+    for (const cookie of [buyer.cookie, friend.cookie]) assert.equal((await call('status', { cookie })).jsonBody.fullAccess, expected);
+    assert.equal((await call('status', { cookie: other.cookie })).jsonBody.fullAccess, true);
+  };
+  await dispute('created', 'du_inquiry', 'warning_needs_response');
+  await dispute('updated', 'du_inquiry', 'warning_under_review');
+  await access(true);
+  await dispute('closed', 'du_inquiry', 'warning_closed');
+  await access(true);
+  await dispute('created', 'du_inquiry', 'warning_needs_response'); // Earlier same-second delivery.
+  await access(true);
+  time += 1000;
+  await dispute('created', 'du_formal', 'warning_needs_response');
+  await dispute('funds_withdrawn', 'du_formal', 'needs_response');
+  await dispute('updated', 'du_formal', 'under_review');
+  await dispute('updated', 'du_formal', 'warning_under_review');
+  await dispute('closed', 'du_formal', 'warning_closed');
+  await access(false);
+  await dispute('created', 'du_prevention', 'needs_response');
+  await dispute('updated', 'du_prevention', 'prevented');
+  await access(false); // The other dispute is still open.
+  time += 1000;
+  await dispute('closed', 'du_formal', 'won');
+  await access(true);
+  await dispute('created', 'du_prevented_at_creation', 'prevented');
+  await access(true);
+  time += 1000;
+  await dispute('closed', 'du_loss', 'lost');
+  await dispute('closed', 'du_another', 'warning_closed');
+  await access(false);
+  time -= 1000;
+  await dispute('closed', 'du_loss', 'won'); // Older delivery cannot reverse the loss.
+  await access(false);
+  await dispatch('charge.dispute.closed', { id: 'du_foreign', status: 'won', payment_intent: 'pi_elsewhere' });
+  assert.equal(rows.has('payment:pi_elsewhere'), false);
+});
+
+test('an outcome for an unidentified historical hold requires review before restoring access', async () => {
+  const { buy, checkouts, rows, dispatch, call } = fixture();
+  const buyer = await buy('historical@example.test');
+  const pi = checkouts.get(buyer.id).payment_intent;
+  const payment = rows.get('payment:' + pi);
+  Object.assign(payment, { disputed: true, disputeVersion: 12345 });
+  const result = await dispatch('charge.dispute.closed', { id: 'du_new', payment_intent: pi, status: 'won' });
+  assert.equal(result.jsonBody.ok, true);
+  assert.equal(rows.get('payment:' + pi).legacyDisputeHold, true);
+  assert.equal((await call('status', { cookie: buyer.cookie })).jsonBody.fullAccess, false);
+});
+
+test('a won pre-fulfillment dispute restores a paid ticket and one gift through webhook retries alone', async () => {
+  const { call, restore, dispatch, checkouts, rows, sessions } = fixture();
+  const email = 'early-dispute@example.test';
+  await call('checkout', { body: { email } });
+  const [checkout] = checkouts.values();
+  checkout.payment_status = 'paid';
+  const dispute = { id: 'du_early', payment_intent: checkout.payment_intent };
+  await dispatch('charge.dispute.created', { ...dispute, status: 'needs_response' });
+  await dispatch('checkout.session.completed', { id: checkout.id });
+  assert.equal(rows.has('purchase:' + checkout.id), false);
+
+  const key = 'pending:' + checkout.client_reference_id;
+  const pending = rows.get(key);
+  rows.delete(key);
+  const won = () => dispatch('charge.dispute.closed', { ...dispute, status: 'won' });
+  assert.equal((await won()).status, 503); // The release arrived but fulfillment still needs to be retried.
+  rows.set(key, pending);
+  const replays = await Promise.all([won(), won()]);
+  assert.ok(replays.every(result => result.jsonBody.ok));
+  const buyer = await restore(email);
+  const access = (await call('status', { cookie: buyer.cookie })).jsonBody;
+  assert.ok(access.fullAccess && access.giftUrl);
+  assert.equal(sessions.length, 1);
+  assert.equal([...rows.keys()].filter(k => k.startsWith('purchase:')).length, 1);
+  assert.equal([...rows.keys()].filter(k => k.startsWith('gift:')).length, 1);
+});
+
 test('a signed refund received before Checkout fulfillment prevents both purchase and gift grants', async () => {
   const { call, dispatch, checkouts, rows } = fixture();
   const start = await call('checkout', { body: { email: 'refund-first@example.test' } });
@@ -634,6 +729,7 @@ test('a signed refund received before Checkout fulfillment prevents both purchas
   checkout.payment_status = 'paid';
   const payment = { payment_intent: checkout.payment_intent, refunded: true };
   assert.equal((await dispatch('charge.refunded', payment)).jsonBody.ok, true);
+  assert.equal((await dispatch('charge.dispute.closed', { ...payment, id: 'du_refunded', status: 'won' })).jsonBody.ok, true);
   assert.equal((await dispatch('checkout.session.completed', { id: checkout.id })).jsonBody.ok, true);
   const result = await call('checkout/complete', { query: `?session_id=${checkout.id}`, cookie: asCookie(start.cookies[0]) });
   assert.equal(result.headers.Location, '/join/?checkout=pending');

@@ -25,6 +25,8 @@ const restoreCodeLimit = 5;
 const digest = value => createHash('sha256').update(value).digest('hex');
 const conflict = error => error.statusCode === 409 || error.statusCode === 412;
 const clientErrorKinds = new Set(['startup', 'script', 'graphics', 'promise']);
+const releasedDisputeStatuses = new Set(['won', 'warning_closed', 'prevented']);
+const inquiryStatuses = new Set(['warning_needs_response', 'warning_under_review']);
 const versionPattern = /^\d{1,3}\.\d{1,3}\.\d{1,3}(?:-[A-Za-z0-9.-]{1,12})?$/;
 const basenamePattern = /^[A-Za-z0-9][A-Za-z0-9._-]{0,71}\.(?:js|mjs|html)$/;
 
@@ -437,21 +439,54 @@ export function createCommerce(config, { store, stripe, sendEmail, purchaseEmail
       if (event.type === 'charge.refunded') {
         if (!event.data.object.refunded) return;
         payment.refunded = true;
-      } else {
-        const closed = event.type === 'charge.dispute.closed';
-        const disputeVersion = event.created * 2 + Number(closed);
-        if (disputeVersion <= (payment.disputeVersion || 0)) return;
-        payment.disputeVersion = disputeVersion;
-        payment.disputed = !closed || event.data.object.status !== 'won';
       }
+      const changed = event.type === 'charge.refunded' || recordDispute(payment, event);
       try {
-        await store.transaction([[current ? 'replace' : 'create', payment]]);
-        return;
+        if (changed) await store.transaction([[current ? 'replace' : 'create', payment]]);
       } catch (error) {
         if (!conflict(error)) throw error;
+        continue;
       }
+      if (releasedDisputeStatuses.has(event.data.object.status) && !payment.refunded && !payment.disputed && !payment.checkoutId) {
+        // A hold before first fulfillment leaves no purchase. A duplicate release must retry a failed recovery.
+        const sessions = await stripe.checkout.sessions.list({ payment_intent: paymentIntent, limit: 1 });
+        if (!sessions.data[0]) throw new HttpError(503, 'The payment is awaiting its checkout.');
+        await deliverPaidCheckout(sessions.data[0].id);
+      }
+      return;
     }
     throw new Error('Payment update is busy.');
+  }
+
+  function recordDispute(payment, event) {
+    const { id, status } = event.data.object;
+    if (typeof id !== 'string' || !id || typeof status !== 'string' || !status) throw new HttpError(400, 'Invalid dispute.');
+    const inquiry = inquiryStatuses.has(status);
+    const held = !inquiry && !releasedDisputeStatuses.has(status);
+    const terminal = releasedDisputeStatuses.has(status) || status === 'lost' || event.type === 'charge.dispute.closed';
+    // Stripe event times have second precision. An escalation outranks the inquiry, and a final ruling outranks both.
+    let stage = 2;
+    if (inquiry) stage = 0;
+    else if (status === 'warning_closed') stage = 1;
+    else if (terminal) stage = 3;
+    const version = event.created * 4 + stage;
+    const cases = new Map(JSON.parse(payment.disputeCases || '[]'));
+    const prior = cases.get(id);
+    if (!prior && event.created * 2 + Number(terminal) <= (payment.disputeVersion || 0)) return false;
+    if (prior && (version < prior.version || (version === prior.version && (!held || prior.held)))) return false;
+    // Older rows recorded only a payment-wide hold, so a new dispute ID cannot identify which case caused it.
+    if (!payment.disputeCases && payment.disputed) payment.legacyDisputeHold = true;
+    cases.set(id, { version, held });
+    payment.disputeCases = JSON.stringify([...cases]);
+    payment.disputed = Boolean(payment.legacyDisputeHold) || [...cases.values()].some(entry => entry.held);
+    return true;
+  }
+
+  async function deliverPaidCheckout(id) {
+    const result = await fulfill(id);
+    if (result?.missingPaidOrder && !(await store.get(`purchase:${id}`))) {
+      throw new HttpError(503, 'The paid checkout is awaiting its order record.');
+    }
   }
 
   async function webhook(request) {
@@ -466,12 +501,9 @@ export function createCommerce(config, { store, stripe, sendEmail, purchaseEmail
     }
     if (event.livemode !== config.live) throw new HttpError(400, 'Stripe event mode does not match.');
     if (['checkout.session.completed', 'checkout.session.async_payment_succeeded'].includes(event.type)) {
-      const id = event.data.object.id;
-      const result = await fulfill(id);
-      if (result?.missingPaidOrder && !(await store.get(`purchase:${id}`))) {
-        throw new HttpError(503, 'The paid checkout is awaiting its order record.');
-      }
-    } else if (['charge.refunded', 'charge.dispute.created', 'charge.dispute.closed'].includes(event.type)) {
+      await deliverPaidCheckout(event.data.object.id);
+    } else if (['charge.refunded', 'charge.dispute.created', 'charge.dispute.updated',
+      'charge.dispute.funds_withdrawn', 'charge.dispute.closed'].includes(event.type)) {
       await changePayment(event);
     }
     return { jsonBody: { ok: true } };

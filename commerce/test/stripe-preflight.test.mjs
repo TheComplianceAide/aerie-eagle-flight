@@ -6,7 +6,7 @@ const args = ['--mode', 'test', '--account', 'acct_Aerie'];
 const opts = options([...args, '--registrations', 'none']);
 const requiredEvents = [
   'checkout.session.completed', 'checkout.session.async_payment_succeeded',
-  'charge.refunded', 'charge.dispute.created', 'charge.dispute.closed'
+  'charge.refunded', 'charge.dispute.created', 'charge.dispute.updated', 'charge.dispute.funds_withdrawn', 'charge.dispute.closed'
 ];
 const url = 'https://playaerie.com/api/aerie/stripe/webhook';
 const status = (report, name) => report.checks.find(c => c.name === name)?.status;
@@ -113,6 +113,14 @@ test('rejects an invalid price, wrong product, incomplete webhook events and mis
   const report = await preflight(opts, f);
   assert.equal(status(report, 'webhook endpoint'), 'fail');
   assert.equal(status(report, 'webhook secret'), 'fail');
+});
+
+test('preflight detects missing formal escalation or dispute update notifications', async () => {
+  for (const event of ['charge.dispute.updated', 'charge.dispute.funds_withdrawn']) {
+    const f = fixture();
+    f.webhook.enabled_events = requiredEvents.filter(type => type !== event);
+    assert.equal(status(await preflight(opts, f), 'webhook endpoint'), 'fail');
+  }
 });
 
 test('tax confirmation is required for live smoke; neither none nor an empty Stripe list by itself implies confirmation', async () => {
