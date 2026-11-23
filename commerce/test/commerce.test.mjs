@@ -780,6 +780,7 @@ test('an alias keeps checkout, hosted email recovery, and its gift on the origin
     display_name: 'Aerie', background_color: '#0d1919', button_color: '#efd092',
     logo: { type: 'url', url: `${site}/join/media/aerie-checkout-logo.png` }
   });
+  assert.equal(sessions[0].payment_intent_data.description, 'Aerie — all worlds plus one gift copy');
   assert.equal(sessions[0].success_url, `${alias}/join/return/#order=${sessions[0].client_reference_id}`);
   assert.equal(sessions[0].cancel_url, `${alias}/join/?checkout=cancel`);
 
