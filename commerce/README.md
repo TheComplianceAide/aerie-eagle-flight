@@ -27,6 +27,7 @@ Run `npm ci` and `npm test` with Node.js 22 or later. The tests use the official
 | `AERIE_STRIPE_PRICE_ID`, `AERIE_STRIPE_WEBHOOK_SECRET` | Mode-matched one-time USD Stripe Price and endpoint signing secret. |
 | `AERIE_SIGNUP_ENABLED`, `AERIE_CHECKOUT_ENABLED`, `AERIE_SHARE_CLAIMS_ENABLED` | Set the individual feature's value to `true` after its backing services are configured. |
 | `AERIE_REWARD_WORLDS` | Optional list of exactly three distinct paid world IDs separated by commas. |
+| `AERIE_PURCHASE_HELP_ENABLED` | Enable private purchase help after verifying owner alerting and Table Storage access. |
 | `AERIE_MONITORING_ENABLED` | Enable sanitized startup, script, graphics and promise error intake from the game origins. |
 
 Azure Functions host settings such as `AzureWebJobsStorage` and `FUNCTIONS_WORKER_RUNTIME=node` are supplied separately by Azure. Use a low-cost Functions consumption plan and have an ingress rate-limit policy for email link requests before opening to the public. Set retention handling for old email-link, pending-checkout, session, and review records according to the business's data retention needs. Signups are stored as contact opt-ins; mailing campaigns are separate.
@@ -53,3 +54,42 @@ AppTraces
 ```
 
 `rg-aerie-prod` uses two Azure Monitor scheduled query alerts. They evaluate every five minutes over a 15-minute window. `aerie-client-launch-and-webgl` fires at five reported startup or WebGL failures. `aerie-api-server-failures` fires at three API requests with HTTP 5xx responses. Both use the `ag-playaerie-prod` action group, which sends to the owner address configured in Azure.
+
+## Purchase help
+
+`/join/help/` accepts a charge, access or gift question and returns an opaque `AER-…` case number after the case is saved. The endpoint accepts JSON from an allowed Aerie origin, validates fields and rate-limits new cases in Table Storage. Retries of the same submission return the same case number. The ticket and reply address stay in the mode’s existing private `AerieCommerce` partition. The form never sends email on a visitor’s behalf.
+
+1. Publish the static `/join/help/` page and the Azure Functions code. Confirm the function identity has Table Storage Data Contributor on the private commerce table and its Application Insights workspace is connected. To prevent sampling of the receipt traces, set `AzureFunctionsJobHost__logging__applicationInsights__samplingSettings__excludedTypes=Exception;Trace` on the commerce Function App. This setting also excludes other app traces from sampling. [Azure Functions host settings](https://learn.microsoft.com/en-us/azure/azure-functions/functions-host-json#override-hostjson-values)
+2. In the Aerie Application Insights workspace, create or verify the `aerie-purchase-help-arrivals` log alert. Count matching rows, trigger above zero, evaluate every five minutes over the last 15 minutes, and use the existing `ag-playaerie-prod` owner action group. The query and notification should contain only case references.
+
+   ```kusto
+   AppTraces
+   | where Message matches regex @"^aerie_purchase_help AER-[A-Za-z0-9_-]{22}$"
+   | project TimeGenerated, Case = extract(@"(AER-[A-Za-z0-9_-]{22})$", 1, Message)
+   ```
+
+3. Set `AERIE_PURCHASE_HELP_ENABLED=true`. Send a labeled synthetic request through the public page. Check the displayed receipt, its private table record, its trace and the actual action group notification. Close the synthetic case after the check.
+
+An operator with Table Storage Data Reader can list open cases without printing reply addresses or messages. Use Data Contributor to close a case. Substitute the configured storage account and use `aerie-test` for sandbox cases, or `aerie-live` for live cases.
+
+```bash
+az storage entity query --auth-mode login --account-name "$AERIE_SUPPORT_STORAGE" \
+  --table-name AerieCommerce --select RowKey issue submittedAt \
+  --filter "PartitionKey eq '$AERIE_SUPPORT_PARTITION' and RowKey ge 'purchase-help:' and RowKey lt 'purchase-help;' and status eq 'open'"
+```
+
+Use the exact case reference with an authorized private console. This command displays the reply address and message. Keep that output out of logs, chat and screenshots. Match purchase questions against Stripe using the authorized operator account, then follow up from the monitored support channel. A submitted address or case number alone does not verify a buyer’s identity. [Azure Table tooling](https://learn.microsoft.com/en-us/cli/azure/storage/entity#az-storage-entity-show)
+
+```bash
+az storage entity show --auth-mode login --account-name "$AERIE_SUPPORT_STORAGE" \
+  --table-name AerieCommerce --partition-key "$AERIE_SUPPORT_PARTITION" \
+  --row-key "purchase-help:$AERIE_SUPPORT_CASE" --select issue email message status submittedAt
+```
+
+After resolving the case, mark it closed in the private table.
+
+```bash
+az storage entity merge --auth-mode login --account-name "$AERIE_SUPPORT_STORAGE" \
+  --table-name AerieCommerce --entity "PartitionKey=$AERIE_SUPPORT_PARTITION" \
+  "RowKey=purchase-help:$AERIE_SUPPORT_CASE" status=closed --output none
+```

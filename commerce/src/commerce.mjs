@@ -1,4 +1,5 @@
 import { createHash, createHmac, randomBytes } from 'node:crypto';
+import { createPurchaseHelp } from './purchase-help.mjs';
 import { allWorlds, freeWorld } from './settings.mjs';
 
 const minute = 60_000;
@@ -73,12 +74,13 @@ function downloadTarget(query) {
   return { world, path };
 }
 
-async function readJson(request) {
+async function readJson(request, limit = 8192) {
   if (!/^application\/json(?:;|$)/i.test(request.headers.get('content-type') || '')) {
     throw new HttpError(415, 'Send JSON to this endpoint.');
   }
+  if (Number(request.headers.get('content-length')) > limit) throw new HttpError(413, 'Request is too large.');
   const raw = await request.text();
-  if (Buffer.byteLength(raw) > 8192) throw new HttpError(413, 'Request is too large.');
+  if (Buffer.byteLength(raw) > limit) throw new HttpError(413, 'Request is too large.');
   try {
     const body = JSON.parse(raw);
     if (!body || typeof body !== 'object' || Array.isArray(body)) throw new Error();
@@ -103,6 +105,7 @@ export function createCommerce(config, { store, stripe, sendEmail, assetUrl, now
   const joinPath = '/join/';
   const hash = (purpose, value) => createHmac('sha256', config.secret).update(`${purpose}:${value}`).digest('base64url');
   const userId = email => hash('email', email);
+  const submitPurchaseHelp = createPurchaseHelp({ store, now, hash });
   const accountKey = uid => `account:${uid}`;
   const giftCode = sessionId => hash('gift', sessionId);
   const row = (rowKey, fields) => ({ ...fields, rowKey });
@@ -504,6 +507,11 @@ export function createCommerce(config, { store, stripe, sendEmail, assetUrl, now
     'restore/confirm': ['POST', confirmRestore],
     'gift/redeem': ['POST', redeemGift],
     'share-claim': ['POST', submitClaim],
+    'purchase-help': ['POST', async (request, context) => {
+      if (!config.purchaseHelp || !store) throw new HttpError(503, 'Purchase help is temporarily unavailable.');
+      const body = await readJson(request, 4096);
+      return submitPurchaseHelp({ ...body, email: emailAddress(body.email) }, context);
+    }],
     telemetry: ['POST', telemetry],
     'stripe/webhook': ['POST', webhook],
     asset: ['GET', async request => {

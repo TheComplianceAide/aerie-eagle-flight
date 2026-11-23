@@ -1,0 +1,72 @@
+body {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #0d1919bf, #0d1919e8 72%, var(--forest)),
+    url("../media/hero.webp") center / cover no-repeat;
+}
+.help-header {
+  min-height: 85px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+}
+.help-logo { display: inline-flex; align-items: center; }
+.help-logo img { display: block; }
+.help-back {
+  min-height: 44px;
+  display: inline-flex;
+  gap: .5rem;
+  align-items: center;
+  color: var(--gold-strong);
+  font-size: .9rem;
+  font-weight: 650;
+}
+.help-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: start;
+  gap: clamp(2rem, 6vw, 7rem);
+  padding-block: clamp(2.75rem, 8vw, 8rem);
+  width: min(88%, 1040px);
+}
+.help-intro { padding-block: 1.25rem; }
+.help-intro h1 { font-size: clamp(3.9rem, 8vw, 7.4rem); margin-block: .65rem 1.3rem; }
+.help-intro p:last-child { max-width: 34ch; color: #f1eee6; }
+.help-card {
+  min-width: 0;
+  padding: clamp(1.25rem, 3vw, 2rem);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #172725;
+  box-shadow: 0 20px 65px #0005;
+}
+.help-card :is(input, textarea, select) { font-size: 1rem; }
+.help-card select {
+  font-family: inherit;
+  width: 100%;
+  min-height: 45px;
+  min-width: 0;
+  padding: 8px 12px;
+  color: var(--warm);
+  background: #12211f;
+  border: 1px solid #dce1d34d;
+  border-radius: 4px;
+}
+.help-card textarea { resize: vertical; }
+.help-card button { width: 100%; margin-top: 1rem; }
+.help-card button:disabled { opacity: .72; cursor: wait; }
+.help-card p { color: var(--muted); font-size: .88rem; }
+.help-card .help-error:not(:empty) { color: #ffd3bd; margin-top: .75rem; }
+.help-receipt h2 { font-size: clamp(2.25rem, 5vw, 3rem); margin-bottom: .75rem; }
+.help-receipt .case-reference {
+  margin-top: .75rem;
+  color: var(--gold-strong);
+  font: 600 .95rem/1.5 ui-monospace, monospace;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+@media (max-width: 720px) {
+  .help-layout { grid-template-columns: minmax(0, 1fr); gap: 1.5rem; }
+  .help-intro { padding: 0; }
+  .help-intro h1 { font-size: clamp(3.45rem, 12vw, 5rem); }
+}
