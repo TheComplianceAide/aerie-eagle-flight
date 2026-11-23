@@ -1,0 +1,35 @@
+name: One-time Aerie public reachability check
+on:
+  push:
+    branches: [qa/self-hosted-forecast-parity]
+    paths: [.github/workflows/public-health-probe.yml]
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - name: Read public release and store configuration
+        run: |
+          python3 - <<'PY'
+          from concurrent.futures import ThreadPoolExecutor
+          import json, time, urllib.request
+          hosts = ['playaerie.com', 'www.playaerie.com']
+          paths = ['/release.json', '/api/aerie/config']
+          def check(url):
+              started = time.monotonic()
+              try:
+                  with urllib.request.urlopen(url, timeout=12) as r:
+                      raw = r.read(32768)
+                      try:
+                          data=json.loads(raw)
+                      except ValueError:
+                          data={}
+                      print(url, 'HTTP',r.status,'content-type',r.headers.get('Content-Type'), 'jsonKeys',list(data)[:12],
+                            'seconds',round(time.monotonic()-started,3),flush=True)
+              except Exception as error:
+                  print(url,'FAILED',type(error).__name__,str(error),'seconds',round(time.monotonic()-started,3),flush=True)
+          with ThreadPoolExecutor(max_workers=4) as workers:
+              list(workers.map(check, ['https://'+host+path for host in hosts for path in paths]))
+          PY
