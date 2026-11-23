@@ -6,7 +6,7 @@
   const launchPicker=el("launchPoint");
   launchPicker.addEventListener("change",()=>{app.dataset.departure=launchPicker.value;});
   app.dataset.departure=launchPicker.value;
-  let cameraMode="shoulder";
+  let cameraMode="chase"; // Third person by default; C or the camera button switches to the shoulder view.
   const cameraButton=el("cameraView");
   function updateCameraButton(){
     app.dataset.camera=cameraMode;
