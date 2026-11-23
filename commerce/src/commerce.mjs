@@ -498,6 +498,7 @@ export function createCommerce(config, { store, stripe, sendEmail, purchaseEmail
           browserProof: digest(browserNonce),
           codeProof: hash('restore-code', `${token}:${passcode}`),
           codeAttempts: 0,
+          friendReward: friendPass(request),
           giftCheckoutId: gift && (!gift.redeemedBy || gift.redeemedBy === uid) ? gift.checkoutId : ''
         })]
       ]);
@@ -551,7 +552,7 @@ export function createCommerce(config, { store, stripe, sendEmail, purchaseEmail
       const login = newToken();
       try {
         const actions = [['replace', { ...link, used: true }], ['create', session(login, link.uid)]];
-        if (friendPass(request)) {
+        if (link.friendReward === true || friendPass(request)) {
           const account = await store.get(accountKey(link.uid));
           if (!account?.reward) actions.push([account ? 'replace' : 'create', row(accountKey(link.uid), { ...account, reward: true })]);
         }
