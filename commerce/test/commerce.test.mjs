@@ -332,6 +332,48 @@ test('checkout return verifies exact purchase and single fulfillment survives we
   assert.deepEqual((await call('status', { cookie: bought.cookie })).jsonBody.worlds, allWorlds);
 });
 
+test('static checkout returns recover only their own paid order, including after the checkout cookie is consumed', async () => {
+  const { call, rows, checkouts, sessions } = fixture();
+  const first = await call('checkout', { body: { email: 'first@example.test' } });
+  const second = await call('checkout', { body: { email: 'second@example.test' } });
+  const [one, two] = [...checkouts.values()];
+  const firstCookie = asCookie(first.cookies[0]);
+  const secondCookie = asCookie(second.cookies[0]);
+  const body = { order: one.client_reference_id };
+  const confirm = cookie => call('checkout/confirm', { body, cookie });
+  assert.equal(one.success_url, `${site}/join/return/#order=${body.order}`);
+  assert.equal(rows.get('pending:' + body.order).checkoutId, one.id);
+  assert.equal((await confirm(firstCookie)).jsonBody.state, 'pending');
+  one.payment_status = 'paid';
+  assert.equal((await confirm(secondCookie)).jsonBody.state, 'pending');
+  assert.equal((await confirm()).jsonBody.state, 'pending');
+  assert.equal((await call('checkout/confirm', { body, cookie: firstCookie, origin: 'https://unrelated.example' })).status, 403);
+  const confirmed = await confirm(firstCookie);
+  assert.deepEqual(confirmed.jsonBody, { state: 'success' });
+  assert.equal(confirmed.cookies[1].name, first.cookies[0].name);
+  assert.equal(confirmed.cookies[1].maxAge, 0);
+  const buyer = asCookie(confirmed.cookies[0]);
+  assert.equal((await call('status', { cookie: buyer })).jsonBody.fullAccess, true);
+  const replay = await confirm(buyer);
+  assert.deepEqual(replay.jsonBody, { state: 'success' });
+  assert.equal(replay.cookies, undefined);
+  assert.equal((await call('checkout/confirm', { body: { order: two.client_reference_id }, cookie: buyer })).jsonBody.state, 'pending');
+  rows.get('payment:' + one.payment_intent).refunded = true;
+  assert.equal((await confirm(buyer)).jsonBody.state, 'pending');
+  assert.equal(sessions.length, 2);
+});
+
+test('the static return accepts only an opaque order reference in a same-origin POST', async () => {
+  const { call, sessions, rows } = fixture();
+  for (const order of [null, 'cs_test_fixture', {}, 'a'.repeat(65)]) {
+    assert.equal((await call('checkout/confirm', { body: { order } })).status, 400);
+  }
+  assert.equal((await call('checkout/confirm')).status, 405);
+  assert.equal((await call('checkout/confirm', { body: { order: 'a'.repeat(64) } })).jsonBody.state, 'pending');
+  assert.equal(sessions.length, 0);
+  assert.equal(rows.size, 0);
+});
+
 test('a buyer can finish either checkout after opening two tabs', async () => {
   const { call, checkouts } = fixture();
   const email = 'two-tabs@example.test';
@@ -597,7 +639,7 @@ test('an alias keeps checkout, hosted email recovery, and its gift on the origin
     display_name: 'Aerie', background_color: '#0d1919', button_color: '#efd092',
     logo: { type: 'url', url: `${site}/join/media/aerie-checkout-logo.png` }
   });
-  assert.equal(sessions[0].success_url, `${alias}/api/aerie/checkout/complete?session_id={CHECKOUT_SESSION_ID}`);
+  assert.equal(sessions[0].success_url, `${alias}/join/return/#order=${sessions[0].client_reference_id}`);
   assert.equal(sessions[0].cancel_url, `${alias}/join/?checkout=cancel`);
 
   const checkout = [...checkouts.values()][0];
