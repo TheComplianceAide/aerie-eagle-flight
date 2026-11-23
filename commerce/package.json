@@ -9,6 +9,7 @@
   },
   "scripts": {
     "test": "node --test",
+    "preflight": "node tools/stripe-preflight.mjs",
     "review": "node src/review.mjs"
   },
   "dependencies": {
