@@ -1168,7 +1168,8 @@
     const info=renderer.info;
     return {t:Math.round(elapsed),fps:Math.round(measuredFps),dpr:renderer.getPixelRatio(),
       ktris:Math.round(info.render.triangles/1000),calls:info.render.calls,tex:info.memory.textures,
-      geo:info.memory.geometries,stage:perching?.stage||"free",paused,lost:graphicsLost};
+      geo:info.memory.geometries,stage:perching?.stage||"free",paused,lost:graphicsLost,
+      sound:soundOn&&audio?.state==="running"?1:0};
   };
   function frame(now){
     requestAnimationFrame(frame);
