@@ -36,6 +36,11 @@ fieldset { padding: 0; border: 0; margin: 0; min-width: 0; }
 }
 .hero-picture, .hero-picture::after { position: absolute; inset: 0; width: 100%; height: 100%; }
 .hero-picture { z-index: -1; background: #355454 url("media/mount-major.webp") center 48% / cover no-repeat; }
+.hero-picture video {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 48%;
+  opacity: 0; transition: opacity .45s ease;
+}
+.hero-picture video.is-visible { opacity: 1; }
 .hero-picture::after {
   content: "";
   background:
@@ -95,6 +100,10 @@ fieldset { padding: 0; border: 0; margin: 0; min-width: 0; }
 .hero-footer {
   min-height: 56px; display: flex; align-items: center; justify-content: space-between;
   gap: 1rem; border-top: 1px solid var(--line); color: #e0e0d3; font-size: .77rem;
+}
+.hero-motion {
+  padding: 7px 0 7px 7px; border: 0; background: transparent; color: inherit;
+  font: inherit; text-decoration: underline; text-underline-offset: 3px;
 }
 .footlinks button, .text-link { background: transparent; border: 0; padding: 6px 0; color: inherit; text-decoration: underline; text-underline-offset: 4px; }
 
@@ -175,6 +184,7 @@ fieldset:disabled input, fieldset:disabled button, .button:disabled { opacity: .
   .toplinks a { font-size: .79rem; }
   .toplinks a:nth-child(2) { display: none; }
   .hero-picture { background-position: 62% center; }
+  .hero-picture video { object-position: 62% center; }
   .hero-picture::after {
     background:
       linear-gradient(90deg, #0b1a1aca 0%, #0b1a1a71 56%, #10212027 100%),
@@ -203,6 +213,7 @@ fieldset:disabled input, fieldset:disabled button, .button:disabled { opacity: .
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
+  .hero-picture video, .hero-motion { display: none; }
 }
 
 .footlinks .project-link { gap: .5rem; }

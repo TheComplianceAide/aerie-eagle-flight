@@ -1,6 +1,19 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#172323"><title>Aerie · Free Flight</title><meta name="application-version" content="0.34.0"><link rel="icon" type="image/png" sizes="64x64" href="aerie-icon-64.png"><link rel="stylesheet" href="style.css?v=0.34.0"><meta name="description" content="Fly free as an eagle from Mount Major over Lake Winnipesaukee, New Hampshire.">
 <link rel="canonical" href="https://playaerie.com/">
+<script>
+  (() => {
+    const entry = new URL(location.href);
+    const selectedWorld = new URLSearchParams(entry.hash.slice(1)).has('world');
+    if (entry.protocol !== 'file:' && document.querySelector('meta[name="aerie-access"][content="required"]') &&
+        !selectedWorld && entry.searchParams.get('access') !== 'free' && entry.searchParams.get('play') !== '1') {
+      const home = new URL('join/', entry);
+      home.search = entry.search;
+      home.hash = entry.hash;
+      location.replace(home);
+    }
+  })();
+</script>
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Aerie">
 <meta property="og:title" content="Fly as an eagle">
@@ -32,4 +45,4 @@
   <p>Your flight is paused while the browser reconnects to the graphics processor.</p>
   <button id="reloadGraphics" class="primary" type="button">Reload game</button>
 </dialog>
-</main><script src="three.min.js"></script><script src="mobile-scenery.js"></script><script src="flight-pointer.js"></script><script src="range-loader.js?v=0.34.0"></script><script src="perch-routes.js"></script><script src="game-ranges.js"></script><script src="access-pass.js?v=2"></script><script src="aerie-monitor.js?v=1"></script><script src="world-menu.js?v=mount-major"></script><script src="game-units.js"></script><script src="game.js?v=0.34.0-mount-major"></script></body></html>
+</main><script src="three.min.js"></script><script src="mobile-scenery.js"></script><script src="flight-pointer.js"></script><script src="range-loader.js?v=0.34.0"></script><script src="perch-routes.js"></script><script src="game-ranges.js"></script><script src="access-pass.js?v=3"></script><script src="aerie-monitor.js?v=1"></script><script src="world-menu.js?v=mount-major"></script><script src="game-units.js"></script><script src="game.js?v=0.34.0-mount-major"></script></body></html>
