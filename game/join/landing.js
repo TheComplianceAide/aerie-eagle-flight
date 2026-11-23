@@ -563,7 +563,7 @@
     giftDetails.hidden = !pendingGift && !giftUrl && !receiptUrl && !hasAccess;
     giftMessage.textContent = pendingGift && emailVerified ? 'Your Founder Pass gift is ready to redeem.' :
       pendingGift ? 'Your gift is held by its private link until you verify your email.' :
-      giftUrl ? 'Your gift link opens the full game for one friend.' :
+      giftUrl ? 'Send your gift link to one friend.' :
       hasAccess ? 'Your unlocked worlds are ready to fly.' : '';
   }
 
