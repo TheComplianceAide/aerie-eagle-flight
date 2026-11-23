@@ -118,7 +118,7 @@ window.addForest = function addForest(THREE, scene, world) {
     const variantIndex = Math.min(asset.variants.length-1,Math.floor(random(index+3)*asset.variants.length));
     const variant = asset.variants[variantIndex];
     const sy = h / variant.height;
-    const sx = tree.width ? tree.width/variant.width : sy*(.91+random(index+19)*.21);
+    const sx = tree.width ? tree.width*(tree.crownScale||1)/variant.width : sy*(.91+random(index+19)*.21);
     const root = {x:tree.x,y:tree.y,z:tree.z,h,sx,sy,variantIndex,
       radius:variant.width*sx*.5,rotation:random(index+51)*Math.PI*2,
       color:.83+.25*random(index+97)};

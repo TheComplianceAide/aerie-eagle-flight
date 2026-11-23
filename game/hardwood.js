@@ -141,7 +141,7 @@ window.addHardwoods=function addHardwoods(T,scene,trees,options){
     const surveyForms=lakeCrowns?new Float32Array(4*batch.length):null;
     const nearResident=new T.InstancedBufferAttribute(new Uint8Array(batch.length),1).setUsage(T.DynamicDrawUsage);
     batch.forEach((t,i)=>{
-      roots.set([t.x,t.y,t.z],3*i);form.set([t.width,t.height,t.seed,t.species],4*i);
+      roots.set([t.x,t.y,t.z],3*i);form.set([t.width*(t.crownScale||1),t.height,t.seed,t.species],4*i);
       t.nearAttribute=nearResident;t.nearSlot=i;
       if(surveyForms)surveyForms.set(lakeCrowns.traits(t,false),4*i);
       bounds.expandByPoint(point.set(t.x,t.y,t.z));
@@ -256,7 +256,7 @@ window.addHardwoods=function addHardwoods(T,scene,trees,options){
           t.nearAttribute.setX(t.nearSlot,1);t.nearAttribute.addUpdateRange(t.nearSlot,1);t.nearAttribute.needsUpdate=true;
         }
         frame.position.set(t.x,t.y-.12,t.z);frame.rotation.y=t.seed*6.283;
-        frame.scale.set(t.width,t.height,t.width);frame.updateMatrix();stems.setMatrixAt(count,frame.matrix);
+        frame.scale.set(t.width*(t.crownScale||1),t.height,t.width*(t.crownScale||1));frame.updateMatrix();stems.setMatrixAt(count,frame.matrix);
         speciesAttr.setX(count++,t.species);
       }
     }
