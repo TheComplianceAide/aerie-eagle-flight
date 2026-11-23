@@ -239,7 +239,7 @@
               <span class="ticket-stub" id="flight-price">↗</span>
             </button>
             <p class="ticket-note" id="checkout-merchant" hidden></p>
-            <span id="checkout-availability" class="availability" role="status">Checking Stripe checkout availability…</span>
+            <span id="checkout-availability" class="availability" role="status">Checking checkout availability…</span>
             <a class="text-link" href="policies/#terms">Ticket terms &amp; refunds</a>
             <div class="pass-restore" id="pass-restore" hidden><button class="text-link" type="button" data-open="restore">Restore ticket</button></div>
           </div>
@@ -278,7 +278,7 @@
   <footer class="frame">
     <nav class="founder-contact" aria-labelledby="founder-contact-title">
       <h2 id="founder-contact-title">Message Randy Blasik</h2>
-      <a href="https://www.linkedin.com/in/thecomplianceaide/" target="_blank" rel="noopener noreferrer">LinkedIn <span>/thecomplianceaide</span></a>
+      <a href="https://www.linkedin.com/in/thecomplianceaide/" target="_blank" rel="noopener noreferrer">LinkedIn</a>
       <a href="https://x.com/messages/compose?recipient_id=1567288976028962817" target="_blank" rel="noopener noreferrer">X <span>@BlasikRandy</span></a>
     </nav>
     <div class="footer">
@@ -353,14 +353,14 @@
     <button class="dialog-close" type="button" data-close aria-label="Close flight pass checkout">×</button>
     <img class="purchase-logo" src="media/aerie-checkout-logo.png" alt="Aerie" width="64" height="64" loading="lazy">
     <h2 id="purchase-title">Flight ticket</h2>
-    <p>All worlds and one gift copy. Secure Stripe checkout with The ComplianceAide.</p>
+    <p>All worlds and one gift copy.</p>
     <a class="text-link" href="policies/#terms">Ticket terms, refunds &amp; privacy</a>
-    <p id="purchase-mode-note" hidden>Test checkout. No real payment will be collected.</p>
+    <p id="purchase-mode-note" hidden></p>
     <form id="purchase-form" data-form="checkout">
       <fieldset disabled>
         <label for="purchase-email">Email address</label>
         <input id="purchase-email" name="email" type="email" autocomplete="email" required maxlength="254">
-        <button class="button button-gold" type="submit">Continue to Stripe</button>
+        <button class="button button-gold" type="submit">Continue to checkout</button>
       </fieldset>
       <p class="form-status" role="status" aria-live="polite">Checkout is currently unavailable.</p>
     </form>
@@ -395,7 +395,7 @@
       <button type="button" class="button button-outline" id="copy-gift" hidden>Copy your gift link</button>
       <button type="button" class="button button-outline" id="share-gift" hidden>Share gift privately</button>
       <a class="button button-outline" id="play-unlocked" href="../?play=1" hidden><span id="play-unlocked-label">Play unlocked worlds</span> <span aria-hidden="true">↗</span></a>
-      <a class="button button-outline" id="pass-receipt" target="_blank" rel="noopener noreferrer" hidden>View Stripe receipt</a>
+      <a class="button button-outline" id="pass-receipt" target="_blank" rel="noopener noreferrer" hidden>View receipt</a>
       <details id="gift-link" class="gift-link" hidden>
         <summary>Show gift link</summary>
         <label for="gift-url">Private gift link</label>
