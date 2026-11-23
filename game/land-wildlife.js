@@ -8,6 +8,8 @@ window.makeLandWildlife=function makeLandWildlife(T,scene,w){
   const tracks=window.makeWildlifeTracks(T,scene,w);
   const tau=2*Math.PI,clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),bounds=w.bounds;
   const primary=profile.animals[0];
+  const additions=profile.additions||[];
+  const cover=window.aerieLandClassSampler?.(w.region);
   let route=null,landmark=null,rockTop=null,previous=-1,nextCell=-1;
   function rng(x,z){
     let s=(Math.imul(x|0,2246822519)^Math.imul(z|0,3266489917)^Math.imul(w.region.charCodeAt(0),95131))>>>0;
@@ -15,26 +17,53 @@ window.makeLandWildlife=function makeLandWildlife(T,scene,w){
   }
   function inside(x,z){return x>bounds.minX+10&&x<bounds.maxX-10&&z>bounds.minZ+10&&z<bounds.maxZ-10;}
   function dry(x,z){
-    if(!inside(x,z)||w.blocksWildlifeAt?.(x,z)||h.wet(x,z,ground(x,z)))return null;
+    if(!inside(x,z)||w.blocksWildlifeAt?.(x,z)||w.yellowstone?.river?.poolAt(x,z)||h.wet(x,z,ground(x,z)))return null;
     const y=h.surface(x,z);
     if(!Number.isFinite(y)||clear(x,z)>Math.max(ground(x,z),y)+1.25)return null;
     const obstacle=h.clearance(x,z)-y;
     if(obstacle>.19&&obstacle<3.5)return null;
     return y;
   }
-  function bed(x,z,strict=true){
+  function bed(x,z,strict=true,id=primary){
     const y=dry(x,z);if(y===null)return null;
     const dx=(h.surface(x+1.5,z)-h.surface(x-1.5,z))/3,dz=(h.surface(x,z+1.5)-h.surface(x,z-1.5))/3;
-    const steep=Math.hypot(dx,dz),rock=['alpine-ibex','desert-bighorn'].includes(primary);
+    const steep=Math.hypot(dx,dz),rock=['alpine-ibex','desert-bighorn','mountain-goat','chamois'].includes(id);
     if(steep>(strict?(rock?.88:.57):1.12))return null;
     return {x,y,z,dx,dz,steep};
   }
-  function siteNear(x,z,r,curated){
+  function fitsAddition(id,p){
+    const habitat=catalog.species[id].habitat,land=cover?.(p.x,p.z);
+    if(land===5||land===7||land===8||w.onGlacierMargin?.(p.x,p.z))return false;
+    if(habitat==='fresh-bank'){
+      if(p.steep>.34)return false;
+      for(const r of [9,22,35])for(let i=0;i<8;i++){
+        const angle=i*tau/8,x=p.x+r*Math.cos(angle),z=p.z+r*Math.sin(angle),y=ground(x,z);
+        const surface=w.channelWater?.(x,z);
+        if(Number.isFinite(surface)&&p.y>=surface-.18&&p.y-surface<=5)return true;
+        if(h.wet(x,z,y)){
+          const level=Number.isFinite(w.waterLevel)?w.waterLevel:h.surface(x,z);
+          if(p.y>=level-.18&&p.y-level<=5)return true;
+        }
+      }
+      return false;
+    }
+    const elevation=p.y+(w.altitudeOffset||0);
+    if(habitat==='alpine')return elevation>=(id==='mountain-goat'?420:1580)&&p.steep>.13;
+    if(habitat==='upland')return p.y>40;
+    if(habitat==='boreal')return p.steep<.44&&(land===1||!!h.nearestTree(p.x,p.z,42));
+    if(habitat==='ledge')return p.steep>.14&&p.y>8;
+    if(habitat==='rocky-meadow')return p.steep>.06&&p.steep<.48&&(land===0||land==null||land===2||land===3||land===6);
+    if(habitat==='meadow')return p.steep<.31&&(land===0||land==null||land===2||land===3||land===6);
+    if(id==='black-bear')return !!(h.nearestTree(p.x,p.z,80)||land===1||land===2);
+    return habitat!=='edge'||p.steep<.44;
+  }
+  function siteNear(x,z,r,curated,id=primary,extra=false){
     let best=null,score=-Infinity;
     for(let i=0,n=curated?360:34;i<n;i++){
       const rad=r*Math.sqrt(i/(n-1)),angle=i*2.39996323;
-      const p=bed(x+rad*Math.cos(angle),z+rad*Math.sin(angle));if(!p)continue;
-      if(primary==='eurasian-otter'&&Number.isFinite(w.waterLevel)&&p.y>w.waterLevel+9)continue;
+      const p=bed(x+rad*Math.cos(angle),z+rad*Math.sin(angle),true,id);if(!p)continue;
+      if(id==='eurasian-otter'&&Number.isFinite(w.waterLevel)&&p.y>w.waterLevel+9)continue;
+      if(extra&&!fitsAddition(id,p))continue;
       // Large mammals naturally use open ground at a forest edge. Reject
       // narrow slivers on a cliff or between buildings and deep water.
       let clearCount=0;
@@ -46,7 +75,7 @@ window.makeLandWildlife=function makeLandWildlife(T,scene,w){
       let value=clearCount*.6-p.steep*1.9-rad/(r+1)*1.8;
       const tree=h.nearestTree(p.x,p.z,16);
       if(tree){const gap=Math.hypot(tree.x-p.x,tree.z-p.z)-tree.width*.47;value+=clamp(gap,-5,5)*.2;}
-      if(primary==='eurasian-otter')value-=Math.abs(p.y-w.waterLevel)*.35;
+      if(id==='eurasian-otter')value-=Math.abs(p.y-w.waterLevel)*.35;
       if(value>score){best=p;score=value;if(score>4.12&&i>10)break;}
     }return best;
   }
@@ -58,13 +87,15 @@ window.makeLandWildlife=function makeLandWildlife(T,scene,w){
   }
   function addGroup(key,p,id,curated,random){
     const family=catalog.species[id].family;
-    const count=family==='bear'||family==='otter'||id==='moose'?1:family==='hare'?2:family==='bison'?5+Math.floor(random()*3):2+Math.floor(random()*3);
+    const solitary=['bear','otter','beaver','muskrat','canid','raccoon','rodent'].includes(family)||id==='moose'||id==='woodland-caribou';
+    const count=solitary?1:family==='hare'?2:family==='bison'?5+Math.floor(random()*3):2+Math.floor(random()*3);
     const heading=random()*tau,animals=[];
     for(let i=0;i<count;i++){
       const dir=heading+i*2.4,spread=family==='hare'?2.5:3.5;
-      const base=i===0?p:bed(p.x+spread*Math.sqrt(i)*Math.cos(dir),p.z+spread*Math.sqrt(i)*Math.sin(dir));
+      const base=i===0?p:bed(p.x+spread*Math.sqrt(i)*Math.cos(dir),p.z+spread*Math.sqrt(i)*Math.sin(dir),true,id);
       if(!base)continue;
-      const a=animal(id,base,random,i,i===0&&!['hare','bear','otter'].includes(family),heading+(random()-.5)*.85);
+      const horns=['goat','chamois'].includes(family)||id==='woodland-caribou'||i===0&&!solitary&&family!=='hare';
+      const a=animal(id,base,random,i,horns,heading+(random()-.5)*.85);
       a.residentId=w.region+'/'+key+'/'+id+'/'+i;
       animals.push(a);
     }
@@ -152,7 +183,7 @@ window.makeLandWildlife=function makeLandWildlife(T,scene,w){
       const steps=Math.min(5,Math.ceil(distance/1.1)),part=distance/steps;
       for(let i=0;i<steps;i++){
         const x=a.x+Math.cos(angle)*part,z=a.z+Math.sin(angle)*part;
-        const here=bed(x,z,false);
+        const here=bed(x,z,false,a.id);
         if(!here||Math.abs(here.y-a.feetY)>1.3)break;
         a.x=x;a.z=z;a.feetY=here.y;a.heading=angle;
       }
@@ -187,7 +218,7 @@ window.makeLandWildlife=function makeLandWildlife(T,scene,w){
     const speed=a.speed*a.height*(hare?2.15:1),cx=Math.cos(a.heading),cz=Math.sin(a.heading);
     const step=dt*speed;
     if(step>.00001){
-      const x=a.x+cx*step,z=a.z+cz*step,front=bed(x+cx*.45,z+cz*.45,false);
+      const x=a.x+cx*step,z=a.z+cz*step,front=bed(x+cx*.45,z+cz*.45,false,a.id);
       if(front&&Math.abs(front.y-a.feetY)<1.15){a.x=x;a.z=z;}
       else a.heading+=dt*2.5;
     }
@@ -237,6 +268,13 @@ window.makeLandWildlife=function makeLandWildlife(T,scene,w){
           const random=rng(ix,iz),x=size*(ix+(random()-.5)*.66),z=size*(iz+(random()-.5)*.66);
           const empty={p:{x,z},curated:false,animals:[]};herds.set(key,empty);
           if(random()>.68||landmark&&Math.hypot(landmark.x-x,landmark.z-z)<114)continue;
+          const patchRandom=rng(ix+739,iz-429);
+          const id=additions[Math.floor(patchRandom()*additions.length)];
+          if(id&&patchRandom()<.61*(catalog.species[id].rarity??1)){
+            const r=catalog.species[id].habitat==='fresh-bank'?72:45;
+            const extra=siteNear(x,z,r,false,id,true);
+            if(extra){addGroup(key,extra,id,false,patchRandom);continue;}
+          }
           if(primary==='black-bear'&&Number.isFinite(w.waterLevel)&&ground(x,z)>w.waterLevel+120)continue;
           const p=siteNear(x,z,45,false);if(p)addGroup(key,p,profile.animals[Math.floor(random()*profile.animals.length)],false,random);
         }

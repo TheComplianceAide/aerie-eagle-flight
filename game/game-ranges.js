@@ -30,10 +30,41 @@
     'desert-bighorn': {name:'Desert bighorn sheep', family:'sheep', height:.97, coat:'#ac9475', belly:'#d6c7ae', face:'#907d64'},
     'alpine-ibex': {name:'Alpine ibex', family:'ibex', height:.91, coat:'#8a7865', belly:'#baac97', face:'#726556'},
     'black-bear': {name:'American black bear', family:'bear', height:.91, coat:'#3b342d', belly:'#464036', face:'#8c755c'},
+    'north-american-river-otter':{name:'North American river otter',family:'otter',height:.27,coat:'#594637',belly:'#887568',face:'#88715d',habitat:'fresh-bank'},
+    'american-beaver':{name:'American beaver',family:'beaver',height:.38,coat:'#594035',belly:'#7f6554',face:'#6a4d3c',habitat:'fresh-bank'},
+    'muskrat':{name:'Muskrat',family:'muskrat',height:.17,coat:'#795643',belly:'#ad8b72',face:'#6d5045',habitat:'fresh-bank'},
+    'red-fox':{name:'Red fox',family:'canid',height:.38,coat:'#9d4825',belly:'#e6c9a7',face:'#bb6740',habitat:'edge'},
+    'coyote':{name:'Coyote',family:'canid',height:.57,coat:'#8d7c63',belly:'#c6b595',face:'#a08c72',habitat:'edge'},
+    'raccoon':{name:'Raccoon',family:'raccoon',height:.28,coat:'#7f796d',belly:'#aaa091',face:'#b5ae9e',habitat:'edge'},
+    'mountain-goat':{name:'Mountain goat',family:'goat',height:.96,coat:'#dedbd3',belly:'#bdb5a5',face:'#dfd9c5',habitat:'alpine'},
+    'chamois':{name:'Chamois',family:'chamois',height:.76,coat:'#9c683c',belly:'#aa8c65',face:'#e0d1b6',habitat:'alpine'},
+    'mountain-hare':{name:'Mountain hare',family:'hare',height:.28,coat:'#8e8374',belly:'#ccc3ad',face:'#9b8d7f',habitat:'upland'},
+    'woodland-caribou':{name:'Woodland caribou',family:'deer',height:1.15,coat:'#786657',belly:'#c8bba5',face:'#948878',habitat:'boreal',rarity:.17},
+    'yellow-bellied-marmot':{name:'Yellow-bellied marmot',family:'rodent',height:.29,coat:'#7e654e',belly:'#b35027',face:'#8b7a6c',habitat:'rocky-meadow'},
+    'rock-squirrel':{name:'Rock squirrel',family:'rodent',height:.16,coat:'#77756b',belly:'#baaa91',face:'#8c7e6a',habitat:'ledge'},
+    'california-ground-squirrel':{name:'California ground squirrel',family:'rodent',height:.15,coat:'#827970',belly:'#b5aa95',face:'#9c9487',habitat:'meadow'},
     'eurasian-otter': {name:'Eurasian otter', family:'otter', height:.29, coat:'#655343', belly:'#a29780', face:'#736352'},
     'snowshoe-hare': {name:'Snowshoe hare', family:'hare', height:.275, coat:'#9f8b70', belly:'#d5c7ad', face:'#867967'},
     'desert-cottontail': {name:'Desert cottontail', family:'hare', height:.24, coat:'#bcab8d', belly:'#e4d6c0', face:'#a3947d'}
   };
+  // Additional naturally streamed groups. Keep the first animal and the
+  // established encounter launch in each world unchanged.
+  const additions={
+    yellowstone:['black-bear','coyote','yellow-bellied-marmot'],
+    alaska:['mountain-goat','american-beaver'],
+    canyon:['american-beaver','rock-squirrel'],
+    swiss:['chamois'],
+    crater:[],
+    yosemite:['black-bear','coyote','california-ground-squirrel'],
+    lofoten:['mountain-hare'],
+    acadia:['red-fox','raccoon'],
+    moosehead:['black-bear','american-beaver'],
+    dixville:['black-bear'],
+    labrador:['black-bear','american-beaver','woodland-caribou'],
+    surry:['black-bear','american-beaver','north-american-river-otter'],
+    winnipesaukee:['black-bear','american-beaver','north-american-river-otter','muskrat']
+  };
+  for(const [id,animals] of Object.entries(additions))regions[id].additions=animals;
   function register(id,profile){
     if(!profile?.title || profile.anchor?.length!==2 || !profile.anchor.every(Number.isFinite) || !profile.animals?.length ||
        !profile.animals.every(id=>species[id]))throw new Error('Invalid land wildlife profile: '+id);

@@ -15,6 +15,9 @@ window.makeLandModels=function makeLandModels(T,scene){
   function build(id,horns){
     const spec=window.aerieLandWildlife.species[id],family=spec.family;
     const moose=family==='moose',sheep=family==='sheep',ibex=family==='ibex',hare=family==='hare',bear=family==='bear',otter=family==='otter';
+    const goat=family==='goat',chamois=family==='chamois',beaver=family==='beaver',muskrat=family==='muskrat';
+    const canid=family==='canid',fox=id==='red-fox',raccoon=family==='raccoon';
+    const rodent=family==='rodent',marmot=id==='yellow-bellied-marmot',caribou=id==='woodland-caribou';
     const positions=[],colors=[],indices=[],joints=[],roots=[];
     const coat=new T.Color(spec.coat),belly=new T.Color(spec.belly),face=new T.Color(spec.face);
     const dark=new T.Color('#342d28'),nose=new T.Color('#25211e'),horn=new T.Color('#9d8b70'),light=new T.Color('#d6c9af');
@@ -47,7 +50,7 @@ window.makeLandModels=function makeLandModels(T,scene){
       tube(rows,c,bc,12);
     }
     const bison=family==='bison',elk=id==='elk';
-    const quad=!(hare||bear||otter);
+    const quad=!(hare||bear||otter||beaver||muskrat||canid||raccoon||rodent);
     let headX,headY,headSize,neckRoot,legX,legZ,legTop;
     if(bison){
       tube([[-.96,.61,0,.08,.13],[-.83,.63,0,.24,.29],[-.59,.65,0,.29,.33],
@@ -76,12 +79,12 @@ window.makeLandModels=function makeLandModels(T,scene){
         [-.966,.25,0,.034],[-.953,.21,0,.005]],shag,belly,10);
       legX=[.44,-.66];legZ=.226;legTop=.52;
     }else if(quad){
-      const b=moose?1.07:sheep?1.02:ibex?.97:1,a=moose?.98:.94;
+      const b=moose?1.07:sheep||goat?1.02:ibex?.97:chamois?.9:1,a=moose?.98:.94;
       tube([[-.73*b,.72,0,.012,.04],[-.66*b,.76,0,.155,.21],[-.51*b,.76,0,.207,.24],
         [-.34*b,.75,0,.23,.24],[-.09*b,.72,0,.24,.245],[.15*b,.74,0,.236,.27],
         [.31*b,.78,0,.208,moose?.32:.242],[.43*b,.77,0,.152,.20],[.50*b,.79,0,.09,.13]],coat,belly,20);
-      headX=moose?.88:sheep?.77:ibex?.75:.84;headY=moose?1.075:sheep?1.08:ibex?1.10:1.18;
-      headSize=moose?1.2:sheep?1.04:ibex?.93:1;
+      headX=moose?.88:sheep||goat?.77:ibex||chamois?.75:.84;headY=moose?1.075:sheep||goat?1.08:ibex||chamois?1.10:1.18;
+      headSize=moose?1.2:sheep?1.04:ibex||goat?.93:chamois?.83:1;
       neckRoot=[.32*b,.79,0];bind(1,neckRoot);
       tube([[.24,.735,0,.144,.155],[.38,.814,0,.18,moose?.22:.202],[.50,.917,0,.158,.178],
         [headX-.18,headY-.015,0,.115,.14],[headX-.055,headY+.019,0,.096,.12]],moose||id==='red-deer'||elk?face:coat,belly,18);
@@ -107,7 +110,13 @@ window.makeLandModels=function makeLandModels(T,scene){
         oval(x+.032*k,y+.129*k,s*.119*k,.020*k,.018*k,.007*k,iris);
         oval(x+.037*k,y+.137*k,s*.125*k,.006*k,.004*k,.003*k,gleam);
         oval(x+.266*k,y-.012*k,s*.061*k,.012*k,.008*k,.007*k,nose);
+        if(chamois)tube([[x-.13,y+.13,s*.107,.025],[x+.025,y+.135,s*.129,.036],
+          [x+.15,y+.049,s*.104,.026],[x+.22,y+.015,s*.065,.006]],dark,dark,8);
       }
+      if(goat)tube([[x+.16,y-.044,0,.065,.058],[x+.105,y-.19,0,.057,.05],
+        [x+.055,y-.28,0,.008,.012]],coat,belly,10);
+      if(caribou)tube([[.32,.71,0,.15,.17],[.48,.86,0,.163,.19],[.65,1.02,0,.105,.12]],
+        light,belly);
       if(horns){
         for(const s of [-1,1]){
           const p=(xx,yy,zz,r,d=r)=>[x+xx,y+yy,s*zz,r,d];
@@ -117,6 +126,18 @@ window.makeLandModels=function makeLandModels(T,scene){
             tube([p(-.18,.307,.30,.035,.052),p(-.19,.354,.37,.115,.050),p(-.20,.40,.448,.18,.047),p(-.21,.46,.488,.165,.030),p(-.2,.483,.505,.025,.014)],horn,light);
             for(let i=0;i<6;i++){const bx=-.05-i*.056,bz=.445+.035*Math.sin(i*.6);
               tube([p(bx,.422,bz,.026),p(bx+.012,.512+.030*Math.sin(i*.8),bz+.034,.016),p(bx+.026,.554+.045*Math.sin(i*.75),bz+.04,.001)],horn,light,8);}
+          }else if(caribou){
+            const beam=[p(-.05,.19,.066,.032),p(-.12,.35,.11,.031),p(-.23,.52,.22,.025),
+              p(-.37,.66,.29,.018),p(-.43,.80,.32,.006)];
+            tube(beam,horn,light,9);
+            for(const [i,length] of [[1,.22],[2,.16],[3,.15]]){
+              const b=beam[i];
+              tube([b,[b[0]+length*.65,b[1]+.08,b[2],.022],
+                [b[0]+length,b[1]+.15,b[2]+s*.02,.004]],horn,light,8);
+            }
+          }else if(goat||chamois){
+            tube([p(-.06,.20,.080,.034),p(-.09,.30,.104,.029),p(-.13,.42,.123,.023),
+              p(chamois?-.15:-.18,.51,.136,.016),p(chamois?-.224:-.245,chamois?.463:.56,.146,.003)],dark,dark,9);
           }else if(sheep||ibex){
             const path=[];const N=24;
             for(let i=0;i<=N;i++){const u=i/N;const a=u*(sheep?4.9:1.85);
@@ -141,28 +162,45 @@ window.makeLandModels=function makeLandModels(T,scene){
         id==='black-tailed-deer'||id==='mule-deer'?dark:coat,id==='white-tailed-deer'?light:belly);
       legX=[.295*b,-.484*b];legZ=.139;legTop=a*.80;
     }else{
-      const long=otter?1.5:bear?1.06:.91;
-      tube([[-.88*long,.54,0,.015,.045],[-.75*long,.59,0,.20,.25],[-.54*long,.61,0,.28,.35],
-        [-.25*long,.59,0,.32,.40],[.06*long,.58,0,.3,.39],[.34*long,.61,0,.27,.32],[.53*long,.65,0,.18,.20]],coat,belly,18);
-      headX=long*(otter?.80:bear?.76:.59);headY=otter?.77:bear?.71:.94;headSize=1;
+      const long=otter?1.5:canid?1.24:bear?1.06:beaver?1.02:.91;
+      const body=[[-.88*long,.54,0,.015,.045],[-.75*long,.59,0,.20,.25],[-.54*long,.61,0,.28,.35],
+        [-.25*long,.59,0,.32,.40],[.06*long,.58,0,.3,.39],[.34*long,.61,0,.27,.32],[.53*long,.65,0,.18,.20]];
+      if(canid)for(const ring of body){ring[1]+=.16;ring[3]*=.69;ring[4]*=.68;}
+      if(rodent&&!marmot)for(const ring of body){ring[3]*=.79;ring[4]*=.80;}
+      tube(body,coat,belly,18);
+      headX=long*(otter||canid?.80:bear?.76:.59);headY=canid?1.02:otter?.77:bear?.71:beaver||muskrat||rodent?.80:raccoon?.86:.94;headSize=1;
       neckRoot=[.39*long,.64,0];bind(1,neckRoot);
       tube([[.27*long,.62,0,.23,.24],[.50*long,.67,0,.19,.2],[headX-.09,headY,0,.174,.18]],coat,belly);
-      const x=headX,y=headY,m=otter?.25:bear?.36:.24;
+      const x=headX,y=headY,m=canid?(fox?.39:.36):otter?.25:bear?.36:beaver||muskrat?.18:.24;
       tube([[x-.18,y-.01,0,.10,.12],[x-.125,y+.035,0,.18,.205],[x+.02,y+.04,0,.19,.19],
         [x+.13,y-.008,0,.158,.13],[x+m*.87,y-.035,0,.105,.08],[x+m,y-.035,0,.055,.051]],coat,otter?light:belly,16);
       oval(x+m*.79,y-.04,0,m*.24,.075,.10,bear?face:belly);
       oval(x+m,y-.026,0,.037,.03,.069,nose);
       for(const s of [-1,1]){
-        const top=hare?(id==='snowshoe-hare'?.45:.56):bear?.20:.07;
+        const top=hare?(id==='mountain-hare'?.37:id==='snowshoe-hare'?.45:.56):canid?(fox?.37:.29):bear?.20:raccoon?.17:rodent?.14:.07;
         tube([[x-.10,y+.17,s*.108,.04],[x-.11,y+.18+top*.34,s*.148,.06,.068],
-          [x-.12-top*.14,y+.18+top*.80,s*.168,.045,.060],[x-.13-top*.16,y+.18+top,s*.168,.004]],coat,face);
+          [x-.12-top*.14,y+.18+top*.80,s*.168,canid?.021:.045,canid?.035:.060],[x-.13-top*.16,y+.18+top,s*.168,.004]],coat,face);
         if(hare)tube([[x-.079,y+.22,s*.12,.019],[x-.085,y+.23+top*.35,s*.15,.031,.036],[x-.10-top*.16,y+.18+top*.86,s*.16,.005]],earPink);
+        if(raccoon)oval(x+.034,y+.076,s*.159,.108,.082,.026,dark);
         oval(x+.064,y+.089,s*.166,.035,.036,.017,nose);oval(x+.07,y+.101,s*.180,.008,.008,.004,gleam);
       }
       bind(6,[-.75*long,.56,0]);
       if(otter)tube([[-.68*long,.57,0,.185,.19],[-.88*long,.44,0,.17,.14],[-1.17*long,.25,0,.13,.10],[-1.54*long,.17,0,.078,.06],[-1.89*long,.13,0,.007]],coat,belly);
-      else oval(-.79*long,.63,0,hare?.12:.076,hare?.13:.08,.094,coat,hare?light:belly);
-      legX=[.33*long,-.52*long];legZ=otter?.173:.188;legTop=hare?.565:.60;
+      else if(beaver)tube([[-.70,.46,0,.10,.08],[-.87,.23,0,.12,.057],[-1.18,.12,0,.235,.058],
+        [-1.50,.10,0,.227,.052],[-1.69,.10,0,.12,.03],[-1.77,.096,0,.008,.009]],dark,belly,14);
+      else if(muskrat)tube([[-.73,.45,0,.06,.083],[-1.01,.24,0,.048,.068],[-1.43,.12,0,.034,.051],
+        [-1.96,.09,0,.014,.035],[-2.12,.12,0,.003,.006]],face,dark,10);
+      else if(canid)tube([[-.9,.76,0,.085,.087],[-1.07,.63,0,.14,.16],[-1.34,.48,0,fox?.178:.122,.15],
+        [-1.61,.35,0,.118,.106],[-1.83,.40,0,.06,.07],[-1.98,.42,0,.005]],coat,fox?light:dark,14);
+      else if(rodent)tube(marmot?
+        [[-.70,.56,0,.14,.14],[-.93,.43,0,.15,.15],[-1.20,.35,0,.13,.12],[-1.47,.37,0,.058,.06],[-1.53,.40,0,.005]]:
+        [[-.69,.59,0,.10,.10],[-.86,.63,0,.13,.14],[-1.06,.83,0,.17,.17],
+          [-1.32,1.01,0,.14,.15],[-1.65,1.05,0,.09,.09],[-1.82,.96,0,.005]],coat,belly,12);
+      else if(raccoon){
+        const tail=i=>[-.69-i*.113,.46-i*.033,0,.132*(1.-i*.105),.122*(1.-i*.105)];
+        for(let j=0;j<8;j++)tube([tail(j),tail(j+1)],j%2?coat:dark,j%2?light:dark,12);
+      }else oval(-.79*long,.63,0,hare?.12:.076,hare?.13:.08,.094,coat,hare?light:belly);
+      legX=[.33*long,-.52*long];legZ=otter||canid?.173:.188;legTop=canid?.77:hare?.565:.60;
     }
     for(let end=0;end<2;end++)for(let sideIdx=0;sideIdx<2;sideIdx++){
       const s=sideIdx?1:-1,x=legX[end],z=s*legZ,top=legTop;
