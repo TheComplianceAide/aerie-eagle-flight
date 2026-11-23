@@ -9,4 +9,5 @@
     const path = resolve?.(name) || name;
     return Object.hasOwn(assets, path) ? assets[path] : path;
   };
+  THREE.DefaultLoadingManager.setURLModifier(window.aerieAssetURL);
 })();
