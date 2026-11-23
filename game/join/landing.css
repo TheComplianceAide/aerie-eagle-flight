@@ -165,6 +165,7 @@ fieldset { padding: 0; border: 0; margin: 0; min-width: 0; }
 .price strong { color: var(--gold); font-size: 1.2rem; margin-right: .25rem; }
 .checkout-merchant { margin-top: .65rem; font-size: .8rem; line-height: 1.35; }
 .availability { display: block; margin-top: .6rem; min-height: 1.1rem; font-size: .76rem; color: #dedfd4; }
+.pass-restore { color: var(--muted); font-size: .8rem; }
 
 .community-section { background: #142522; border-block: 1px solid #e4e8d21c; }
 .community-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: clamp(1.75rem, 6vw, 6rem); align-items: center; padding-block: clamp(2.6rem, 6vw, 5rem); }
@@ -206,6 +207,7 @@ fieldset:disabled input, fieldset:disabled button, .button:disabled { opacity: .
 .dialog h2 { font-size: clamp(2.1rem, 6vw, 3.75rem); padding-right: 2rem; margin-bottom: .65rem; }
 .dialog p { color: var(--muted); font-size: .94rem; }
 .dialog fieldset > button, .dialog #gift-details > :is(button,a), #confirm-restore { margin-top: .8rem; }
+.restore-confirm-actions { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 .85rem; }
 .dialog fieldset > input { display: block; }
 .dialog-close { position: absolute; right: 13px; top: 13px; display: grid; place-items: center; width: 42px; height: 42px; border: 1px solid var(--line); background: #122320; color: var(--warm); border-radius: 50%; font: 1.55rem/1 system-ui, sans-serif; }
 .film-dialog { width: min(93%, 1050px); background: #101d1c; }
