@@ -239,6 +239,10 @@ fieldset:disabled input, fieldset:disabled button, .button:disabled { opacity: .
 .form-status { min-height: 1.3em; margin-top: .7rem; color: #e1d5bf; font-size: .83rem; }
 .footer { display: flex; align-items: center; justify-content: space-between; gap: 1.3rem; min-height: 120px; }
 .footer .wordmark img { width: 75px; }
+.founder-contact { display: flex; flex-wrap: wrap; align-items: center; gap: 0 1.6rem; padding-block: 1rem; border-bottom: 1px solid var(--line); }
+.founder-contact h2 { font-size: 1.5rem; letter-spacing: -.025em; }
+.founder-contact a { display: inline-flex; align-items: center; gap: .4em; min-height: 44px; font-size: .88rem; color: var(--muted); text-decoration: none; }
+.founder-contact a span { color: var(--gold); text-decoration: underline; text-underline-offset: .22em; }
 .footlinks { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem 1.5rem; font-size: .85rem; color: var(--muted); }
 .footlinks :is(a,button) { text-decoration: none; min-height: 40px; display: inline-flex; align-items: center; }
 .return-notice { background: var(--pine); border: 1px solid var(--line); border-radius: 5px; margin-block: 1rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: .85rem 1rem; }
