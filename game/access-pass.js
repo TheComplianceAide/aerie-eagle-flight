@@ -103,6 +103,11 @@
         .then(offer => {
           if (offer?.checkout === true && offer.priceCurrency === 'usd' && Number.isSafeInteger(offer.priceAmount)) {
             document.getElementById('flightTicketPrice').textContent = '$' + (offer.priceAmount / 100).toFixed(2);
+            const notice = document.getElementById('flightTicketMode');
+            if (notice) {
+              notice.textContent = 'Preview checkout. Test cards only. No charge.';
+              notice.hidden = offer.checkoutMode !== 'test';
+            }
           } else ticketPriceRequest = null;
         }).catch(() => { ticketPriceRequest = null; });
     });

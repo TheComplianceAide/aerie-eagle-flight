@@ -29,6 +29,10 @@
       const error = new Error(response.status === 429 ? 'Too many attempts. Try again in a few minutes.' :
         'This could not be completed. Please try again.');
       error.status = response.status;
+      if (path === '/checkout' && response.status === 409 && response.headers.get('content-type')?.includes('application/json')) {
+        const details = await response.json().catch(() => null);
+        error.offerChanged = details?.offerChanged === true;
+      }
       if (path === '/restore/confirm' && response.headers.get('content-type')?.includes('application/json')) {
         const details = await response.json().catch(() => null);
         error.codeInvalid = details?.codeInvalid === true;
@@ -605,6 +609,10 @@
     if (owned) {
       title = returningFromPayment() ? 'Your worlds are ready' : 'Welcome back';
       message = 'Fly all worlds with your ticket.';
+      if (checkoutConfig?.checkoutMode === 'test') {
+        title = 'Your preview ticket is ready';
+        message = 'Fly all 13 preview worlds. No payment was taken.';
+      }
     } else if (checking) {
       title = 'Checking your pass…';
       message = 'We’re checking access to your Aerie worlds.';
@@ -791,6 +799,9 @@
     const owned = status?.fullAccess === true;
     const available = enabled(checkoutConfig, 'checkout');
     const unconfirmedReturn = playRequested || (returningFromPayment() && !status);
+    if (!checkoutBusy) {
+      for (const button of checkoutButtons) button.disabled = !owned && checkoutConfig === undefined;
+    }
     checkoutLaunch.hidden = unconfirmedReturn;
     heroCheckout.hidden = unconfirmedReturn;
     if (unconfirmedReturn || owned) heroCheckoutStatus.hidden = true;
@@ -802,6 +813,14 @@
       ? checkoutConfig.priceLabel.replace(/\sUSD$/, '') : '↗';
     byId('hero-ticket-price').textContent = price;
     flightPrice.textContent = price;
+    const mode = checkoutConfig?.checkoutMode;
+    const note = mode === 'test' ? 'Preview checkout. Test cards only. No charge.' :
+      mode === 'live' ? 'Sold by The ComplianceAide, maker of Aerie.' : '';
+    for (const element of document.querySelectorAll('[data-offer-note]')) {
+      element.textContent = note;
+      element.hidden = !note || !available || owned || unconfirmedReturn;
+    }
+    byId('preview-owned').hidden = !owned || mode !== 'test';
     byId('pass-restore').hidden = owned || unconfirmedReturn;
     const walletAvailable = available && enabled(checkoutConfig, 'googlePayCheckout') && enabled(checkoutConfig, 'checkoutCollectsEmail');
     for (const option of walletOptions) option.hidden = owned || unconfirmedReturn || !walletAvailable;
@@ -836,7 +855,7 @@
         }
         restoreAvailable = enabled(config, 'restore');
         updateRestore();
-        byId('purchase-mode-note').hidden = true;
+        updateCheckoutReturn();
         updateCheckoutOffer();
         friendShareStatus.textContent = '';
         updateFriendOffer();
@@ -859,7 +878,10 @@
   async function openStripeCheckout(payload, output, attempt) {
     output.textContent = 'Opening checkout…';
     try {
-      const {url} = await request('/checkout', payload, 15000);
+      const {checkoutMode: mode, priceAmount: amount, priceCurrency: currency} = checkoutConfig || {};
+      const expectedOffer = ['test', 'live'].includes(mode) && Number.isSafeInteger(amount) && currency === 'usd'
+        ? {mode, amount, currency} : undefined;
+      const {url} = await request('/checkout', {...payload, expectedOffer}, 15000);
       if (attempt !== checkoutAttempt) return;
       const destination = new URL(url);
       if (destination.origin !== 'https://checkout.stripe.com') throw new Error('Checkout is unavailable right now.');
@@ -867,8 +889,15 @@
       rememberCheckout('started');
     } catch (error) {
       if (attempt !== checkoutAttempt) return;
-      output.textContent = error.name === 'AbortError' || error instanceof TypeError
-        ? 'Checkout could not open. Try again.' : error.message;
+      if (error.offerChanged) {
+        const current = await loadConfig();
+        if (attempt !== checkoutAttempt) return;
+        output.textContent = enabled(current, 'checkout')
+          ? 'The ticket offer changed. Review the new offer and select your ticket again.' : checkoutNote(current);
+      } else {
+        output.textContent = error.name === 'AbortError' || error instanceof TypeError
+          ? 'Checkout could not open. Try again.' : error.message;
+      }
       setCheckoutBusy(false);
     }
   }
@@ -881,14 +910,21 @@
     if (fromHero) output.hidden = false;
     const attempt = setCheckoutBusy(true);
     output.textContent = 'Checking your Aerie access…';
+    const hadOffer = enabled(checkoutConfig, 'checkout');
     const [config] = await Promise.all([
-      enabled(checkoutConfig, 'checkout') ? checkoutConfig : loadConfig(), checkCheckoutAccess()
+      hadOffer ? checkoutConfig : loadConfig(), checkCheckoutAccess()
     ]);
     if (attempt !== checkoutAttempt || playOwnedPass()) return;
     if (!enabled(config, 'checkout')) {
       setCheckoutBusy(false);
       updateCheckoutOffer();
       if (fromHero) output.textContent = checkoutNote(config);
+      return;
+    }
+    if (!hadOffer) {
+      setCheckoutBusy(false);
+      updateCheckoutOffer();
+      output.textContent = 'Checkout is available. Review your ticket and select it to continue.';
       return;
     }
     if (!enabled(config, 'checkoutCollectsEmail')) {
