@@ -2,15 +2,13 @@
   'use strict';
 
   const byId = id => document.getElementById(id);
-  const canonicalUrl = document.querySelector('link[rel="canonical"]').href;
   const api = '/api/aerie';
   const fields = {
     signup: { unavailable: 'Email signup is currently unavailable.', accepted: 'You’re on the flight list.' },
     checkout: { unavailable: 'Checkout is currently unavailable.' },
-    'share-claim': { unavailable: 'Claims are currently unavailable.', accepted: 'Your post is queued for review. Use Restore access to check whether your five worlds are unlocked.' },
     restore: { unavailable: 'Access recovery is currently unavailable.', accepted: 'If we can send an access link to that address, it will arrive by email.' }
   };
-  const configKeys = { signup: 'signup', checkout: 'checkout', 'share-claim': 'shareClaims', restore: 'restore' };
+  const configKeys = { signup: 'signup', checkout: 'checkout', restore: 'restore' };
   const forms = [...document.querySelectorAll('form[data-form]')];
 
   async function request(path, body, timeout) {
@@ -234,18 +232,8 @@
 
   const shareMessage = byId('share-message');
   const shareDialog = byId('share-dialog');
-  const shareIntro = 'Hey, I like this game. I hope you do too!';
-  const friendInvite = `${shareIntro} Aerie offers me five more worlds for sharing with five friends.`;
-  const claimStarter = `${shareIntro} Aerie offers me five additional worlds for sharing my experience.`;
-  const suggestedPost = byId('suggested-post');
-  const nativeShare = byId('native-share');
-  const sharePhoto = byId('share-photo');
-  const photoDownload = byId('instagram-image');
-  let flightPhoto;
-  let loadingPhoto = false;
   const friendConfirm = byId('confirm-friend-share');
   const friendShareStatus = byId('friend-share-status');
-  let sharingClaim = false;
   let friendShareBusy = false;
   let friendRewardEarned = false;
 
@@ -261,7 +249,7 @@
   function updateFriendOffer() {
     const available = shareOfferAvailable(checkoutConfig);
     const earned = status?.fullAccess === true || hasFriendReward();
-    friendConfirm.hidden = earned;
+    friendConfirm.hidden = earned || !window.AerieShare.hasChosen();
     friendConfirm.disabled = !available || friendShareBusy;
     const play = byId('friend-play');
     play.hidden = !earned;
@@ -275,120 +263,39 @@
     else if (!available) friendShareStatus.textContent = 'Friend unlocks are temporarily unavailable.';
   }
 
-  function openShare(isClaim, channel = '') {
-    sharingClaim = isClaim;
-    byId('share-title').textContent = isClaim ? 'Unlock 5 worlds' : 'Tell a friend';
+  function openShare(isClaim) {
+    byId('share-title').textContent = isClaim ? 'Unlock 5 worlds' : 'Share with friends';
     byId('share-instructions').textContent = isClaim
-      ? 'Invite five friends or submit an honest public post.'
-      : 'Share the free flight at Lake Winnipesaukee.';
+      ? 'Share with friends, then come back and tap “I shared.”'
+      : 'Choose where to send your invitation.';
     byId('friend-details').hidden = !isClaim;
-    byId('post-instructions').hidden = !isClaim;
-    byId('claim-submission').hidden = !isClaim;
-    byId('claim-details').open = !isClaim || Boolean(channel && channel !== 'messages');
-    byId('instagram-instructions').hidden = channel !== 'instagram';
-    byId('instagram-open').hidden = channel !== 'instagram';
-    byId('post-share-summary').textContent = isClaim ? 'Post publicly for review' : 'Share on social media';
-    suggestedPost.value = withShareLink(claimStarter);
-    shareMessage.textContent = '';
-    byId('copy-share').textContent = isClaim ? 'Copy invitation' : 'Copy link';
-    nativeShare.hidden = typeof navigator.share !== 'function';
-    byId('linkedin-share').href = 'https://www.linkedin.com/sharing/share-offsite/?' + new URLSearchParams({ url: canonicalUrl });
-    const whatsapp = byId('whatsapp-share');
-    if (whatsapp) {
-      const message = isClaim ? friendInvite : shareIntro;
-      whatsapp.href = 'https://wa.me/?' + new URLSearchParams({ text: withShareLink(message) });
-      byId('telegram-share').href = 'https://t.me/share/url?' + new URLSearchParams({ url: canonicalUrl, text: message });
-      byId('facebook-share').hidden = isClaim;
-      byId('facebook-share').href = 'https://www.facebook.com/sharer/sharer.php?' + new URLSearchParams({ u: canonicalUrl });
-      byId('bluesky-share').hidden = isClaim;
-      byId('bluesky-share').href = 'https://bsky.app/intent/compose?' + new URLSearchParams({ text: withShareLink(shareIntro) });
-    }
-    updatePostLink();
+    byId('instagram-image').hidden = true;
+    shareMessage.replaceChildren();
     if (isClaim) updateFriendOffer();
     show(shareDialog);
   }
 
-  function withShareLink(value) {
-    const text = value.trim();
-    const urls = text.match(/https?:\/\/[^\s<>"“”]+/gi) || [];
-    return urls.some(url => url.replace(/[)\],.!?;:]+$/, '') === canonicalUrl)
-      ? text : `${text}\n${canonicalUrl}`;
+  function selectShareChannel(channel) {
+    byId('instagram-image').hidden = channel !== 'instagram';
+    updateFriendOffer();
   }
 
-  // Prepare the attachment before the tap that opens the system share sheet.
-  byId('claim-details').addEventListener('toggle', async event => {
-    if (!event.currentTarget.open || flightPhoto || loadingPhoto ||
-        typeof navigator.share !== 'function' || typeof navigator.canShare !== 'function') return;
-    loadingPhoto = true;
-    try {
-      const response = await fetch(photoDownload.href);
-      if (!response.ok) return;
-      const blob = await response.blob();
-      if (blob.type !== 'image/jpeg' || !blob.size) return;
-      const photo = new File([blob], photoDownload.download, { type: blob.type });
-      if (navigator.canShare({ files: [photo] })) {
-        flightPhoto = photo;
-        sharePhoto.hidden = false;
-      }
-    } catch {
-      // Keep the download option when the browser cannot prepare the attachment.
-    } finally {
-      loadingPhoto = false;
+  byId('share-preview').textContent = window.AerieShare.invitation;
+  window.AerieShare.mount(byId('share-options'), { status: shareMessage, onChoose: selectShareChannel });
+  window.AerieShare.mount(byId('hero-share-options'), {
+    channels: ['x', 'instagram', 'linkedin', 'messages'],
+    compact: true,
+    status: shareMessage,
+    onChoose(channel) {
+      openShare(true);
+      selectShareChannel(channel);
     }
   });
-
-  sharePhoto.addEventListener('click', async () => {
-    if (!flightPhoto) return;
-    shareMessage.textContent = '';
-    const files = [flightPhoto];
-    const text = withShareLink(sharingClaim ? suggestedPost.value : shareIntro);
-    try {
-      await navigator.share(navigator.canShare({ files, text }) ? { files, text } : { files });
-    } catch (error) {
-      if (error.name !== 'AbortError') {
-        shareMessage.textContent = 'Save the Instagram image to share it from your photos.';
-        photoDownload.focus();
-      }
-    }
-  });
-
-  function updatePostLink() {
-    const text = withShareLink(sharingClaim ? suggestedPost.value : shareIntro);
-    byId('x-share').href = 'https://twitter.com/intent/tweet?' + new URLSearchParams({ text });
-  }
-
-  suggestedPost.addEventListener('input', updatePostLink);
-  byId('copy-share').addEventListener('click', () => {
-    const value = sharingClaim ? withShareLink(friendInvite) : canonicalUrl;
-    copy(value, shareMessage, sharingClaim ? 'Invitation copied.' : 'Aerie link copied.');
-  });
-  byId('copy-post').addEventListener('click', () => copy(withShareLink(suggestedPost.value), shareMessage, 'Post copied.'));
-  function shareAerie(isClaim) {
-    return navigator.share({ title: 'Aerie · Take Flight', text: isClaim ? friendInvite : shareIntro, url: canonicalUrl });
-  }
 
   for (const link of document.querySelectorAll('a[href="#invite"]')) {
     link.addEventListener('click', event => {
       event.preventDefault();
       openShare(true);
-    });
-  }
-  for (const button of document.querySelectorAll('[data-ticket-share]')) {
-    button.addEventListener('click', () => {
-      const channel = button.dataset.ticketShare;
-      openShare(true, channel);
-      if (channel === 'instagram') {
-        if (flightPhoto) sharePhoto.click();
-        else photoDownload.focus();
-      } else if (channel === 'messages') {
-        const action = nativeShare.hidden ? byId('copy-share') : nativeShare;
-        action.focus();
-        action.click();
-      } else {
-        const link = byId(`${channel}-share`);
-        link.focus();
-        link.click();
-      }
     });
   }
 
@@ -398,11 +305,12 @@
     friendShareStatus.textContent = 'Unlocking your worlds…';
     updateFriendOffer();
     try {
-      const result = await request('/share-friends', { sharedWithFive: true }, 12000);
+      const result = await request('/share-friends', { sharedWithFriends: true }, 12000);
       if (result.ok !== true || !Array.isArray(result.worlds) || !checkoutConfig.rewardWorlds.every(world => result.worlds.includes(world))) {
         throw new Error('Your worlds could not be unlocked. Try again.');
       }
       friendRewardEarned = true;
+      window.AerieShare.clearChoice();
       updateFriendOffer();
       byId('friend-play').focus();
       await refreshStatus(true);
@@ -415,17 +323,9 @@
     }
   });
 
-  nativeShare.addEventListener('click', async () => {
-    try {
-      await shareAerie(sharingClaim);
-    } catch (error) {
-      if (error.name !== 'AbortError') shareMessage.textContent = 'You can use Copy link to share Aerie.';
-    }
-  });
-
   byId('send-free-flight').addEventListener('click', () => {
     openShare(false);
-    if (!nativeShare.hidden) nativeShare.click();
+    byId('share-options').querySelector('[data-share-channel="more"]')?.click();
   });
 
   const params = new URLSearchParams(location.search);
@@ -871,7 +771,7 @@
         window.dispatchEvent(new CustomEvent('aerie:traffic-config', { detail: config?.traffic === true }));
         for (const form of forms) {
           const name = form.dataset.form;
-          const available = name === 'share-claim' ? shareOfferAvailable(config) : enabled(config, configKeys[name]);
+          const available = enabled(config, configKeys[name]);
           form.querySelector('fieldset').disabled = !available || (name === 'checkout' && checkoutBusy);
           form.querySelector('.form-status').textContent = available ? '' : fields[name].unavailable;
         }
@@ -1013,15 +913,6 @@
         return;
       }
       if (name === 'restore' && pendingGift) payload.gift = pendingGift;
-      if (name === 'share-claim') {
-        try {
-          if (new URL(payload.postUrl).protocol !== 'https:') throw new Error();
-        } catch {
-          output.textContent = 'Enter the HTTPS link to your public post.';
-          return;
-        }
-      }
-
       fieldset.disabled = true;
       output.textContent = 'Submitting…';
       try {

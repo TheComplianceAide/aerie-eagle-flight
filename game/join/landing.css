@@ -272,14 +272,14 @@ fieldset:disabled input, fieldset:disabled button, .button:disabled { opacity: .
 .dialog-close { position: absolute; right: 13px; top: 13px; display: grid; place-items: center; width: 42px; height: 42px; border: 1px solid var(--line); background: #122320; color: var(--warm); border-radius: 50%; font: 1.55rem/1 system-ui, sans-serif; }
 .film-dialog { width: min(93%, 1050px); background: #101d1c; }
 .film-dialog video { width: 100%; display: block; aspect-ratio: 16 / 9; margin-top: 1rem; background: #0c1716; }
-.social-links { margin-top: 1rem; display: flex; gap: 7px; flex-wrap: wrap; }
-.social-links .button { font-size: .79rem; padding-inline: .7rem; }
-.text-link { display: inline-flex; align-items: center; color: var(--gold); font-size: .82rem; margin-top: .25rem; min-height: 38px; }
-.share-method { border-top: 1px solid var(--line); margin-top: .85rem; padding-top: .9rem; }
-.share-method h3 { font-size: 1.45rem; margin-bottom: .4rem; }
-.share-method button { margin-top: .7rem; }
-.share-method summary { color: var(--gold-strong); cursor: pointer; font-weight: 650; min-height: 42px; padding-block: .25rem; }
-.share-method summary + p { margin-top: .38rem; }
+.share-preview {
+  margin: .9rem 0; padding: .55rem .85rem; border-left: 2px solid var(--gold);
+  color: var(--warm); font: 1rem/1.45 var(--serif); white-space: pre-line;
+}
+.share-reward { border-top: 1px solid var(--line); padding-top: .85rem; margin-top: .75rem; }
+#share-dialog .form-status:empty { display: none; }
+#share-dialog .form-status textarea { margin-top: .35rem; }
+#share-dialog #instagram-image { display: inline-flex; align-items: center; min-height: 44px; }
 #gift-details { border-top: 1px solid var(--line); margin-top: 1rem; padding-top: .55rem; }
 .gift-link { margin-top: .85rem; }
 .gift-link summary { width: fit-content; padding-block: .75rem; color: var(--gold); font-size: .88rem; font-weight: 650; cursor: pointer; }
