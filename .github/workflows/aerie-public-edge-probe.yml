@@ -1,0 +1,32 @@
+name: Aerie public edge probe
+on:
+  push:
+    branches: [verify/public-edge-nov23]
+permissions: {}
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Check the two public routes and Azure default hostname
+        shell: bash
+        run: |
+          set -euo pipefail
+          for host in playaerie.com www.playaerie.com ambitious-wave-03573bd0f.8.azurestaticapps.net; do
+            (
+              for route in /join/ /release.json /api/aerie/config /aerie-monitor.js /game.js; do
+                payload=$(mktemp)
+                if curl --silent --show-error --fail --connect-timeout 6 --max-time 12 --output "$payload" \
+                    --write-out "${host}${route} HTTP %{http_code}, connect %{time_connect}s, total %{time_total}s\n" "https://${host}${route}"; then
+                  case "$route" in
+                    /release.json) jq -c '{source}' "$payload" ;;
+                    /api/aerie/config) jq -c '{checkoutMode,priceAmount,freeWorld,releaseRevision}' "$payload" ;;
+                    /*.js) sha256sum "$payload" | cut -d ' ' -f 1 ;;
+                  esac
+                fi
+                rm "$payload"
+              done
+            ) > "$host.log" 2>&1 &
+          done
+          wait
+          cat -- *.log
