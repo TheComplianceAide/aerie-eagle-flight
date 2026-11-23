@@ -235,6 +235,10 @@
   const claimStarter = `${shareIntro} Aerie offers me five additional worlds for sharing my experience.`;
   const suggestedPost = byId('suggested-post');
   const nativeShare = byId('native-share');
+  const sharePhoto = byId('share-photo');
+  const photoDownload = byId('instagram-image');
+  let flightPhoto;
+  let loadingPhoto = false;
   const friendConfirm = byId('confirm-friend-share');
   const friendShareStatus = byId('friend-share-status');
   let sharingClaim = false;
@@ -287,8 +291,47 @@
 
   function withShareLink(value) {
     const text = value.trim();
-    return text.endsWith(canonicalUrl) ? text : `${text}\n${canonicalUrl}`;
+    const urls = text.match(/https?:\/\/[^\s<>"“”]+/gi) || [];
+    return urls.some(url => url.replace(/[)\],.!?;:]+$/, '') === canonicalUrl)
+      ? text : `${text}\n${canonicalUrl}`;
   }
+
+  // Prepare the attachment before the tap that opens the system share sheet.
+  byId('claim-details').addEventListener('toggle', async event => {
+    if (!event.currentTarget.open || flightPhoto || loadingPhoto ||
+        typeof navigator.share !== 'function' || typeof navigator.canShare !== 'function') return;
+    loadingPhoto = true;
+    try {
+      const response = await fetch(photoDownload.href);
+      if (!response.ok) return;
+      const blob = await response.blob();
+      if (blob.type !== 'image/jpeg' || !blob.size) return;
+      const photo = new File([blob], photoDownload.download, { type: blob.type });
+      if (navigator.canShare({ files: [photo] })) {
+        flightPhoto = photo;
+        sharePhoto.hidden = false;
+      }
+    } catch {
+      // Keep the download option when the browser cannot prepare the attachment.
+    } finally {
+      loadingPhoto = false;
+    }
+  });
+
+  sharePhoto.addEventListener('click', async () => {
+    if (!flightPhoto) return;
+    shareMessage.textContent = '';
+    const files = [flightPhoto];
+    const text = withShareLink(sharingClaim ? suggestedPost.value : shareIntro);
+    try {
+      await navigator.share(navigator.canShare({ files, text }) ? { files, text } : { files });
+    } catch (error) {
+      if (error.name !== 'AbortError') {
+        shareMessage.textContent = 'Save the Instagram image to share it from your photos.';
+        photoDownload.focus();
+      }
+    }
+  });
 
   function updatePostLink() {
     const text = withShareLink(sharingClaim ? suggestedPost.value : shareIntro);
@@ -315,8 +358,10 @@
     button.addEventListener('click', () => {
       const channel = button.dataset.ticketShare;
       openShare(true, channel);
-      if (channel === 'instagram') byId('instagram-image').focus();
-      else if (channel === 'messages') {
+      if (channel === 'instagram') {
+        if (flightPhoto) sharePhoto.click();
+        else photoDownload.focus();
+      } else if (channel === 'messages') {
         const action = nativeShare.hidden ? byId('copy-share') : nativeShare;
         action.focus();
         if (action === nativeShare) nativeShare.click();

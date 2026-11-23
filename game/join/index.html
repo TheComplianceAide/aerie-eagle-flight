@@ -29,7 +29,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="media/aerie-app-180.png">
   <link rel="stylesheet" href="landing.css?v=founder-contact">
-  <script defer src="landing.js?v=miniature-tickets"></script>
+  <script defer src="landing.js?v=share-flight-photo"></script>
   <script defer src="save-aerie.js?v=1"></script>
 </head>
 <body>
@@ -323,10 +323,11 @@
     <details id="claim-details" class="share-method">
       <summary id="post-share-summary">Share on social media</summary>
       <p id="post-instructions" hidden>Share your honest flight experience and mention the reward. Submit your public link for review.</p>
-      <p id="instagram-instructions" hidden>Save the image, copy your post and publish it on Instagram.</p>
+      <p id="instagram-instructions" hidden>Copy your caption if Instagram asks for it separately.</p>
       <div class="social-links" aria-label="Social media">
         <a class="button button-outline" id="linkedin-share" target="_blank" rel="noopener noreferrer">LinkedIn</a>
         <a class="button button-outline" id="x-share" target="_blank" rel="noopener noreferrer">X</a>
+        <button class="button button-gold" id="share-photo" type="button" hidden>Share flight photo</button>
         <a class="button button-outline" id="instagram-image" href="media/instagram.jpg" download="aerie-instagram.jpg">Save Instagram image</a>
         <a class="button button-outline" id="instagram-open" href="https://www.instagram.com/" target="_blank" rel="noopener noreferrer" hidden>Open Instagram</a>
       </div>
