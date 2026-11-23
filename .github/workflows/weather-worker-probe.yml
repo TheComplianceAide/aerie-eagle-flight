@@ -1,0 +1,33 @@
+name: Finite private forecast worker validation
+on:
+  push:
+    branches: [qa/self-hosted-forecast-parity]
+    paths: [.github/workflows/weather-worker-probe.yml]
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: e9915e11db8a53c0c09c26804b187fa8e1232f66
+          persist-credentials: false
+          sparse-checkout: /tools/acoustics/
+          sparse-checkout-cone-mode: false
+      - name: Build and run the worker without storage credentials
+        run: |
+          set -eu
+          docker build -q -f tools/acoustics/Dockerfile.weather-worker -t isolated-aerie-forecast tools/acoustics
+          docker create --name tested --cpus=2 --memory=2g --pids-limit=400 isolated-aerie-forecast --output-only /tmp/air.json
+          time docker start -a tested
+          test "$(docker inspect -f '{{.State.ExitCode}}' tested)" = 0
+          docker cp tested:/tmp/air.json ./air.json
+          jq -e '.version == 1 and (.regions|length)==13 and (.regions.alaska.current|has("surface_pressure"))' air.json
+          wc -c air.json
+          sha256sum air.json
+          cat air.json | sed 's/^/ACTUAL_WORKER_SNAPSHOT=/'
+      - name: Remove worker and temporary cache
+        if: always()
+        run: docker rm -fv tested || true
