@@ -253,6 +253,16 @@ export function createCommerce(config, { store, stripe, sendEmail, purchaseEmail
       automatic_tax: { enabled: true },
       adaptive_pricing: { enabled: false },
       billing_address_collection: 'auto',
+      custom_text: {
+        submit: {
+          message: [
+            '[Terms](https://playaerie.com/join/policies/#terms)',
+            '[Refund policy](https://playaerie.com/join/policies/#refunds)',
+            '[Privacy](https://playaerie.com/join/policies/#privacy)',
+            '[Purchase help](https://playaerie.com/join/help/)'
+          ].join(' · ')
+        }
+      },
       branding_settings: {
         display_name: 'Aerie',
         background_color: '#0d1919',
