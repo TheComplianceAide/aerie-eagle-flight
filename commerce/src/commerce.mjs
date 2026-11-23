@@ -121,7 +121,7 @@ export function expiryProbeKey(marker, signingSecret) {
 }
 
 export function createCommerce(config, { store, stripe, sendEmail, purchaseEmailOperations, assetUrl,
-  hasPreviewReward, previewCheckoutId, fetchForecast, now = Date.now }) {
+  hasPreviewReward, previewCheckoutId, fetchForecast, readWeatherBlob, now = Date.now }) {
   const restoreEnabled = Boolean(store && sendEmail && config.site);
   const canCheckout = Boolean(config.checkout && restoreEnabled && stripe && config.priceId && config.webhookSecret && assetUrl);
   const shareEnabled = Boolean(config.claims && restoreEnabled && assetUrl);
@@ -775,7 +775,7 @@ export function createCommerce(config, { store, stripe, sendEmail, purchaseEmail
 
   const routes = {
     config: ['GET', configResponse],
-    air: ['GET', createAirForecast(config, { fetcher: fetchForecast, now })],
+    air: ['GET', createAirForecast(config, { fetcher: fetchForecast, readWeatherBlob, now })],
     status: ['GET', async request => ({ jsonBody: await playerAccess(request, true) })],
     signup: ['POST', signup],
     checkout: ['POST', createCheckout],
