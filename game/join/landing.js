@@ -896,7 +896,11 @@
       const {url} = await request('/checkout', {...payload, expectedOffer}, 15000);
       if (attempt !== checkoutAttempt) return;
       const destination = new URL(url);
-      if (destination.origin !== 'https://checkout.stripe.com') throw new Error('Checkout is unavailable right now.');
+      const stripeOrigin = checkoutConfig?.checkoutProvider === 'payment_link'
+        ? 'https://buy.stripe.com' : 'https://checkout.stripe.com';
+      if (destination.origin !== stripeOrigin || destination.username || destination.password) {
+        throw new Error('Checkout is unavailable right now.');
+      }
       window.dispatchEvent(new Event('aerie:checkout-handoff'));
       location.assign(destination.href);
       rememberCheckout('started');
