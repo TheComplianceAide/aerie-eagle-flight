@@ -1,6 +1,6 @@
 # Aerie checkout and access
 
-This Azure Functions app lets a player buy the **Support the Founder** digital-access pass for themselves and receive one one-use gift. Lake Winnipesaukee is public. An approved, disclosed social post grants Moosehead Lake, Horseshoe Bend, and Lac Berté by default. Nothing here creates a Stripe product, charges a card, or configures production.
+This Azure Functions app lets a player buy the **Support the Founder** digital-access pass for themselves and receive one one-use gift. Lake Winnipesaukee is public. An approved, disclosed social post or confirmation of sharing with five friends grants Moosehead Lake, Horseshoe Bend, Lac Berté, Alaska and Acadia by default. Nothing here creates a Stripe product, charges a card, or configures production.
 
 ## Test the checkout
 
@@ -26,7 +26,7 @@ Run `npm ci` and `npm test` with Node.js 22 or later. The tests use the official
 | `AERIE_STRIPE_MODE`, `AERIE_STRIPE_SECRET_KEY` | Mode defaults to `test`. Use the matching Stripe key and keep it in Function settings or Key Vault. |
 | `AERIE_STRIPE_PRICE_ID`, `AERIE_STRIPE_WEBHOOK_SECRET` | Mode-matched one-time USD Stripe Price and endpoint signing secret. |
 | `AERIE_SIGNUP_ENABLED`, `AERIE_CHECKOUT_ENABLED`, `AERIE_SHARE_CLAIMS_ENABLED` | Set the individual feature's value to `true` after its backing services are configured. |
-| `AERIE_REWARD_WORLDS` | Optional list of exactly three distinct paid world IDs separated by commas. |
+| `AERIE_REWARD_WORLDS` | Optional list of five distinct paid world IDs separated by commas. |
 | `AERIE_PURCHASE_HELP_ENABLED` | Enable private purchase help after verifying owner alerting and Table Storage access. |
 | `AERIE_MONITORING_ENABLED` | Enable sanitized startup, script, graphics and promise error intake from the game origins. |
 
@@ -39,7 +39,8 @@ Azure Functions host settings such as `AzureWebJobsStorage` and `FUNCTIONS_WORKE
 - `GET /api/aerie/status` returns the free, earned or paid world IDs and a relative unredeemed gift link where appropriate. Resolve it against the game origin before sharing. An emailed one-time link opens the join page, which confirms the token with `POST /api/aerie/restore/confirm`. The original browser can confirm directly. Another browser or device can confirm using the eight-digit code in the email, with five attempts. The optional `gift` field on `POST /api/aerie/restore` carries the gift into that confirmation flow.
 - `POST /api/aerie/gift/redeem` accepts a verified recipient session and a gift code. The code is redeemed by just one inbox identity and can safely be retried by that recipient. Refunds and disputes suspend the grants from the associated purchase.
 - `GET /api/aerie/asset?world=<id>&path=<game-relative-file>&redirect=1` checks the entitlement before redirecting to private Blob Storage. Without `redirect=1` it returns `{url}`. A production load test should measure the authorization requests across the paid world assets as well as Blob bandwidth.
-- `POST /api/aerie/share-claim` queues a public post for review. With authorized Azure Table access, run `npm run review -- list` to see pending public links and `npm run review -- approve <id>` or `npm run review -- reject <id>`. Confirm the claimant authored the post, played Aerie and clearly disclosed the reward. Judge the disclosure and eligibility independently of sentiment, follower counts and engagement. Approving the claim grants three extra worlds. The order of the checks is documented in the [FTC endorsement guidance](https://www.ftc.gov/business-guidance/resources/ftcs-endorsement-guides-what-people-are-asking).
+- `POST /api/aerie/share-friends` accepts an explicit confirmation that the player has shared with five friends. A signed browser cookie grants five additional worlds. Verifying an email on that device saves the reward to the account. Aerie does not collect friend addresses or require recipients to install the game.
+- `POST /api/aerie/share-claim` queues a public post for review. With authorized Azure Table access, run `npm run review -- list` to see pending public links and `npm run review -- approve <id>` or `npm run review -- reject <id>`. Confirm the claimant authored the post, played Aerie and clearly disclosed the reward. Judge the disclosure and eligibility independently of sentiment, follower counts and engagement. Approving the claim grants five extra worlds. The order of the checks is documented in the [FTC endorsement guidance](https://www.ftc.gov/business-guidance/resources/ftcs-endorsement-guides-what-people-are-asking).
 
 ## Monitoring
 
