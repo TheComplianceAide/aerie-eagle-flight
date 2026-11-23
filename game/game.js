@@ -662,7 +662,13 @@
       const snapshot=savedFlight();
       if(snapshot){resumeSaved(snapshot);showDialog("pause");}
     }catch(error){
-      console.error(error);started=false;app.dataset.mode="title";showDialog("launchError");el("dialogTitle").textContent="Unable to start flight";
+      console.error(error);
+      // A short, non-identifying reason for the crash and failure monitor.
+      const message=String(error?.message||error);
+      window.aerieLaunchFailure=/webgl|graphics context/i.test(message)?"webgl":
+        /scenery asset (\S+)/.test(message)?"asset-"+message.match(/scenery asset (\S+)/)[1].replace(/\.[a-z0-9]+$/i,""):
+        /Flight access/.test(message)?"access":(error?.name||"error");
+      started=false;app.dataset.mode="title";showDialog("launchError");el("dialogTitle").textContent="Unable to start flight";
       el("summary").textContent=/webgl|graphics context/i.test(String(error))
         ?"Chrome could not start 3D graphics. Enable graphics acceleration in Chrome settings, then reopen the game."
         :"The range could not finish loading. Try again to reopen this flight.";
@@ -1145,6 +1151,16 @@
       }
     }
   }
+  let measuredFps=0;
+  // Read by aerie-monitor.js: a heartbeat it stores so a tab the OS kills mid-flight
+  // can be reported on the next load. Numbers only; nothing about the player.
+  window.aerieDiag=()=>{
+    if(!started||!renderer)return null;
+    const info=renderer.info;
+    return {t:Math.round(elapsed),fps:Math.round(measuredFps),dpr:renderer.getPixelRatio(),
+      ktris:Math.round(info.render.triangles/1000),calls:info.render.calls,tex:info.memory.textures,
+      geo:info.memory.geometries,stage:perching?.stage||"free",paused,lost:graphicsLost};
+  };
   function frame(now){
     requestAnimationFrame(frame);
     const realDt=Math.max(0,(now-last)/1000);last=now;
@@ -1153,7 +1169,7 @@
     // sample before reducing the framebuffer, and recover resolution slowly.
     frameSeconds+=Math.min(realDt,.4);frameCount++;
     if(frameSeconds>=2.5){
-      const fps=frameCount/frameSeconds, current=renderer.getPixelRatio();
+      const fps=frameCount/frameSeconds, current=renderer.getPixelRatio();measuredFps=fps;
       fastWindows=fps>54?fastWindows+1:0;
       let next=current;
       if(fps<(touchFirst?45:28))next=Math.max(Math.min(devicePixelRatio,pixelRatioLimit,touchFirst?1:1.5),current-.12);
