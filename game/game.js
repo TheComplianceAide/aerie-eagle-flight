@@ -656,6 +656,7 @@
     frameSeconds=0;frameCount=0;fastWindows=0;
     found.clear();app.classList.remove("clearView");resetInput();started=true;paused=false;app.dataset.mode="flight";
     last=performance.now();syncAudio();advance(0);
+    window.dispatchEvent(new Event("aerie:flight-started"));
   }
   el("fly").onclick=async()=>{
     if(launchPending)return;
@@ -665,7 +666,7 @@
       await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
       await init();startFlight();
       const snapshot=savedFlight();
-      if(snapshot){resumeSaved(snapshot);showDialog("pause");}
+      if(snapshot){resumeSaved(snapshot);if(app.dataset.ticketLaunch!=="true")showDialog("pause");}
     }catch(error){
       console.error(error);
       // A short, non-identifying reason for the crash and failure monitor.
@@ -677,7 +678,7 @@
       el("summary").textContent=/webgl|graphics context/i.test(String(error))
         ?"Chrome could not start 3D graphics. Enable graphics acceleration in Chrome settings, then reopen the game."
         :"The range could not finish loading. Try again to reopen this flight.";
-    }finally{launchPending=false;button.disabled=false;flyLabel();}
+    }finally{delete app.dataset.ticketLaunch;launchPending=false;button.disabled=false;flyLabel();}
   };
   // The access-pass script owns "Unlock this world"; otherwise offer a saved flight back.
   window.aerieFlyText=()=>savedFlight()?"Resume flight":"Take flight";

@@ -22,10 +22,11 @@
     if (!limited) return;
 
     let pass = {fullAccess:false, worlds:[]};
+    let passKnown = false, checkingPass = false;
     const canFly = region => region === freeWorld || pass.fullAccess || pass.worlds.includes(region);
     function refreshMenu() {
       const allowed = canFly(picker.value);
-      fly.lastChild.textContent = allowed ? (window.aerieFlyText?.() || 'Take flight') : 'Unlock this world';
+      fly.lastChild.textContent = allowed ? (window.aerieFlyText?.() || 'Take flight') : passKnown ? 'Unlock this world' : checkingPass ? 'Checking your ticket…' : 'Retry ticket check';
       for (const button of document.querySelectorAll('#worldList [data-choice]')) {
         button.dataset.pass = canFly(button.dataset.choice) ? 'open' : 'locked';
       }
@@ -68,19 +69,31 @@
       return due;
     };
 
-    let passRequest = 0;
+    let activePassRequest;
     function refreshPass() {
-      const request = ++passRequest;
-      const signal = typeof AbortSignal.timeout === 'function' ? AbortSignal.timeout(4000) : undefined;
-      return fetch(new URL('status', endpoint), {credentials:'include', cache:'no-store', signal})
-      .then(response => response.ok ? response.json() : null)
-      .then(data => {
-        if (request === passRequest && data && Array.isArray(data.worlds)) {
-          pass = {fullAccess:data.fullAccess === true, worlds:data.worlds};
-          app.dataset.freePlayer = String(!pass.fullAccess && pass.worlds.length === 1 && pass.worlds.includes(freeWorld));
-          if (app.dataset.mode === 'title' && !fly.disabled) refreshMenu();
+      if (activePassRequest) return activePassRequest;
+      checkingPass = true;
+      if (app.dataset.mode === 'title' && !fly.disabled) refreshMenu();
+      activePassRequest = (async () => {
+        for (let attempt = 0; attempt < 2; attempt++) {
+          try {
+            const signal = typeof AbortSignal.timeout === 'function' ? AbortSignal.timeout(9000) : undefined;
+            const response = await fetch(new URL('status', endpoint), {credentials:'include', cache:'no-store', signal});
+            if (!response.ok) continue;
+            const data = await response.json();
+            if (!Array.isArray(data.worlds)) continue;
+            pass = {fullAccess:data.fullAccess === true, worlds:data.worlds};
+            passKnown = true;
+            app.dataset.freePlayer = String(!pass.fullAccess && pass.worlds.length === 1 && pass.worlds.includes(freeWorld));
+            break;
+          } catch {}
         }
-      }).catch(() => {});
+      })().finally(() => {
+        activePassRequest = null;
+        checkingPass = false;
+        if (app.dataset.mode === 'title' && !fly.disabled) refreshMenu();
+      });
+      return activePassRequest;
     }
     let ticketPriceRequest;
     window.addEventListener('aerie:show-flight-offers', () => {
@@ -94,13 +107,46 @@
         }).catch(() => { ticketPriceRequest = null; });
     });
     let status = refreshPass();
+    const entry = new URL(location.href);
+    const targetWorld = new URLSearchParams(entry.hash.slice(1)).get('world');
+    if (entry.searchParams.get('fly') === '1' && targetWorld) {
+      status.then(() => {
+        const requested = targetWorld === 'lac-berte' ? 'labrador' : targetWorld;
+        if (!pass.fullAccess || !canFly(requested) || picker.value !== requested ||
+            app.dataset.mode !== 'title' || fly.disabled) return;
+        // Consume this one navigation so a later refresh still restores the usual pause menu.
+        const current = new URL(location.href);
+        current.searchParams.delete('fly');
+        history.replaceState(null, '', current.href);
+        app.dataset.ticketLaunch = 'true';
+        fly.click();
+      });
+    }
+    window.addEventListener('aerie:flight-started', () => {
+      if (picker.value === freeWorld || !pass.fullAccess) return;
+      try {
+        localStorage.setItem('aerie:last-paid-flight', JSON.stringify({
+          world: picker.value, launch: document.getElementById('launchPoint').value
+        }));
+      } catch {}
+    });
     window.addEventListener('pageshow', event => { if (event.persisted) status = refreshPass(); });
     document.addEventListener('visibilitychange', () => { if (!document.hidden) status = refreshPass(); });
 
-    fly.addEventListener('click', event => {
+    let pendingLaunch = false;
+    fly.addEventListener('click', async event => {
       if (canFly(picker.value)) return;
       event.preventDefault();
       event.stopImmediatePropagation();
+      if (!passKnown) {
+        if (pendingLaunch) return;
+        pendingLaunch = true;
+        const requested = picker.value;
+        await refreshPass();
+        pendingLaunch = false;
+        if (app.dataset.mode !== 'title' || fly.disabled || picker.value !== requested || !passKnown) return;
+        if (canFly(requested)) { fly.click(); return; }
+      }
       location.assign(new URL('#passes', join));
     }, true);
 
