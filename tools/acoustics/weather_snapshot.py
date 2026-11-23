@@ -61,13 +61,14 @@ def read_fields(values, units, fields, hourly=False):
     result = {}
     for key, unit in fields.items():
         value = values[key]
-        if units[key] != unit:
-            raise ValueError(f"{key} must use {unit}")
         if hourly:
             if not isinstance(value, list) or len(value) != 1:
                 raise ValueError(f"{key} must contain one hourly value")
             value = value[0]
-        if not (hourly and value is None):
+        missing = hourly and value is None
+        if units[key] != unit and not (missing and units[key] == "undefined"):
+            raise ValueError(f"{key} must use {unit}")
+        if not missing:
             if type(value) not in (int, float) or not math.isfinite(value):
                 raise ValueError(f"{key} must be a finite number")
             low, high = LIMITS[unit]

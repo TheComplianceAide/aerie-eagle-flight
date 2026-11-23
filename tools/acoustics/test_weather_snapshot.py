@@ -35,7 +35,9 @@ class SnapshotTest(unittest.TestCase):
                     row["current"]["time"] = test.now.strftime("%Y-%m-%dT%H:%M")
                     row["hourly"]["time"] = [test.now.strftime("%Y-%m-%dT%H:00")]
                     if world == "lofoten":
-                        row["hourly"]["temperature_80m"] = row["hourly"]["temperature_120m"] = [None]
+                        for key in ("temperature_80m", "temperature_120m"):
+                            row["hourly"][key] = [None]
+                            row["hourly_units"][key] = "undefined"
                     rows.append(row)
                 body = json.dumps(test.change(model, rows)).encode()
                 self.send_response(200)
@@ -93,6 +95,7 @@ class SnapshotTest(unittest.TestCase):
                 change(("current_units", "wind_speed_10m"), "km/h"),
                 change(("current", "surface_pressure"), 100),
                 change(("hourly", "wind_speed_80m"), []),
+                change(("hourly_units", "temperature_120m"), "undefined"),
                 change(("hourly", "temperature_120m"), [float("nan")]),
                 change(("hourly", "time"), ["2000-01-01T00:00"]),
         ]:
