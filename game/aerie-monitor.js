@@ -42,7 +42,7 @@
   if (prior && prior.open && Date.now() - prior.at < 20 * 60 * 1000 && /^[a-z]{1,24}$/.test(prior.world || '')) {
     const d = prior.diag || {};
     const name = ['crash', 't' + clean(d.t), 'f' + clean(d.fps), 'd' + clean(Math.round((d.dpr || 0) * 100)),
-      'k' + clean(d.ktris), 'c' + clean(d.calls), 'x' + clean(d.tex), clean(prior.platform), clean(d.stage || '')].join('.') + '.js';
+      'k' + clean(d.ktris), 'c' + clean(d.calls), 'x' + clean(d.tex), 's' + clean(d.sound ?? ''), clean(prior.platform), clean(d.stage || '')].join('.') + '.js';
     const send = () => fetch(endpoint, {method:'POST', credentials:'omit', keepalive:true,
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({kind:'graphics', world:prior.world, version:/^[\w.-]{1,24}$/.test(prior.version) ? prior.version : version,
