@@ -54,3 +54,10 @@
   .modal[data-dialog="support"] .flight-offers { width: 100%; grid-template-columns: 1fr 1fr; }
   .modal[data-dialog="support"] .flight-offers a > span { font-size: 18px; }
 }
+
+@media (max-width: 600px) {
+  .flight-offers { width: min(100%, 15rem); gap: .35rem; }
+  .flight-offers a { aspect-ratio: auto; min-height: 46px; }
+  .flight-offers a > span { font-size: 15px; }
+  .flight-offers small { font-size: 10px; }
+}

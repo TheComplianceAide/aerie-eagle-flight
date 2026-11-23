@@ -336,11 +336,50 @@ fieldset:disabled input, fieldset:disabled button, .button:disabled { opacity: .
   .return-notice { align-items: flex-start; flex-direction: column; }
   .return-actions { width: 100%; }
 }
+/* On phones the ticket art sits in two rows, leaving the flight in view. */
+@media (max-width: 600px), (max-height: 500px) and (max-width: 960px) {
+  .hero-tickets {
+    max-width: 23rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas: "buy share" "free social" "note note";
+    gap: .3rem .5rem;
+    align-items: center;
+  }
+  .hero-tickets > div:first-child,
+  .hero-tickets .flight-ticket-silver { display: contents; }
+  .hero-tickets .flight-ticket-silver::before { content: none; }
+  .hero-tickets .flight-ticket-gold { grid-area: buy; }
+  .hero-tickets .flight-ticket,
+  .pass-body .flight-ticket { aspect-ratio: auto; min-height: 48px; }
+  .hero-tickets .ticket-share {
+    grid-area: share; position: relative; inset: auto; transform: none;
+    min-height: 48px; padding: .3rem .3rem .3rem 23%; gap: 1px;
+    color: #162423; border-radius: 4px;
+    background: url("media/flight-ticket-silver.webp") center / 100% 100% no-repeat;
+  }
+  .hero-tickets .ticket-face { gap: 1px; }
+  .hero-tickets .ticket-face strong,
+  .pass-body .ticket-face strong { font-size: 1rem; line-height: 1.05; }
+  .hero-tickets .ticket-face span { font-size: .625rem; line-height: 1.15; }
+  .hero-tickets .ticket-stub,
+  .pass-body .ticket-stub { font-size: .8rem; }
+  .hero-tickets .hero-free {
+    grid-area: free; grid-column: 1 / -1; justify-self: start;
+    width: min(10.8rem, calc(100% - 11.25rem)); min-height: 44px;
+  }
+  .hero-tickets .hero-free strong { font-size: .86rem; }
+  .hero-tickets .hero-free .ticket-face { left: 24%; right: 23%; }
+  .hero-tickets .ticket-social {
+    grid-area: social; grid-column: 1 / -1; justify-self: end;
+    position: static; transform: none;
+  }
+  .hero-tickets .ticket-note { grid-area: note; margin: 0; font-size: .68rem; }
+  .pass { min-height: 13.5rem; }
+  .pass-body .flight-ticket { max-width: 13rem; }
+}
 @media (max-width: 480px) {
   .toplinks .top-worlds { display: none; }
-  .flight-ticket-silver { min-height: 104px; }
-  .ticket-share { inset: 7px 12px auto 28%; min-height: 44px; transform: none; }
-  .ticket-social { inset: auto 11px 8px auto; transform: none; }
+  .hero-content { padding-block: clamp(2rem, 8svh, 4rem) 1.4rem; }
 }
 @media (max-width: 410px) {
   .toplinks { gap: .65rem; }
@@ -353,6 +392,16 @@ fieldset:disabled input, fieldset:disabled button, .button:disabled { opacity: .
   .device-guide { align-items: flex-start; flex-direction: column; }
   .signup .input-row { flex-wrap: wrap; }
   .signup .input-row input { flex-basis: 100%; }
+}
+@media (max-width: 380px) {
+  .hero-tickets { gap: .25rem .35rem; }
+  .hero-tickets .ticket-face strong { font-size: .86rem; }
+  .hero-tickets .ticket-face span { font-size: .59rem; }
+  .hero-tickets .flight-ticket-gold .ticket-face { left: 24%; right: 22%; }
+  .hero-tickets .flight-ticket-gold .ticket-stub { font-size: .68rem; }
+  .hero-tickets .ticket-share { padding-left: 20%; }
+  .hero-tickets .hero-free .ticket-stub { font-size: .61rem; }
+  .hero-tickets .hero-free strong { font-size: .75rem; }
 }
 @media (max-width: 355px) {
   .topbar .wordmark img { width: 66px; }
