@@ -4,15 +4,15 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#102020">
-  <title>Aerie · Take Flight</title>
+  <title>Aerie · Eagle Flight Simulator</title>
   <meta name="description" content="Fly as an eagle from Mount Major over Lake Winnipesaukee, New Hampshire. Start free.">
   <link rel="canonical" href="https://playaerie.com/join/">
   <link rel="icon" href="../aerie-icon-64.png" type="image/png">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Aerie">
   <meta property="og:locale" content="en_US">
-  <meta property="og:title" content="Aerie · Take Flight">
-  <meta property="og:description" content="Fly free from Mount Major over Lake Winnipesaukee, New Hampshire.">
+  <meta property="og:title" content="Aerie · Eagle Flight Simulator">
+  <meta property="og:description" content="Launch from Mount Major as an eagle. Fly Lake Winnipesaukee free, then explore Moosehead, Alaska and Acadia.">
   <meta property="og:url" content="https://playaerie.com/join/">
   <meta property="og:image" content="https://playaerie.com/join/media/share-card.jpg">
   <meta property="og:image:secure_url" content="https://playaerie.com/join/media/share-card.jpg">
@@ -21,14 +21,14 @@
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="An eagle above Mount Major and Lake Winnipesaukee in Aerie.">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Aerie · Take Flight">
-  <meta name="twitter:description" content="Fly free from Mount Major over Lake Winnipesaukee, New Hampshire.">
+  <meta name="twitter:title" content="Aerie · Eagle Flight Simulator">
+  <meta name="twitter:description" content="Launch from Mount Major as an eagle. Fly Lake Winnipesaukee free, then explore Moosehead, Alaska and Acadia.">
   <meta name="twitter:image" content="https://playaerie.com/join/media/share-card.jpg">
   <meta name="twitter:image:alt" content="An eagle above Mount Major and Lake Winnipesaukee in Aerie.">
   <link rel="preload" href="media/mount-major.webp" as="image">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="media/aerie-app-180.png">
-  <link rel="stylesheet" href="landing.css?v=cinema-tickets">
+  <link rel="stylesheet" href="landing.css?v=gone-flying">
   <script defer src="landing.js?v=cinema-tickets"></script>
   <script defer src="save-aerie.js?v=1"></script>
 </head>
@@ -58,7 +58,7 @@
 
     <section class="hero" aria-labelledby="hero-title">
       <div class="hero-picture" aria-hidden="true">
-        <video id="mount-major-flight" muted playsinline loop preload="none" poster="media/mount-major.webp" data-src="media/flight.mp4?v=world-tour-60"></video>
+        <video id="mount-major-flight" muted playsinline loop preload="none" poster="media/mount-major.webp" data-src="media/world-tour-background.mp4?v=tour-60"></video>
       </div>
       <header class="topbar frame">
         <a class="wordmark" href="./" aria-label="Aerie home">
@@ -75,8 +75,8 @@
 
       <div class="hero-content frame">
         <p class="kicker"><i aria-hidden="true"></i> Eagle flight simulator</p>
-        <h1 id="hero-title">The sky<br><em>is yours.</em></h1>
-        <p class="hero-intro">Fly over Lake Winnipesaukee from Mount Major, New Hampshire.</p>
+        <h1 id="hero-title">Gone flying.<br><em>Back eventually.</em></h1>
+        <p class="hero-intro">Leave Mount Major on a rising breeze. Follow the islands across Lake Winnipesaukee, or settle in the pines and listen for loons.</p>
         <div class="hero-tickets" aria-label="Flight tickets">
           <div>
             <button class="flight-ticket flight-ticket-gold" id="hero-buy" type="button" aria-describedby="hero-ticket-note hero-checkout-status" hidden>
@@ -108,7 +108,7 @@
         </div>
         <p id="hero-checkout-status" class="hero-checkout-status" role="status" hidden></p>
         <div class="actions hero-explore">
-          <button class="button button-glass" id="watch-film" type="button"><span class="play-symbol" aria-hidden="true"></span> Watch gameplay</button>
+          <button class="button button-glass" id="watch-film" type="button"><span class="play-symbol" aria-hidden="true"></span> Watch gameplay · 1:00</button>
         </div>
         <div class="device-guide">
           <p id="device-guide-title">Best played on</p>
@@ -128,8 +128,9 @@
     <section class="world-previews section frame" id="worlds" aria-labelledby="worlds-title">
       <div class="section-heading">
         <div>
-          <p class="kicker"><i aria-hidden="true"></i> Recorded in Aerie</p>
-          <h2 id="worlds-title">Explore <em>13 worlds.</em></h2>
+
+          <h2 id="worlds-title">13 places <em>to fly.</em></h2>
+          <p class="worlds-note">Ride the lift along Mount Kineo, hear your call come back off a cliff, or drift under the stars at Acadia.</p>
         </div>
         <p id="world-preview-hint"><span class="preview-hint-pointer">Hover or tab to a world to preview the flight.</span><span class="preview-hint-touch">Touch and hold a world to preview the flight.</span><span class="preview-hint-static">Browse the worlds of Aerie.</span></p>
       </div>
@@ -217,15 +218,15 @@
 
     <section class="section frame" id="passes" aria-labelledby="passes-title">
       <div class="section-heading">
-        <h2 id="passes-title">Your first flight.<br><em>Their next adventure.</em></h2>
-        <p>Take off over New Hampshire’s lakes and islands. When you’re ready to fly farther, one purchase opens every world for you and a friend.</p>
+        <h2 id="passes-title">Flight <em>tickets.</em></h2>
+
       </div>
       <div class="pass-grid">
         <article class="pass pass-lake">
           <div class="pass-body">
-            <p class="kicker">Free to fly</p>
+            <p class="kicker">New Hampshire</p>
             <h3>Lake Winnipesaukee</h3>
-            <p>Glide off Mount Major toward Rattlesnake Island. No email or account needed.</p>
+            <p>Start above the lake and follow the shore at your own pace. Free to play, no email needed.</p>
             <a class="flight-ticket flight-ticket-paper" href="../?access=free#world=winnipesaukee&amp;launch=mount-major">
               <span class="ticket-face"><strong>Mount Major</strong></span><span class="ticket-stub">FREE</span>
             </a>
@@ -233,8 +234,8 @@
         </article>
         <article class="pass pass-gift">
           <div class="pass-body">
-            <h3>All worlds.<br>One gift.</h3>
-            <p>Fly every world and give a friend their own full-game copy.</p>
+            <h3>Full game</h3>
+            <p>One ticket opens all 13 worlds. A second copy is yours to give away.</p>
             <button class="flight-ticket flight-ticket-gold" id="checkout-launch" type="button" hidden aria-describedby="checkout-merchant checkout-availability">
               <span class="ticket-face"><strong id="checkout-label">Flight ticket</strong></span>
               <span class="ticket-stub" id="flight-price">↗</span>
@@ -251,9 +252,9 @@
     <section class="community-section" id="share" aria-labelledby="community-title">
       <div class="frame community-grid">
         <div class="social-offer" id="invite">
-          <p class="kicker"><i aria-hidden="true"></i> Tell a friend</p>
-          <h2 id="community-title">Share a flight.<br><em>Unlock five worlds.</em></h2>
-          <p>Send the free flight to five friends and confirm here, or share your honest experience publicly and submit your post for review.</p>
+
+          <h2 id="community-title">Five worlds <em>for sharing.</em></h2>
+          <p>Send Aerie to five friends, or submit a public post for review. Fly Moosehead, Horseshoe Bend, Lac Berté, Alaska and Acadia.</p>
           <div class="actions">
             <a class="button button-gold" href="#invite">Share with 5 friends</a>
             <button class="button button-outline" id="send-free-flight" type="button">Send the free flight</button>
@@ -261,7 +262,7 @@
         </div>
         <aside class="signup" aria-labelledby="signup-title">
           <h3 id="signup-title">Aerie flight updates</h3>
-          <p>Get an email when Founder Passes open or new worlds are ready to explore.</p>
+          <p>Email me when there’s a new place to fly.</p>
           <form id="signup-form" data-form="signup">
             <fieldset disabled>
               <label for="signup-email">Email address</label>

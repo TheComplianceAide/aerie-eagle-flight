@@ -66,7 +66,7 @@ fieldset { padding: 0; border: 0; margin: 0; min-width: 0; }
 .kicker i { display: block; width: 2.15rem; height: 1px; background: currentColor; }
 .hero h1 {
   margin: 1.2rem 0 1.35rem;
-  max-width: 9ch;
+  max-width: 100%;
   font-size: clamp(6.2rem, 10.5vw, 10.9rem);
   line-height: .81;
   text-shadow: 0 5px 60px #0a1517a3;
@@ -369,3 +369,10 @@ fieldset:disabled input, fieldset:disabled button, .button:disabled { opacity: .
 
 .footlinks .project-link { gap: .5rem; }
 .project-link img { width: 17px; height: 17px; }
+
+.hero h1 { font-size: clamp(5.5rem, 8.3vw, 8.2rem); line-height: .9; }
+.hero h1 em { white-space: nowrap; font-size: .82em; }
+.worlds-note { max-width: 45ch; }
+@media (max-width: 740px) {
+  .hero h1 { font-size: clamp(3.65rem, 12.9vw, 5.5rem); }
+}
