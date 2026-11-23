@@ -311,10 +311,6 @@
       openShare(true);
     });
   }
-  window.addEventListener('hashchange', () => {
-    if (new URLSearchParams(location.hash.slice(1)).has('invite')) openShare(true);
-  });
-
   for (const button of document.querySelectorAll('[data-ticket-share]')) {
     button.addEventListener('click', () => {
       const channel = button.dataset.ticketShare;
@@ -399,7 +395,7 @@
     } catch {}
   }
 
-  const playRequested = fragment.has('play');
+  let playRequested = fragment.has('play');
   const restoreRequested = fragment.has('restore-ticket');
   let restoreToken = fragment.get('restore');
   let pendingGift = fragment.get('gift') || params.get('gift');
@@ -926,6 +922,33 @@
       }
     });
   }
+
+  window.addEventListener('hashchange', () => {
+    const route = new URLSearchParams(location.hash.slice(1));
+    const wasPlaying = playRequested;
+    playRequested = route.has('play');
+    if (playRequested && !wasPlaying) {
+      for (const dialog of [shareDialog, restoreDialog, purchaseDialog]) {
+        if (dialog.open) dialog.close();
+      }
+      status = undefined;
+      updateRestore();
+      updateCheckoutReturn(true);
+      updateCheckoutOffer();
+      refreshStatus(true);
+    } else if (wasPlaying && !playRequested) {
+      updateCheckoutReturn();
+      updateCheckoutOffer();
+    }
+    if (route.has('restore-ticket')) {
+      if (shareDialog.open) shareDialog.close();
+      updateRestore();
+      show(restoreDialog);
+    } else if (route.has('invite')) {
+      if (restoreDialog.open) restoreDialog.close();
+      openShare(true);
+    }
+  });
 
   updateRestore();
   updateCheckoutReturn(Boolean(checkoutState) || playRequested);
