@@ -352,6 +352,7 @@
   let statusCheckedAt = 0;
   let statusVersion = 0;
   let giftUrl;
+  let receiptUrl;
   let restoreAvailable = false;
   let codeRequired = false;
   let confirmInProgress = false;
@@ -364,6 +365,21 @@
       if (url.origin === location.origin && /\/join\/?$/.test(url.pathname) &&
           (url.hash.startsWith('#gift=') || url.searchParams.has('gift'))) return url.href;
     } catch {}
+  }
+
+  function readReceipt(value) {
+    if (typeof value !== 'string') return;
+    try {
+      const url = new URL(value);
+      if (url.origin === 'https://pay.stripe.com' && !url.username && !url.password &&
+          /^\/receipts\/payment\/[A-Za-z0-9_-]+$/.test(url.pathname)) return url.href;
+    } catch {}
+  }
+
+  function updateReceiptLink(link) {
+    link.hidden = !receiptUrl;
+    if (receiptUrl) link.href = receiptUrl;
+    else link.removeAttribute('href');
   }
 
   function updateRestore() {
@@ -386,6 +402,8 @@
       'Use your purchase or claim email to restore access on this device.';
 
     giftUrl = readGift(status?.giftUrl);
+    receiptUrl = authenticated ? readReceipt(status?.receiptUrl) : undefined;
+    updateReceiptLink(byId('pass-receipt'));
     const extraWorlds = Array.isArray(status?.worlds) && status.worlds.some(world => world !== 'winnipesaukee');
     const hasAccess = authenticated && (status.fullAccess === true || extraWorlds);
     redeemGift.hidden = !pendingGift || !emailVerified || needsConfirmation;
@@ -395,16 +413,22 @@
     if (!giftUrl) giftLink.open = false;
     giftInput.value = giftLink.open ? giftUrl : '';
     playUnlocked.hidden = !hasAccess;
-    giftDetails.hidden = !pendingGift && !giftUrl && !hasAccess;
+    giftDetails.hidden = !pendingGift && !giftUrl && !receiptUrl && !hasAccess;
     giftMessage.textContent = pendingGift && emailVerified ? 'Your Founder Pass gift is ready to redeem.' :
       pendingGift ? 'Your gift is held by its private link until you verify your email.' :
       giftUrl ? 'Your gift link opens the full game for one friend.' :
       hasAccess ? 'Your unlocked worlds are ready to fly.' : '';
   }
 
+  function returningFromPayment() {
+    return checkoutState === 'success' || checkoutState === 'pending';
+  }
+
   function updateCheckoutReturn(focus = false) {
     if (!checkoutState) return;
     const notice = byId('return-notice');
+    const checking = returningFromPayment() && status === undefined;
+    const couldNotCheck = returningFromPayment() && status === null;
     const owned = status?.fullAccess === true;
     const retry = !owned && ['cancel', 'started'].includes(checkoutState);
     const messages = {
@@ -413,14 +437,26 @@
       pending: ['Checkout status pending', 'If you paid on Stripe, restore with the email you used at checkout.'],
       success: ['Find your Founder Pass', 'Restore access with your Stripe checkout email if your worlds don’t appear here.']
     };
-    const [title, message] = owned
-      ? ['Your worlds are ready', giftUrl ? 'Fly all worlds now or copy the gift link for your friend.' : 'Fly all worlds with your Founder Pass.']
-      : messages[checkoutState];
+    let [title, message] = messages[checkoutState];
+    if (owned) {
+      title = 'Your worlds are ready';
+      message = giftUrl ? 'Fly all worlds now or copy the gift link for your friend.' : 'Fly all worlds with your Founder Pass.';
+    } else if (checking) {
+      title = 'Checking your pass…';
+      message = 'We’re checking access to your Aerie worlds.';
+    } else if (couldNotCheck) {
+      title = 'We couldn’t check your pass';
+      message = 'If you paid on Stripe, you can still restore your pass with your checkout email.';
+    }
     byId('return-title').textContent = title;
     byId('return-message').textContent = message;
     byId('return-play').hidden = !owned;
     byId('return-retry').hidden = !retry;
-    byId('return-restore').textContent = owned ? 'Gift & access' : 'Restore access';
+    byId('return-status-retry').hidden = !couldNotCheck;
+    updateReceiptLink(byId('return-receipt'));
+    const restore = byId('return-restore');
+    restore.hidden = checking;
+    restore.textContent = owned ? 'Gift & access' : 'Restore access';
     notice.hidden = false;
     if (focus) notice.focus();
   }
@@ -428,9 +464,14 @@
   function refreshStatus(afterMutation = false) {
     if (statusRequest && !afterMutation) return statusRequest;
     const version = ++statusVersion;
+    if (returningFromPayment() && status === null) {
+      status = undefined;
+      updateCheckoutReturn();
+      updateCheckoutOffer();
+    }
     statusRequest = request('/status', undefined, 8000).catch(() => null).then(current => {
       if (version !== statusVersion) return;
-      status = current;
+      status = typeof current?.fullAccess === 'boolean' ? current : null;
       statusCheckedAt = Date.now();
       updateRestore();
       updateCheckoutReturn();
@@ -440,6 +481,11 @@
     });
     return statusRequest;
   }
+
+  byId('return-status-retry').addEventListener('click', () => {
+    refreshStatus();
+    byId('return-notice').focus();
+  });
 
   requestRestoreAgain.addEventListener('click', () => {
     restoreToken = null;
@@ -578,10 +624,13 @@
     const owned = status?.fullAccess === true;
     const available = enabled(checkoutConfig, 'checkout');
     const testCheckout = available && checkoutConfig.checkoutMode === 'test';
+    const unconfirmedReturn = returningFromPayment() && !status;
+    checkoutLaunch.hidden = unconfirmedReturn;
     byId('checkout-label').textContent = owned ? 'Open your pass' : testCheckout ? 'Open test checkout' : 'Buy Founder Pass';
-    byId('pass-restore').hidden = owned;
-    checkoutMerchant.hidden = owned || !available;
-    flightPrice.hidden = owned;
+    byId('pass-restore').hidden = owned || unconfirmedReturn;
+    checkoutMerchant.hidden = owned || unconfirmedReturn || !available;
+    flightPrice.hidden = owned || unconfirmedReturn;
+    checkoutAvailability.hidden = unconfirmedReturn;
     if (!checkoutBusy) {
       checkoutAvailability.textContent = owned ? 'All worlds are unlocked on this device.'
         : checkoutConfig === undefined ? 'Checking Stripe checkout availability…' : checkoutNote(checkoutConfig);
@@ -694,7 +743,7 @@
       if (action === 'restore') {
         updateRestore();
         show(restoreDialog);
-        refreshStatus();
+        if (!returningFromPayment() || status !== null) refreshStatus();
       }
       if (action === 'claim' || action === 'share') openShare(action === 'claim');
     });
@@ -745,6 +794,7 @@
 
   updateRestore();
   updateCheckoutReturn(Boolean(checkoutState));
+  updateCheckoutOffer();
   loadConfig();
   refreshStatus();
   if (pendingGift || restoreToken) show(restoreDialog);
