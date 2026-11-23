@@ -28,7 +28,36 @@
   <link rel="preload" href="media/mount-major.webp" as="image">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="media/aerie-app-180.png">
-  <link rel="stylesheet" href="landing.css?v=wallet-checkout">
+  <script>
+    // Apply before the first paint, and fail open even if the intro script cannot load.
+    try {
+      const root = document.documentElement;
+      const seen = 'aerie.flightIntroSeen';
+      const campaign = [...new URLSearchParams(location.search).keys()].every(
+        key => /^(utm_[a-z0-9_]+|ref|fbclid|gclid|msclkid)$/i.test(key)
+      );
+      if (matchMedia('(max-width: 740px) and (prefers-reduced-motion: no-preference)').matches &&
+          !document.hidden && !navigator.connection?.saveData && !location.hash && campaign &&
+          !matchMedia('(display-mode: standalone)').matches && !navigator.standalone &&
+          !sessionStorage.getItem(seen) && !sessionStorage.getItem('aerie.checkoutVisit') &&
+          !sessionStorage.getItem('aerie.pendingGift') && !localStorage.getItem('aerie:last-flight') &&
+          !localStorage.getItem('aerie:last-paid-flight') && !localStorage.getItem('aerie:resume') &&
+          !/(?:^|;\s*)aerie_departure=/.test(document.cookie)) {
+        root.dataset.flightIntro = 'playing';
+        const reveal = () => {
+          if (root.dataset.flightIntro !== 'playing') return;
+          root.dataset.flightIntro = 'shown';
+          document.dispatchEvent(new Event('aerie:flight-intro-end'));
+        };
+        window.setTimeout(() => {
+          if (document.getElementById('flight-intro-skip')?.hidden !== false) reveal();
+        }, 4000);
+        window.setTimeout(reveal, 20000);
+      }
+    } catch {}
+  </script>
+  <link rel="stylesheet" href="landing.css?v=flight-intro">
+  <script defer src="flight-intro.js?v=1"></script>
   <link rel="stylesheet" href="return-flight.css?v=1">
   <script defer src="daily-flight.js"></script>
   <script defer src="return-flights.js"></script>
@@ -65,6 +94,7 @@
       <div class="hero-picture" aria-hidden="true">
         <video id="mount-major-flight" muted playsinline loop preload="none" poster="media/mount-major.webp" data-src="media/world-tour-background.mp4?v=tour-loop"></video>
       </div>
+      <button id="flight-intro-skip" class="flight-intro-skip" type="button" aria-label="Skip the opening flight" hidden></button>
       <header class="topbar frame">
         <a class="wordmark" href="./" aria-label="Aerie home">
           <img src="../field-engraving.webp" alt="Aerie" width="768" height="512">
