@@ -26,6 +26,8 @@ Stage the Function with checkout paused. Set `AERIE_STRIPE_MODE=live`, `AERIE_TI
 
 Inspect the hosted buyer page for the ticket, amount and merchant branding. Check the live seller and expected tax registrations in the Dashboard. Save the verified link or resend its signed configuration event. Both public hosts should report `checkoutProvider: "payment_link"` and `checkoutLinkVerified: true` at `/api/aerie/config`. The latter confirms delivery of a matching signed link configuration. Stripe normally omits line items from this event, so verify the exact price on the saved link. Enable checkout and run the deployment health verifier for the merged revision. An actual paid event grants the purchaser's worlds and one gift. Signed refunds and disputes continue to apply when checkout is paused.
 
+Set `AERIE_STRIPE_CHECKOUT_PROVIDER=api` to switch new buyers to API-created sessions with the merchant name **Aeria**. The game and ticket remain **Aerie**. Keep the existing Payment Link ID, URL, and signing secret so its earlier purchases, gifts, refunds, and disputes continue to work. Configure the live API key and confirm its access to the same seller, price and endpoint before enabling purchases. The public config's `checkoutProvider` identifies the route for new buyers, and `checkoutLinkVerified` refers to the configured Dashboard link.
+
 ## Check live payment readiness
 
 From `commerce/`, run `npm ci`, sign in to Azure CLI with access to the Aerie Function configuration and Key Vault, and supply the intended Stripe merchant account ID.
