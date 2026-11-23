@@ -187,7 +187,7 @@ export function createCommerce(config, { store, stripe, sendEmail, assetUrl, now
       line_items: [{ price: price.id, quantity: 1 }],
       automatic_tax: { enabled: true },
       adaptive_pricing: { enabled: false },
-      billing_address_collection: 'required',
+      billing_address_collection: 'auto',
       branding_settings: {
         display_name: 'Aerie',
         background_color: '#0d1919',
@@ -197,7 +197,10 @@ export function createCommerce(config, { store, stripe, sendEmail, assetUrl, now
       ...customerEmail,
       client_reference_id: reference,
       metadata: { product: 'aerie-founder-and-gift' },
-      payment_intent_data: { metadata: { product: 'aerie-founder-and-gift' } },
+      payment_intent_data: {
+        statement_descriptor_suffix: 'AERIE',
+        metadata: { product: 'aerie-founder-and-gift' }
+      },
       success_url: `${browserOrigin}/api/aerie/checkout/complete?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${browserOrigin}${joinPath}?checkout=cancel`
     });

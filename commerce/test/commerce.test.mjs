@@ -86,6 +86,8 @@ function fixture() {
     assert.equal(start.cookies[0].sameSite, 'Lax');
     assert.equal(start.cookies[0].httpOnly, true);
     assert.equal(sessions.at(-1).automatic_tax.enabled, true);
+    assert.equal(sessions.at(-1).billing_address_collection, 'auto');
+    assert.equal(sessions.at(-1).payment_intent_data.statement_descriptor_suffix, 'AERIE');
     assert.equal(sessions.at(-1).customer_email, email);
     assert.deepEqual(sessions.at(-1).line_items, [{ price: priceId, quantity: 1 }]);
     const state = asCookie(start.cookies[0]);
