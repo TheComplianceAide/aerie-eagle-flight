@@ -18,6 +18,10 @@ function configuredEmail(value = '') {
 
 export function configuration(env = process.env) {
   const mode = env.AERIE_STRIPE_MODE || 'test';
+  const cents = env.AERIE_TICKET_PRICE_CENTS || '';
+  if (cents && (!/^[1-9]\d{0,7}$/.test(cents) || Number(cents) < 50)) {
+    throw new Error('AERIE_TICKET_PRICE_CENTS must be a whole USD amount in cents between 50 and 99999999.');
+  }
   if (!['test', 'live'].includes(mode)) throw new Error('AERIE_STRIPE_MODE must be test or live.');
   const configured = env.AERIE_REWARD_WORLDS?.split(',').map(value => value.trim()) || defaultRewards;
   // Preserve all three previously promised worlds when upgrading an existing deployment.
@@ -51,7 +55,7 @@ export function configuration(env = process.env) {
   const testPayer = configuredEmail(env.AERIE_SANDBOX_PURCHASE_TEST_PAYER);
   return {
     mode, live: mode === 'live', site: site?.origin || '', origins, rewards, secret,
-    stripeKey, priceId: env.AERIE_STRIPE_PRICE_ID || '', webhookSecret: env.AERIE_STRIPE_WEBHOOK_SECRET || '',
+    stripeKey, ticketPriceCents: cents ? Number(cents) : null, priceId: env.AERIE_STRIPE_PRICE_ID || '', webhookSecret: env.AERIE_STRIPE_WEBHOOK_SECRET || '',
     tableName, tableUrl: env.AERIE_TABLE_URL || '', storage, account, container,
     emailUrl: env.AERIE_EMAIL_ENDPOINT || '', sender: env.AERIE_EMAIL_SENDER || '',
     signup: env.AERIE_SIGNUP_ENABLED === 'true', checkout: env.AERIE_CHECKOUT_ENABLED === 'true',

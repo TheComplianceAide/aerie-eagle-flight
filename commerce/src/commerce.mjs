@@ -143,7 +143,14 @@ export function createCommerce(config, { store, stripe, sendEmail, purchaseEmail
           price.unit_amount <= 0 || price.currency !== 'usd' || price.livemode !== config.live) {
         return null;
       }
-      priceCache = { price, until: now() + 5 * minute };
+      const amount = config.ticketPriceCents ?? price.unit_amount;
+      const currency = price.currency;
+      const useInlinePrice = amount !== price.unit_amount;
+      if (useInlinePrice && typeof price.product !== 'string') return null;
+      const lineItem = useInlinePrice
+        ? { price_data: { product: price.product, currency, unit_amount: amount, tax_behavior: price.tax_behavior }, quantity: 1 }
+        : { price: price.id, quantity: 1 };
+      priceCache = { price: { amount, currency, lineItem }, until: now() + 5 * minute };
     }
     return priceCache.price;
   }
@@ -259,12 +266,10 @@ export function createCommerce(config, { store, stripe, sendEmail, purchaseEmail
     const customerEmail = suppliedEmail === undefined ? {} : { customer_email: emailAddress(suppliedEmail) };
     const token = newToken();
     const reference = digest(token);
-    await store.transaction([['create', row(`pending:${reference}`, {
-      priceId: price.id, amount: price.unit_amount, currency: price.currency, checkoutOrigin: browserOrigin, createdAt: now()
-    })]]);
     const checkout = await stripe.checkout.sessions.create({
       mode: 'payment',
-      line_items: [{ price: price.id, quantity: 1 }],
+      line_items: [price.lineItem],
+      ...(price.lineItem.price_data && { expand: ['line_items'] }),
       automatic_tax: { enabled: true },
       adaptive_pricing: { enabled: false },
       billing_address_collection: 'auto',
@@ -299,6 +304,22 @@ export function createCommerce(config, { store, stripe, sendEmail, purchaseEmail
       cancel_url: `${browserOrigin}${joinPath}?checkout=cancel`
     });
     if (!checkout.url || new URL(checkout.url).origin !== 'https://checkout.stripe.com') throw new Error('Unexpected hosted Checkout URL.');
+    // Inline prices get an immutable Stripe ID only after Checkout creates the session.
+    // Save that exact ID before handing out the payment link, just as for a catalog price.
+    let priceId = price.lineItem.price;
+    if (!priceId) {
+      const expected = price.lineItem.price_data;
+      const generated = checkout.line_items?.data?.[0]?.price;
+      if (!generated?.id || generated.product !== expected.product || generated.unit_amount !== expected.unit_amount ||
+          generated.currency !== expected.currency || generated.tax_behavior !== expected.tax_behavior ||
+          checkout.amount_subtotal !== price.amount) {
+        throw new Error('Hosted Checkout did not confirm the ticket price.');
+      }
+      priceId = generated.id;
+    }
+    await store.transaction([['create', row(`pending:${reference}`, {
+      priceId, amount: price.amount, currency: price.currency, checkoutOrigin: browserOrigin, createdAt: now()
+    })]]);
     return { jsonBody: { url: checkout.url }, cookies: [cookie(checkoutCookieFor(checkout.id), token, 24 * 60 * 60)] };
   }
 
@@ -618,7 +639,7 @@ export function createCommerce(config, { store, stripe, sendEmail, purchaseEmail
     const features = { signup: signupEnabled, checkout: Boolean(price), shareClaim: shareEnabled, restore: restoreEnabled };
     return { jsonBody: {
       ...features, shareClaims: features.shareClaim, features, freeWorld, rewardWorlds: config.rewards,
-      ...(price ? { priceLabel: `$${(price.unit_amount / 100).toFixed(2)} USD`, priceAmount: price.unit_amount, priceCurrency: price.currency } : {}),
+      ...(price ? { priceLabel: `$${(price.amount / 100).toFixed(2)} USD`, priceAmount: price.amount, priceCurrency: price.currency } : {}),
       checkoutMode: config.mode, checkoutCollectsEmail: true, googlePayCheckout: features.checkout, disclosure, monitoring: Boolean(config.monitoring)
     }};
   }
