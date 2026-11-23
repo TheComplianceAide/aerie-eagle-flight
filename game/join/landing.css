@@ -135,6 +135,7 @@ fieldset { padding: 0; border: 0; margin: 0; min-width: 0; }
 .ticket-icon:hover::before { background: #2a3735; }
 .ticket-icon:focus-visible, .ticket-share:focus-visible { outline-color: #182525; outline-offset: 1px; }
 .ticket-note { margin-top: .42rem; font-size: .73rem; line-height: 1.3; color: #faf0d5; }
+.hero-tickets > .ticket-note { grid-column: 1 / -1; grid-row: 2; }
 .wallet-option { display: inline-block; white-space: nowrap; }
 .wallet-option button { min-height: 44px; padding: 0 .2rem; background: transparent; border: 0; color: var(--gold); font: inherit; text-decoration: underline; text-underline-offset: .2em; }
 .hero-checkout-status { margin-top: .35rem; font-size: .78rem; color: var(--gold-strong); }
