@@ -50,6 +50,10 @@ export function configuration(env = process.env) {
       throw new Error('Payment Links require the verified Aerie link, matching mode, catalog price and 199 USD cents.');
     }
   }
+  const checkoutProvider = env.AERIE_STRIPE_CHECKOUT_PROVIDER || (paymentLinkId ? 'payment_link' : 'api');
+  if (!['api', 'payment_link'].includes(checkoutProvider) || (checkoutProvider === 'payment_link' && !paymentLinkId)) {
+    throw new Error('Select api or a configured payment_link for AERIE_STRIPE_CHECKOUT_PROVIDER.');
+  }
   const stripeKey = env.AERIE_STRIPE_SECRET_KEY || '';
   if (stripeKey && !new RegExp(`^(sk|rk)_${mode}_`).test(stripeKey)) {
     throw new Error('Stripe API key and mode do not match.');
@@ -67,7 +71,7 @@ export function configuration(env = process.env) {
     forecastSnapshot: env.AERIE_ACOUSTIC_SNAPSHOT_URL || '',
     forecastSnapshotStorage: env.AERIE_ACOUSTIC_SNAPSHOT_STORAGE_ENABLED === 'true',
     mode, live: mode === 'live', site: site?.origin || '', origins, rewards, secret,
-    paymentLinkId, paymentLinkUrl, stripeKey, ticketPriceCents: cents ? Number(cents) : null, priceId: env.AERIE_STRIPE_PRICE_ID || '', webhookSecret: env.AERIE_STRIPE_WEBHOOK_SECRET || '',
+    checkoutProvider, paymentLinkId, paymentLinkUrl, stripeKey, ticketPriceCents: cents ? Number(cents) : null, priceId: env.AERIE_STRIPE_PRICE_ID || '', webhookSecret: env.AERIE_STRIPE_WEBHOOK_SECRET || '',
     tableName, tableUrl: env.AERIE_TABLE_URL || '', storage, account, container,
     emailUrl: env.AERIE_EMAIL_ENDPOINT || '', sender: env.AERIE_EMAIL_SENDER || '',
     signup: env.AERIE_SIGNUP_ENABLED === 'true', checkout: env.AERIE_CHECKOUT_ENABLED === 'true',

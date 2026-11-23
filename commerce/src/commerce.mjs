@@ -137,7 +137,8 @@ export function createCommerce(config, { store, stripe, trafficStore, sendEmail,
   hasPreviewReward, previewCheckoutId, fetchForecast, readWeatherBlob, now = Date.now }) {
   const restoreEnabled = Boolean(store && sendEmail && config.site);
   const paymentLink = Boolean(config.paymentLinkId && config.paymentLinkUrl);
-  const canCheckout = Boolean(config.checkout && restoreEnabled && (stripe || paymentLink) && config.priceId && config.webhookSecret && assetUrl);
+  const sellWithLink = config.checkoutProvider === 'payment_link';
+  const canCheckout = Boolean(config.checkout && restoreEnabled && (sellWithLink ? paymentLink : stripe) && config.priceId && config.webhookSecret && assetUrl);
   const shareEnabled = Boolean(config.claims && restoreEnabled && assetUrl);
   const signupEnabled = Boolean(config.signup && store && config.site);
   const secureCookies = config.site.startsWith('https:');
@@ -200,7 +201,7 @@ export function createCommerce(config, { store, stripe, trafficStore, sendEmail,
 
   async function offer(verified) {
     if (!canCheckout) return null;
-    if (paymentLink) return (verified ?? await linkVerified()) ? { amount: config.ticketPriceCents, currency: 'usd' } : null;
+    if (sellWithLink) return (verified ?? await linkVerified()) ? { amount: config.ticketPriceCents, currency: 'usd' } : null;
     if (!priceCache || priceCache.until < now()) {
       const price = await stripe.prices.retrieve(config.priceId);
       if (!price.active || price.type !== 'one_time' || !Number.isSafeInteger(price.unit_amount) ||
@@ -340,7 +341,7 @@ export function createCommerce(config, { store, stripe, trafficStore, sendEmail,
     const customerEmail = suppliedEmail === undefined ? {} : { customer_email: emailAddress(suppliedEmail) };
     const token = newToken();
     const reference = digest(token);
-    if (paymentLink) {
+    if (sellWithLink) {
       const url = new URL(config.paymentLinkUrl);
       url.searchParams.set('client_reference_id', reference);
       // Stripe's Payment Link has one return host. Remember an order opened on the approved www
@@ -372,7 +373,7 @@ export function createCommerce(config, { store, stripe, trafficStore, sendEmail,
         }
       },
       branding_settings: {
-        display_name: 'Aerie',
+        display_name: 'Aeria',
         background_color: '#0d1919',
         button_color: '#efd092',
         ...(secureCookies && { logo: { type: 'url', url: `${config.site}${joinPath}media/aerie-checkout-logo.png` } })
@@ -881,8 +882,8 @@ export function createCommerce(config, { store, stripe, trafficStore, sendEmail,
       ...features, shareClaims: features.shareClaim, features, freeWorld, rewardWorlds: config.rewards,
       ...(price ? { priceLabel: `$${(price.amount / 100).toFixed(2)} USD`, priceAmount: price.amount, priceCurrency: price.currency } : {}),
       ...(config.releaseRevision && { releaseRevision: config.releaseRevision }),
-      checkoutMode: config.mode, ...(paymentLink && { checkoutProvider: 'payment_link', checkoutLinkVerified: verified }),
-      checkoutCollectsEmail: true, googlePayCheckout: features.checkout && !paymentLink, disclosure,
+      checkoutMode: config.mode, checkoutProvider: config.checkoutProvider, ...(paymentLink && { checkoutLinkVerified: verified }),
+      checkoutCollectsEmail: true, googlePayCheckout: features.checkout && !sellWithLink, disclosure,
       monitoring: Boolean(config.monitoring), traffic: traffic.available
     }};
   }

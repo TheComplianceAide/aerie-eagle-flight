@@ -777,7 +777,7 @@ test('an alias keeps checkout, hosted email recovery, and its gift on the origin
     ['Purchase help', 'https://playaerie.com/join/help/']
   ]);
   assert.deepEqual(sessions[0].branding_settings, {
-    display_name: 'Aerie', background_color: '#0d1919', button_color: '#efd092',
+    display_name: 'Aeria', background_color: '#0d1919', button_color: '#efd092',
     logo: { type: 'url', url: `${site}/join/media/aerie-checkout-logo.png` }
   });
   assert.equal(sessions[0].payment_intent_data.description, 'Aerie — all worlds plus one gift copy');
@@ -1007,7 +1007,7 @@ test('five-friend confirmation unlocks five worlds on this browser and survives 
 });
 
 const paymentLinkSettings = {
-  mode: 'live', live: true, ticketPriceCents: 199, priceId: 'price_Aerie123',
+  checkoutProvider: 'payment_link', mode: 'live', live: true, ticketPriceCents: 199, priceId: 'price_Aerie123',
   paymentLinkId: 'plink_Aerie123', paymentLinkUrl: 'https://buy.stripe.com/Aerie123'
 };
 const liveLink = {
@@ -1192,4 +1192,40 @@ test('link refunds received before Checkout use the same hold when a legacy API 
   await dispatch('checkout.session.completed', linkSession);
   const buyer = await restore(linkSession.customer_details.email);
   assert.equal((await call('status', { cookie: buyer.cookie })).jsonBody.fullAccess, false);
+});
+
+test('switching new checkout to Aeria API sessions retains signed Aerie Payment Link purchases', async () => {
+  const config = { ...paymentLinkSettings, checkoutProvider: 'api' };
+  const { call, dispatch, sessions, restore } = fixture({ config });
+  await dispatch('payment_link.updated', liveLink);
+  const flags = (await call('config')).jsonBody;
+  assert.equal(flags.checkout, true);
+  assert.equal(flags.checkoutProvider, 'api');
+  assert.equal(flags.checkoutLinkVerified, true);
+  assert.equal(flags.googlePayCheckout, true);
+
+  const start = await call('checkout', { body: { expectedOffer: { mode: 'live', amount: 199, currency: 'usd' } } });
+  assert.equal(new URL(start.jsonBody.url).origin, 'https://checkout.stripe.com');
+  assert.equal(sessions[0].branding_settings.display_name, 'Aeria');
+  assert.equal(sessions[0].automatic_tax.enabled, true);
+  assert.equal(sessions[0].payment_intent_data.description, 'Aerie — all worlds plus one gift copy');
+  assert.equal(sessions[0].metadata.product, 'aerie-founder-and-gift');
+
+  await dispatch('checkout.session.completed', linkSession);
+  const buyer = await restore(linkSession.customer_details.email);
+  assert.equal((await call('status', { cookie: buyer.cookie })).jsonBody.fullAccess, true);
+  await dispatch('charge.refunded', { payment_intent: linkSession.payment_intent, refunded: true });
+  assert.equal((await call('status', { cookie: buyer.cookie })).jsonBody.fullAccess, false);
+});
+
+test('API checkout cannot give out the Dashboard link if the production API key is unavailable', async () => {
+  const { call, dispatch } = linkFixture({ config: { ...paymentLinkSettings, checkoutProvider: 'api' } });
+  await dispatch('payment_link.updated', liveLink);
+  const flags = (await call('config')).jsonBody;
+  assert.equal(flags.checkoutLinkVerified, true);
+  assert.equal(flags.checkoutProvider, 'api');
+  assert.equal(flags.checkout, false);
+  assert.equal((await call('checkout', { body: {} })).status, 503);
+  assert.throws(() => configuration({ AERIE_STRIPE_CHECKOUT_PROVIDER: 'payment_link' }));
+  assert.throws(() => configuration({ AERIE_STRIPE_CHECKOUT_PROVIDER: 'unknown' }));
 });
