@@ -36,8 +36,8 @@ jobs:
         run: |
           set -eu
           curl --fail --silent --show-error --retry 3 -o /tmp/weather_snapshot.py \
-            https://raw.githubusercontent.com/TheComplianceAide/aerie-eagle-flight/21cb09a6e7e957158c7865770089d3f049eb1e7e/tools/acoustics/weather_snapshot.py
-          echo '05f116f9ecd6ffaedbb3525c5725a84adcccd75cdaa7afeb393f0c0ec0965d16  /tmp/weather_snapshot.py' | sha256sum -c
+            https://raw.githubusercontent.com/TheComplianceAide/aerie-eagle-flight/f25022e490434742eeecf3c9f479898c210b357f/tools/acoustics/weather_snapshot.py
+          echo '81d94e2e4483e46c6f33ff3276c868aee353d00a43270d643d35abfabdc0e58d  /tmp/weather_snapshot.py' | sha256sum -c
           python3 /tmp/weather_snapshot.py /tmp/air.json
           wc -c /tmp/air.json
           sha256sum /tmp/air.json
