@@ -9,6 +9,7 @@ const alias = 'https://www.aerie.example';
 const functionsHost = 'https://aerie-functions.example';
 const signingSecret = 'whsec_test_fixture_no_real_credentials';
 const priceId = 'price_fixture';
+const receiptFixture = 'https://pay.stripe.com/receipts/payment/fixture?source=aerie&mode=test';
 const root = configuration({
   AERIE_SITE_URL: site, AERIE_ALLOWED_ORIGINS: alias,
   AERIE_IDENTITY_SECRET: 'fictional-test-identity-key-no-real-credentials',
@@ -16,7 +17,8 @@ const root = configuration({
   AERIE_SHARE_CLAIMS_ENABLED: 'true', AERIE_SIGNUP_ENABLED: 'true', AERIE_CHECKOUT_ENABLED: 'true'
 });
 
-function fixture() {
+function fixture({ config = {}, purchaseEmailOperations, now = Date.now } = {}) {
+  const settings = { ...root, ...config };
   const rows = new Map();
   const checkouts = new Map();
   const messages = [];
@@ -35,31 +37,43 @@ function fixture() {
         }
       }
       for (const [, row] of actions) rows.set(row.rowKey, { ...row, etag: String(version++) });
+    },
+    async *pendingPurchaseMail(time) {
+      for (const [key, row] of [...rows.entries()]) {
+        if (key.startsWith('purchase-mail:') && row.nextAt <= time) yield structuredClone(row);
+      }
     }
   };
   const stripe = {
     webhooks: new Stripe('sk_test_synthetic_fixture').webhooks,
-    prices: { retrieve: async () => ({ id: priceId, active: true, type: 'one_time', currency: 'usd', unit_amount: 499, livemode: false }) },
+    prices: { retrieve: async () => ({ id: priceId, active: true, type: 'one_time', currency: 'usd', unit_amount: 499, livemode: settings.live }) },
     paymentIntents: { retrieve: async () => ({ metadata: { product: 'aerie-founder-and-gift' } }) },
     checkout: { sessions: {
       async create(input) {
         sessions.push(input);
-        const id = `cs_test_fixture${sessions.length}`;
+        const id = `cs_${settings.mode}_fixture${sessions.length}`;
         const checkout = {
-          ...input, id, url: `https://checkout.stripe.com/c/pay/${id}`, currency: 'usd', livemode: false,
-          amount_subtotal: 499, payment_intent: `pi_fixture${sessions.length}`, payment_status: 'unpaid',
+          ...input, id, url: `https://checkout.stripe.com/c/pay/${id}`, currency: 'usd', livemode: settings.live,
+          amount_subtotal: 499, amount_total: 531, payment_intent: `pi_fixture${sessions.length}`, payment_status: 'unpaid',
           line_items: { data: [{ quantity: 1, price: { id: priceId } }] }, customer_details: { email: input.customer_email }
         };
         checkouts.set(id, checkout);
         return checkout;
       },
-      async retrieve(id) {
-        return structuredClone(checkouts.get(id));
+      async retrieve(id, params) {
+        const checkout = structuredClone(checkouts.get(id));
+        if (checkout && params?.expand?.includes('payment_intent.latest_charge')) {
+          checkout.payment_intent = {
+            id: checkout.payment_intent,
+            latest_charge: { receipt_url: checkout.receiptUrl ?? receiptFixture }
+          };
+        }
+        return checkout;
       }
     }}
   };
-  const app = createCommerce(root, {
-    store, stripe,
+  const app = createCommerce(settings, {
+    store, stripe, purchaseEmailOperations, now,
     sendEmail: async (email, subject, content) => messages.push({ email, subject, ...content }),
     assetUrl: async (world, path) => `https://blob.example/private/${world}/${path}?fixture=read-only`
   });
@@ -77,7 +91,7 @@ function fixture() {
     return app.handle(route, req);
   };
   async function dispatch(type, value, signatureValid = true) {
-    const payload = JSON.stringify({ type, data: { object: value }, livemode: false, created: Math.floor(Date.now() / 1000) });
+    const payload = JSON.stringify({ type, data: { object: value }, livemode: settings.live, created: Math.floor(now() / 1000) });
     const webhook = stripe.webhooks.generateTestHeaderString({ payload, secret: signingSecret });
     return call('stripe/webhook', { body: payload, origin: null, webhook: signatureValid ? webhook : 'not-a-signature' });
   }
@@ -164,6 +178,164 @@ test('checkout return verifies exact purchase and single fulfillment survives we
   assert.equal([...rows.keys()].filter(key => key.startsWith('purchase:')).length, 1);
   assert.equal([...rows.keys()].filter(key => key.startsWith('gift:')).length, 1);
   assert.deepEqual((await call('status', { cookie: bought.cookie })).jsonBody.worlds, allWorlds);
+});
+
+test('the verified buyer gets a Stripe receipt and one exact sandbox confirmation after racing returns and webhooks', async () => {
+  let time = Date.now();
+  const submitted = [];
+  const { app, call, checkouts, dispatch, restore, rows } = fixture({
+    now: () => time,
+    config: { purchaseEmails: true, sender: 'aerie@example.test', sandboxPurchaseEmail: 'qa@example.test',
+      sandboxPurchaseTestPayer: 'synthetic-buyer@example.com' },
+    purchaseEmailOperations: {
+      submit: async (message, operationId, date) => {
+        submitted.push({ message, operationId, date });
+        return { state: 'pending' };
+      },
+      status: async () => ({ state: 'accepted' })
+    }
+  });
+  const started = await call('checkout', { body: { email: 'synthetic-buyer@example.com' }, origin: alias });
+  const checkout = [...checkouts.values()][0];
+  checkout.payment_status = 'paid';
+  const finish = () => call('checkout/complete', {
+    query: `?session_id=${checkout.id}`, origin: null, cookie: asCookie(started.cookies[0])
+  });
+  const [returned, hook, replay] = await Promise.all([
+    finish(), dispatch('checkout.session.completed', { id: checkout.id }),
+    dispatch('checkout.session.completed', { id: checkout.id })
+  ]);
+  assert.match(returned.headers.Location, /checkout=success$/);
+  assert.ok(hook.jsonBody.ok && replay.jsonBody.ok);
+  const buyerCookie = asCookie(returned.cookies[0]);
+  const bought = (await call('status', { cookie: buyerCookie })).jsonBody;
+  assert.equal(bought.receiptUrl, receiptFixture);
+  const gift = new URL(bought.giftUrl, alias).hash.slice('#gift='.length);
+  const friend = await restore('gift-recipient@example.test', gift);
+  assert.ok((await call('gift/redeem', { body: { code: gift }, cookie: friend.cookie })).jsonBody.ok);
+  assert.equal((await call('status', { cookie: friend.cookie })).jsonBody.receiptUrl, undefined);
+  assert.equal((await call('status', { cookie: buyerCookie })).jsonBody.receiptUrl, receiptFixture);
+  assert.equal([...rows.keys()].filter(key => key.startsWith('purchase-mail:')).length, 1);
+
+  await Promise.all([app.purchaseMail.deliver(), app.purchaseMail.deliver()]);
+  assert.equal(submitted.length, 1);
+  const { message } = submitted[0];
+  assert.deepEqual(message.recipients.to, [{ address: 'qa@example.test' }]);
+  assert.match(message.content.subject, /Aerie sandbox/);
+  assert.match(message.content.plainText, /\$5\.31 USD/);
+  assert.match(message.content.plainText, /To restore access/);
+  assert.ok(message.content.plainText.includes(`${alias}/join/help/`));
+  assert.ok(message.content.plainText.includes(receiptFixture));
+  assert.ok(message.content.html.includes(receiptFixture.replace('&', '&amp;')));
+  assert.ok(!JSON.stringify(message).includes(gift) && !JSON.stringify(message).includes('synthetic-buyer@'));
+  time += 60_000;
+  await app.purchaseMail.deliver();
+  await dispatch('checkout.session.completed', { id: checkout.id });
+  const notice = rows.get(`purchase-mail:${checkout.id}`);
+  assert.equal(notice.state, 'accepted');
+  assert.equal(notice.message, undefined);
+  assert.equal(submitted.length, 1);
+});
+
+test('receipt lookup is buyer-only for historic purchases and sandbox email requires an explicit QA recipient', async () => {
+  const { call, buy, rows } = fixture({
+    config: { purchaseEmails: true, sender: 'aerie@example.test' },
+    purchaseEmailOperations: { submit: async () => assert.fail('Unapproved sandbox recipient') }
+  });
+  const paid = await buy('legacy-buyer@example.test');
+  const saved = rows.get(`purchase:${paid.id}`);
+  delete saved.receiptUrl;
+  assert.equal((await call('status', { cookie: paid.cookie })).jsonBody.receiptUrl, receiptFixture);
+  assert.equal((await call('status')).jsonBody.receiptUrl, undefined);
+  assert.equal([...rows.keys()].some(key => key.startsWith('purchase-mail:')), false);
+});
+
+test('sandbox redirects only the configured reserved payer and offers normal access to other sandbox purchases', async () => {
+  const approved = 'authorized-checkout@example.com';
+  assert.equal(configuration({ AERIE_SANDBOX_PURCHASE_TEST_PAYER: 'Someone@nonreserved.example' }).sandboxPurchaseTestPayer, '');
+  assert.equal(configuration({ AERIE_SANDBOX_PURCHASE_TEST_PAYER: ' Authorized-Checkout@Example.com ' }).sandboxPurchaseTestPayer, approved);
+  const { app, buy, call, rows } = fixture({
+    config: { purchaseEmails: true, sender: 'aerie@example.test', sandboxPurchaseEmail: 'qa@example.test',
+      sandboxPurchaseTestPayer: approved },
+    purchaseEmailOperations: { submit: async () => assert.fail('Unapproved sandbox purchase was sent') }
+  });
+  assert.equal(app.purchaseMail.enabled, true);
+  const unrelated = await buy('different-payer@example.com');
+  const buyer = await call('status', { cookie: unrelated.cookie });
+  assert.equal(buyer.jsonBody.fullAccess, true);
+  assert.equal(buyer.jsonBody.receiptUrl, receiptFixture);
+  assert.equal([...rows.keys()].some(key => key.startsWith('purchase-mail:')), false);
+  await app.purchaseMail.deliver();
+});
+
+test('a live confirmation targets the final verified Stripe email and skips an unsafe receipt URL', async () => {
+  const { call, checkouts, dispatch, rows } = fixture({
+    config: { mode: 'live', live: true, purchaseEmails: true, sender: 'aerie@example.test', sandboxPurchaseEmail: 'qa@example.test' },
+    purchaseEmailOperations: { submit: async () => assert.fail('This fixture does not send') }
+  });
+  await call('checkout', { body: { email: 'prefill@example.test' } });
+  const checkout = [...checkouts.values()][0];
+  checkout.payment_status = 'paid';
+  checkout.customer_details.email = 'actual-checkout@example.test';
+  checkout.receiptUrl = 'https://pay.stripe.com.untrusted.test/receipts/payment/fixture';
+  assert.ok((await dispatch('checkout.session.completed', { id: checkout.id })).jsonBody.ok);
+  const { message } = rows.get(`purchase-mail:${checkout.id}`);
+  const confirmation = JSON.parse(message);
+  assert.deepEqual(confirmation.recipients.to, [{ address: 'actual-checkout@example.test' }]);
+  assert.equal(confirmation.content.subject, 'Aerie purchase confirmation');
+  assert.ok(!message.includes('untrusted.test'));
+});
+
+test('an ambiguous send is retried with the same provider operation and never re-submitted outside the replay window', async () => {
+  let time = Date.now();
+  const submissions = [];
+  const { app, buy, rows } = fixture({
+    now: () => time,
+    config: { purchaseEmails: true, sender: 'aerie@example.test', sandboxPurchaseEmail: 'qa@example.test',
+      sandboxPurchaseTestPayer: 'retry-buyer@example.com' },
+    purchaseEmailOperations: {
+      submit: async (...args) => { submissions.push(args); return { state: 'unknown' }; },
+      status: async () => ({ state: 'missing' })
+    }
+  });
+  const paid = await buy('retry-buyer@example.com');
+  await app.purchaseMail.deliver();
+  time += 60_000;
+  await app.purchaseMail.deliver();
+  assert.equal(submissions.length, 2);
+  assert.deepEqual(submissions[0], submissions[1]);
+  time += 4 * 60_000;
+  await app.purchaseMail.deliver();
+  assert.equal(rows.get(`purchase-mail:${paid.id}`).state, 'review');
+  assert.equal(submissions.length, 2);
+});
+
+test('a definitively throttled initial send retries later with a new provider operation without losing access', async () => {
+  let time = Date.now();
+  const submissions = [];
+  const { app, buy, call, rows } = fixture({
+    now: () => time,
+    config: { purchaseEmails: true, sender: 'aerie@example.test', sandboxPurchaseEmail: 'qa@example.test',
+      sandboxPurchaseTestPayer: 'throttled-buyer@example.com' },
+    purchaseEmailOperations: {
+      submit: async (_message, operationId) => {
+        submissions.push(operationId);
+        return { state: submissions.length === 1 ? 'throttled' : 'pending' };
+      },
+      status: async () => ({ state: 'accepted' })
+    }
+  });
+  const paid = await buy('throttled-buyer@example.com');
+  await app.purchaseMail.deliver();
+  const status = await call('status', { cookie: paid.cookie });
+  assert.equal(status.jsonBody.fullAccess, true);
+  time += 3 * 60_000;
+  await app.purchaseMail.deliver();
+  assert.equal(submissions.length, 2);
+  assert.notEqual(submissions[0], submissions[1]);
+  time += 60_000;
+  await app.purchaseMail.deliver();
+  assert.equal(rows.get(`purchase-mail:${paid.id}`).state, 'accepted');
 });
 
 test('signed full refunds revoke the buyer and redeemed gift without revoking access on partial refunds', async () => {

@@ -1,5 +1,6 @@
 import { createHash, createHmac, randomBytes, randomInt, timingSafeEqual } from 'node:crypto';
 import { createPurchaseHelp } from './purchase-help.mjs';
+import { createPurchaseMail, stripeReceiptUrl } from './purchase-mail.mjs';
 import { allWorlds, freeWorld } from './settings.mjs';
 
 const minute = 60_000;
@@ -96,7 +97,7 @@ function purchases(account) {
   return account ? JSON.parse(account.purchases || '[]') : [];
 }
 
-export function createCommerce(config, { store, stripe, sendEmail, assetUrl, now = Date.now }) {
+export function createCommerce(config, { store, stripe, sendEmail, purchaseEmailOperations, assetUrl, now = Date.now }) {
   const restoreEnabled = Boolean(store && sendEmail && config.site);
   const canCheckout = Boolean(config.checkout && restoreEnabled && stripe && config.priceId && config.webhookSecret && assetUrl);
   const shareEnabled = Boolean(config.claims && restoreEnabled && assetUrl);
@@ -107,6 +108,7 @@ export function createCommerce(config, { store, stripe, sendEmail, assetUrl, now
   const restoreCookie = secureCookies ? '__Host-aerie_restore' : 'aerie_restore';
   const friendsCookie = secureCookies ? '__Host-aerie_friends' : 'aerie_friends';
   const joinPath = '/join/';
+  const purchaseMail = createPurchaseMail(config, { store, operations: purchaseEmailOperations, now });
   const hash = (purpose, value) => createHmac('sha256', config.secret).update(`${purpose}:${value}`).digest('base64url');
   const userId = email => hash('email', email);
   const submitPurchaseHelp = createPurchaseHelp({ store, now, hash });
@@ -154,19 +156,37 @@ export function createCommerce(config, { store, stripe, sendEmail, assetUrl, now
     return Boolean(payment && !payment.refunded && !payment.disputed);
   }
 
-  async function access(login, includeGift = false) {
+  async function receiptFor(purchase) {
+    const saved = stripeReceiptUrl(purchase?.receiptUrl);
+    if (saved || !purchase || !stripe) return saved;
+    let receipt = '';
+    try {
+      const checkout = await stripe.checkout.sessions.retrieve(purchase.checkoutId, { expand: ['payment_intent.latest_charge'] },
+        { timeout: 2000, maxNetworkRetries: 0 });
+      if (checkout.livemode === config.live && checkout.payment_status === 'paid' &&
+          checkout.metadata?.product === 'aerie-founder-and-gift') {
+        receipt = stripeReceiptUrl(checkout.payment_intent?.latest_charge?.receipt_url);
+      }
+    } catch {
+      return '';
+    }
+    return receipt;
+  }
+
+  async function access(login, includePurchaseDetails = false) {
     const uid = login?.uid;
     const account = uid && !login.checkoutId ? await store.get(accountKey(uid)) : null;
     // A paid Checkout authorizes the current purchase. Email verification is
     // required to access any earlier purchases made with the same address.
     const ids = login?.checkoutId ? [login.checkoutId] : purchases(account);
-    const active = (await Promise.all(ids.map(async id => {
-      const purchase = await store.get(`purchase:${id}`);
-      return await activePayment(purchase) ? purchase : null;
-    }))).filter(Boolean);
+    const records = (await Promise.all(ids.map(id => store.get(`purchase:${id}`)))).filter(Boolean);
+    const payments = await Promise.all(records.map(activePayment));
+    const active = records.filter((_purchase, index) => payments[index]);
     const worlds = active.length ? allWorlds : account?.reward ? [freeWorld, ...config.rewards] : [freeWorld];
     const result = { authenticated: Boolean(uid), emailVerified: Boolean(uid && !login.checkoutId), fullAccess: active.length > 0, worlds };
-    if (includeGift) {
+    if (includePurchaseDetails) {
+      const receipt = await receiptFor(records.findLast(purchase => purchase.buyer === uid));
+      if (receipt) result.receiptUrl = receipt;
       for (const own of active.filter(purchase => purchase.buyer === uid)) {
         const code = giftCode(own.checkoutId);
         const gift = await store.get(`gift:${digest(code)}`);
@@ -225,7 +245,7 @@ export function createCommerce(config, { store, stripe, sendEmail, assetUrl, now
     const token = newToken();
     const reference = digest(token);
     await store.transaction([['create', row(`pending:${reference}`, {
-      priceId: price.id, amount: price.unit_amount, currency: price.currency, createdAt: now()
+      priceId: price.id, amount: price.unit_amount, currency: price.currency, checkoutOrigin: browserOrigin, createdAt: now()
     })]]);
     const checkout = await stripe.checkout.sessions.create({
       mode: 'payment',
@@ -254,7 +274,13 @@ export function createCommerce(config, { store, stripe, sendEmail, assetUrl, now
   }
 
   async function fulfill(checkoutId, expectedReference) {
-    const checkout = await stripe.checkout.sessions.retrieve(checkoutId, { expand: ['line_items'] });
+    let checkout;
+    try {
+      checkout = await stripe.checkout.sessions.retrieve(checkoutId, { expand: ['line_items', 'payment_intent.latest_charge'] });
+    } catch (error) {
+      if (error.type !== 'StripePermissionError' && error.param !== 'expand') throw error;
+      checkout = await stripe.checkout.sessions.retrieve(checkoutId, { expand: ['line_items'] });
+    }
     const lines = checkout.line_items;
     const reference = checkout.client_reference_id;
     if (checkout.mode !== 'payment' || checkout.livemode !== config.live ||
@@ -265,10 +291,18 @@ export function createCommerce(config, { store, stripe, sendEmail, assetUrl, now
         lines.data[0].price?.id !== pending.priceId || checkout.amount_subtotal !== pending.amount ||
         checkout.currency !== pending.currency) return null;
     if (checkout.payment_status !== 'paid') return { paid: false };
-    const paymentIntent = checkout.payment_intent;
+    const paymentIntent = typeof checkout.payment_intent === 'string' ? checkout.payment_intent : checkout.payment_intent?.id;
     if (typeof paymentIntent !== 'string' || !paymentIntent.startsWith('pi_')) throw new Error('Missing Stripe payment reference.');
-    const uid = userId(emailAddress(checkout.customer_details?.email));
-    const purchase = row(`purchase:${checkout.id}`, { checkoutId: checkout.id, paymentIntent, buyer: uid });
+    const buyerEmail = emailAddress(checkout.customer_details?.email);
+    const uid = userId(buyerEmail);
+    const receiptUrl = stripeReceiptUrl(checkout.payment_intent?.latest_charge?.receipt_url);
+    const purchase = row(`purchase:${checkout.id}`, {
+      checkoutId: checkout.id, paymentIntent, buyer: uid, currency: checkout.currency,
+      ...(Number.isSafeInteger(checkout.amount_total) && { amountTotal: checkout.amount_total }),
+      ...(receiptUrl && { receiptUrl })
+    });
+    const site = config.origins.has(pending.checkoutOrigin) ? pending.checkoutOrigin : config.site;
+    const confirmation = purchaseMail.enqueue(purchase, buyerEmail, site);
     const paymentKey = `payment:${paymentIntent}`;
     for (let attempt = 0; attempt < 5; attempt++) {
       const [existing, payment, account] = await Promise.all([
@@ -281,7 +315,8 @@ export function createCommerce(config, { store, stripe, sendEmail, assetUrl, now
           ['create', purchase],
           ['create', row(`gift:${digest(giftCode(checkout.id))}`, { checkoutId: checkout.id, buyer: uid, redeemedBy: '' })],
           payment ? ['replace', { ...payment, checkoutId: checkout.id }] : ['create', row(paymentKey, { checkoutId: checkout.id })],
-          addPurchase(account, uid, checkout.id)
+          addPurchase(account, uid, checkout.id),
+          ...(confirmation ? [['create', confirmation]] : [])
         ]);
         return { paid: true, uid };
       } catch (error) {
@@ -640,5 +675,5 @@ export function createCommerce(config, { store, stripe, sendEmail, assetUrl, now
     }
   }
 
-  return { handle, review, routes };
+  return { handle, review, routes, purchaseMail };
 }
