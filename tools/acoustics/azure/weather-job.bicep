@@ -33,9 +33,6 @@ resource environment 'Microsoft.App/managedEnvironments@2024-03-01' = {
   name: 'cae-aerie-weather'
   location: location
   properties: {
-    appLogsConfiguration: {
-      destination: 'none'
-    }
     workloadProfiles: [
       {
         name: 'Consumption'
