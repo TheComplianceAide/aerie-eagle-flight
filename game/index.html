@@ -14,6 +14,33 @@
     }
   })();
 </script>
+<script>
+  (() => {
+    let queuedButton;
+    function waitForControls(event) {
+      const button = event.target.closest?.('#fly');
+      if (!button) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      queuedButton = button;
+      button.lastChild.textContent = 'Preparing flight…';
+    }
+    document.addEventListener('click', waitForControls, true);
+    // The access guard initializes on document DOMContentLoaded, before it bubbles to window.
+    window.addEventListener('DOMContentLoaded', () => {
+      document.removeEventListener('click', waitForControls, true);
+      if (!queuedButton) return;
+      const guarded = location.protocol !== 'file:' &&
+        document.querySelector('meta[name="aerie-access"][content="required"]');
+      if (typeof queuedButton.onclick !== 'function' || (guarded && !document.getElementById('app').dataset.passMode)) {
+        queuedButton.lastChild.textContent = 'Reload to fly';
+        queuedButton.onclick = () => location.reload();
+        return;
+      }
+      queuedButton.click();
+    }, { once: true });
+  })();
+</script>
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Aerie">
 <meta property="og:title" content="Fly as an eagle">
@@ -38,7 +65,7 @@
 <body><main id="app" data-mode="title">
 <div id="landscape" aria-hidden="true"></div><div id="viewport"></div><span id="steerCue" hidden aria-hidden="true"></span><div class="shade"></div>
 <header><div class="brand"><img src="field-engraving.webp" width="768" height="512" alt="Aerie"></div><nav><button id="sound" class="icon" aria-label="Turn sound on" title="Turn sound on"></button><button class="icon flightOnly" id="visionToggle" aria-label="Toggle Game Vision (V)" aria-pressed="false" title="Game Vision (V)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z"/><circle cx="12" cy="12" r="2.7"/></svg></button><button class="icon flightOnly" id="places" aria-label="Explore landmarks (G)" title="Explore landmarks (G)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="m16 8-2.6 5.4L8 16l2.6-5.4z"/></svg></button><button class="icon flightOnly" id="cameraView" aria-label="Switch to chase camera" title="Switch to chase camera (C)"><svg viewBox="0 0 24 24"><path d="M3 8h4l2-3h6l2 3h4v12H3z"/><circle cx="12" cy="13" r="3"/></svg></button><button id="expand" class="icon" aria-label="Toggle fullscreen" title="Toggle fullscreen"><svg viewBox="0 0 24 24"><path d="M9 4H4v5m11-5h5v5M4 15v5h5m11-5v5h-5"/></svg></button><button id="pause" class="icon flightOnly" title="Pause" aria-label="Pause flight">Ⅱ</button></nav></header>
-<section class="intro"><div class="eyebrow"><i></i> FREE FLIGHT</div><h1>Oeschinen<br><em>Lake</em></h1><p>Soar on the evening wind above the Bernese Alps.</p><div class="departure"><label for="launchPoint">Launch point</label><select id="launchPoint"></select></div><button id="fly" class="primary"><svg viewBox="0 0 24 24"><path d="m3 10 18-7-7 18-3-8z" fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="1.8"/><path d="m11 13 10-10" stroke="currentColor" stroke-width="1.8"/></svg>Take flight</button></section>
+<section class="intro"><div class="eyebrow"><i></i> FREE FLIGHT</div><h1>Oeschinen<br><em>Lake</em></h1><p>Soar on the evening wind above the Bernese Alps.</p><div class="departure"><label for="launchPoint">Launch point</label><select id="launchPoint"></select></div><button id="fly" class="primary" aria-live="polite"><svg viewBox="0 0 24 24"><path d="m3 10 18-7-7 18-3-8z" fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="1.8"/><path d="m11 13 10-10" stroke="currentColor" stroke-width="1.8"/></svg>Take flight</button></section>
 <aside class="worlds"><div class="worldHeading">Choose a world</div><label class="compactWorld" for="worldPicker">Choose a world</label><select id="worldPicker"><option value="alaska">Mendenhall Glacier</option><option value="canyon">Horseshoe Bend</option><option value="swiss">Oeschinen Lake</option></select><div id="worldList" role="group" aria-label="Destinations"></div></aside>
 <footer><div class="keys"><span>Move the mouse to steer</span></div><div class="touchHint">Slide one finger to steer</div><a class="sourceCredits" id="mapSource" href="credits.txt" target="_blank" rel="noopener" hidden></a><button class="helpLink" id="help">Flight controls <b>?</b></button></footer>
 <div class="hud"><div id="bearing"></div><div class="instrumentBlock"><div id="flightMode">Gliding</div><div class="instruments"><div><small>ALTITUDE</small><strong id="alt">0</strong> ft</div><div><small>AIRSPEED</small><strong id="speed">0</strong> mph</div><div><small>VERTICAL SPEED</small><strong id="vario">0</strong> ft/s</div></div></div><div id="discovery" role="status"></div></div>
