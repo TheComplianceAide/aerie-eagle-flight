@@ -116,7 +116,8 @@ export function createCommerce(config, { store, stripe, sendEmail, purchaseEmail
   const signupEnabled = Boolean(config.signup && store && config.site);
   const secureCookies = config.site.startsWith('https:');
   const sessionCookie = secureCookies ? '__Host-aerie_session' : 'aerie_session';
-  const checkoutCookie = secureCookies ? '__Host-aerie_checkout' : 'aerie_checkout';
+  const legacyCheckoutCookie = secureCookies ? '__Host-aerie_checkout' : 'aerie_checkout';
+  const checkoutCookieFor = id => `${legacyCheckoutCookie}_${digest(id).slice(0, 24)}`;
   const restoreCookie = secureCookies ? '__Host-aerie_restore' : 'aerie_restore';
   const friendsCookie = secureCookies ? '__Host-aerie_friends' : 'aerie_friends';
   const joinPath = '/join/';
@@ -298,7 +299,7 @@ export function createCommerce(config, { store, stripe, sendEmail, purchaseEmail
       cancel_url: `${browserOrigin}${joinPath}?checkout=cancel`
     });
     if (!checkout.url || new URL(checkout.url).origin !== 'https://checkout.stripe.com') throw new Error('Unexpected hosted Checkout URL.');
-    return { jsonBody: { url: checkout.url }, cookies: [cookie(checkoutCookie, token, 24 * 60 * 60)] };
+    return { jsonBody: { url: checkout.url }, cookies: [cookie(checkoutCookieFor(checkout.id), token, 24 * 60 * 60)] };
   }
 
   async function fulfill(checkoutId, expectedReference) {
@@ -360,15 +361,20 @@ export function createCommerce(config, { store, stripe, sendEmail, purchaseEmail
 
   async function completeCheckout(request) {
     const id = request.query.get('session_id');
-    const token = cookieValue(request, checkoutCookie);
-    if (!stripe || !store || !/^cs_(test|live)_[\w]+$/.test(id || '') || !tokenPattern.test(token)) {
+    if (!stripe || !store || !/^cs_(test|live)_[\w]+$/.test(id || '')) {
       return joinRedirect('pending');
     }
+    const scopedCookie = checkoutCookieFor(id);
+    const scopedToken = cookieValue(request, scopedCookie);
+    // Sessions opened before this version still return with the original cookie.
+    const token = scopedToken || cookieValue(request, legacyCheckoutCookie);
+    if (!tokenPattern.test(token)) return joinRedirect('pending');
     const result = await fulfill(id, digest(token));
     if (!result?.paid) return joinRedirect('pending');
     const sessionToken = newToken();
     await store.transaction([['create', session(sessionToken, result.uid, id)]]);
-    return joinRedirect('success', [cookie(sessionCookie, sessionToken, 30 * 24 * 60 * 60), cookie(checkoutCookie, '', 0)]);
+    const usedCookie = scopedToken ? scopedCookie : legacyCheckoutCookie;
+    return joinRedirect('success', [cookie(sessionCookie, sessionToken, 30 * 24 * 60 * 60), cookie(usedCookie, '', 0)]);
   }
 
   async function changePayment(event) {
