@@ -679,7 +679,7 @@
         (error?.name||"error")+"-"+message.replace(/https?:\S+/g,"").replace(/[^A-Za-z ]/g," ").trim().split(/\s+/).slice(0,4).join("-");
       started=false;app.dataset.mode="title";showDialog("launchError");el("dialogTitle").textContent="Unable to start flight";
       el("summary").textContent=/webgl|graphics context/i.test(String(error))
-        ?"Chrome could not start 3D graphics. Enable graphics acceleration in Chrome settings, then reopen the game."
+        ?"3D graphics could not start. Reopen Aerie and try again."
         :"The range could not finish loading. Try again to reopen this flight.";
     }finally{delete app.dataset.ticketLaunch;launchPending=false;button.disabled=false;flyLabel();}
   };
