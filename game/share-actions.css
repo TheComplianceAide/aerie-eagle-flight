@@ -1,0 +1,14 @@
+.aerie-share-options {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(4.1rem, 1fr));
+  gap: .5rem .35rem; margin: 1rem 0 .75rem;
+}
+.aerie-share-options .aerie-share-action {
+  display: flex; align-items: center; justify-content: flex-start; flex-direction: column;
+  gap: .35rem; min-width: 0; min-height: 52px; margin: 0; padding: .35rem .1rem;
+  background: transparent; border: 0; border-radius: .4rem; color: #f0ce8b;
+  text-decoration: none; font: 600 .75rem/1.2 system-ui, sans-serif; cursor: pointer;
+}
+.aerie-share-action svg, .ticket-icon svg { fill: currentColor; }
+.aerie-share-action svg { width: 24px; height: 24px; }
+.aerie-share-action:hover, .aerie-share-action:focus-visible { background: #f0ce8b16; }
+.aerie-share-action:focus-visible { outline: 2px solid #f0ce8b; outline-offset: 1px; }

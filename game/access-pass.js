@@ -69,9 +69,92 @@
       return due;
     };
 
+    const shareChooser = document.getElementById('flightShareChooser');
+    const shareFallback = document.getElementById('flightShareFallback');
+    const shareConfirm = document.getElementById('flightShareConfirm');
+    const rewardStatus = document.getElementById('flightRewardStatus');
+    let shareChosen = false, shareMounted = false, claimBusy = false;
+    let rewardWorlds = [], accessRevision = 0;
+
+    function reflectShareAccess() {
+      if (!shareChooser || !rewardWorlds.length) return;
+      if (window.AerieShare?.hasChosen?.()) shareChosen = true;
+      const unlocked = pass.fullAccess || rewardWorlds.every(world => pass.worlds.includes(world));
+      shareFallback.hidden = shareMounted || unlocked;
+      shareChooser.hidden = !shareMounted || unlocked;
+      shareConfirm.hidden = !shareChosen || unlocked;
+      shareConfirm.disabled = claimBusy;
+      if (unlocked) {
+        document.getElementById('flightSupportCopy').textContent = pass.fullAccess
+          ? 'Your ticket includes all worlds.' : 'You can keep flying here or choose another world.';
+        rewardStatus.textContent = pass.fullAccess ? '' : 'Five more worlds unlocked.';
+        const support = document.getElementById('flightSupport');
+        if (!support.hidden && support.closest('.modal')?.dataset.dialog === 'support') {
+          document.getElementById('dialogTitle').textContent = 'Your flight ticket';
+          document.getElementById('end').hidden = false;
+        }
+      }
+    }
+
+    function applyAccess(data) {
+      pass = {fullAccess:data.fullAccess === true, worlds:data.worlds};
+      passKnown = true;
+      app.dataset.freePlayer = String(!pass.fullAccess && pass.worlds.length === 1 && pass.worlds.includes(freeWorld));
+      reflectShareAccess();
+    }
+
+    function setupShareOffer(offer) {
+      if (!shareChooser || offer?.shareClaims !== true || !Array.isArray(offer.rewardWorlds) ||
+          offer.rewardWorlds.length !== 5) return;
+      rewardWorlds = offer.rewardWorlds;
+      if (!shareMounted && window.AerieShare?.mount) {
+        window.AerieShare.mount(document.getElementById('flightShareActions'), {
+          channels:['messages', 'whatsapp', 'x', 'instagram', 'facebook', 'linkedin', 'bluesky', 'telegram', 'copy'],
+          status:document.getElementById('flightShareStatus'),
+          onChoose() {
+            shareChosen = true;
+            reflectShareAccess();
+          }
+        });
+        shareMounted = true;
+      }
+      reflectShareAccess();
+    }
+
+    shareConfirm?.addEventListener('click', async () => {
+      if (claimBusy || !shareChosen || !rewardWorlds.length || pass.fullAccess) return;
+      claimBusy = true;
+      rewardStatus.textContent = 'Unlocking your worlds…';
+      reflectShareAccess();
+      try {
+        const response = await fetch(new URL('share-friends', endpoint), {
+          method:'POST', credentials:'include', headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({sharedWithFriends:true}),
+          signal:typeof AbortSignal.timeout === 'function' ? AbortSignal.timeout(12000) : undefined
+        });
+        if (!response.ok) throw new Error();
+        const result = await response.json();
+        if (result.ok !== true || !Array.isArray(result.worlds) ||
+            !rewardWorlds.every(world => result.worlds.includes(world))) throw new Error();
+        accessRevision++;
+        applyAccess({fullAccess:pass.fullAccess, worlds:result.worlds});
+        shareChosen = false;
+        window.AerieShare?.clearChoice?.();
+        refreshMenu();
+        const chooseWorld = document.getElementById('end');
+        if (!chooseWorld.closest('.modal')?.hidden && !chooseWorld.hidden) chooseWorld.focus({preventScroll:true});
+      } catch {
+        rewardStatus.textContent = 'Your unlock could not be confirmed. Try again.';
+      } finally {
+        claimBusy = false;
+        reflectShareAccess();
+      }
+    });
+
     let activePassRequest;
     function refreshPass() {
       if (activePassRequest) return activePassRequest;
+      const revision = accessRevision;
       checkingPass = true;
       if (app.dataset.mode === 'title' && !fly.disabled) refreshMenu();
       activePassRequest = (async () => {
@@ -82,9 +165,7 @@
             if (!response.ok) continue;
             const data = await response.json();
             if (!Array.isArray(data.worlds)) continue;
-            pass = {fullAccess:data.fullAccess === true, worlds:data.worlds};
-            passKnown = true;
-            app.dataset.freePlayer = String(!pass.fullAccess && pass.worlds.length === 1 && pass.worlds.includes(freeWorld));
+            if (revision === accessRevision) applyAccess(data);
             break;
           } catch {}
         }
@@ -101,6 +182,7 @@
       ticketPriceRequest = fetch(new URL('config', endpoint), { credentials:'omit' })
         .then(response => response.ok ? response.json() : null)
         .then(offer => {
+          setupShareOffer(offer);
           if (offer?.checkout === true && offer.priceCurrency === 'usd' && Number.isSafeInteger(offer.priceAmount)) {
             document.getElementById('flightTicketPrice').textContent = '$' + (offer.priceAmount / 100).toFixed(2);
             const notice = document.getElementById('flightTicketMode');
