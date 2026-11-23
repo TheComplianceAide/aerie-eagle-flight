@@ -26,8 +26,11 @@
   <meta name="twitter:image" content="https://playaerie.com/join/media/share-card.jpg">
   <meta name="twitter:image:alt" content="An eagle above Mount Major and Lake Winnipesaukee in Aerie.">
   <link rel="preload" href="media/mount-major.webp" as="image">
-  <link rel="stylesheet" href="landing.css?v=five-worlds">
-  <script defer src="landing.js?v=share-invitation"></script>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="media/aerie-app-180.png">
+  <link rel="stylesheet" href="landing.css?v=cinema-tickets">
+  <script defer src="landing.js?v=cinema-tickets"></script>
+  <script defer src="save-aerie.js?v=1"></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -41,18 +44,21 @@
         </div>
       </div>
       <div class="return-actions">
-        <a class="button button-gold" id="return-play" href="../?play=1" hidden>Fly unlocked worlds <span aria-hidden="true">↗</span></a>
-        <a class="button button-gold" id="return-retry" href="#passes" hidden>Back to Founder Pass</a>
+        <div id="returning-player-actions" class="return-player-actions" hidden>
+          <a class="button button-gold" id="return-play" href="../?play=1&amp;fly=1#world=moosehead&amp;launch=grand">Play now <span aria-hidden="true">↗</span></a>
+          <a class="text-link" id="return-ticket" href="#restore-ticket" data-open="restore">My ticket</a>
+          <button class="text-link" type="button" data-install-aerie>Save Aerie</button>
+        </div>
+        <a class="button button-gold" id="return-retry" href="#passes" hidden>See flight tickets</a>
         <button class="button button-gold" id="return-status-retry" type="button" hidden>Check again</button>
-        <button class="button button-outline" id="return-restore" type="button" data-open="restore" hidden>Restore access</button>
-        <a class="text-link" id="return-receipt" target="_blank" rel="noopener noreferrer" hidden>View Stripe receipt</a>
+        <button class="button button-outline" id="return-restore" type="button" data-open="restore" hidden>Restore ticket</button>
         <a class="text-link" href="help/">Purchase help</a>
       </div>
     </section>
 
     <section class="hero" aria-labelledby="hero-title">
       <div class="hero-picture" aria-hidden="true">
-        <video id="mount-major-flight" muted playsinline loop preload="none" data-src="media/mount-major-loop.mp4?v=chase"></video>
+        <video id="mount-major-flight" muted playsinline loop preload="none" poster="media/mount-major.webp" data-src="media/flight.mp4?v=world-tour-60"></video>
       </div>
       <header class="topbar frame">
         <a class="wordmark" href="./" aria-label="Aerie home">
@@ -60,25 +66,48 @@
         </a>
         <nav class="toplinks" aria-label="Main navigation">
           <a class="top-worlds" href="#worlds">Worlds</a>
-          <a href="#passes">Founder Pass</a>
-          <a class="top-share" href="#invite">Unlock five worlds</a>
-          <a class="top-flight" href="../?access=free#world=winnipesaukee&amp;launch=mount-major">Play free <span aria-hidden="true">↗</span></a>
+          <a href="#passes">Tickets</a>
+          <a class="top-share" href="#invite">Share</a>
+          <a class="top-restore" href="#restore-ticket" data-open="restore">Restore ticket</a>
+          <a class="top-flight" href="../?access=free#world=winnipesaukee&amp;launch=mount-major">Fly free <span aria-hidden="true">↗</span></a>
         </nav>
       </header>
 
       <div class="hero-content frame">
         <p class="kicker"><i aria-hidden="true"></i> Eagle flight simulator</p>
         <h1 id="hero-title">The sky<br><em>is yours.</em></h1>
-        <p class="hero-intro">Fly as an eagle from Mount Major over the wooded islands of Lake Winnipesaukee, New Hampshire.</p>
-        <div class="actions hero-offers">
-          <button class="button button-gold hero-offer" id="hero-buy" type="button" aria-describedby="hero-checkout-status" hidden>
-            <span id="hero-buy-label">Buy Founder Pass</span><small id="hero-buy-detail">All worlds + a gift copy</small>
-          </button>
-          <a class="button button-glass hero-offer" href="#invite"><span>Share with 5 friends</span><small>Unlock 5 more worlds</small></a>
+        <p class="hero-intro">Fly over Lake Winnipesaukee from Mount Major, New Hampshire.</p>
+        <div class="hero-tickets" aria-label="Flight tickets">
+          <div>
+            <button class="flight-ticket flight-ticket-gold" id="hero-buy" type="button" aria-describedby="hero-ticket-note hero-checkout-status" hidden>
+              <span class="ticket-face"><strong id="hero-buy-label">Flight ticket</strong><span id="hero-buy-detail">All worlds + a gift</span></span>
+              <span class="ticket-stub" id="hero-ticket-price">↗</span>
+            </button>
+            <p class="ticket-note" id="hero-ticket-note" hidden></p>
+          </div>
+          <div class="flight-ticket flight-ticket-silver">
+            <a class="ticket-face ticket-share" href="#invite"><strong>Unlock 5 worlds</strong><span>Share with 5 friends</span></a>
+            <div class="ticket-social" role="group" aria-label="Share options">
+              <button class="ticket-icon" type="button" data-ticket-share="x" title="X" aria-label="Share on X">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.9 2H22l-6.8 7.8L23.2 22h-6.3L12 14.6 5.5 22H2.4l7.3-8.4L2 2h6.5l4.4 6.8L18.9 2Zm-1.1 18h1.7L7.6 4H5.7l12.1 16Z"/></svg>
+              </button>
+              <button class="ticket-icon" type="button" data-ticket-share="instagram" title="Instagram" aria-label="Share on Instagram">
+                <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.4" cy="6.8" r=".8" fill="currentColor" stroke="none"/></svg>
+              </button>
+              <button class="ticket-icon" type="button" data-ticket-share="linkedin" title="LinkedIn" aria-label="Share on LinkedIn">
+                <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M6.5 8.4V21H2.2V8.4h4.3ZM4.4 2.2A2.4 2.4 0 1 1 4.4 7a2.4 2.4 0 0 1 0-4.8ZM21.8 13.8V21h-4.2v-6.6c0-1.6-.6-2.6-1.9-2.6-1.1 0-1.8.8-2.1 1.5-.1.3-.1.6-.1 1V21H9.3V8.4h4.2v1.8c.6-.9 1.6-2.1 3.8-2.1 2.7 0 4.5 1.7 4.5 5.7Z"/></svg>
+              </button>
+              <button class="ticket-icon" type="button" data-ticket-share="messages" title="Messages" aria-label="Share in Messages">
+                <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M12 3c-5.5 0-10 3.7-10 8.3 0 2.5 1.3 4.8 3.5 6.4-.1 1-.5 2.2-1.2 3.3 1.7-.1 3.3-.6 4.5-1.6 1 .3 2.1.4 3.2.4 5.5 0 10-3.8 10-8.5S17.5 3 12 3Z"/></svg>
+              </button>
+            </div>
+          </div>
+          <a class="flight-ticket flight-ticket-paper hero-free" href="../?access=free#world=winnipesaukee&amp;launch=mount-major">
+            <span class="ticket-face"><strong>Mount Major</strong></span><span class="ticket-stub">FREE</span>
+          </a>
         </div>
         <p id="hero-checkout-status" class="hero-checkout-status" role="status" hidden></p>
         <div class="actions hero-explore">
-          <a class="button button-outline" href="../?access=free#world=winnipesaukee&amp;launch=mount-major">Fly Mount Major free <span aria-hidden="true">↗</span></a>
           <button class="button button-glass" id="watch-film" type="button"><span class="play-symbol" aria-hidden="true"></span> Watch gameplay</button>
         </div>
         <div class="device-guide">
@@ -91,7 +120,7 @@
         </div>
       </div>
       <div class="hero-footer frame">
-        <span>Mount Major · Recorded in Aerie</span>
+        <span>Recorded in Aerie</span>
         <button class="hero-motion" id="hero-motion" type="button" hidden>Pause background</button>
       </div>
     </section>
@@ -197,19 +226,22 @@
             <p class="kicker">Free to fly</p>
             <h3>Lake Winnipesaukee</h3>
             <p>Glide off Mount Major toward Rattlesnake Island. No email or account needed.</p>
-            <a class="inline-action" href="../?access=free#world=winnipesaukee&amp;launch=mount-major">Take flight <span aria-hidden="true">↗</span></a>
+            <a class="flight-ticket flight-ticket-paper" href="../?access=free#world=winnipesaukee&amp;launch=mount-major">
+              <span class="ticket-face"><strong>Mount Major</strong></span><span class="ticket-stub">FREE</span>
+            </a>
           </div>
         </article>
         <article class="pass pass-gift">
           <div class="pass-body">
-            <p class="kicker">Founder Pass</p>
-            <h3>One for you.<br>One to give.</h3>
-            <p>Support the founder with a one-time purchase that unlocks every world for you and gives you one full-game copy to send to a friend for the holidays.</p>
-            <p class="price" id="flight-price" hidden><strong>$4.99</strong> planned launch price for both passes</p>
-            <button class="button button-gold" id="checkout-launch" type="button" hidden aria-describedby="flight-price checkout-merchant checkout-availability"><span id="checkout-label">Buy Founder Pass</span><span aria-hidden="true">↗</span></button>
-            <p class="checkout-merchant" id="checkout-merchant" hidden>Secure checkout by Stripe. The merchant is The ComplianceAide.</p>
+            <h3>All worlds.<br>One gift.</h3>
+            <p>Fly every world and give a friend their own full-game copy.</p>
+            <button class="flight-ticket flight-ticket-gold" id="checkout-launch" type="button" hidden aria-describedby="checkout-merchant checkout-availability">
+              <span class="ticket-face"><strong id="checkout-label">Flight ticket</strong></span>
+              <span class="ticket-stub" id="flight-price">↗</span>
+            </button>
+            <p class="ticket-note" id="checkout-merchant" hidden></p>
             <span id="checkout-availability" class="availability" role="status">Checking Stripe checkout availability…</span>
-            <div class="pass-restore" id="pass-restore" hidden>Already have a pass? <button class="text-link" type="button" data-open="restore">Restore access</button></div>
+            <div class="pass-restore" id="pass-restore" hidden><button class="text-link" type="button" data-open="restore">Restore ticket</button></div>
           </div>
         </article>
       </div>
@@ -246,7 +278,7 @@
   <footer class="footer frame">
     <a class="wordmark" href="./" aria-label="Aerie home"><img src="../field-engraving.webp" alt="Aerie" width="768" height="512" loading="lazy"></a>
     <div class="footlinks">
-      <button type="button" data-open="restore">Restore purchase</button>
+      <button type="button" data-open="restore">Restore ticket</button>
       <a href="help/">Purchase help</a>
       <button type="button" data-open="share">Share Aerie</button>
       <a class="project-link" href="https://github.com/TheComplianceAide/aerie-eagle-flight" target="_blank" rel="noopener noreferrer"><img src="media/github-mark-white.svg" alt="" width="17" height="17"> Aerie on GitHub <span aria-hidden="true">↗</span></a>
@@ -257,14 +289,14 @@
   <dialog id="film-dialog" class="dialog film-dialog" aria-labelledby="film-title">
     <button class="dialog-close" type="button" data-close aria-label="Close gameplay video">×</button>
     <h2 id="film-title">Aerie gameplay</h2>
-    <video id="feature-film" playsinline controls preload="none" poster="media/hero.webp" data-src="media/flight.mp4?v=grand-views"></video>
+    <video id="feature-film" playsinline controls preload="none" poster="media/mount-major.webp" data-src="media/flight.mp4?v=world-tour-60"></video>
   </dialog>
 
   <dialog id="share-dialog" class="dialog" aria-labelledby="share-title">
     <button class="dialog-close" type="button" data-close aria-label="Close share options">×</button>
     <h2 id="share-title">Tell a friend</h2>
     <div id="share-details">
-      <p id="share-instructions">Send a friend a free flight at Lake Winnipesaukee.</p>
+      <p id="share-instructions">Share the free flight at Lake Winnipesaukee.</p>
       <div class="social-links" aria-label="Share options">
         <button class="button button-outline" type="button" id="native-share" hidden>Share link</button>
         <button class="button button-outline" type="button" id="copy-share">Copy link</button>
@@ -273,18 +305,20 @@
     </div>
     <section id="friend-details" class="share-method" aria-labelledby="friend-title" hidden>
       <h3 id="friend-title">Send it to five friends</h3>
-      <p>Send the link through Messages, another app, or by pasting it where you chat. Confirm once you’ve shared it with five people.</p>
+      <p>Send the invitation to five friends, then confirm here.</p>
       <button class="button button-gold" id="confirm-friend-share" type="button" disabled>I shared with 5 friends</button>
       <p class="form-status" id="friend-share-status" role="status" aria-live="polite"></p>
       <a class="button button-gold" id="friend-play" href="../?play=1" hidden>Fly my unlocked worlds <span aria-hidden="true">↗</span></a>
     </section>
     <details id="claim-details" class="share-method">
       <summary id="post-share-summary">Share on social media</summary>
-      <p id="post-instructions" hidden>After flying, post what you honestly thought and disclose that Aerie offers five additional worlds for sharing. Submit the public link for review.</p>
+      <p id="post-instructions" hidden>Share your honest flight experience and mention the reward. Submit your public link for review.</p>
+      <p id="instagram-instructions" hidden>Save the image, copy your post and publish it on Instagram.</p>
       <div class="social-links" aria-label="Social media">
         <a class="button button-outline" id="linkedin-share" target="_blank" rel="noopener noreferrer">LinkedIn</a>
         <a class="button button-outline" id="x-share" target="_blank" rel="noopener noreferrer">X</a>
-        <a class="button button-outline" href="media/instagram.jpg" download="aerie-instagram.jpg">Save Instagram card</a>
+        <a class="button button-outline" id="instagram-image" href="media/instagram.jpg" download="aerie-instagram.jpg">Save Instagram image</a>
+        <a class="button button-outline" id="instagram-open" href="https://www.instagram.com/" target="_blank" rel="noopener noreferrer" hidden>Open Instagram</a>
       </div>
       <div id="claim-submission" hidden>
         <label for="suggested-post">Suggested post</label>
@@ -307,8 +341,8 @@
   <dialog id="purchase-dialog" class="dialog" aria-labelledby="purchase-title">
     <button class="dialog-close" type="button" data-close aria-label="Close flight pass checkout">×</button>
     <img class="purchase-logo" src="media/aerie-checkout-logo.png" alt="Aerie" width="64" height="64" loading="lazy">
-    <h2 id="purchase-title">Support the Founder</h2>
-    <p>One purchase opens all worlds for you and includes one gift copy. Check out with Stripe, where The ComplianceAide is the merchant. Tax and available payment methods appear there.</p>
+    <h2 id="purchase-title">Flight ticket</h2>
+    <p>All worlds and one gift copy. Secure Stripe checkout with The ComplianceAide.</p>
     <p id="purchase-mode-note" hidden>Test checkout. No real payment will be collected.</p>
     <form id="purchase-form" data-form="checkout">
       <fieldset disabled>
@@ -322,7 +356,7 @@
 
   <dialog id="restore-dialog" class="dialog" aria-labelledby="restore-title">
     <button class="dialog-close" type="button" data-close aria-label="Close purchase recovery">×</button>
-    <h2 id="restore-title">Restore access</h2>
+    <h2 id="restore-title">Restore ticket</h2>
     <p id="restore-intro">Use the email address from your purchase or share claim. We’ll send a link to open your worlds on this device.</p>
     <form id="restore-confirm-form" hidden>
       <div id="restore-code-field" hidden>
@@ -348,7 +382,7 @@
       <button type="button" class="button button-gold" id="redeem-gift" hidden>Redeem gift</button>
       <button type="button" class="button button-outline" id="copy-gift" hidden>Copy your gift link</button>
       <button type="button" class="button button-outline" id="share-gift" hidden>Share gift privately</button>
-      <a class="button button-outline" id="play-unlocked" href="../?play=1" hidden>Play unlocked worlds <span aria-hidden="true">↗</span></a>
+      <a class="button button-outline" id="play-unlocked" href="../?play=1" hidden><span id="play-unlocked-label">Play unlocked worlds</span> <span aria-hidden="true">↗</span></a>
       <a class="button button-outline" id="pass-receipt" target="_blank" rel="noopener noreferrer" hidden>View Stripe receipt</a>
       <details id="gift-link" class="gift-link" hidden>
         <summary>Show gift link</summary>

@@ -262,15 +262,18 @@
     else if (!available) friendShareStatus.textContent = 'Friend unlocks are temporarily unavailable.';
   }
 
-  function openShare(isClaim) {
+  function openShare(isClaim, channel = '') {
     sharingClaim = isClaim;
-    byId('share-title').textContent = isClaim ? 'Share Aerie. Unlock five worlds.' : 'Tell a friend';
+    byId('share-title').textContent = isClaim ? 'Unlock 5 worlds' : 'Tell a friend';
     byId('share-instructions').textContent = isClaim
-      ? 'Share the free Lake Winnipesaukee flight with friends, or post your own flight experience for review.'
-      : 'Send a friend a free flight at Lake Winnipesaukee.';
+      ? 'Invite five friends or submit an honest public post.'
+      : 'Share the free flight at Lake Winnipesaukee.';
     byId('friend-details').hidden = !isClaim;
     byId('post-instructions').hidden = !isClaim;
     byId('claim-submission').hidden = !isClaim;
+    byId('claim-details').open = Boolean(channel && channel !== 'messages');
+    byId('instagram-instructions').hidden = channel !== 'instagram';
+    byId('instagram-open').hidden = channel !== 'instagram';
     byId('post-share-summary').textContent = isClaim ? 'Post publicly for review' : 'Share on social media';
     suggestedPost.value = withShareLink(claimStarter);
     shareMessage.textContent = '';
@@ -311,6 +314,23 @@
   window.addEventListener('hashchange', () => {
     if (new URLSearchParams(location.hash.slice(1)).has('invite')) openShare(true);
   });
+
+  for (const button of document.querySelectorAll('[data-ticket-share]')) {
+    button.addEventListener('click', () => {
+      const channel = button.dataset.ticketShare;
+      openShare(true, channel);
+      if (channel === 'instagram') byId('instagram-image').focus();
+      else if (channel === 'messages') {
+        const action = nativeShare.hidden ? byId('copy-share') : nativeShare;
+        action.focus();
+        if (action === nativeShare) nativeShare.click();
+      } else {
+        const link = byId(`${channel}-share`);
+        link.focus();
+        link.click();
+      }
+    });
+  }
 
   friendConfirm.addEventListener('click', async () => {
     if (friendConfirm.disabled || friendRewardEarned) return;
@@ -379,6 +399,8 @@
     } catch {}
   }
 
+  const playRequested = fragment.has('play');
+  const restoreRequested = fragment.has('restore-ticket');
   let restoreToken = fragment.get('restore');
   let pendingGift = fragment.get('gift') || params.get('gift');
   try {
@@ -481,6 +503,7 @@
     updateReceiptLink(byId('pass-receipt'));
     const extraWorlds = Array.isArray(status?.worlds) && status.worlds.some(world => world !== 'winnipesaukee');
     const hasAccess = authenticated && (status.fullAccess === true || extraWorlds);
+    byId('restore-title').textContent = hasAccess || receiptUrl ? 'My ticket' : 'Restore ticket';
     redeemGift.hidden = !pendingGift || !emailVerified || needsConfirmation;
     copyGift.hidden = !giftUrl;
     shareGift.hidden = !giftUrl || typeof navigator.share !== 'function';
@@ -488,6 +511,8 @@
     if (!giftUrl) giftLink.open = false;
     giftInput.value = giftLink.open ? giftUrl : '';
     playUnlocked.hidden = !hasAccess;
+    playUnlocked.href = status?.fullAccess === true ? paidFlightUrl() : '../?play=1';
+    byId('play-unlocked-label').textContent = status?.fullAccess === true ? 'Play now' : 'Play unlocked worlds';
     giftDetails.hidden = !pendingGift && !giftUrl && !receiptUrl && !hasAccess;
     giftMessage.textContent = pendingGift && emailVerified ? 'Your Founder Pass gift is ready to redeem.' :
       pendingGift ? 'Your gift is held by its private link until you verify your email.' :
@@ -499,12 +524,27 @@
     return checkoutState === 'success' || checkoutState === 'pending';
   }
 
+  function paidFlightUrl() {
+    let world = 'moosehead';
+    let launch = 'grand';
+    try {
+      const last = JSON.parse(localStorage.getItem('aerie:last-paid-flight') || 'null');
+      const id = last?.world === 'lac-berte' ? 'labrador' : last?.world;
+      if (id && id !== 'winnipesaukee' && status?.worlds?.includes(id)) {
+        world = id;
+        if (typeof last.launch === 'string' && /^[a-z][a-z0-9-]{0,50}$/.test(last.launch)) launch = last.launch;
+      }
+    } catch {}
+    return `../?play=1&fly=1#${new URLSearchParams({world, launch})}`;
+  }
+
   function updateCheckoutReturn(focus = false) {
-    if (!checkoutState) return;
     const notice = byId('return-notice');
-    const checking = returningFromPayment() && status === undefined;
-    const couldNotCheck = returningFromPayment() && status === null;
     const owned = status?.fullAccess === true;
+    notice.hidden = !checkoutState && !playRequested && !owned;
+    if (notice.hidden) return;
+    const checking = (playRequested || returningFromPayment()) && status === undefined;
+    const couldNotCheck = (playRequested || returningFromPayment()) && status === null;
     const retry = !owned && ['cancel', 'started'].includes(checkoutState);
     const messages = {
       cancel: ['Checkout canceled', 'You can try again or restore access if you bought a pass earlier.'],
@@ -512,10 +552,11 @@
       pending: ['Checkout status pending', 'If you paid on Stripe, restore with the email you used at checkout.'],
       success: ['Find your Founder Pass', 'Restore access with your Stripe checkout email if your worlds don’t appear here.']
     };
-    let [title, message] = messages[checkoutState];
+    const restoreTicket = ['Restore your ticket', 'Use your Stripe checkout email to pick up your ticket on this device.'];
+    let [title, message] = playRequested ? restoreTicket : messages[checkoutState] || restoreTicket;
     if (owned) {
-      title = 'Your worlds are ready';
-      message = giftUrl ? 'Fly all worlds now or copy the gift link for your friend.' : 'Fly all worlds with your Founder Pass.';
+      title = returningFromPayment() ? 'Your worlds are ready' : 'Welcome back';
+      message = 'Fly all worlds with your ticket.';
     } else if (checking) {
       title = 'Checking your pass…';
       message = 'We’re checking access to your Aerie worlds.';
@@ -525,21 +566,18 @@
     }
     byId('return-title').textContent = title;
     byId('return-message').textContent = message;
-    byId('return-play').hidden = !owned;
-    byId('return-retry').hidden = !retry;
-    byId('return-status-retry').hidden = !couldNotCheck;
-    updateReceiptLink(byId('return-receipt'));
-    const restore = byId('return-restore');
-    restore.hidden = checking;
-    restore.textContent = owned ? 'Gift & access' : 'Restore access';
-    notice.hidden = false;
+    byId('returning-player-actions').hidden = !owned;
+    if (owned) byId('return-play').href = paidFlightUrl();
+    byId('return-retry').hidden = !retry || playRequested;
+    byId('return-status-retry').hidden = !couldNotCheck && !(playRequested && !owned && !checking);
+    byId('return-restore').hidden = checking || owned;
     if (focus) notice.focus();
   }
 
   function refreshStatus(afterMutation = false) {
     if (statusRequest && !afterMutation) return statusRequest;
     const version = ++statusVersion;
-    if (returningFromPayment() && status === null) {
+    if (((playRequested || returningFromPayment()) && status === null) || (playRequested && status && !status.fullAccess)) {
       status = undefined;
       updateCheckoutReturn();
       updateCheckoutOffer();
@@ -552,6 +590,7 @@
       updateCheckoutReturn();
       updateCheckoutOffer();
       updateFriendOffer();
+      if (playRequested && status?.fullAccess === true) location.replace(paidFlightUrl());
     }).finally(() => {
       if (version === statusVersion) statusRequest = null;
     });
@@ -702,31 +741,36 @@
     const owned = status?.fullAccess === true;
     const available = enabled(checkoutConfig, 'checkout');
     const testCheckout = available && checkoutConfig.checkoutMode === 'test';
-    const unconfirmedReturn = returningFromPayment() && !status;
+    const unconfirmedReturn = playRequested || (returningFromPayment() && !status);
     checkoutLaunch.hidden = unconfirmedReturn;
     heroCheckout.hidden = unconfirmedReturn;
-    if (unconfirmedReturn) heroCheckoutStatus.hidden = true;
-    byId('hero-buy-label').textContent = owned ? 'Open your pass' : 'Buy Founder Pass';
-    byId('hero-buy-detail').textContent = owned ? 'Fly your unlocked worlds' : testCheckout
-      ? 'Test checkout · No real payment' : 'All worlds + a gift copy';
-    byId('checkout-label').textContent = owned ? 'Open your pass' : testCheckout ? 'Open test checkout' : 'Buy Founder Pass';
+    if (unconfirmedReturn || owned) heroCheckoutStatus.hidden = true;
+    const label = owned ? 'Play now' : 'Flight ticket';
+    byId('hero-buy-label').textContent = label;
+    byId('checkout-label').textContent = label;
+    byId('hero-buy-detail').textContent = owned ? 'Your worlds' : 'All worlds + a gift';
+    const price = !owned && available && typeof checkoutConfig.priceLabel === 'string'
+      ? checkoutConfig.priceLabel.replace(/\sUSD$/, '') : '↗';
+    byId('hero-ticket-price').textContent = price;
+    flightPrice.textContent = price;
     byId('pass-restore').hidden = owned || unconfirmedReturn;
-    checkoutMerchant.hidden = owned || unconfirmedReturn || !available;
-    flightPrice.hidden = owned || unconfirmedReturn;
+    const note = testCheckout ? 'Stripe test · The ComplianceAide · No charge' : 'Stripe checkout · The ComplianceAide';
+    for (const disclosure of [checkoutMerchant, byId('hero-ticket-note')]) {
+      disclosure.hidden = owned || unconfirmedReturn || !available;
+      disclosure.textContent = note;
+    }
     checkoutAvailability.hidden = unconfirmedReturn;
     if (!checkoutBusy) {
-      checkoutAvailability.textContent = owned ? 'All worlds are unlocked on this device.'
-        : checkoutConfig === undefined ? 'Checking Stripe checkout availability…' : checkoutNote(checkoutConfig);
+      checkoutAvailability.textContent = owned || available ? '' : checkoutConfig === undefined
+        ? 'Checking checkout availability…' : checkoutNote(checkoutConfig);
     }
   }
 
-  function openOwnedPass() {
+  function playOwnedPass() {
     if (status?.fullAccess !== true) return false;
     if (checkoutBusy) setCheckoutBusy(false);
     if (purchaseDialog.open) purchaseDialog.close();
-    updateRestore();
-    updateCheckoutOffer();
-    show(restoreDialog);
+    location.assign(paidFlightUrl());
     return true;
   }
 
@@ -748,10 +792,6 @@
         updateRestore();
         const testCheckout = enabled(config, 'checkout') && config.checkoutMode === 'test';
         byId('purchase-mode-note').hidden = !testCheckout;
-        if (enabled(config, 'checkout')) {
-          flightPrice.textContent = typeof config.priceLabel === 'string' && config.priceLabel
-            ? config.priceLabel + ' for both passes' : 'One-time purchase';
-        }
         updateCheckoutOffer();
         friendShareStatus.textContent = '';
         updateFriendOffer();
@@ -789,7 +829,7 @@
   }
 
   async function launchCheckout(event) {
-    if (checkoutBusy || openOwnedPass()) return;
+    if (checkoutBusy || playOwnedPass()) return;
     const fromHero = event.currentTarget === heroCheckout;
     const output = fromHero ? heroCheckoutStatus : checkoutAvailability;
     if (fromHero) output.hidden = false;
@@ -798,7 +838,7 @@
     const [config] = await Promise.all([
       enabled(checkoutConfig, 'checkout') ? checkoutConfig : loadConfig(), checkCheckoutAccess()
     ]);
-    if (attempt !== checkoutAttempt || openOwnedPass()) return;
+    if (attempt !== checkoutAttempt || playOwnedPass()) return;
     if (!enabled(config, 'checkout')) {
       setCheckoutBusy(false);
       updateCheckoutOffer();
@@ -832,12 +872,13 @@
   });
 
   for (const button of document.querySelectorAll('[data-open]')) {
-    button.addEventListener('click', () => {
+    button.addEventListener('click', event => {
       const action = button.dataset.open;
       if (action === 'restore') {
+        event.preventDefault();
         updateRestore();
         show(restoreDialog);
-        if (!returningFromPayment() || status !== null) refreshStatus();
+        if ((!returningFromPayment() && !playRequested) || status !== null) refreshStatus();
       }
       if (action === 'claim' || action === 'share') openShare(action === 'claim');
     });
@@ -853,11 +894,11 @@
       const payload = Object.fromEntries(new FormData(form));
       for (const key of Object.keys(payload)) payload[key] = payload[key].trim();
       if (name === 'checkout') {
-        if (checkoutBusy || openOwnedPass()) return;
+        if (checkoutBusy || playOwnedPass()) return;
         const attempt = setCheckoutBusy(true);
         output.textContent = 'Checking your Aerie access…';
         await checkCheckoutAccess();
-        if (attempt !== checkoutAttempt || openOwnedPass()) return;
+        if (attempt !== checkoutAttempt || playOwnedPass()) return;
         await openStripeCheckout(payload, output, attempt);
         return;
       }
@@ -887,10 +928,10 @@
   }
 
   updateRestore();
-  updateCheckoutReturn(Boolean(checkoutState));
+  updateCheckoutReturn(Boolean(checkoutState) || playRequested);
   updateCheckoutOffer();
   loadConfig();
   refreshStatus();
-  if (pendingGift || restoreToken) show(restoreDialog);
+  if (pendingGift || restoreToken || restoreRequested) show(restoreDialog);
   else if (fragment.has('invite')) openShare(true);
 })();

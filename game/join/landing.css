@@ -54,6 +54,7 @@ fieldset { padding: 0; border: 0; margin: 0; min-width: 0; }
 .toplinks { display: flex; align-items: center; gap: clamp(1.2rem, 3vw, 3rem); }
 .toplinks a { text-decoration: none; font-size: .875rem; font-weight: 600; padding-block: 10px; text-shadow: 0 1px 8px #0008; }
 .toplinks a:hover, .footlinks :is(a,button):hover { color: var(--gold-strong); }
+.toplinks .top-restore { color: var(--gold-strong); text-decoration: underline; text-underline-offset: .18em; }
 .toplinks .top-flight { padding: 10px 14px; border: 1px solid #f7ead76a; border-radius: 4px; }
 .top-flight span { color: var(--gold); padding-left: 4px; }
 .hero-content { padding-block: 5.25rem 5rem; margin-block: auto; }
@@ -85,10 +86,71 @@ fieldset { padding: 0; border: 0; margin: 0; min-width: 0; }
 .button-gold:hover { background: #fbe6b9; }
 .button-glass { background: #12252371; border-color: #fbf2dd5c; backdrop-filter: blur(10px); }
 .button-outline:hover, .button-glass:hover { background: #f6e8c51a; border-color: #f6e8c595; }
-.hero-offers { align-items: stretch; }
-.hero-offer { align-items: flex-start; flex-direction: column; gap: .13rem; min-height: 57px; text-align: left; }
-.hero-offer small { font-size: .73rem; font-weight: 550; }
-.hero-checkout-status { margin-top: .45rem; font-size: .8rem; color: var(--gold-strong); }
+.hero-tickets {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 25rem)); align-items: start;
+  gap: .75rem; width: min(100%, 77rem); margin-top: 1.3rem;
+}
+.flight-ticket {
+  isolation: isolate; position: relative; display: block; width: 100%; min-height: 66px; padding: 0;
+  border: 0; border-radius: 5px; text-decoration: none; text-align: left; color: #281810;
+  background: transparent; filter: drop-shadow(0 5px 7px #04080380);
+}
+.flight-ticket::before {
+  content: ""; position: absolute; z-index: -1; inset: 0; border-radius: inherit;
+  background-position: center; background-size: 100% 100%; background-repeat: no-repeat;
+  clip-path: polygon(2% 0, 75% 0, 76.5% 4%, 78% 0, 98% 0, 100% 7%, 100% 41%, 98.6% 45%, 98.6% 55%, 100% 59%, 100% 93%, 98% 100%, 78% 100%, 76.5% 96%, 75% 100%, 2% 100%, 0 93%, 0 59%, 1.4% 55%, 1.4% 45%, 0 41%, 0 7%);
+}
+.flight-ticket-gold { aspect-ratio: 1024 / 255; }
+.flight-ticket-gold::before {
+  background-image: url("media/flight-ticket-gold.webp"), linear-gradient(118deg, #96602c, #f8d177 32%, #efbe61 72%, #b5793e);
+}
+.flight-ticket-gold:hover { filter: brightness(1.07) drop-shadow(0 7px 10px #04080390); }
+.flight-ticket-gold:active { transform: translateY(1px); }
+.flight-ticket-gold:disabled { opacity: .64; cursor: wait; }
+.flight-ticket-paper { aspect-ratio: 1024 / 286; min-height: 57px; color: #342719; }
+.flight-ticket-paper::before {
+  background-image: url("media/flight-ticket-paper.webp"), linear-gradient(118deg, #b4a28a, #f6edd8 34%, #dfd0b6 82%, #c8b395);
+}
+.flight-ticket-paper:hover { filter: brightness(1.07) drop-shadow(0 7px 10px #04080390); }
+.flight-ticket-silver { aspect-ratio: 1024 / 284; color: #142020; }
+.flight-ticket-silver::before {
+  background-image: url("media/flight-ticket-silver.webp"), linear-gradient(118deg, #687373, #e7eaea 35%, #c9d0ce 79%, #8d9896);
+}
+.ticket-face {
+  position: absolute; top: 50%; left: 26%; right: 24%; display: flex; flex-direction: column;
+  gap: 3px; transform: translateY(-50%); color: inherit;
+}
+.ticket-face strong {
+  font: 700 clamp(1.2rem, 2.35vw, 1.9rem)/1 var(--serif); letter-spacing: -.025em;
+}
+.ticket-face span { font-size: clamp(.66rem, 1vw, .82rem); line-height: 1.15; font-weight: 700; }
+.ticket-stub {
+  position: absolute; inset: 0 2% 0 76.8%; display: grid; place-items: center; font: 700 clamp(.91rem, 1.65vw, 1.4rem)/1 var(--serif);
+  white-space: nowrap;
+}
+.ticket-share { right: 181px; min-height: 44px; justify-content: center; text-decoration: none; }
+.ticket-share strong { font-size: clamp(1rem, 1.12vw, 1.05rem); }
+.ticket-share span { font-size: .73rem; }
+.ticket-share:hover strong { text-decoration: underline; text-underline-offset: .17rem; }
+.ticket-social {
+  position: absolute; inset: 50% 3% auto auto; transform: translateY(-50%);
+  display: flex; align-items: center; gap: 0;
+}
+.ticket-icon {
+  position: relative; display: grid; place-items: center; width: 44px; height: 44px; padding: 0;
+  isolation: isolate; border: 0; border-radius: 50%; color: #f5d185; background: transparent;
+}
+.ticket-icon::before {
+  content: ""; position: absolute; inset: 5px; z-index: -1; border-radius: 50%;
+  background: radial-gradient(circle at 38% 25%, #324040, #101c1c 77%);
+  border: 1px solid #736443; box-shadow: inset 0 0 0 1px #1a2929, 0 1px 2px #121b1b70;
+}
+.ticket-icon svg { width: 17px; height: 17px; }
+.ticket-icon:hover { color: #ffe8ac; }
+.ticket-icon:hover::before { background: #2a3735; }
+.ticket-icon:focus-visible, .ticket-share:focus-visible { outline-color: #182525; outline-offset: 1px; }
+.ticket-note { margin-top: .42rem; font-size: .73rem; line-height: 1.3; color: #faf0d5; }
+.hero-checkout-status { margin-top: .35rem; font-size: .78rem; color: var(--gold-strong); }
 .hero-explore { margin-top: .85rem; }
 .play-symbol { border-block: 5px solid transparent; border-left: 8px solid var(--gold); }
 .device-guide {
@@ -163,12 +225,11 @@ fieldset { padding: 0; border: 0; margin: 0; min-width: 0; }
 .pass-body { display: block; padding: clamp(1.35rem, 3.5vw, 2.7rem); width: 100%; }
 .pass h3 { font-size: clamp(2.45rem, 5vw, 5rem); margin: .65rem 0 .8rem; }
 .pass-body > p:not(.kicker):not(.price):not(.checkout-merchant) { max-width: 39ch; font-size: .93rem; color: #e3e6da; }
-.pass-body .button { margin-top: .8rem; }
+.pass-body .button, .pass-body .flight-ticket { margin-top: .8rem; }
+.pass-body .flight-ticket { max-width: 25rem; }
 .inline-action { display: inline-flex; align-items: center; gap: 9px; margin-top: 1rem; font-weight: 700; color: var(--gold-strong); text-decoration: none; }
 .inline-action:hover { text-decoration: underline; }
-.price { margin-top: .85rem; font-size: .78rem; color: #e6dbc5; }
-.price strong { color: var(--gold); font-size: 1.2rem; margin-right: .25rem; }
-.checkout-merchant { margin-top: .65rem; font-size: .8rem; line-height: 1.35; }
+.availability:empty { display: none; }
 .availability { display: block; margin-top: .6rem; min-height: 1.1rem; font-size: .76rem; color: #dedfd4; }
 .pass-restore { color: var(--muted); font-size: .8rem; }
 
@@ -196,10 +257,12 @@ fieldset:disabled input, fieldset:disabled button, .button:disabled { opacity: .
 .footlinks { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem 1.5rem; font-size: .85rem; color: var(--muted); }
 .footlinks :is(a,button) { text-decoration: none; min-height: 40px; display: inline-flex; align-items: center; }
 .return-notice { background: var(--pine); border: 1px solid var(--line); border-radius: 5px; margin-block: 1rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: .85rem 1rem; }
-.return-summary, .return-actions { display: flex; align-items: center; gap: .75rem; }
+.return-summary, .return-actions, .return-player-actions { display: flex; align-items: center; gap: .75rem; }
 .return-summary img, .purchase-logo { object-fit: contain; flex: 0 0 auto; }
 .return-summary h2 { font-size: clamp(1.55rem, 3vw, 2rem); margin: 0 0 .2rem; }
 .return-actions { flex-wrap: wrap; flex-shrink: 0; }
+.return-player-actions { flex-wrap: wrap; }
+.return-player-actions .text-link { margin: 0; padding-inline: 3px; font-weight: 650; }
 .return-notice p { font-size: .91rem; }
 .purchase-logo { display: block; margin-bottom: .55rem; }
 
@@ -231,6 +294,9 @@ fieldset:disabled input, fieldset:disabled button, .button:disabled { opacity: .
 .gift-link label { display: block; margin-bottom: .35rem; font-size: .82rem; }
 .gift-link p { margin-top: .3rem; font-size: .8rem; }
 
+@media (max-width: 1140px) {
+  .hero-tickets { grid-template-columns: repeat(2, minmax(0, 25rem)); }
+}
 @media (max-width: 900px) {
   .preview-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   .preview-grid .preview-wide { grid-column: auto; }
@@ -259,6 +325,8 @@ fieldset:disabled input, fieldset:disabled button, .button:disabled { opacity: .
   .hero-content { padding-block: 4rem 2.8rem; }
   .hero h1 { font-size: clamp(5rem, 15.6vw, 7.25rem); margin-top: 1rem; }
   .hero-intro { font-size: .98rem; }
+  .hero-tickets { grid-template-columns: minmax(0, 27rem); gap: .45rem; margin-top: .95rem; }
+  .hero-free { aspect-ratio: 5.1; }
   .section-heading, .footer { display: block; }
   .section-heading > p { margin-top: .8rem; }
   .pass-grid, .community-grid { grid-template-columns: 1fr; }
@@ -268,6 +336,12 @@ fieldset:disabled input, fieldset:disabled button, .button:disabled { opacity: .
   .return-notice { align-items: flex-start; flex-direction: column; }
   .return-actions { width: 100%; }
 }
+@media (max-width: 480px) {
+  .toplinks .top-worlds { display: none; }
+  .flight-ticket-silver { min-height: 104px; }
+  .ticket-share { inset: 7px 12px auto 28%; min-height: 44px; transform: none; }
+  .ticket-social { inset: auto 11px 8px auto; transform: none; }
+}
 @media (max-width: 410px) {
   .toplinks { gap: .65rem; }
   .toplinks .top-flight { padding-inline: 9px; }
@@ -275,13 +349,15 @@ fieldset:disabled input, fieldset:disabled button, .button:disabled { opacity: .
   .preview-caption small { font-size: .66rem; }
   .hero-content .button { width: fit-content; }
   .hero-content .actions { gap: 8px; }
-  .hero-offers .hero-offer { padding-inline: 12px; }
+
   .device-guide { align-items: flex-start; flex-direction: column; }
   .signup .input-row { flex-wrap: wrap; }
   .signup .input-row input { flex-basis: 100%; }
 }
 @media (max-width: 355px) {
   .toplinks .top-worlds { display: none; }
+  .hero h1 { font-size: 4.5rem; }
+  .hero-content { padding-block: 1.65rem 2rem; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
