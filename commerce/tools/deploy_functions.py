@@ -102,13 +102,16 @@ def public_json(origin, route):
         raise ReleaseError(url + ' was unavailable or did not return valid JSON.') from None
 
 
-def verify_health(sha, mode):
+def verify_health(sha, mode, checkout_paused=False):
     for origin in ORIGINS:
         config = public_json(origin, 'config')
-        if (config.get('releaseRevision') != sha or config.get('checkoutMode') != mode or
-                config.get('checkout') is not True or config.get('restore') is not True or
-                config.get('priceAmount') != 199 or config.get('priceCurrency') != 'usd'):
-            raise ReleaseError(origin + ' does not serve the expected revision, payment mode and $1.99 offer.')
+        if config.get('releaseRevision') != sha or config.get('checkoutMode') != mode or config.get('restore') is not True:
+            raise ReleaseError(origin + ' does not serve the expected revision, payment mode and restore capability.')
+        if checkout_paused:
+            if config.get('checkout') is not False or any(key in config for key in ('priceAmount', 'priceCurrency', 'priceLabel')):
+                raise ReleaseError(origin + ' does not report paused checkout with no public offer.')
+        elif config.get('checkout') is not True or config.get('priceAmount') != 199 or config.get('priceCurrency') != 'usd':
+            raise ReleaseError(origin + ' does not serve the expected $1.99 checkout offer.')
         status = public_json(origin, 'status')
         if status.get('authenticated') is not False or status.get('fullAccess') is not False or status.get('worlds') != ['winnipesaukee']:
             raise ReleaseError(origin + ' returned unexpected anonymous player access.')
@@ -120,11 +123,11 @@ def verify_health(sha, mode):
         raise ReleaseError('Missing indexed Function triggers: ' + ', '.join(missing))
 
 
-def wait_healthy(sha, mode, timeout=300):
+def wait_healthy(sha, mode, timeout=300, *, checkout_paused=False):
     end = time.monotonic() + timeout
     while True:
         try:
-            verify_health(sha, mode)
+            verify_health(sha, mode, checkout_paused)
             return
         except ReleaseError as error:
             if time.monotonic() >= end:
@@ -138,7 +141,7 @@ def ensure_current(sha):
     run(['git', 'diff', '--exit-code', '--quiet', sha, 'origin/main', '--', 'commerce'], 'Comparing commerce with current main')
 
 
-def deploy(sha, mode, directory):
+def deploy(sha, mode, directory, *, checkout_paused=False):
     ensure_current(sha)
     files = snapshot(sha)
     source = directory / 'commerce'
@@ -161,7 +164,7 @@ def deploy(sha, mode, directory):
         raise ReleaseError('Recheck the deployment method for this hosting plan before publishing.')
     run(['az', 'functionapp', 'deployment', 'source', 'config-zip', *AZURE, '--src', str(archive),
          '--build-remote', 'true', '--timeout', '540', '-o', 'none'], 'Azure ZIP deployment', timeout=660)
-    wait_healthy(sha, mode)
+    wait_healthy(sha, mode, checkout_paused=checkout_paused)
 
 
 def main():
@@ -174,6 +177,7 @@ def main():
         sub = commands.add_parser(name)
         sub.add_argument('sha')
         sub.add_argument('--mode', required=True, choices=('test', 'live'), help='expected public mode')
+        sub.add_argument('--checkout-paused', action='store_true', help='expect new sales to be disabled; never changes settings')
     args = parser.parse_args()
     if args.action == 'package':
         package(snapshot(args.sha), args.sha, args.output)
@@ -181,9 +185,9 @@ def main():
     else:
         if args.action == 'deploy':
             with tempfile.TemporaryDirectory() as tmp:
-                deploy(args.sha, args.mode, Path(tmp))
+                deploy(args.sha, args.mode, Path(tmp), checkout_paused=args.checkout_paused)
         else:
-            verify_health(args.sha, args.mode)
+            verify_health(args.sha, args.mode, checkout_paused=args.checkout_paused)
         print('Both public hosts verified for', args.sha, 'in', args.mode, 'mode;', len(TRIGGERS), 'triggers indexed.')
 
 

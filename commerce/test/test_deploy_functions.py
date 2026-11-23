@@ -85,6 +85,34 @@ class HealthTests(unittest.TestCase):
             self.assertIn('function', command.call_args.args[0])
             self.assertIn('list', command.call_args.args[0])
 
+    def test_paused_gate_checks_both_hosts_free_access_and_all_triggers(self):
+        paused = {'releaseRevision': SHA, 'checkoutMode': 'live', 'checkout': False, 'restore': True}
+        with patch.object(release, 'public_json', side_effect=[paused, PLAYER, paused, PLAYER]) as read, \
+             patch.object(release, 'run', return_value=json.dumps(TRIGGERS)):
+            release.verify_health(SHA, 'live', checkout_paused=True)
+            self.assertEqual([call.args for call in read.call_args_list],
+                             [(origin, route) for origin in release.ORIGINS for route in ('config', 'status')])
+        for override in [{'checkout': True}, {'restore': False}, {'priceAmount': 199}, {'checkoutMode': 'test'},
+                         {'releaseRevision': 'b' * 40}]:
+            with self.subTest(override=override), patch.object(release, 'public_json', side_effect=[paused, PLAYER, dict(paused, **override)]):
+                with self.assertRaisesRegex(release.ReleaseError, 'www.playaerie.com'):
+                    release.verify_health(SHA, 'live', checkout_paused=True)
+        with patch.object(release, 'public_json', side_effect=[paused, dict(PLAYER, fullAccess=True)]):
+            with self.assertRaisesRegex(release.ReleaseError, 'anonymous'):
+                release.verify_health(SHA, 'live', checkout_paused=True)
+        with patch.object(release, 'public_json', side_effect=[paused, PLAYER, paused, PLAYER]), \
+             patch.object(release, 'run', return_value='[]'):
+            with self.assertRaisesRegex(release.ReleaseError, 'Missing indexed Function triggers'):
+                release.verify_health(SHA, 'live', checkout_paused=True)
+
+    def test_deploy_and_verify_cli_forward_paused_expectation(self):
+        for action in ['deploy', 'verify']:
+            with self.subTest(action=action), patch.object(release.sys, 'argv', ['deploy_functions.py', action, SHA, '--mode', 'live', '--checkout-paused']), \
+                 patch.object(release, 'deploy') as deploy, patch.object(release, 'verify_health') as verify, patch('builtins.print'):
+                release.main()
+                target = deploy if action == 'deploy' else verify
+                self.assertTrue(target.call_args.kwargs['checkout_paused'])
+
     def test_wrong_revision_unavailable_offer_wrong_mode_and_unexpected_access(self):
         for bad in [{'releaseRevision': 'b' * 40}, {'checkout': False}, {'checkoutMode': 'live'}, {'priceAmount': 99}]:
             with self.subTest(bad=bad), patch.object(release, 'public_json', side_effect=[OFFER, PLAYER, dict(OFFER, **bad)]):
