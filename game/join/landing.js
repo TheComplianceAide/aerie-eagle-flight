@@ -36,13 +36,50 @@
 
   const filmDialog = byId('film-dialog');
   const featureFilm = byId('feature-film');
+  const heroFlight = byId('mount-major-flight');
+  const heroMotion = byId('hero-motion');
+  const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+  const saveData = navigator.connection?.saveData;
+  let backgroundEnabled = true;
+  let heroInView = true;
+
+  function updateHeroFlight() {
+    if (backgroundEnabled && heroInView && !document.hidden && !filmDialog.open && !reducedMotion.matches && !saveData) {
+      if (!heroFlight.getAttribute('src')) heroFlight.src = heroFlight.dataset.src;
+      heroFlight.play().catch(() => {});
+    } else {
+      heroFlight.pause();
+    }
+  }
+
+  heroFlight.addEventListener('playing', () => {
+    heroFlight.classList.add('is-visible');
+    heroMotion.hidden = false;
+  });
+  heroMotion.addEventListener('click', () => {
+    backgroundEnabled = !backgroundEnabled;
+    heroMotion.textContent = backgroundEnabled ? 'Pause background' : 'Play background';
+    updateHeroFlight();
+  });
+  reducedMotion.addEventListener('change', updateHeroFlight);
+  document.addEventListener('visibilitychange', updateHeroFlight);
+  new IntersectionObserver(([entry]) => {
+    heroInView = entry.isIntersecting;
+    if (document.readyState === 'complete') updateHeroFlight();
+  }).observe(heroFlight.parentElement);
+  if (document.readyState === 'complete') updateHeroFlight();
+  else window.addEventListener('load', updateHeroFlight, {once:true});
 
   byId('watch-film').addEventListener('click', () => {
     show(filmDialog);
+    updateHeroFlight();
     if (!featureFilm.getAttribute('src')) featureFilm.src = featureFilm.dataset.src;
     featureFilm.play().catch(() => {});
   });
-  filmDialog.addEventListener('close', () => featureFilm.pause());
+  filmDialog.addEventListener('close', () => {
+    featureFilm.pause();
+    updateHeroFlight();
+  });
 
   async function copy(value, status, success) {
     try {

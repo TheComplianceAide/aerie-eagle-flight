@@ -17,7 +17,7 @@
     const link = document.createElement('a');
     link.className = 'aerie-pass-link';
     link.href = join.href;
-    link.textContent = 'Flight passes & gifts';
+    link.textContent = 'Aerie home';
     fly.after(link);
     if (!limited) return;
 
