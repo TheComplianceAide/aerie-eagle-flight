@@ -674,7 +674,9 @@
       const message=String(error?.message||error);
       window.aerieLaunchFailure=/webgl|graphics context/i.test(message)?"webgl":
         /scenery asset (\S+)/.test(message)?"asset-"+message.match(/scenery asset (\S+)/)[1].replace(/\.[a-z0-9]+$/i,""):
-        /Flight access/.test(message)?"access":(error?.name||"error");
+        /Flight access/.test(message)?"access":
+        // Error name plus the first words of the message, letters only (no URLs or values).
+        (error?.name||"error")+"-"+message.replace(/https?:\S+/g,"").replace(/[^A-Za-z ]/g," ").trim().split(/\s+/).slice(0,4).join("-");
       started=false;app.dataset.mode="title";showDialog("launchError");el("dialogTitle").textContent="Unable to start flight";
       el("summary").textContent=/webgl|graphics context/i.test(String(error))
         ?"Chrome could not start 3D graphics. Enable graphics acceleration in Chrome settings, then reopen the game."
