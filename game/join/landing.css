@@ -35,7 +35,7 @@ fieldset { padding: 0; border: 0; margin: 0; min-width: 0; }
   background: #355454;
 }
 .hero-picture, .hero-picture::after { position: absolute; inset: 0; width: 100%; height: 100%; }
-.hero-picture { z-index: -1; background: #355454 url("media/hero.webp") center 48% / cover no-repeat; }
+.hero-picture { z-index: -1; background: #355454 url("media/mount-major.webp") center 48% / cover no-repeat; }
 .hero-picture::after {
   content: "";
   background:

@@ -5,7 +5,7 @@
   const limited = required || new URLSearchParams(location.search).get('access') === 'free';
   if (location.protocol === 'file:') return;
   if (limited && !new URLSearchParams(location.hash.slice(1)).has('world')) {
-    history.replaceState(null, '', '#world='+freeWorld);
+    history.replaceState(null, '', '#world='+freeWorld+'&launch=mount-major');
   }
   document.addEventListener('DOMContentLoaded', setup, {once:true});
   function setup() {

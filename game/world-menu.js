@@ -5,7 +5,7 @@
     swiss: { name: ['Oeschinen', 'Lake'], region: 'Bernese Alps, Switzerland', description: 'Follow the waterfalls from the high cliffs to the spruce-lined lakeshore.', launches: { lake: 'Lake overlook', falls: 'Waterfall approach', forest: 'Forest edge', shore: 'Western gravel beach' } }
   };
   Object.assign(worlds,{
-    winnipesaukee: {name:['Lake','Winnipesaukee'],region:'New Hampshire, USA',description:'Follow the wooded islands across the Broads, skim the boardwalk at Weirs Beach, or turn over the bandstand at Alton Bay.',launches:{lake:'Rattlesnake Island',ridge:'Island channel',weirs:'Weirs Beach',alton:'Alton Bay'}},
+    winnipesaukee: {name:['Lake','Winnipesaukee'],region:'New Hampshire, USA',description:'Follow the wooded islands across the Broads, skim the boardwalk at Weirs Beach, or turn over the bandstand at Alton Bay.',launches:{'mount-major':'Mount Major',lake:'Rattlesnake Island',ridge:'Island channel',weirs:'Weirs Beach',alton:'Alton Bay'}},
     surry: {name:['Surry Dam','& Keene'],region:'New Hampshire, USA',description:'Skim the dam and its wooded reservoir, then follow the Ashuelot River valley to downtown Keene.',launches:{lake:'Surry Mountain Dam',ridge:'Keene Main Street',valley:'Ashuelot Valley overlook'}},
     dixville: {name:['Dixville','Notch'],region:'Dawn · New Hampshire, USA',description:'Cross Lake Gloriette toward the red roofs of the Balsams. Dawn lights the autumn hardwoods above Route 26 and the split ledge of Table Rock.',launches:{dawn:'First light on Table Rock',lake:'Dawn over Lake Gloriette',hotel:'The Balsams flyby',highway:'Route 26 through the notch',ridge:'Table Rock overlook',panorama:'Resort and notch panorama'}},
     labrador: {name:['Lac','Berté'],region:'Côte-Nord, Québec, Canada',description:'A sun shower crosses the narrows. Follow the rainbow over the spruce islands or skim the white cabin and log steps on the point.',launches:{rainbow:'Rainbow over the narrows',cabin:'Cabin flyby',lake:'Lake overlook',ridge:'Spruce narrows'}},
@@ -55,6 +55,7 @@
     return world.paletteLaunch||{alaska:'spruce',moosehead:'reeds',winnipesaukee:'game'}[id]||Object.keys(world.launches)[0];
   }
   function previewName(id,start){
+    if(id==='winnipesaukee'&&start==='mount-major')return 'join/media/mount-major.webp';
     if(id==='yellowstone')return start==='faithful'?'menu-yellowstone.webp':'yellowstone-launch/'+start+'.webp';
     if(worlds[id].paletteLaunch)return 'departure-light/'+id+'-'+start+'.webp';
     if(['game','wildlife','wall','spur','reeds','spray','spruce'].includes(start))return id+'-'+start+'-view.webp';
@@ -93,6 +94,7 @@
     app.dataset.departure = launch.value;
     const descriptions={
       grand:grandViewDescriptions[picker.value],
+      'mount-major':'Launch from Mount Major’s wooded ridge and glide north toward Rattlesnake Island.',
       game:'Follow the animals at the forest or shoreline edge. The eye icon identifies nearby species as you fly.',
       wall:'Follow the broken ledges on your right. Bank left past the fallen sandstone blocks into the open canyon.',
       cabin:'Fly out of the shower toward the white cabin. Look for sunlight catching the wet roof and the puddles by the shore.',

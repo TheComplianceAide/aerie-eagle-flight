@@ -594,6 +594,10 @@
       world.regionalFieldScenery=fieldScenery=region==='yellowstone'?null:window.makeRegionalFieldScenery(THREE,scene,world);
       world.canopyStream=canopy=window.makeCanopyStream(THREE,renderer,scene,world);
       world.launches.grand=window.aerieScenicFlight.grandView(world);
+      if(region==='winnipesaukee'){
+        const mountMajor=world.landmarks.find(place=>place.name==='Mount Major');
+        if(mountMajor)world.launches['mount-major']=window.aerieScenicFlight.approach(world,mountMajor);
+      }
       loadPromise=Promise.all([assets,world.ready,eagle.ready,geology?.ready,fieldScenery?.ready]);
       await loadPromise;
       window.addReadableWindWater(THREE,scene,world);
