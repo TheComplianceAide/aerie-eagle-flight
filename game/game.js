@@ -401,6 +401,9 @@
     el("sound").innerHTML = '<svg viewBox="0 0 24 24"><path d="M3 9h4l5-4v14l-5-4H3z"/>'+marks+'</svg>';
   }
   function prepareAudio() {
+    // iPhones route Web Audio through the ringer channel, so the silent switch mutes the game
+    // unless the page asks for playback (iOS 16.4+; absent elsewhere).
+    try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch {}
     if (!audio) {
       const Context = window.AudioContext || window.webkitAudioContext;
       if (!Context) return;
@@ -423,6 +426,15 @@
     }
     audio.resume().catch(()=>{});
   }
+  // A call, an alarm or switching apps leaves the context suspended or "interrupted" on iOS;
+  // it only restarts from a touch, so every touch and return to the page retries.
+  function reviveAudio(){
+    if(!audio||!soundOn||!started||paused||graphicsLost||audio.state==="running"||audio.state==="closed")return;
+    audio.resume().catch(()=>{});
+  }
+  for(const type of ["pointerdown","touchend","keydown"])document.addEventListener(type,reviveAudio,{capture:true,passive:true});
+  document.addEventListener("visibilitychange",()=>{if(!document.hidden)reviveAudio();});
+  window.addEventListener("pageshow",reviveAudio);
   function startAudio(){
     try{
       prepareAudio();
