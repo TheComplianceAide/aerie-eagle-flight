@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0d1919">
+  <meta name="description" content="Get help with an Aerie Founder Pass charge, access, or gift copy.">
+  <title>Purchase help · Aerie</title>
+  <link rel="stylesheet" href="../landing.css">
+  <link rel="stylesheet" href="help.css">
+  <script defer src="help.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to purchase help</a>
+  <header class="help-header frame">
+    <a class="help-logo" href="../" aria-label="Aerie storefront"><img src="../media/aerie-checkout-logo.png" alt="" width="102" height="68"></a>
+    <a class="help-back" href="../#passes"><span aria-hidden="true">←</span> Back to Aerie</a>
+  </header>
+  <main id="main" class="frame help-layout">
+    <div class="help-intro">
+      <p class="kicker">Founder Pass</p>
+      <h1>Purchase <em>help</em></h1>
+      <p>Get help with a charge, access to your worlds, or a gift copy. We’ll use your reply email to follow up.</p>
+    </div>
+    <div class="help-card">
+      <form id="purchase-help-form" method="post" action="/api/aerie/purchase-help" aria-describedby="help-safety">
+        <p id="help-safety">Leave out card numbers, security codes, passwords, and gift links.</p>
+        <fieldset>
+          <label for="issue">What do you need help with?</label>
+          <select id="issue" name="issue" required>
+            <option value="">Choose an issue</option>
+            <option value="charge">A charge or refund</option>
+            <option value="access">Unlocking my worlds</option>
+            <option value="gift">Missing gift copy or gift access</option>
+            <option value="other">Something else about a purchase</option>
+          </select>
+          <label for="email">Reply email</label>
+          <input id="email" name="email" type="email" autocomplete="email" maxlength="254" required>
+          <label for="message">What happened?</label>
+          <textarea id="message" name="message" minlength="10" maxlength="800" rows="4" required></textarea>
+        </fieldset>
+        <button class="button button-gold" type="submit" disabled>Send help request</button>
+        <p id="help-error" class="help-error" role="alert"></p>
+      </form>
+      <section id="help-receipt" class="help-receipt" aria-labelledby="receipt-title" tabindex="-1" hidden>
+        <h2 id="receipt-title">Request received</h2>
+        <p>Keep this case number for your records.</p>
+        <p id="case-reference" class="case-reference"></p>
+        <a class="inline-action" href="../">Return to Aerie <span aria-hidden="true">↗</span></a>
+      </section>
+      <noscript><p>Enable JavaScript to send your request.</p></noscript>
+    </div>
+  </main>
+</body>
+</html>

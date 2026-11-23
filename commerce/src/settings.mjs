@@ -45,7 +45,8 @@ export function configuration(env = process.env) {
     emailUrl: env.AERIE_EMAIL_ENDPOINT || '', sender: env.AERIE_EMAIL_SENDER || '',
     signup: env.AERIE_SIGNUP_ENABLED === 'true', checkout: env.AERIE_CHECKOUT_ENABLED === 'true',
     claims: env.AERIE_SHARE_CLAIMS_ENABLED === 'true',
-    monitoring: env.AERIE_MONITORING_ENABLED === 'true'
+    monitoring: env.AERIE_MONITORING_ENABLED === 'true',
+    purchaseHelp: env.AERIE_PURCHASE_HELP_ENABLED === 'true'
   };
 }
 
