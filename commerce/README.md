@@ -16,8 +16,8 @@ Run `npm ci` and `npm test` with Node.js 22 or later. The tests use the official
 
 | Function app setting | Purpose |
 | --- | --- |
-| `AERIE_SITE_URL` | Canonical first-party origin with both game and API routes. |
-| `AERIE_ALLOWED_ORIGINS` | Optional comma-separated exact origins for CORS. Session cookies are first-party. Checkout must return to the origin that set its cookie. |
+| `AERIE_SITE_URL` | Canonical first-party origin with both game and API routes, such as `https://playaerie.com`. |
+| `AERIE_ALLOWED_ORIGINS` | Optional comma-separated exact origins for CORS. Checkout and restore links use the allowed origin that starts the request. Session cookies remain first-party to that hostname. |
 | `AERIE_IDENTITY_SECRET` | Stable randomly generated server secret of at least 32 bytes for email/account lookup and gift codes. Store privately. Rotation requires migrating the stored identities and redeemed gift records. |
 | `AERIE_TABLE_URL` | Azure Table service HTTPS endpoint. |
 | `AERIE_TABLE_NAME` | Existing table. Default `AerieCommerce`. Each mode has a separate transaction partition. |
@@ -33,8 +33,9 @@ Azure Functions host settings such as `AzureWebJobsStorage` and `FUNCTIONS_WORKE
 
 ## Application flow
 
-- `GET /api/aerie/config` advertises real availability and the server-verified Stripe amount. A completed purchase sends the original browser through the verified return endpoint and gives it access to just that purchase. An email verification lets the same customer restore their prior access. A success URL alone does not confer any access.
-- `GET /api/aerie/status` returns the free, earned or paid world IDs and an unredeemed gift link where appropriate. A one-time emailed link opens the join page, which confirms the token with `POST /api/aerie/restore/confirm`. The optional `gift` field on `POST /api/aerie/restore` lets a gift recipient open the email in a new tab.
+- Hosted Stripe Checkout uses the Aerie name, forest-and-gold palette, and logo from `/join/media/aerie-checkout-logo.png` on `AERIE_SITE_URL`. Publish that image before deploying this backend. Stripe separately displays the merchant's billing details and receipts.
+- `GET /api/aerie/config` advertises real availability and the server-verified Stripe amount. `checkoutCollectsEmail: true` indicates that `POST /api/aerie/checkout` accepts an empty JSON object and lets Stripe collect the purchaser's email. An optional valid `email` pre-fills Stripe. A completed purchase sends the original browser through the verified return endpoint and grants access to that purchase. Email verification restores prior purchases.
+- `GET /api/aerie/status` returns the free, earned or paid world IDs and a relative unredeemed gift link where appropriate. Resolve it against the game origin before sharing. An emailed one-time link opens the join page, which confirms the token with `POST /api/aerie/restore/confirm`. The optional `gift` field on `POST /api/aerie/restore` lets a gift recipient open the email in a new tab.
 - `POST /api/aerie/gift/redeem` accepts a verified recipient session and a gift code. The code is redeemed by just one inbox identity and can safely be retried by that recipient. Refunds and disputes suspend the grants from the associated purchase.
 - `GET /api/aerie/asset?world=<id>&path=<game-relative-file>&redirect=1` checks the entitlement before redirecting to private Blob Storage. Without `redirect=1` it returns `{url}`. A production load test should measure the authorization requests across the paid world assets as well as Blob bandwidth.
 - `POST /api/aerie/share-claim` queues a public post for review. With authorized Azure Table access, run `npm run review -- list` to see pending public links and `npm run review -- approve <id>` or `npm run review -- reject <id>`. Confirm the claimant authored the post, played Aerie and clearly disclosed the reward. Judge the disclosure and eligibility independently of sentiment, follower counts and engagement. Approving the claim grants three extra worlds. The order of the checks is documented in the [FTC endorsement guidance](https://www.ftc.gov/business-guidance/resources/ftcs-endorsement-guides-what-people-are-asking).

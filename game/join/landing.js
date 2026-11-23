@@ -7,7 +7,7 @@
   const fields = {
     signup: { unavailable: 'Email signup is currently unavailable.', accepted: 'You’re on the flight list.' },
     checkout: { unavailable: 'Checkout is currently unavailable.' },
-    'share-claim': { unavailable: 'Claims are currently unavailable.', accepted: 'Your post is queued for review. We’ll email you when it’s reviewed.' },
+    'share-claim': { unavailable: 'Claims are currently unavailable.', accepted: 'Your post is queued for review. Use Restore access to check whether your worlds are unlocked.' },
     restore: { unavailable: 'Access recovery is currently unavailable.', accepted: 'If we can send an access link to that address, it will arrive by email.' }
   };
   const configKeys = { signup: 'signup', checkout: 'checkout', 'share-claim': 'shareClaims', restore: 'restore' };
@@ -81,6 +81,128 @@
     updateHeroFlight();
   });
 
+  const worldGallery = byId('worlds');
+  const previewCards = [...worldGallery.querySelectorAll('[data-world-preview]')];
+  const connection = navigator.connection;
+  const previewVideo = document.createElement('video');
+  previewVideo.muted = true;
+  previewVideo.defaultMuted = true;
+  previewVideo.loop = true;
+  previewVideo.playsInline = true;
+  previewVideo.preload = 'none';
+  previewVideo.setAttribute('aria-hidden', 'true');
+  let previewsEnabled;
+  let activeCard;
+  let queuedCard;
+  let previewTimer;
+  let previewPlayback;
+  let hold;
+  const previewObserver = new IntersectionObserver(entries => {
+    for (const {target, isIntersecting} of entries) {
+      if (!isIntersecting) stopPreview(target);
+    }
+  });
+
+  function stopPreview(card) {
+    if (!card) return;
+    if (queuedCard === card) {
+      clearTimeout(previewTimer);
+      queuedCard = null;
+    }
+    if (activeCard === card) {
+      activeCard = null;
+      previewPlayback = null;
+      previewObserver.unobserve(card);
+      previewVideo.classList.remove('is-visible');
+      previewVideo.pause();
+    }
+  }
+
+  function startPreview(card) {
+    if (!previewsEnabled || document.hidden || activeCard === card) return;
+    stopPreview(activeCard);
+    activeCard = card;
+    card.append(previewVideo);
+    previewObserver.observe(card);
+    const src = 'media/world-previews/' + card.dataset.worldPreview + '.mp4';
+    if (previewVideo.getAttribute('src') !== src) previewVideo.src = src;
+    const playback = previewVideo.play();
+    previewPlayback = playback;
+    playback.then(() => {
+      if (previewPlayback === playback) previewVideo.classList.add('is-visible');
+    }).catch(() => {
+      if (previewPlayback === playback) stopPreview(card);
+    });
+  }
+
+  function queuePreview(card, delay) {
+    if (!previewsEnabled) return;
+    stopPreview(queuedCard);
+    queuedCard = card;
+    previewTimer = setTimeout(() => {
+      queuedCard = null;
+      startPreview(card);
+    }, delay);
+  }
+
+  function finishHold(event) {
+    if (!hold || (event && hold.pointerId !== event.pointerId)) return;
+    stopPreview(hold.card);
+    hold = null;
+  }
+
+  function stopAllPreviews() {
+    finishHold();
+    stopPreview(queuedCard);
+    stopPreview(activeCard);
+  }
+
+  function updatePreviewPreference() {
+    previewsEnabled = !reducedMotion.matches && !connection?.saveData;
+    worldGallery.classList.toggle('previews-static', !previewsEnabled);
+    for (const card of previewCards) {
+      card.disabled = !previewsEnabled;
+    }
+    if (!previewsEnabled) stopAllPreviews();
+  }
+
+  for (const card of previewCards) {
+    card.addEventListener('pointerenter', event => {
+      if (event.pointerType === 'mouse') queuePreview(card, 110);
+    });
+    card.addEventListener('pointerleave', event => {
+      if (event.pointerType === 'mouse') stopPreview(card);
+    });
+    card.addEventListener('focus', () => {
+      if (!hold && card.matches(':focus-visible')) startPreview(card);
+    });
+    card.addEventListener('blur', () => stopPreview(card));
+    card.addEventListener('click', event => {
+      if (event.detail === 0 && card.matches(':focus-visible')) startPreview(card);
+    });
+    card.addEventListener('pointerdown', event => {
+      if (!previewsEnabled || event.pointerType === 'mouse' || !event.isPrimary) return;
+      finishHold();
+      hold = {card, pointerId: event.pointerId, x: event.clientX, y: event.clientY};
+      queuePreview(card, 240);
+    });
+    card.addEventListener('contextmenu', event => {
+      if (hold?.card === card) event.preventDefault();
+    });
+  }
+  window.addEventListener('pointermove', event => {
+    if (hold?.pointerId === event.pointerId && Math.hypot(event.clientX - hold.x, event.clientY - hold.y) > 12) finishHold(event);
+  }, {passive: true});
+  window.addEventListener('pointerup', finishHold);
+  window.addEventListener('pointercancel', finishHold);
+  window.addEventListener('blur', stopAllPreviews);
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) stopAllPreviews();
+  });
+  reducedMotion.addEventListener('change', updatePreviewPreference);
+  connection?.addEventListener?.('change', updatePreviewPreference);
+  updatePreviewPreference();
+
   async function copy(value, status, success) {
     try {
       if (!navigator.clipboard) throw new Error();
@@ -119,11 +241,27 @@
 
   byId('copy-share').addEventListener('click', () => copy(canonicalUrl, shareMessage, 'Aerie link copied.'));
   byId('copy-post').addEventListener('click', () => copy(suggestedPost.value, shareMessage, 'Post starter copied. Add your own flight experience before sharing.'));
+  function shareAerie(isClaim) {
+    return navigator.share({ title: 'Aerie · Take Flight', text: isClaim ? claimStarter : shareIntro, url: canonicalUrl });
+  }
+
   nativeShare.addEventListener('click', async () => {
     try {
-      await navigator.share({ title: 'Aerie · Take Flight', text: sharingClaim ? claimStarter : shareIntro, url: canonicalUrl });
+      await shareAerie(sharingClaim);
     } catch (error) {
       if (error.name !== 'AbortError') shareMessage.textContent = 'You can use Copy link to share Aerie.';
+    }
+  });
+
+  byId('send-free-flight').addEventListener('click', async () => {
+    if (typeof navigator.share !== 'function') {
+      openShare(false);
+      return;
+    }
+    try {
+      await shareAerie(false);
+    } catch (error) {
+      if (error.name !== 'AbortError') openShare(false);
     }
   });
 
@@ -165,7 +303,7 @@
 
   function readGift(value) {
     try {
-      const url = new URL(value);
+      const url = new URL(value, location.origin);
       if (url.origin === location.origin && /\/join\/?$/.test(url.pathname) &&
           (url.hash.startsWith('#gift=') || url.searchParams.has('gift'))) return url.href;
     } catch {}
@@ -244,6 +382,33 @@
     if (giftUrl) copy(giftUrl, giftMessage, 'Gift link copied. Send it privately to your friend.');
   });
 
+  const checkoutLaunch = byId('checkout-launch');
+  const checkoutAvailability = byId('checkout-availability');
+  let checkoutCollectsEmail = false;
+
+  async function openStripeCheckout(payload) {
+    const {url} = await request('/checkout', payload);
+    const destination = new URL(url);
+    if (destination.origin !== 'https://checkout.stripe.com') throw new Error('A verified Stripe Checkout address was unavailable.');
+    location.assign(destination.href);
+  }
+
+  checkoutLaunch.addEventListener('click', async () => {
+    if (!checkoutCollectsEmail) {
+      show(byId('purchase-dialog'));
+      return;
+    }
+    checkoutLaunch.disabled = true;
+    checkoutAvailability.textContent = 'Opening Stripe…';
+    try {
+      await openStripeCheckout({});
+    } catch (error) {
+      checkoutAvailability.textContent = error instanceof TypeError ? 'Checkout could not be opened. Please try again.' : error.message;
+    } finally {
+      checkoutLaunch.disabled = false;
+    }
+  });
+
   for (const button of document.querySelectorAll('[data-open]')) {
     button.addEventListener('click', () => {
       const action = button.dataset.open;
@@ -252,7 +417,6 @@
         show(restoreDialog);
         refreshStatus();
       }
-      if (action === 'purchase') show(byId('purchase-dialog'));
       if (action === 'claim' || action === 'share') openShare(action === 'claim');
     });
   }
@@ -279,13 +443,11 @@
       fieldset.disabled = true;
       output.textContent = name === 'checkout' ? 'Opening Stripe…' : 'Submitting…';
       try {
-        const result = await request('/' + name, payload);
         if (name === 'checkout') {
-          const destination = new URL(result.url);
-          if (destination.origin !== 'https://checkout.stripe.com') throw new Error('A verified Stripe Checkout address was unavailable.');
-          location.assign(destination.href);
+          await openStripeCheckout(payload);
           return;
         }
+        const result = await request('/' + name, payload);
         if (result.ok !== true) throw new Error('This could not be completed. Please try again.');
         output.textContent = fields[name].accepted;
         form.reset();
@@ -312,7 +474,13 @@
     }
     restoreAvailable = enabled('restore');
     if (enabled('checkout')) {
-      byId('checkout-availability').textContent = 'Applicable tax is calculated at checkout.';
+      const testCheckout = config.checkoutMode === 'test';
+      checkoutCollectsEmail = enabled('checkoutCollectsEmail');
+      if (testCheckout) {
+        byId('checkout-label').textContent = 'Open test checkout';
+        byId('purchase-mode-note').hidden = false;
+      }
+      checkoutAvailability.textContent = testCheckout ? 'Test checkout. No real payment will be collected.' : 'Applicable tax is calculated at checkout.';
       byId('flight-price').textContent = typeof config.priceLabel === 'string' && config.priceLabel
         ? config.priceLabel + ' for both passes'
         : 'One-time purchase';

@@ -26,8 +26,8 @@
   <meta name="twitter:image" content="https://playaerie.com/join/media/share-card.jpg">
   <meta name="twitter:image:alt" content="An eagle above Mount Major and Lake Winnipesaukee in Aerie.">
   <link rel="preload" href="media/mount-major.webp" as="image">
-  <link rel="stylesheet" href="landing.css?v=mount-major-flight">
-  <script defer src="landing.js?v=mount-major-flight"></script>
+  <link rel="stylesheet" href="landing.css?v=world-previews">
+  <script defer src="landing.js?v=world-previews"></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -41,8 +41,9 @@
           <img src="../field-engraving.webp" alt="Aerie" width="768" height="512">
         </a>
         <nav class="toplinks" aria-label="Main navigation">
+          <a class="top-worlds" href="#worlds">Worlds</a>
           <a href="#passes">Founder Pass</a>
-          <a href="#share">Tell a friend</a>
+          <a class="top-share" href="#share">Tell a friend</a>
           <a class="top-flight" href="../?access=free#world=winnipesaukee&amp;launch=mount-major">Play free <span aria-hidden="true">↗</span></a>
         </nav>
       </header>
@@ -75,6 +76,96 @@
       <button class="button button-outline" type="button" data-open="restore">Restore access</button>
     </div>
 
+    <section class="world-previews section frame" id="worlds" aria-labelledby="worlds-title">
+      <div class="section-heading">
+        <div>
+          <p class="kicker"><i aria-hidden="true"></i> Recorded in Aerie</p>
+          <h2 id="worlds-title">Explore <em>13 worlds.</em></h2>
+        </div>
+        <p id="world-preview-hint"><span class="preview-hint-pointer">Hover or tab to a world to preview the flight.</span><span class="preview-hint-touch">Touch and hold a world to preview the flight.</span><span class="preview-hint-static">Browse the worlds of Aerie.</span></p>
+      </div>
+      <ul class="preview-grid" role="list">
+        <li class="preview-featured">
+          <button class="preview-card" type="button" data-world-preview="winnipesaukee">
+            <img src="media/mount-major.webp" alt="" loading="lazy" decoding="async">
+            <span class="preview-caption"><strong>Lake Winnipesaukee</strong><small>New Hampshire · Free to fly</small></span>
+          </button>
+        </li>
+        <li>
+          <button class="preview-card" type="button" data-world-preview="alaska">
+            <img src="../menu-alaska.webp" alt="" loading="lazy" decoding="async">
+            <span class="preview-caption"><strong>Mendenhall Glacier</strong><small>Alaska</small></span>
+          </button>
+        </li>
+        <li>
+          <button class="preview-card" type="button" data-world-preview="canyon">
+            <img src="../menu-canyon.webp" alt="" loading="lazy" decoding="async">
+            <span class="preview-caption"><strong>Horseshoe Bend</strong><small>Arizona</small></span>
+          </button>
+        </li>
+        <li>
+          <button class="preview-card" type="button" data-world-preview="swiss">
+            <img src="../menu-swiss.webp" alt="" loading="lazy" decoding="async">
+            <span class="preview-caption"><strong>Oeschinen Lake</strong><small>Swiss Alps</small></span>
+          </button>
+        </li>
+        <li>
+          <button class="preview-card" type="button" data-world-preview="surry">
+            <img src="../menu-surry.webp" alt="" loading="lazy" decoding="async">
+            <span class="preview-caption"><strong>Surry Dam &amp; Keene</strong><small>New Hampshire</small></span>
+          </button>
+        </li>
+        <li>
+          <button class="preview-card" type="button" data-world-preview="dixville">
+            <img src="../menu-dixville.webp" alt="" loading="lazy" decoding="async">
+            <span class="preview-caption"><strong>Dixville Notch</strong><small>New Hampshire</small></span>
+          </button>
+        </li>
+        <li>
+          <button class="preview-card" type="button" data-world-preview="labrador">
+            <img src="../menu-labrador.webp" alt="" loading="lazy" decoding="async">
+            <span class="preview-caption"><strong>Lac Berté</strong><small>Québec</small></span>
+          </button>
+        </li>
+        <li>
+          <button class="preview-card" type="button" data-world-preview="moosehead">
+            <img src="../menu-moosehead.webp" alt="" loading="lazy" decoding="async">
+            <span class="preview-caption"><strong>Moosehead Lake</strong><small>Maine</small></span>
+          </button>
+        </li>
+        <li>
+          <button class="preview-card" type="button" data-world-preview="yosemite">
+            <img src="../menu-yosemite.webp" alt="" loading="lazy" decoding="async">
+            <span class="preview-caption"><strong>Yosemite Valley</strong><small>California</small></span>
+          </button>
+        </li>
+        <li>
+          <button class="preview-card" type="button" data-world-preview="crater">
+            <img src="../menu-crater.webp" alt="" loading="lazy" decoding="async">
+            <span class="preview-caption"><strong>Crater Lake</strong><small>Oregon</small></span>
+          </button>
+        </li>
+        <li>
+          <button class="preview-card" type="button" data-world-preview="lofoten">
+            <img src="../departure-light/lofoten-thumb.webp" srcset="../departure-light/lofoten-thumb.webp 320w, ../departure-light/lofoten-lake.webp 1920w" sizes="(max-width: 900px) 44vw, 22vw" alt="" loading="lazy" decoding="async">
+            <span class="preview-caption"><strong>Lofoten Islands</strong><small>Norway</small></span>
+          </button>
+        </li>
+        <li class="preview-wide">
+          <button class="preview-card" type="button" data-world-preview="acadia">
+            <img src="../departure-light/acadia-thumb.webp" srcset="../departure-light/acadia-thumb.webp 320w, ../departure-light/acadia-lake.webp 1920w" sizes="44vw" alt="" loading="lazy" decoding="async">
+            <span class="preview-caption"><strong>Acadia National Park</strong><small>Maine · Night flight</small></span>
+          </button>
+        </li>
+        <li class="preview-wide">
+          <button class="preview-card" type="button" data-world-preview="yellowstone">
+            <img src="../menu-yellowstone.webp" alt="" loading="lazy" decoding="async">
+            <span class="preview-caption"><strong>Yellowstone Firehole River</strong><small>Wyoming</small></span>
+          </button>
+        </li>
+      </ul>
+    </section>
+
     <section class="section frame" id="passes" aria-labelledby="passes-title">
       <div class="section-heading">
         <h2 id="passes-title">Your first flight.<br><em>Their next adventure.</em></h2>
@@ -95,8 +186,8 @@
             <h3>One for you.<br>One to give.</h3>
             <p>Support the founder with a one-time purchase that unlocks every world for you and gives you one full-game copy to send to a friend for the holidays.</p>
             <p class="price" id="flight-price"><strong>$4.99</strong> planned launch price for both passes</p>
-            <button class="button button-gold" type="button" data-open="purchase">Support &amp; unlock <span aria-hidden="true">↗</span></button>
-            <span id="checkout-availability" class="availability">Checkout is currently unavailable.</span>
+            <button class="button button-gold" id="checkout-launch" type="button"><span id="checkout-label">Support &amp; unlock</span><span aria-hidden="true">↗</span></button>
+            <span id="checkout-availability" class="availability" role="status">Checkout is currently unavailable.</span>
           </div>
         </article>
       </div>
@@ -110,7 +201,7 @@
           <p>After flying Aerie, share your honest experience in a public post. Include that Aerie offered you three additional worlds for sharing, then submit the post for review.</p>
           <div class="actions">
             <button class="button button-gold" type="button" data-open="claim">Share and claim worlds</button>
-            <button class="button button-outline" type="button" data-open="share">Send the free flight</button>
+            <button class="button button-outline" id="send-free-flight" type="button">Send the free flight</button>
           </div>
         </div>
         <aside class="signup" aria-labelledby="signup-title">
@@ -181,6 +272,7 @@
     <button class="dialog-close" type="button" data-close aria-label="Close flight pass checkout">×</button>
     <h2 id="purchase-title">Support the Founder</h2>
     <p>One purchase opens all worlds for you and includes one gift copy. Stripe Checkout shows the payment methods available on your device and calculates applicable tax.</p>
+    <p id="purchase-mode-note" hidden>Test checkout. No real payment will be collected.</p>
     <form id="purchase-form" data-form="checkout">
       <fieldset disabled>
         <label for="purchase-email">Email address</label>

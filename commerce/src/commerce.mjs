@@ -100,7 +100,7 @@ export function createCommerce(config, { store, stripe, sendEmail, assetUrl, now
   const secureCookies = config.site.startsWith('https:');
   const sessionCookie = secureCookies ? '__Host-aerie_session' : 'aerie_session';
   const checkoutCookie = secureCookies ? '__Host-aerie_checkout' : 'aerie_checkout';
-  const joined = `${config.site}/join/`;
+  const joinPath = '/join/';
   const hash = (purpose, value) => createHmac('sha256', config.secret).update(`${purpose}:${value}`).digest('base64url');
   const userId = email => hash('email', email);
   const accountKey = uid => `account:${uid}`;
@@ -164,7 +164,7 @@ export function createCommerce(config, { store, stripe, sendEmail, assetUrl, now
         const code = giftCode(own.checkoutId);
         const gift = await store.get(`gift:${digest(code)}`);
         if (gift && !gift.redeemedBy) {
-          result.giftUrl = `${joined}#gift=${code}`;
+          result.giftUrl = `${joinPath}#gift=${code}`;
           break;
         }
       }
@@ -172,10 +172,11 @@ export function createCommerce(config, { store, stripe, sendEmail, assetUrl, now
     return result;
   }
 
-  async function createCheckout(request) {
+  async function createCheckout(request, _context, browserOrigin) {
     const price = await offer();
     if (!price) throw new HttpError(503, 'Checkout is currently unavailable.');
-    const email = emailAddress((await readJson(request)).email);
+    const { email: suppliedEmail } = await readJson(request);
+    const customerEmail = suppliedEmail === undefined ? {} : { customer_email: emailAddress(suppliedEmail) };
     const token = newToken();
     const reference = digest(token);
     await store.transaction([['create', row(`pending:${reference}`, {
@@ -187,12 +188,18 @@ export function createCommerce(config, { store, stripe, sendEmail, assetUrl, now
       automatic_tax: { enabled: true },
       adaptive_pricing: { enabled: false },
       billing_address_collection: 'required',
-      customer_email: email,
+      branding_settings: {
+        display_name: 'Aerie',
+        background_color: '#0d1919',
+        button_color: '#efd092',
+        ...(secureCookies && { logo: { type: 'url', url: `${config.site}${joinPath}media/aerie-checkout-logo.png` } })
+      },
+      ...customerEmail,
       client_reference_id: reference,
       metadata: { product: 'aerie-founder-and-gift' },
       payment_intent_data: { metadata: { product: 'aerie-founder-and-gift' } },
-      success_url: `${config.site}/api/aerie/checkout/complete?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${joined}?checkout=cancel`
+      success_url: `${browserOrigin}/api/aerie/checkout/complete?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${browserOrigin}${joinPath}?checkout=cancel`
     });
     if (!checkout.url || new URL(checkout.url).origin !== 'https://checkout.stripe.com') throw new Error('Unexpected hosted Checkout URL.');
     return { jsonBody: { url: checkout.url }, cookies: [cookie(checkoutCookie, token, 24 * 60 * 60)] };
@@ -237,7 +244,7 @@ export function createCommerce(config, { store, stripe, sendEmail, assetUrl, now
   }
 
   function joinRedirect(state, cookies) {
-    return { status: 303, headers: { Location: `${joined}?checkout=${state}` }, cookies };
+    return { status: 303, headers: { Location: `${joinPath}?checkout=${state}` }, cookies };
   }
 
   async function completeCheckout(request) {
@@ -303,7 +310,7 @@ export function createCommerce(config, { store, stripe, sendEmail, assetUrl, now
     return { jsonBody: { ok: true } };
   }
 
-  async function requestRestore(request) {
+  async function requestRestore(request, _context, browserOrigin) {
     if (!restoreEnabled) throw new HttpError(503, 'Email restoration is currently unavailable.');
     const { email: suppliedEmail, gift: code } = await readJson(request);
     const email = emailAddress(suppliedEmail);
@@ -325,7 +332,7 @@ export function createCommerce(config, { store, stripe, sendEmail, assetUrl, now
       if (conflict(error)) throw new HttpError(429, 'Please wait a minute before requesting another email.');
       throw error;
     }
-    await sendEmail(email, 'Continue to Aerie', `Open this link to continue to Aerie on this device:\n\n${joined}#restore=${token}\n\nThe link expires in 15 minutes and works once.`);
+    await sendEmail(email, 'Continue to Aerie', `Open this link to continue to Aerie on this device:\n\n${browserOrigin}${joinPath}#restore=${token}\n\nThe link expires in 15 minutes and works once.`);
     return { jsonBody: { ok: true } };
   }
 
@@ -448,7 +455,7 @@ export function createCommerce(config, { store, stripe, sendEmail, assetUrl, now
     return { jsonBody: {
       ...features, shareClaims: features.shareClaim, features, freeWorld, rewardWorlds: config.rewards,
       ...(price ? { priceLabel: `$${(price.unit_amount / 100).toFixed(2)} USD`, priceAmount: price.unit_amount, priceCurrency: price.currency } : {}),
-      checkoutMode: config.mode, disclosure, monitoring: Boolean(config.monitoring)
+      checkoutMode: config.mode, checkoutCollectsEmail: true, disclosure, monitoring: Boolean(config.monitoring)
     }};
   }
 
@@ -521,7 +528,7 @@ export function createCommerce(config, { store, stripe, sendEmail, assetUrl, now
       if ((origin && !allowed) || (!allowed && method === 'POST' && action !== 'stripe/webhook')) {
         throw new HttpError(403, 'Request did not come from Aerie.');
       }
-      const result = await run(request, context);
+      const result = await run(request, context, origin || config.site);
       return { ...result, headers: { ...headers, ...result.headers } };
     } catch (error) {
       if (!(error instanceof HttpError)) context?.error(`Aerie ${action} failed (${error.code || error.name || 'unknown'}).`);
