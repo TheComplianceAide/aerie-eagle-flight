@@ -614,6 +614,7 @@
       if(region==='acadia')window.lightAcadiaNight(THREE,scene,world);
       window.prepareTerrainTextures(THREE,renderer,scene,region);
       terrainShadows=window.makeTerrainShadows(THREE,renderer,scene,world);
+      window.addShoreContact?.(THREE,renderer,scene,world,camera);
       await window.prepareFlightMaterials(THREE,renderer,scene,camera);
       const departingCanopy=canopy;
       departingCanopy.ready?.then(()=>departingCanopy.warmApproachPrograms?.(camera));

@@ -9,6 +9,9 @@ window.makeWaterfallSystem=function makeWaterfallSystem(T,scene,{ground,level,cl
     float release(float t,vec2 source){return .52+.30*sin(1.23*t+.031*source.x-.017*source.y)+.18*sin(2.21*t-.018*source.x+.043*source.y);}`;
   // Disposable A/B only; baseline is byte-for-byte equivalent at compile time.
   const shapedNugget=!!streamSurvey;
+  // Falling water drawn as ropes, strands and threads with relief; set
+  // window.aerieFallsBody=false for the earlier single veil.
+  const braided=window.aerieFallsBody!==false;
   const impacts=[],outlets=[],routes=[],channelCells=new Map();
   const cell=(x,z)=>Math.floor(x/48)+','+Math.floor(z/48);
   function inChute(x,z,crown){
@@ -98,6 +101,37 @@ window.makeWaterfallSystem=function makeWaterfallSystem(T,scene,{ground,level,cl
         float replaceFactor=smoothstep(.43,.82,grade)*smoothstep(7.,13.,metresToMouth);
         float separation=smoothstep(.25,.74,drawn.g*.63+broken.r*.37);
         alpha*=1.-replaceFactor*(.34+.22*separation);
+        `:''}
+        ${braided?`
+        // Ropes, strands and threads are drawn in the water's own travel time.
+        // Each keeps its shape as it falls and draws out where the bed steepens,
+        // and the three scales slide past one another at their own speeds.
+        float span=(u-.5)*w;
+        vec3 slow=texture2D(fallCloud,vec2(span*.043+phase,t*.041+.37)).rgb;
+        vec3 mid=texture2D(fallCloud,vec2(span*.155+(slow.r-.5)*.30,t*.105+phase*3.1)).rgb;
+        float ropes=smoothstep(.22,.78,.60*slow.g+.40*mid.r);
+        float strand=1.-abs(2.*mid.g-1.);
+        float thread=strand*strand;
+        float steep=smoothstep(.20,.78,grade);
+        // In the body of a heavy fall the ropes close up into one white mass.
+        float heavy=smoothstep(.42,.82,alpha);
+        float crest=.62*ropes+.22*thread+.30*(froth-.45)+.08*(life-.5)+.26*heavy;
+        float whitewater=smoothstep(.22-.08*steep,.74-.14*steep,crest);
+        float running=smoothstep(.06,.34,crest);
+        // The thick middle of each rope stands proud and catches the light; its
+        // flanks and the troughs between ropes fall into blue shade.
+        float sunlit=smoothstep(.20,.86,.62*ropes+.38*thread+.10*(sunward-.5));
+        vec3 foam=white*mix(vec3(.78,.85,.91),vec3(1.09,1.08,1.05),sunlit);
+        // Between the strands a thin film darkens the rock and returns the sky
+        // at a low angle; in a heavy fall the gaps are shaded, bubbly water.
+        vec3 film=mix(vec3(.060,.085,.095),reflected,.08+.46*pow(1.-max(0.,dot(n,v)),4.));
+        vec3 shaded=white*vec3(.70,.78,.86)*(.88+.12*sunlit);
+        // From far off the strands merge into the earlier bright sheet.
+        float fine=1.-smoothstep(.5,2.6,length(dFdx(loc))+length(dFdy(loc)));
+        float drawn2=.90*mix(.45,1.,fine);
+        base=mix(base,mix(mix(film,shaded,heavy),foam,whitewater),drawn2);
+        float strands=clamp(.09+.22*running+.70*whitewater,0.,.97);
+        alpha=mix(alpha,clamp(alpha*1.6,0.,1.)*mix(strands,max(strands,.93),heavy),mix(.55,1.,fine));
         `:''}
         gl_FragColor=vec4(base,alpha);}`});
   const sheet=makeSheet(false), volumeSheet=shapedNugget?makeSheet(true):null;
