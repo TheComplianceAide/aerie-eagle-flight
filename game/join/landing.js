@@ -291,7 +291,9 @@
 
   function withShareLink(value) {
     const text = value.trim();
-    return text.endsWith(canonicalUrl) ? text : `${text}\n${canonicalUrl}`;
+    const urls = text.match(/https?:\/\/[^\s<>"“”]+/gi) || [];
+    return urls.some(url => url.replace(/[)\],.!?;:]+$/, '') === canonicalUrl)
+      ? text : `${text}\n${canonicalUrl}`;
   }
 
   // Prepare the attachment before the tap that opens the system share sheet.
