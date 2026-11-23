@@ -10,7 +10,7 @@ const webhookUrl = site + '/api/aerie/stripe/webhook';
 const productName = 'Support the Founder — Aerie + one gift copy';
 const events = [
   'checkout.session.completed', 'checkout.session.async_payment_succeeded',
-  'charge.refunded', 'charge.dispute.created', 'charge.dispute.closed'
+  'charge.refunded', 'charge.dispute.created', 'charge.dispute.updated', 'charge.dispute.funds_withdrawn', 'charge.dispute.closed'
 ];
 
 class CheckError extends Error {}
