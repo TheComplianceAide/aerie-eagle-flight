@@ -32,6 +32,16 @@ jobs:
           exit 1
       - name: Compare the two providers and repeat from warm cache
         run: python3 -u qa/weather/compare.py
+      - name: Exercise the standalone snapshot generator against real forecasts
+        run: |
+          set -eu
+          curl --fail --silent --show-error --retry 3 -o /tmp/weather_snapshot.py \
+            https://raw.githubusercontent.com/TheComplianceAide/aerie-eagle-flight/21cb09a6e7e957158c7865770089d3f049eb1e7e/tools/acoustics/weather_snapshot.py
+          echo '05f116f9ecd6ffaedbb3525c5725a84adcccd75cdaa7afeb393f0c0ec0965d16  /tmp/weather_snapshot.py' | sha256sum -c
+          python3 /tmp/weather_snapshot.py /tmp/air.json
+          wc -c /tmp/air.json
+          sha256sum /tmp/air.json
+          jq -c . /tmp/air.json | sed 's/^/GAME_SNAPSHOT=/'
       - name: Remove server and temporary cache
         if: always()
         run: |
