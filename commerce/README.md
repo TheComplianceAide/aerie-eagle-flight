@@ -80,6 +80,8 @@ Azure Functions host settings such as `AzureWebJobsStorage` and `FUNCTIONS_WORKE
 
 In test mode the default is the public Open-Meteo forecast API. For commercial forecasts, set `AERIE_OPEN_METEO_API_KEY` using a server-side secret reference. To use a trusted self-hosted Open-Meteo-compatible service, set `AERIE_OPEN_METEO_ENDPOINT` to its full HTTPS forecast URL. The commercial key is sent only to the official customer endpoint. Live mode with neither provider uses regional fallback. [Open-Meteo commercial API](https://open-meteo.com/en/pricing)
 
+A prepared forecast can be served as one HTTPS JSON file using `AERIE_ACOUSTIC_SNAPSHOT_URL`. The document has `version: 1`, a UTC `generatedAt` and a `regions` object with the `current` and `hourly` payload for each of the 13 world IDs. This setting takes precedence over direct providers. Every Function process shares a read across regions, refreshes it after five minutes and keeps the last valid readings through a failed refresh until they reach two hours old. Publish a new file only after the underlying forecast generator has successfully read every location.
+
 ## Application flow
 
 - Publish `/join/return/` and its `confirm.js` on each storefront host before deploying a backend that uses this return address. New Stripe sessions send the buyer there with an opaque order reference in the URL fragment. The page retries `POST /api/aerie/checkout/confirm` with the same browser cookie when the service is unavailable. Sessions opened before this release keep their original `GET /api/aerie/checkout/complete` return.

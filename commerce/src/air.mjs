@@ -4,6 +4,7 @@ const maxAge = 2 * 60 * minute;
 const maxBytes = 16 * 1024;
 const customerEndpoint = 'https://customer-api.open-meteo.com/v1/forecast';
 const previewEndpoint = 'https://api.open-meteo.com/v1/forecast';
+const isOpenMeteo = url => /(^|\.)open-meteo\.com$/.test(url.hostname.replace(/\.+$/, ''));
 
 // The third value selects the GFS seamless model at the US sites.
 const sites = new Map(Object.entries({
@@ -26,7 +27,7 @@ function provider({ mode, forecastKey, forecastEndpoint }) {
     if (url.href === customerEndpoint) {
       if (!forecastKey) return null;
       url.searchParams.set('apikey', forecastKey);
-    } else if (/(^|\.)open-meteo\.com$/.test(url.hostname.replace(/\.+$/, ''))) {
+    } else if (isOpenMeteo(url)) {
       if (mode !== 'test' || url.href !== previewEndpoint) return null;
     }
     return url;
@@ -66,6 +67,10 @@ async function fetchForecast(endpoint, [lat, lon, us], fetcher, now) {
   url.searchParams.set('forecast_hours', '1');
   url.searchParams.set('wind_speed_unit', 'ms');
   if (us) url.searchParams.set('models', 'gfs_seamless');
+  return measurements(await forecastDocument(url, fetcher), now());
+}
+
+async function forecastDocument(url, fetcher) {
   const response = await fetcher(url, { headers: { Accept: 'application/json' }, redirect: 'error', signal: AbortSignal.timeout(4000) });
   if (!response.ok || !response.body || Number(response.headers.get('content-length')) > maxBytes) {
     await response.body?.cancel();
@@ -78,15 +83,50 @@ async function fetchForecast(endpoint, [lat, lon, us], fetcher, now) {
     if (bytes > maxBytes) throw new Error('Oversized forecast.');
     chunks.push(chunk);
   }
-  return measurements(JSON.parse(Buffer.concat(chunks, bytes).toString('utf8')), now());
+  return JSON.parse(Buffer.concat(chunks, bytes).toString('utf8'));
+}
+
+function snapshotReader(address, fetcher, now) {
+  const url = URL.parse(address);
+  if (!url || url.protocol !== 'https:' || url.username || url.password || url.search || url.hash || isOpenMeteo(url)) {
+    return async () => null;
+  }
+  let forecasts = new Map();
+  let nextAttempt = 0;
+  let pending;
+  async function refresh() {
+    const snapshot = await forecastDocument(url, fetcher);
+    const checkedAt = now();
+    const generatedAt = Date.parse(snapshot?.generatedAt);
+    if (snapshot?.version !== 1 || !Number.isFinite(generatedAt) ||
+        generatedAt > checkedAt + minute || generatedAt <= checkedAt - maxAge) {
+      throw new Error('Invalid forecast snapshot.');
+    }
+    // Validate the entire snapshot before replacing any of the previously valid records.
+    forecasts = new Map([...sites.keys()].map(region => [region, measurements(snapshot.regions?.[region], checkedAt)]));
+    nextAttempt = checkedAt + 5 * minute;
+  }
+  return async region => {
+    if (now() >= nextAttempt && !pending) {
+      pending = refresh().catch(() => { nextAttempt = now() + minute; }).finally(() => { pending = undefined; });
+    }
+    await pending;
+    const result = forecasts.get(region);
+    return result && now() < result.observed + maxAge ? result.forecast : null;
+  };
 }
 
 export function createAirForecast(config, { fetcher = fetch, now = Date.now } = {}) {
-  const endpoint = provider(config);
+  const snapshot = config.forecastSnapshot && snapshotReader(config.forecastSnapshot, fetcher, now);
+  const endpoint = snapshot ? null : provider(config);
   const regions = new Map();
   return async function air(request) {
     const region = request.query.get('region');
     if (!sites.has(region)) return { status: 400, jsonBody: { error: 'Unknown forecast region.' } };
+    if (snapshot) {
+      const result = await snapshot(region);
+      return result ? { status: 200, jsonBody: result } : { status: 204 };
+    }
     if (!endpoint) return { status: 204 };
     const entry = regions.get(region) || { nextAttempt: 0, validUntil: 0 };
     regions.set(region, entry);
