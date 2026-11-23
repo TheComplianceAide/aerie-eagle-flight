@@ -41,9 +41,15 @@ window.makeWildlifeModels=function(T,scene,region){
   const vertex=`
     attribute vec3 anatomy;attribute vec4 pose;
     varying vec2 st;varying float shade,submerged,incidence,scaleFlash,duckDepth;
+    #ifdef AERIE_CONDOR
+      varying vec3 condorWing;
+    #endif
     void main(){
       vec3 p=position;float phase=pose.x,effort=pose.y,mode=pose.z;
       float u=anatomy.x,v=anatomy.y,wing=anatomy.z;
+      #ifdef AERIE_CONDOR
+        vec3 wingUp=vec3(0.,1.,0.);
+      #endif
       if(isFish>.5){
         float tail=smoothstep(.27,1.,u);
         p.z+=sin(phase-5.4*u)*(.034+.105*effort)*tail*tail;
@@ -52,6 +58,9 @@ window.makeWildlifeModels=function(T,scene,region){
         float span=abs(wing),side=sign(wing);
         float beat=sin(phase-span*.78),fold=max(0.,cos(phase-span*.7));
         float flap=beat*(.26+.70*effort)-.09+span*.12;
+        #ifdef AERIE_CONDOR
+          wingUp=vec3(0.,cos(flap),-side*sin(flap));
+        #endif
         p.y+=abs(p.z)*sin(flap);p.z*=cos(flap)*(1.-.22*fold*effort*span);
         p.x-=.14*span*span*fold*effort;
         if(mode<.5)p=vec3(-.1,.07,side*.05);
@@ -70,6 +79,10 @@ window.makeWildlifeModels=function(T,scene,region){
       vec4 wp=modelMatrix*instanceMatrix*vec4(p,1.);
       vec4 clip=projectionMatrix*viewMatrix*wp;
       vec3 ray=normalize(cameraPosition-wp.xyz);
+      #ifdef AERIE_CONDOR
+        vec3 worldWingUp=normalize(mat3(modelMatrix*instanceMatrix)*wingUp);
+        condorWing=vec3(abs(wing),clamp((v-.43)/.15,0.,1.),dot(ray,worldWingUp));
+      #endif
       incidence=clamp(ray.y,0.,1.);submerged=0.;scaleFlash=0.;
       duckDepth=floatDuck>.5&&mode<-.75&&mode>-1.25?wp.y-pose.w:1.;
       if(isFish>.5){
@@ -91,7 +104,26 @@ window.makeWildlifeModels=function(T,scene,region){
     }`;
   const fragment=`
     uniform sampler2D atlas;uniform float isFish;varying vec2 st;varying float shade,submerged,incidence,scaleFlash,duckDepth;
-    void main(){vec4 skin=texture2D(atlas,st);if(skin.a<.36 || (isFish<.5&&duckDepth<-.002))discard;
+    #ifdef AERIE_CONDOR
+      varying vec3 condorWing;
+    #endif
+    void main(){
+      #ifdef AERIE_CONDOR
+        if(condorWing.x>.001){
+          // Adult condors have black upper wings and a pale triangle over
+          // the inner coverts below. Leave the flight feathers dark.
+          float span=condorWing.x,chord=condorWing.y;
+          float edge=.82-.80*span;
+          float triangle=(1.-smoothstep(edge-.06,edge,chord))
+            *smoothstep(.06,.15,span)*(1.-smoothstep(.57,.69,span))
+            *smoothstep(.09,.19,chord);
+          float underneath=1.-smoothstep(-.18,-.02,condorWing.z);
+          vec3 dark=mix(vec3(.15,.14,.14),vec3(.22,.20,.19),.45*(1.-span)+.28*(1.-chord));
+          gl_FragColor=vec4(mix(dark,vec3(.85,.81,.75),triangle*underneath)*shade,1.);
+          return;
+        }
+      #endif
+      vec4 skin=texture2D(atlas,st);if(skin.a<.36 || (isFish<.5&&duckDepth<-.002))discard;
       vec3 color=skin.rgb*shade*mix(.78,1.,smoothstep(-.004,.018,duckDepth));float alpha=1.;
       if(isFish>.5){float path=submerged/max(.22,incidence);
         float transmission=exp(-.35*path);
@@ -138,7 +170,8 @@ window.makeWildlifeModels=function(T,scene,region){
     for(const [name,values,n] of [['position',pos,3],['uv',uv,2],['anatomy',anatomy,3]])geometry.setAttribute(name,new T.Float32BufferAttribute(values,n));
     geometry.setIndex(indices);geometry.computeVertexNormals();
     const contact=floatingDucks&&/^(mallard|black-duck|wood-duck|merganser|eider|shelduck)(-hen)?$/.test(key);
-    const material=new T.ShaderMaterial({uniforms:{atlas:{value:skin},isFish:{value:fish?1:0},floatDuck:{value:contact?1:0}},
+    const material=new T.ShaderMaterial({defines:key==='california-condor'?{AERIE_CONDOR:1}:{},
+      uniforms:{atlas:{value:skin},isFish:{value:fish?1:0},floatDuck:{value:contact?1:0}},
       vertexShader:'uniform float isFish,floatDuck;\n'+vertex,fragmentShader:fragment,side:T.DoubleSide,transparent:fish,depthWrite:!fish});
     const capacity=320,mesh=new T.InstancedMesh(geometry,material,capacity);
     mesh.name=key;mesh.frustumCulled=false;mesh.count=0;mesh.renderOrder=fish?5:0;
