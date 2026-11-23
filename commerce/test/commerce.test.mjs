@@ -209,6 +209,41 @@ test('checkout return verifies exact purchase and single fulfillment survives we
   assert.deepEqual((await call('status', { cookie: bought.cookie })).jsonBody.worlds, allWorlds);
 });
 
+test('a buyer can finish either checkout after opening two tabs', async () => {
+  const { call, checkouts } = fixture();
+  const email = 'two-tabs@example.test';
+  const first = await call('checkout', { body: { email } });
+  const second = await call('checkout', { body: { email, wallet: 'google_pay' }, cookie: asCookie(first.cookies[0]) });
+  const browser = new Map([first, second].map(start => [start.cookies[0].name, start.cookies[0]]));
+  for (const checkout of checkouts.values()) {
+    checkout.payment_status = 'paid';
+    const returned = await call('checkout/complete', {
+      query: `?session_id=${checkout.id}`, cookie: [...browser.values()].map(asCookie).join('; ')
+    });
+    assert.match(returned.headers.Location, /checkout=success$/);
+    const [session, consumed] = returned.cookies;
+    assert.equal(consumed.maxAge, 0);
+    assert.ok(browser.delete(consumed.name));
+    assert.equal((await call('status', { cookie: asCookie(session) })).jsonBody.fullAccess, true);
+  }
+  assert.equal(browser.size, 0);
+});
+
+test('a checkout opened before the update can return beside a newer checkout', async () => {
+  const { call, checkouts } = fixture();
+  const first = await call('checkout', { body: { email: 'already-open@example.test' } });
+  const legacy = { ...first.cookies[0], name: '__Host-aerie_checkout' };
+  const newer = await call('checkout', { body: {}, cookie: asCookie(legacy) });
+  const [checkout] = checkouts.values();
+  checkout.payment_status = 'paid';
+  const returned = await call('checkout/complete', {
+    query: `?session_id=${checkout.id}`, cookie: [legacy, newer.cookies[0]].map(asCookie).join('; ')
+  });
+  assert.match(returned.headers.Location, /checkout=success$/);
+  assert.equal(returned.cookies[1].name, legacy.name);
+  assert.notEqual(returned.cookies[1].name, newer.cookies[0].name);
+});
+
 test('the verified buyer gets a Stripe receipt and one exact sandbox confirmation after racing returns and webhooks', async () => {
   let time = Date.now();
   const submitted = [];
@@ -423,7 +458,7 @@ test('an alias keeps checkout, hosted email recovery, and its gift on the origin
   assert.equal(flags.jsonBody.checkoutCollectsEmail, true);
   const start = await call('checkout', { body: {}, origin: alias });
   assert.equal(start.headers['Access-Control-Allow-Origin'], alias);
-  assert.equal(start.cookies[0].name, '__Host-aerie_checkout');
+  assert.match(start.cookies[0].name, /^__Host-aerie_checkout_[a-f0-9]{24}$/);
   assert.equal(start.cookies[0].domain, undefined);
   assert.equal(start.cookies[0].secure, true);
   assert.equal(Object.hasOwn(sessions[0], 'customer_email'), false);
