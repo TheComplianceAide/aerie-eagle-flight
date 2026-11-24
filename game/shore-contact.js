@@ -152,6 +152,32 @@ window.addShoreContact=function addShoreContact(T,renderer,scene,world,camera){
   material.transparent=true;material.depthWrite=true;material.needsUpdate=true;
   // Opaque until now, so the lake was drawn before every spray and foam sheet.
   if(lake.renderOrder>-900)lake.renderOrder=-1000;
+  // Only the margin is see-through, but a blended lake no longer hides its bed
+  // from the GPU, which then shades the ground under the whole lake before
+  // covering it. A depth-only copy of the surface, drawn first and open exactly
+  // where the film can show the bed, puts that hidden-surface removal back.
+  // It writes no colour and sits a hair behind the surface, so the picture is
+  // the same; it is a child of the lake, so it leaves the mirror with it.
+  const lid=new T.ShaderMaterial({colorWrite:false,polygonOffset:true,side:material.side,
+    uniforms:{shoreHeight:{value:record.texture},shoreCapture:uniforms.shoreCapture},
+    vertexShader:'varying vec2 p;void main(){p=(modelMatrix*vec4(position,1.)).xz;vec4 mvPosition=modelViewMatrix*vec4(position,1.);gl_Position=projectionMatrix*mvPosition;}',
+    fragmentShader:`uniform sampler2D shoreHeight;uniform vec4 shoreCapture;varying vec2 p;
+      void main(){
+        vec2 recorded=vec2(p.x-shoreCapture.x,shoreCapture.y-p.y)*shoreCapture.z+.5;
+        float inside=shoreCapture.w*smoothstep(0.,.07,min(min(recorded.x,1.-recorded.x),min(recorded.y,1.-recorded.y)));
+        // A tenth of a metre wider than the film's own limit.
+        if(inside>.002&&3.-4.*texture2D(shoreHeight,recorded).r<1.6)discard;
+        gl_FragColor=vec4(0.);
+      }`});
+  const cover=new T.Mesh(lake.geometry,lid);
+  cover.name='Lake bed cover';cover.renderOrder=-2000;cover.frustumCulled=lake.frustumCulled;cover.layers.mask=lake.layers.mask;
+  cover.matrixAutoUpdate=false;
+  cover.onBeforeRender=()=>{
+    lid.polygonOffsetFactor=(material.polygonOffset?material.polygonOffsetFactor:0)+1;
+    lid.polygonOffsetUnits=(material.polygonOffset?material.polygonOffsetUnits:0)+2;
+  };
+  lake.add(cover);
+  material.addEventListener('dispose',()=>{lake.remove(cover);lid.dispose();});
   // Metres of water over the recorded ground, for checks and tools.
   const probe=new Uint16Array(4);
   function depthAt(x,z){
