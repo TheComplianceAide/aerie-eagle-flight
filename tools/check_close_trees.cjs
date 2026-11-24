@@ -8,10 +8,18 @@ const catalog = require('../game/canopy-data/regional-vegetation.json');
 const game = path.join(__dirname, '../game');
 
 global.window = globalThis;
+// The game asks the page address which copies to read: the hosted site reads the
+// packed copies of the public specimens, the offline page reads the originals.
+window.location = { protocol: 'https:' };
 window.matchMedia = () => ({ matches: false });
 window.getCanopyWind = () => ({ glsl: '', uniforms: {} });
 window.aerieCanopyProfile = () => ({});
-global.fetch = async name => new Response(await fs.readFile(path.join(game, name)));
+const read = new Set();
+global.fetch = async name => {
+  const bytes = await fs.readFile(path.join(game, name));
+  read.add(name);
+  return new Response(bytes);
+};
 THREE.TextureLoader.prototype.loadAsync = async name => {
   const texture = new THREE.Texture();
   texture.name = name;
@@ -79,7 +87,17 @@ async function checkRegion(region) {
   assert.equal(fallback.hardwood.wrapS, THREE.RepeatWrapping);
   fallback.hardwood.dispose();
   const regions = new Set(catalog.map(s => s.region));
-  let count = 0;
-  for (const region of regions) count += await checkRegion(region);
-  console.log('Verified ' + count + ' close tree and shrub meshes across ' + regions.size + ' worlds.');
+  const packed = name => name.startsWith('canopy-data/regional-packed-v1/');
+  const counts = [];
+  for (const protocol of ['https:', 'file:']) {
+    window.location.protocol = protocol;
+    read.clear();
+    let count = 0;
+    for (const region of regions) count += await checkRegion(region);
+    counts.push(count);
+    const hosted = protocol === 'https:';
+    assert.equal([...read].some(packed), hosted, hosted ? 'The hosted route read no packed specimen' : 'The offline route read a packed specimen');
+  }
+  assert.equal(counts[0], counts[1], 'Packed and original specimens gave different meshes');
+  console.log('Verified ' + counts[0] + ' close tree and shrub meshes across ' + regions.size + ' worlds, from packed and from original files.');
 })().catch(error => { console.error(error); process.exitCode = 1; });
