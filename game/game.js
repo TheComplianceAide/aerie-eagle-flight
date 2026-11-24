@@ -616,6 +616,7 @@
       terrainShadows=window.makeTerrainShadows(THREE,renderer,scene,world);
       window.addShoreContact?.(THREE,renderer,scene,world,camera);
       window.skipUnseenDraws?.(THREE,renderer,scene,world,eagle.object);
+      window.skipIdleTerrainReads?.(scene);
       await window.prepareFlightMaterials(THREE,renderer,scene,camera);
       const departingCanopy=canopy;
       departingCanopy.ready?.then(()=>departingCanopy.warmApproachPrograms?.(camera));
