@@ -9,6 +9,9 @@
     swiss: ['swiss-landing-data.js','swiss-lake-landing.js','swiss-frunden-data.js','swiss-frunden.js','waterfall-system.js','alpine-survey.js','alpine-headwall.js','world.js','talus-data.js','rocks.js','habitat.js',...trees]
   };
   const loaded=new Map();
+  // Range scripts carry the build number, so a copy stored from an earlier release,
+  // whole or cut short, is never asked for again (see download-recovery.js).
+  const release=document.querySelector('meta[name="application-version"]')?.content||'0';
   function open(name){
     if(!loaded.has(name)){
       const request=new Promise((resolve,reject)=>{
@@ -16,7 +19,7 @@
         tag.onload=resolve;
         tag.onerror=()=>reject(new Error('Unable to open '+name));
         const url=window.aerieAssetURL?.(name)||name;
-        tag.src=url===name&&location.protocol!=='file:'?url+'?v=0.33.0':url;
+        tag.src=url===name&&location.protocol!=='file:'?url+'?v='+release:url;
         document.head.appendChild(tag);
       });
       loaded.set(name,request.catch(error=>{loaded.delete(name);throw error;}));
