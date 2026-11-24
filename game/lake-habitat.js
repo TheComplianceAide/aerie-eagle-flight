@@ -51,7 +51,10 @@ window.makeLakeHabitat=function(T,scene,region,elevation,waterLevel){
   const finishes=['boards','shingles','metal','fieldstone'];
   const wallTints=[0xcac3aa,0xd9ddda,0xa7b7af,0xbcaa92,0xbaaba6,0xb3aaa0,0x9f5d50,0x67736c];
   function face(tile,material,color,points,uv){
-    const key=tile+'/'+material;let b=surfaces.get(key);
+    // One mesh for each finish. A whole lake's cottages are some seventy thousand
+    // triangles, far cheaper to draw at once than as three hundred small meshes
+    // that each cost the phone a draw in the view and another in the lake mirror.
+    const key=material;let b=surfaces.get(key);
     if(!b){b={material,p:[],uv:[],c:[]};surfaces.set(key,b);}
     for(const k of points.length===3?[0,1,2]:[0,1,2,0,2,3]){
       b.p.push(...points[k]);b.uv.push(...uv[k]);b.c.push(color.r,color.g,color.b);
